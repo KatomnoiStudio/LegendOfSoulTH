@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/GameTurnBase`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T00:20:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **Last Updated**: 2026-08-06T00:50:00+07:00 by `Claude Code (HetCreep Agent)`  
 > **RULES_VERSION: 2** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
@@ -106,12 +106,19 @@
     - `.agents/rules/pre-push-sync-law.md` (new) — turns the procedure from item 10 into a binding rule for every machine (Ring 0 included, since this is code hygiene not an authority question): `fetch` → check ahead/behind → merge if behind → resolve conflicts **by hand, preserving both sides' work** (never blind `--ours`/`--theirs`, never silently drop the other side's committed changes) → full `typecheck && lint && test && build` green → only then push.
     - `AGENTS.md` — mandate #7 added, `RULES_VERSION` bumped 1→2.
 
+12. **CI cleanup + broken images fixed live** (2026-08-06):
+    - **Gitleaks license paywall**: `gitleaks/gitleaks-action@v2` requires a paid `GITLEAKS_LICENSE` for org-owned repos (this repo is under `LegendofSoulTH`) — every run had been failing on this since the action was first added, unrelated to any code. Fixed by running the free/OSS `gitleaks` CLI directly (`.github/workflows/security-scan.yml`: download `v8.30.1` linux_x64, checksum-verified, `gitleaks detect`) instead of the Action wrapper. Confirmed green.
+    - `.coalmine.json` (new, project-level) — `scanExcludePaths` keeps rot-canary's auto-scan budget off pure docs (`**/*.md`, `.agents/rules/**`) and `.github/**`.
+    - **`paths-ignore` added to `ci.yml`/`codeql.yml`/`deploy.yml`** (docs/rules/`.coalmine.json` changes no longer burn a build+typecheck+lint+test+deploy cycle) — deliberately **not** added to `security-scan.yml`, since gitleaks needs to scan docs too (a secret pasted into a `.md` file is still a leak).
+    - **Broken images fixed (live, user-reported via screenshot)**: `url('/ui/...')` in CSS and `<img src="/ui/...">` in JSX resolve against the domain root, not the app base — fine in dev (`base: '/'`) but 404 once built for GitHub Pages (`base: '/GameTurnBase/'`). Every background/icon image on the deployed site was broken. Added `src/lib/publicUrl.ts` (prefixes with `import.meta.env.BASE_URL`, the Vite-documented fix) and applied it at all 12 call sites across `WukongAdventure`, `LobbyScene`, `StartAdventure`, `TopBar`, `TitlePage`, `SideActions` (CSS backgrounds via inline `--custom-property` style props, `<img>` tags directly). Verified against the live deployed bundle (`GameTurnBase` prefix + path segments both present) after redeploy.
+    - Full verify (`typecheck && lint && test && build`) green before every push in this batch, per the Pre-Push Sync Law above. rot-canary QUICK on the touched files: no CONFIRMED findings.
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
 
-- **Repo Status**: 🟢 Clean & Synced (`origin/master`) — working tree matches `HEAD` after merge, no pending changes
-- **CI Pipelines**: 🟢 Passing (Typecheck 0 errors, Lint 0 errors, Test 5/5, Build clean) — re-verified after merge
+- **Repo Status**: 🟢 Clean & Synced (`origin/master` @ `b93b025`)
+- **CI Pipelines**: 🟢 All green (Build/Typecheck/Lint, CodeQL, Security & Secret Scan, Deploy) — Gitleaks license-paywall failure fixed (item 12)
 - **Security & Protection**: 🛡️ 100% Enabled & Monitored (CodeQL + Dependabot + Secret Scanning + Gitleaks + NPM Audit)
 - **Deployment**: 🟢 Live on GitHub Pages — https://legendofsoulth.github.io/GameTurnBase/
 - **Remote check**: `git remote -v` on this machine correctly points `origin` at `https://github.com/LegendofSoulTH/GameTurnBase.git` — the "remote mismatch" flagged in the prior concurrent session's notes was local to that machine/clone (remote URLs are per-clone git config, never part of repo content) and doesn't apply here; no action needed on this machine.
