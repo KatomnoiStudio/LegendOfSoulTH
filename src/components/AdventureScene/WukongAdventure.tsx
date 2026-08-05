@@ -269,7 +269,10 @@ export function WukongAdventure({ onExit, mode = 'trial', characters }: WukongAd
     })
     observer.observe(el)
     return () => observer.disconnect()
-  }, [])
+    // active?.id (ไม่ใช่ []): ตอน mount แรก active อาจยังเป็น undefined (ยังไม่มีขุนพลที่มีชุดเฟรมเดิน)
+    // ซึ่ง branch นั้นไม่มี ref เลย พอ active มีค่าทีหลังในเซสชันเดียวกัน (component ไม่ unmount)
+    // ต้อง re-run effect นี้เพื่อ attach ref เข้ากับ <section> จริงที่เพิ่งขึ้น
+  }, [active?.id])
 
   // โหลดเฟรมของตัวที่กำลังใช้ล่วงหน้า เพื่อไม่ให้ภาพกระพริบตอนเริ่มเดิน
   const allFrames = useMemo(() => {
