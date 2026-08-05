@@ -68,12 +68,17 @@ export function TopBar({ player, onOpenProfile, onTopUpGems }: TopBarProps) {
 
       <div className={styles.wallet}>
         <span className={styles.walletLabel}>คลังสมบัติ</span>
-        {/* ทองไม่มีปุ่มเติม — ได้จากการเล่น (ทำเควสสำเร็จ/ของดรอป) เท่านั้น กดเพิ่มเองไม่ได้ */}
+        {/*
+          กด "+" ที่ทองไม่ได้เพิ่มทองตรง ๆ (ทองมาจากเควส/ของดรอปเท่านั้น) แค่พาไปหน้าเติมเงิน
+          เหมือนปุ่ม "+" ของหยก — ใช้ modal เดียวกัน เพราะเป็นทางเข้าซื้อของจริงทางเดียวที่มี
+        */}
         <CurrencyPill
           tone={styles.gold}
           icon={<img className={styles.currencyIcon} src="/ui/thai/gold-ingot.png" alt="" draggable={false} />}
           label="ทอง"
           value={player.currency.gold}
+          addLabel="ไปหน้าเติมเงิน"
+          onAdd={() => setGemShopOpen(true)}
         />
         <CurrencyPill
           tone={styles.gem}
