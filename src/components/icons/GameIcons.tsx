@@ -334,6 +334,22 @@ export function AddFriendIcon(props: IconProps) {
   )
 }
 
+/** ถุงย่ามคาดเชือก — เมนูไอเทม */
+export function ItemBagIcon(props: IconProps) {
+  return (
+    <Svg strokeWidth={1.35} {...props}>
+      <path
+        d="M5.6 8.4h12.8l1.1 10.2a2 2 0 0 1-2 2.2H6.5a2 2 0 0 1-2-2.2z"
+        fill="currentColor"
+        fillOpacity="0.2"
+      />
+      <path d="M8.6 8.4V6.6a3.4 3.4 0 0 1 6.8 0v1.8" />
+      <path d="M4.4 11.4h15.2" />
+      <path d="M12 13.6v3.4M10.3 15.3h3.4" />
+    </Svg>
+  )
+}
+
 /** วงกลมมีเส้นทแยงตัด — บล็อคผู้เล่น */
 export function BlockIcon(props: IconProps) {
   return (

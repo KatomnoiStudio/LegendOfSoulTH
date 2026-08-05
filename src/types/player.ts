@@ -17,6 +17,15 @@ export interface OwnedCharacter {
   obtainedAt: string
 }
 
+/** ไอเทมหนึ่งช่องในกระเป๋าผู้เล่น — itemId ต้องมีอยู่ใน ITEMS (ดู src/game/items.ts) */
+export interface InventoryItem {
+  itemId: string
+  quantity: number
+  obtainedAt: string
+  /** ได้มาจากไหนครั้งแรก ('quest' | 'drop') — ตรวจสอบที่มาได้เหมือนทอง/หยก */
+  obtainedFrom: string
+}
+
 export interface Player {
   id: string
   /**
@@ -35,6 +44,12 @@ export interface Player {
   currency: PlayerCurrency
   /** รายการตัวละครของบัญชีผู้เล่น ไม่ใช่รายชื่อตัวละครทั้งหมดในเกม */
   ownedCharacters: OwnedCharacter[]
+  /**
+   * กระเป๋าไอเทมของผู้เล่น
+   * บัญชีเก่าที่สมัครก่อนมีระบบไอเทมจะไม่มีฟิลด์นี้ใน localStorage — อ่านค่าผ่าน
+   * `player.inventory ?? []` เสมอ (ดู normalizePlayer ใน accountRepository.ts)
+   */
+  inventory: InventoryItem[]
   /**
    * ผังทีมในลานประลอง ยาว TEAM_SIZE (4) เสมอ — null คือช่องว่าง
    * เก็บเป็น characterId ที่ต้องมีอยู่ใน ownedCharacters (ดู src/game/team.ts)
