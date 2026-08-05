@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/GameTurnBase`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T02:35:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **Last Updated**: 2026-08-06T02:42:00+07:00 by `Claude Code (HetCreep Agent)`  
 > **RULES_VERSION: 4** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
@@ -157,11 +157,17 @@
     - **Testing caveat**: browser-verified via `mcp__Claude_Browser__*` at 1280×720/768×1024/390×844 using layout-level checks (`getBoundingClientRect` overflow scan) rather than screenshots — the Browser pane was not displayed on HetCreep's end this session, so the tab's compositor was suspended (`screenshot` tool errored "page is not compositing frames"). Confirmed real: the TopBar/SideActions `min-width:0` fix (plain grid/flex layout, verified reproducibly across two reloads). **Not independently visually confirmed**: the WukongAdventure fix and a possible pre-existing `MainNavigation` bottom-nav label/icon width squeeze at ≤390px screens (labels are `white-space:nowrap` with no max-width, several run 40–50px wide against a 36–40px icon column at the narrowest breakpoint) — CSS `vw`-unit recalculation was observed returning stale values in this suspended-compositor state (`calc(100vw - 20px)` resolved against a previous viewport size, not the current one), so numbers from that probe aren't trustworthy. Worth a follow-up visual pass with the Browser pane actually open, or in a real device/browser.
     - Full verify green: `npm run typecheck && npm run lint && npm run test && npm run build`.
 
+21. **rot-canary follow-up fix on the letterbox commit** (2026-08-06): auto QUICK scan on the touched files caught a real bug in the item-20 `WukongAdventure` fix — the `useLayoutEffect` measuring `.scene` size had `deps=[]` (mount-only). The "no walkable character yet" fallback branch renders a `<section>` with no `ref` at all; if that's the state on first mount, the effect returns early and never re-runs once a walkable character shows up later in the same session (component doesn't unmount), leaving `sceneSize` stuck at the `1600×900` default forever and reproducing the exact off-screen-character bug item 20 fixed. Fixed by keying the effect on `active?.id` so it re-attaches when the ref-bearing branch mounts. HetCreep approved via the "apply safe fix" menu.
+
+22. **Modal background unification** (2026-08-06): `ProfileModal`/`ItemsModal`/`SettingsModal`/`AddFriendModal` were still on an older flat navy "arcane-blue" panel (rounded rect, single linear gradient, blue header glow) while `CharacterRosterModal`/`AuthModal`/`NameModal`/`GemShopModal` already use the game's actual Thai-temple gold-panel language (clip-path corner-cut shell, dark teal/maroon layered gradient, gold border) — a half-migrated design system HetCreep noticed side-by-side in two screenshots. Reused `CharacterRosterModal`'s exact `.backdrop` values and the compact-dialog shell proportions `AuthModal`/`NameModal` already established (20px clip-path corners) rather than inventing new numbers. Scope: shell/backdrop background only — inner content-card accents (info banners, steppers, etc) intentionally untouched.
+
+23. **Version sync + first tagged release** (2026-08-06): `package.json` was still the untouched Vite scaffold default (`0.0.0`) while `src/game/gameInfo.ts` (the actual source behind the in-game Settings version badge) had been `0.1.0` — no GitHub release/tag existed yet to sync against (`gh release list`/`gh api .../tags` both empty). HetCreep chose to fix the internal mismatch (`package.json` → `0.1.0`, `package-lock.json` regenerated via `npm install`) rather than tag first, then separately asked to cut the tag: `v0.1.0` annotated tag + [GitHub Release](https://github.com/LegendofSoulTH/GameTurnBase/releases/tag/v0.1.0) created and pushed. Same session, HetCreep also spotted `SettingsModal`'s info panel showing `ROSTER.length` ("ตัวละครในเกม" — total characters that exist in the game, 3) right next to `CharacterRosterModal`'s `player.ownedCharacters.length` ("ครอบครองแล้ว" — owned, 1) — two different-by-design stats that read as a bug side by side. HetCreep chose to make `SettingsModal` show the owned count instead (relabeled "ตัวละครที่ครอบครอง", wired through a new `ownedCharacterCount` prop from `LobbyPage`'s existing `ownedCharacters` memo) rather than keep them as distinct stats.
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
 
-- **Repo Status**: 🟢 Clean & Synced (`origin/master` @ `b93b025`)
+- **Repo Status**: 🟢 Clean & Synced (`origin/master` @ `970beb6`, tagged `v0.1.0`)
 - **CI Pipelines**: 🟢 All green (Build/Typecheck/Lint, CodeQL, Security & Secret Scan, Deploy) — Gitleaks license-paywall failure fixed (item 12)
 - **Security & Protection**: 🛡️ 100% Enabled & Monitored (CodeQL + Dependabot + Secret Scanning + Gitleaks + NPM Audit)
 - **Deployment**: 🟢 Live on GitHub Pages — https://legendofsoulth.github.io/GameTurnBase/
