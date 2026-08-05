@@ -12,7 +12,7 @@ import { SideActions } from '../components/SideActions/SideActions'
 import { StartAdventure } from '../components/StartAdventure/StartAdventure'
 import { TopBar } from '../components/TopBar/TopBar'
 import { MOCK_BADGES } from '../data/mockPlayer'
-import type { CurrencyResult, GoldSource } from '../data/accountRepository'
+import type { CurrencyResult } from '../data/accountRepository'
 import type { Player } from '../types/player'
 import styles from './LobbyPage.module.css'
 
@@ -27,8 +27,6 @@ interface LobbyPageProps {
   /** บันทึกความคืบหน้ากลับลงฐานข้อมูล */
   onPlayerChange: (next: Player) => Promise<void>
   onLogout: () => Promise<void>
-  /** ให้ทองจากการเล่นเท่านั้น — ทำเควสสำเร็จหรือของดรอป */
-  onEarnGold: (source: GoldSource, amount: number, refId?: string) => Promise<CurrencyResult>
   /** เติมหยกด้วยเงินจริง */
   onTopUpGems: (packageId: string) => Promise<CurrencyResult>
   /** แลกโค้ดคูปองเป็นหยก */
@@ -38,7 +36,6 @@ interface LobbyPageProps {
 export function LobbyPage({
   player,
   onLogout,
-  onEarnGold,
   onTopUpGems,
   onRedeemCoupon,
 }: LobbyPageProps) {
@@ -86,7 +83,6 @@ export function LobbyPage({
       <TopBar
         player={player}
         onOpenProfile={() => setProfileOpen(true)}
-        onEarnGold={onEarnGold}
         onTopUpGems={onTopUpGems}
       />
 
