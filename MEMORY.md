@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/GameTurnBase`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-05T22:24:00+07:00 by `Antigravity AI (HetCreep Agent)`
+> **Last Updated**: 2026-08-05T22:26:00+07:00 by `Antigravity AI (HetCreep Agent)`
 
 ---
 
@@ -41,13 +41,17 @@
    - Full GitHub Security suite enabled at `https://github.com/LegendofSoulTH/GameTurnBase/security`.
    - Active: Dependabot Alerts, Automated Security Updates, Secret Scanning, and CodeQL Vulnerability Analysis.
 
+5. **Automated Security Workflows**:
+   - Added `.github/workflows/security-scan.yml` (Gitleaks secret leak detection + daily NPM audit).
+   - Added `"audit": "npm audit --audit-level=high"` script to `package.json`.
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
 
 - **Repo Status**: 🟢 Clean & Synced (`origin/master`)
 - **CI Pipelines**: 🟢 Passing (Typecheck 0 errors, Lint 0 errors, Build clean)
-- **Security & Protection**: 🛡️ 100% Enabled & Monitored (CodeQL + Dependabot + Secret Scanning)
+- **Security & Protection**: 🛡️ 100% Enabled & Monitored (CodeQL + Dependabot + Secret Scanning + Gitleaks + NPM Audit)
 - **Deployment**: Configured for GitHub Pages (`/GameTurnBase/`)
 
 ---
