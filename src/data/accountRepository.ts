@@ -289,6 +289,29 @@ export async function getSessionPlayer(): Promise<Player | null> {
   return normalizePlayer(account.player)
 }
 
+export interface FriendCandidate {
+  uid: string
+  name: string
+  level: number
+  title: string
+}
+
+/**
+ * ค้นหาผู้เล่นจาก UID เพื่อเพิ่มเป็นเพื่อน — ใช้ UID เท่านั้น ไม่ใช้ชื่อ/อีเมล
+ * (กันเดาชื่อคนอื่นมั่ว ๆ และไม่เปิดเผยอีเมลของเจ้าของบัญชี)
+ *
+ * ข้อจำกัดของ localStorage: หาเจอเฉพาะบัญชีที่เคยสมัครบนเบราว์เซอร์นี้เครื่องเดียวกัน
+ * เท่านั้น (ยังไม่มีฐานข้อมูลกลางให้ค้นข้ามเครื่อง) — ดูหมายเหตุหัวไฟล์
+ */
+export async function findPlayerByUid(uid: string): Promise<FriendCandidate | null> {
+  const db = loadDb()
+  const entry = findAccountEntry(db, uid)
+  if (!entry) return null
+
+  const { player } = entry[1]
+  return { uid: player.uid, name: player.name, level: player.level, title: player.title }
+}
+
 /** บันทึกความคืบหน้าของผู้เล่นกลับลงฐานข้อมูล */
 export async function savePlayer(player: Player): Promise<boolean> {
   const db = loadDb()

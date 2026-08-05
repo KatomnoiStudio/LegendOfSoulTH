@@ -79,7 +79,7 @@
   align-items: center;
   gap: 9px;
   font-family: var(--font-display);
-  font-size: 0.68rem;
+  font-size: 1.03rem;
   font-weight: 800;
   letter-spacing: 0.2em;
   color: rgb(245 205 112 / 92%);
@@ -99,49 +99,42 @@
   margin: 0;
 }
 
+/*
+   ไม่มีหลอดแล้ว — ตัวเลขอยู่ติดกับชื่อค่าเลย ไม่ดันไปชิดขอบขวา
+   (คอลัมน์ชื่อกว้างคงที่ ตัวเลขจึงเรียงตรงกันทุกแถว และยังมีที่ว่างด้านขวา
+   รองรับค่าสถานะที่จะยาวขึ้นในอนาคตโดยไม่ต้องรื้อ layout)
+*/
 .statRow {
   display: grid;
-  grid-template-columns: 74px 1fr 40px;
-  align-items: center;
-  gap: 10px;
+  grid-template-columns: 7.9rem auto;
+  justify-content: start;
+  align-items: baseline;
+  gap: 14px;
 }
 
 .statLabel {
-  font-size: 0.72rem;
-  color: rgb(214 224 216 / 76%);
-}
-
-.statTrack {
-  position: relative;
-  height: 9px;
-  border: 1px solid rgb(223 181 89 / 32%);
-  clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%);
-  background: rgb(2 9 16 / 88%);
-  overflow: hidden;
-}
-
-.statFill {
-  height: 100%;
-  background: linear-gradient(90deg, #3da889, #81dfbf 62%, #f2cf78);
-  box-shadow: 0 0 9px rgb(92 211 170 / 45%);
-  transition: width 520ms cubic-bezier(.2, .8, .2, 1);
+  font-size: 1.06rem;
+  color: rgb(214 224 216 / 82%);
+  white-space: nowrap;
 }
 
 .statValue {
+  margin: 0;
   font-family: var(--font-display);
-  font-size: 0.82rem;
+  font-size: 1.2rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
-  text-align: end;
   color: #f2e2b6;
 }
 
 /* ---------- แถบ EXP ---------- */
+/* แถวนี้กับหลอดด้านล่างแคบลง 10% เท่ากัน ปลายขวาของ "0 / 500" จึงยังตรงกับปลายหลอดพอดี */
 .expHead {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  font-size: 0.68rem;
+  width: 90%;
+  font-size: 1.07rem;
   color: rgb(214 224 216 / 72%);
 }
 
@@ -152,10 +145,11 @@
 
 .expTrack {
   position: relative;
-  height: 12px;
-  margin-block-start: 5px;
+  /* สูงขึ้นตามข้อความที่ใหญ่ขึ้น ให้สัดส่วนยังดูเข้าชุดกัน */
+  height: 14px;
+  width: 90%;
+  margin-block-start: 6px;
   border: 1px solid rgb(241 195 80 / 52%);
-  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
   background: rgb(25 7 14 / 88%);
   overflow: hidden;
 }
@@ -254,7 +248,9 @@
     font-size: 0.72rem;
   }
 
-  .statRow {
-    grid-template-columns: 62px 1fr 34px;
-  }
+  /* ฟอนต์เล็กลงบนจอแคบ คอลัมน์ชื่อค่าจึงแคบตามได้ */
+  .statRow { grid-template-columns: 7rem auto; gap: 12px; }
+  .statLabel { font-size: 0.94rem; }
+  .statValue { font-size: 1.06rem; }
+  .sectionTitle { font-size: 0.91rem; }
 }

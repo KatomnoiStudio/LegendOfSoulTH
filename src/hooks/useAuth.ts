@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import * as accounts from '../data/accountRepository'
-import type { CurrencyResult, GoldSource } from '../data/accountRepository'
+import type { CurrencyResult, FriendCandidate, GoldSource } from '../data/accountRepository'
 import type { Player } from '../types/player'
 
 /**
@@ -27,6 +27,8 @@ export interface AuthState {
   topUpGems: (packageId: string) => Promise<CurrencyResult>
   /** แลกโค้ดคูปองเป็นหยก (ดู accountRepository.redeemCoupon) */
   redeemCoupon: (code: string) => Promise<CurrencyResult>
+  /** ค้นหาผู้เล่นจาก UID เพื่อเพิ่มเพื่อน — คืน null ถ้าไม่พบ (ดู accountRepository.findPlayerByUid) */
+  findFriendByUid: (uid: string) => Promise<FriendCandidate | null>
 }
 
 export function useAuth(): AuthState {
@@ -110,5 +112,19 @@ export function useAuth(): AuthState {
     [player],
   )
 
-  return { status, player, register, login, logout, updatePlayer, earnGold, topUpGems, redeemCoupon }
+  /** ค้นหาไม่ต้องล็อกอินก็เรียกได้จริง แต่ล็อกไว้เผื่อผู้เล่นเรียกจากหน้าที่ต้องล็อกอินก่อนเสมออยู่แล้ว */
+  const findFriendByUid = useCallback(async (uid: string) => accounts.findPlayerByUid(uid), [])
+
+  return {
+    status,
+    player,
+    register,
+    login,
+    logout,
+    updatePlayer,
+    earnGold,
+    topUpGems,
+    redeemCoupon,
+    findFriendByUid,
+  }
 }

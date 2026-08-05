@@ -16,7 +16,10 @@ import type { CharacterModelKind } from './characters'
  */
 
 export interface WalkKit {
-  /** พาธนำหน้าไฟล์เดิน เช่น '/characters/walk/monkey-walk' — null คือยังไม่มี */
+  /**
+   * พาธนำหน้าไฟล์เดิน — null คือยังไม่มี
+   * ทุกพาธในไฟล์นี้ผ่าน publicUrl() แล้ว (ดู src/lib/publicUrl.ts) ผู้เรียกจึงต่อท้ายได้เลย
+   */
   walkPrefix: string | null
   /** พาธนำหน้าไฟล์หันทิศ 8 ทิศ (มีครบทุกตัว) */
   turnPrefix: string

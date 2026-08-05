@@ -26,7 +26,7 @@ export function CharacterCard({ character, selected, onSelect }: CharacterCardPr
       className={styles.card}
       style={style}
       aria-pressed={selected}
-      aria-label={`${character.name} เลเวล ${character.level} ระดับ${RARITY_LABEL[character.rarity]} ธาตุ${character.element} ${character.role}`}
+      aria-label={`${character.name} เลเวล ${character.level} ระดับ${RARITY_LABEL[character.rarity]} ธาตุ${character.element}`}
       onClick={() => onSelect(character.id)}
     >
       <span className={styles.portrait}>
@@ -40,10 +40,10 @@ export function CharacterCard({ character, selected, onSelect }: CharacterCardPr
           <span className={styles.level}>Lv.{character.level}</span>
         </span>
 
+        {/* บทบาท (นักรบกองหน้า ฯลฯ) ไม่แสดงบนการ์ด — ดูได้จากแผงรายละเอียดด้านขวา */}
         <span className={styles.tags}>
           <span className={`${styles.tag} ${styles.tagRarity}`}>{RARITY_LABEL[character.rarity]}</span>
           <span className={styles.tag}>ธาตุ{character.element}</span>
-          <span className={styles.tag}>{character.role}</span>
         </span>
       </span>
     </button>

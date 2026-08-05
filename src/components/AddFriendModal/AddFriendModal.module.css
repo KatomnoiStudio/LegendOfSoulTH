@@ -1,0 +1,311 @@
+/* หน้าต่างนี้ใช้ token/โครงเดียวกับ SettingsModal (backdrop/dialog/header/panel)
+   เพื่อให้หน้าตาเป็นชุดเดียวกัน ตามที่ตั้งใจไว้ */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  display: grid;
+  place-items: center;
+  padding: var(--sp-4);
+  background: rgb(3 4 10 / 72%);
+  backdrop-filter: blur(6px);
+  animation: fade-in var(--dur-mid) var(--ease-out) both;
+}
+
+.dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 26rem);
+  /* ต้องสูงพอให้ .panel (min-height 30rem) + header + แถบแท็บ อยู่ครบโดยไม่ถูกบีบจนต้องเลื่อน */
+  max-height: min(88%, 40rem);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: linear-gradient(160deg, rgb(26 32 60 / 97%), rgb(11 14 30 / 99%));
+  box-shadow: var(--shadow-3), inset 0 1px 0 rgb(255 255 255 / 12%);
+  overflow: hidden;
+  animation: dialog-in var(--dur-mid) var(--ease-bounce) both;
+}
+
+.header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-5) var(--sp-5) var(--sp-4);
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+  background: radial-gradient(ellipse 70% 100% at 20% 0%, rgb(109 140 255 / 18%), transparent 70%);
+}
+
+.headerIcon {
+  width: 1.6rem;
+  height: 1.6rem;
+  color: var(--c-gold);
+}
+
+.headerTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--c-bone);
+}
+
+.close {
+  position: absolute;
+  inset-block-start: var(--sp-3);
+  inset-inline-end: var(--sp-3);
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  color: var(--c-text-dim);
+  font-size: 1.3rem;
+  line-height: 1;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.close:hover {
+  color: var(--c-bone);
+  background: rgb(255 255 255 / 12%);
+}
+
+/* แถบแท็บ — ตอนนี้มีแท็บเดียว (เพิ่มเพื่อน) ใส่ไว้ให้โครงหน้าต่างเหมือน SettingsModal
+   และรองรับแท็บเพิ่มเติมในอนาคต (เช่น รายชื่อเพื่อน) โดยไม่ต้องปรับโครงใหม่ */
+.tabs {
+  display: flex;
+  gap: var(--sp-1);
+  padding: var(--sp-3) var(--sp-5) 0;
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  color: var(--c-text-dim);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.tab[aria-selected='true'] {
+  color: var(--c-gold);
+}
+
+.tab[aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  inset-block-end: -1px;
+  inset-inline: var(--sp-2);
+  height: 2px;
+  border-radius: var(--r-pill);
+  background: var(--c-gold);
+  box-shadow: var(--glow-gold);
+}
+
+.tab svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: none;
+}
+
+/* กรอบการ์ดแยกที่ครอบเนื้อหาทั้งหมดของแท็บไว้ (ช่องค้นหา + ผลลัพธ์) ให้เห็นเป็น block ชัดเจน
+   แยกจากพื้นหลัง dialog เปล่า ๆ */
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-4);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: rgb(255 255 255 / 4%);
+}
+
+/* ความสูงคงที่ไว้ก่อน กันไม่ให้หน้าต่างเปลี่ยนขนาดเวลาสลับไปแท็บที่ยังไม่มีข้อมูล
+   (รายชื่อเพื่อน/บล็อค) เทียบกับแท็บเพิ่มเพื่อนที่มีฟอร์มเต็ม ๆ */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-height: 30rem;
+  padding: var(--sp-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: panel-in var(--dur-mid) var(--ease-out) both;
+}
+
+/* ---------- ช่องค้นหาด้วย UID ---------- */
+.searchForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.searchLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--c-arcane-light);
+}
+
+.searchInput {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--c-border-arcane);
+  border-radius: var(--r-md);
+  background: rgb(0 0 0 / 45%);
+  color: var(--c-bone);
+  font: inherit;
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+  font-variant-numeric: tabular-nums;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.searchInput::placeholder {
+  letter-spacing: normal;
+  color: var(--c-text-dim);
+  opacity: 0.7;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--c-gold);
+  box-shadow: var(--glow-gold);
+}
+
+.searchHint {
+  font-size: 0.68rem;
+  color: var(--c-text-dim);
+}
+
+.searchButton {
+  margin-block-start: var(--sp-1);
+  padding: var(--sp-3) var(--sp-5);
+  border: 2px solid var(--c-gold-light);
+  border-radius: var(--r-pill);
+  background: linear-gradient(180deg, #f7c94e 0%, var(--c-gold) 45%, var(--c-gold-deep) 100%);
+  color: #2b1a05;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  box-shadow: var(--shadow-2), inset 0 2px 0 rgb(255 255 255 / 55%), inset 0 -3px 0 rgb(0 0 0 / 25%);
+  transition: transform var(--dur-fast) var(--ease-bounce), box-shadow var(--dur-fast) var(--ease-out), filter var(--dur-fast) var(--ease-out);
+}
+
+.searchButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-3), 0 0 30px rgb(242 181 44 / 50%);
+}
+
+.searchButton:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+}
+
+.searchButton:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.7) brightness(0.7);
+}
+
+/* ---------- ผลการค้นหา ---------- */
+.resultCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: rgb(255 255 255 / 4%);
+  animation: panel-in var(--dur-mid) var(--ease-out) both;
+}
+
+.resultInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.resultName {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--c-bone);
+}
+
+.resultMeta {
+  font-size: 0.72rem;
+  color: var(--c-text-dim);
+}
+
+.resultUid {
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-gold);
+}
+
+.addButton {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: none;
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--c-border-arcane);
+  border-radius: var(--r-pill);
+  background: rgb(109 140 255 / 14%);
+  color: var(--c-arcane-light);
+  font-size: 0.78rem;
+  font-weight: 700;
+  transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-bounce);
+}
+
+.addButton:hover {
+  background: rgb(109 140 255 / 26%);
+  box-shadow: var(--glow-arcane);
+}
+
+.addButton:active {
+  transform: scale(0.96);
+}
+
+.addButton svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.notFound {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid color-mix(in srgb, var(--c-danger) 45%, transparent);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--c-danger) 10%, transparent);
+  color: #ffb3a6;
+  font-size: 0.78rem;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(24px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 720px) {
+  .backdrop { padding: var(--sp-2); }
+  .dialog { max-height: 92%; }
+  .header,
+  .panel { padding: var(--sp-4); }
+}

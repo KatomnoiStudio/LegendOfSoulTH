@@ -9,9 +9,6 @@ import { clampRatio, formatNumber } from '../../lib/format'
 import { useToast } from '../Toast/useToast'
 import styles from './CharacterStats.module.css'
 
-/** เพดานอ้างอิงของค่าสถานะ ใช้คำนวณความยาวแถบให้เทียบกันได้ระหว่างตัวละคร */
-const STAT_MAX = 120
-
 interface CharacterStatsProps {
   character: Character
 }
@@ -23,7 +20,9 @@ export function CharacterStats({ character }: CharacterStatsProps) {
   const style = { '--rarity-color': RARITY_COLOR[character.rarity] } as CSSProperties
   const expRatio = clampRatio(character.exp, character.expToNext)
 
+  // แสดงเป็นตัวเลขล้วน ไม่มีหลอด — หลอดกินพื้นที่จนเลขถูกบีบ (โดยเฉพาะ HP ที่เป็นเลข 4 หลัก)
   const stats: { label: string; value: number }[] = [
+    { label: 'พลังชีวิต', value: character.stats.hp },
     { label: 'พลังโจมตี', value: character.stats.atk },
     { label: 'พลังป้องกัน', value: character.stats.def },
     { label: 'ความเร็ว', value: character.stats.spd },
@@ -53,20 +52,7 @@ export function CharacterStats({ character }: CharacterStatsProps) {
           {stats.map((stat) => (
             <div key={stat.label} className={styles.statRow}>
               <dt className={styles.statLabel}>{stat.label}</dt>
-              <dd
-                className={styles.statTrack}
-                role="meter"
-                aria-label={stat.label}
-                aria-valuemin={0}
-                aria-valuemax={STAT_MAX}
-                aria-valuenow={stat.value}
-              >
-                <div
-                  className={styles.statFill}
-                  style={{ width: `${clampRatio(stat.value, STAT_MAX) * 100}%` }}
-                />
-              </dd>
-              <dd className={styles.statValue}>{stat.value}</dd>
+              <dd className={styles.statValue}>{formatNumber(stat.value)}</dd>
             </div>
           ))}
         </dl>

@@ -1,5 +1,6 @@
 import { Suspense, lazy, useMemo, useState } from 'react'
 import { getCharacter } from '../game/characters'
+import { AddFriendModal } from '../components/AddFriendModal/AddFriendModal'
 import { WukongAdventure } from '../components/AdventureScene/WukongAdventure'
 import { GameExplorationSession } from '../components/GameExplorationSession/GameExplorationSession'
 import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRosterModal'
@@ -13,7 +14,7 @@ import { SideActions } from '../components/SideActions/SideActions'
 import { StartAdventure } from '../components/StartAdventure/StartAdventure'
 import { TopBar } from '../components/TopBar/TopBar'
 import { MOCK_BADGES } from '../data/mockPlayer'
-import type { CurrencyResult } from '../data/accountRepository'
+import type { CurrencyResult, FriendCandidate } from '../data/accountRepository'
 import type { Player } from '../types/player'
 import styles from './LobbyPage.module.css'
 
@@ -32,6 +33,8 @@ interface LobbyPageProps {
   onTopUpGems: (packageId: string) => Promise<CurrencyResult>
   /** แลกโค้ดคูปองเป็นหยก */
   onRedeemCoupon: (code: string) => Promise<CurrencyResult>
+  /** ค้นหาผู้เล่นจาก UID เพื่อเพิ่มเพื่อน */
+  onFindFriend: (uid: string) => Promise<FriendCandidate | null>
 }
 
 export function LobbyPage({
@@ -40,6 +43,7 @@ export function LobbyPage({
   onLogout,
   onTopUpGems,
   onRedeemCoupon,
+  onFindFriend,
 }: LobbyPageProps) {
   // แจ้งเตือนจดหมาย/ภารกิจยังเป็น mock เพราะยังไม่มีระบบทั้งสองอย่าง
   const badges = MOCK_BADGES
@@ -64,6 +68,7 @@ export function LobbyPage({
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [rosterOpen, setRosterOpen] = useState(false)
   const [explorationOpen, setExplorationOpen] = useState(false)
+  const [addFriendOpen, setAddFriendOpen] = useState(false)
   // เก็บค่าเสียงไว้ที่นี่เพื่อให้ค่าคงอยู่หลังปิดหน้าต่างตั้งค่า
   const [audio, setAudio] = useState<AudioSettings>({
     master: 70,
@@ -89,7 +94,11 @@ export function LobbyPage({
       />
 
       <div className={styles.stage}>
-        <SideActions badges={badges} onOpenSettings={() => setSettingsOpen(true)} />
+        <SideActions
+          badges={badges}
+          onOpenSettings={() => setSettingsOpen(true)}
+          onOpenAddFriend={() => setAddFriendOpen(true)}
+        />
       </div>
 
       <div className={styles.startRow}>
@@ -120,6 +129,10 @@ export function LobbyPage({
       {rosterOpen ? <CharacterRosterModal player={player} onClose={() => setRosterOpen(false)} /> : null}
 
       {profileOpen ? <ProfileModal player={player} onClose={() => setProfileOpen(false)} /> : null}
+
+      {addFriendOpen ? (
+        <AddFriendModal onSearch={onFindFriend} onClose={() => setAddFriendOpen(false)} />
+      ) : null}
 
       {settingsOpen ? (
         <SettingsModal

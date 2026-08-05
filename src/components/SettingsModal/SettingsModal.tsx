@@ -61,7 +61,13 @@ interface SettingsModalProps {
  * ค่าเสียงถูกยกไปเก็บที่ LobbyPage เพื่อให้ค่าคงอยู่เมื่อปิดแล้วเปิดใหม่
  * และพร้อมส่งต่อให้ระบบเสียงจริงเมื่อมีการเชื่อมต่อ
  */
-export function SettingsModal({ audio, onAudioChange, onLogout, onRedeemCoupon, onClose }: SettingsModalProps) {
+export function SettingsModal({
+  audio,
+  onAudioChange,
+  onLogout,
+  onRedeemCoupon,
+  onClose,
+}: SettingsModalProps) {
   const { showToast } = useToast()
   const [tab, setTab] = useState<TabId>('info')
   const dialogRef = useRef<HTMLDivElement>(null)

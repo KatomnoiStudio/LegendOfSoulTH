@@ -227,9 +227,9 @@
 
 .rosterHint {
   flex: none;
-  font-size: 0.62rem;
+  font-size: 0.81rem;
   letter-spacing: 0.16em;
-  padding-block-end: 7px;
+  padding-block-end: 9px;
   border-block-end: 1px solid rgb(226 183 88 / 18%);
   color: rgb(236 218 168 / 58%);
 }
