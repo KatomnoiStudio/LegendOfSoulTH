@@ -1,186 +1,177 @@
+/*
+  ห้องต่อสู้แบบ top-down real-time
+
+  หลักการวางเลย์เอาต์: ห้องกินพื้นที่เต็มพ่อแม่ ไม่ผูกกับเวที 1600x900 แบบตายตัว
+  เพราะ GameViewport กำลังจะถูกถอดออกในงานแยก (ดู MEMORY.md ข้อ 16) —
+  ถ้าผูกขนาดไว้ที่นี่จะต้องรื้อซ้ำ ระยะขอบจึงเป็น % / clamp() / safe-area ไม่ใช่ px คงที่
+
+  หมายเหตุ: ไฟล์เดิมของหน้านี้ใช้ url('/ui/thai/...') ตรง ๆ ซึ่ง 404 บน GitHub Pages
+  (base เป็น /GameTurnBase/) — เวอร์ชันนี้ไม่มีภาพใน CSS เลย ภาพพื้นห้องไปอยู่ในฉาก
+  three.js ซึ่งโหลดผ่าน publicUrl() แทน
+*/
+
 .scene {
   position: absolute;
   inset: 0;
   z-index: 600;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  padding: var(--sp-4);
-  color: var(--c-text);
-  background:
-    linear-gradient(180deg, rgb(6 10 22 / 92%), rgb(10 16 32 / 96%)),
-    var(--bg-temple) center / cover no-repeat;
+  background: var(--c-void);
+  overflow: hidden;
+  /* กันเบราว์เซอร์ตีความการลากนิ้วเป็นการเลื่อนหน้า/ซูมระหว่างเล่น (§12) */
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
 }
 
-.header {
+.canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+  color: var(--c-text);
+  text-align: center;
+  background: rgb(6 7 13 / 92%);
+}
+
+/* ── HUD ────────────────────────────────────────────────── */
+
+.hud {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  /* ให้คลิกทะลุไปที่ฉากได้ ยกเว้นตัวปุ่มเอง */
+  pointer-events: none;
+  padding:
+    max(var(--sp-3), env(safe-area-inset-top))
+    max(var(--sp-3), env(safe-area-inset-right))
+    max(var(--sp-3), env(safe-area-inset-bottom))
+    max(var(--sp-3), env(safe-area-inset-left));
+}
+
+.hudTop {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.playerVitals {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  padding: var(--sp-2) var(--sp-4);
-  border: 1px solid var(--c-border);
+  gap: var(--sp-2);
+  min-width: min(46%, 320px);
+  padding: var(--sp-2) var(--sp-3);
   border-radius: var(--r-md);
   background: var(--c-panel);
+  border: 1px solid var(--c-border);
 }
 
-.stageName {
-  font-family: var(--font-display);
-  color: var(--c-gold);
-}
-
-.round {
-  color: var(--c-text-dim);
-  font-size: 0.9rem;
-}
-
-.field {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--sp-4);
-}
-
-.rowTitle {
-  margin: 0 0 var(--sp-2);
-  font-size: 0.85rem;
-  color: var(--c-text-dim);
-}
-
-.unitRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-3);
-}
-
-.unitCard {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--sp-1);
-  min-width: 96px;
-  padding: var(--sp-2);
-  border: 1px solid rgb(255 255 255 / 12%);
-  border-radius: var(--r-md);
-  background: rgb(0 0 0 / 28%);
-  color: inherit;
-  transition: transform var(--dur-fast) var(--ease-out), border-color var(--dur-fast);
-}
-
-.unitCard[data-active='true'] {
-  border-color: var(--c-gold);
-  box-shadow: var(--glow-gold);
-}
-
-.unitCard[data-selectable='true']:not(:disabled):hover {
-  transform: translateY(-3px);
-  border-color: var(--c-arcane);
-}
-
-.unitCard[data-defeated='true'] {
-  opacity: 0.35;
-  filter: grayscale(0.8);
-}
-
-.unitSprite {
-  width: 64px;
-  height: 64px;
-  object-fit: contain;
-}
-
-.unitName {
-  font-size: 0.78rem;
+.playerName {
+  font-size: 0.8rem;
   font-weight: 700;
-}
-
-.hpWrap {
-  width: 100%;
+  color: var(--c-gold);
+  white-space: nowrap;
 }
 
 .hpTrack {
-  height: 8px;
+  position: relative;
+  height: 12px;
   border-radius: var(--r-pill);
-  background: rgb(0 0 0 / 45%);
+  background: rgb(255 255 255 / 12%);
   overflow: hidden;
 }
 
 .hpFill {
   height: 100%;
-  transition: width var(--dur-mid) var(--ease-out);
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--c-ember), var(--c-gold));
+  transition: width 120ms linear;
 }
 
 .hpText {
-  font-size: 0.68rem;
-  color: var(--c-text-dim);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text);
+  white-space: nowrap;
 }
 
-.defendTag {
-  font-size: 0.65rem;
-  color: var(--c-arcane-light);
-}
-
-.vs {
-  align-self: center;
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  color: var(--c-ember);
-}
-
-.log {
-  min-height: 4.5rem;
+.stageInfo {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
   padding: var(--sp-2) var(--sp-3);
   border-radius: var(--r-md);
-  background: rgb(0 0 0 / 35%);
-  font-size: 0.82rem;
-}
-
-.log p {
-  margin: 0.15rem 0;
-}
-
-.log p[data-tone='damage'] { color: #ff9b7d; }
-.log p[data-tone='heal'] { color: #7dffb0; }
-.log p[data-tone='buff'] { color: var(--c-arcane-light); }
-
-.actions,
-.result {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--sp-3);
-  padding: var(--sp-3);
-  border-radius: var(--r-md);
   background: var(--c-panel);
+  border: 1px solid var(--c-border-arcane);
+  text-align: center;
 }
 
-.actionBtn,
-.exitBtn,
-.cancelBtn {
-  min-width: 88px;
-  min-height: 44px;
-  padding: var(--sp-2) var(--sp-4);
-  border: 1px solid var(--c-border);
-  border-radius: var(--r-pill);
-  background: linear-gradient(180deg, rgb(240 200 90 / 18%), rgb(20 24 40 / 90%));
-  color: var(--c-gold-light);
+.stageName {
+  font-size: 0.875rem;
   font-weight: 700;
+  color: var(--c-text);
 }
 
-.actionBtn:disabled {
-  opacity: 0.45;
-}
-
-.waiting,
-.prompt {
+.waveText {
+  font-size: 0.75rem;
   color: var(--c-text-dim);
 }
 
-.result strong {
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  color: var(--c-gold);
+.exitBtn {
+  pointer-events: auto;
+  /* เป้าแตะบนมือถือต้องไม่เล็กกว่า 44px (§12, §29) */
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--sp-4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--c-border);
+  background: var(--c-panel-solid);
+  color: var(--c-text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
 }
 
-@media (max-width: 720px) {
-  .unitSprite { width: 52px; height: 52px; }
-  .actions { flex-wrap: wrap; }
+.exitBtn:hover {
+  border-color: var(--c-gold);
+  box-shadow: var(--glow-gold);
+}
+
+.introBanner {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  padding: var(--sp-3) var(--sp-6);
+  border-radius: var(--r-lg);
+  background: rgb(6 7 13 / 72%);
+  border: 1px solid var(--c-border);
+  color: var(--c-gold);
+  font-size: clamp(1.125rem, 3.4vw, 1.875rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  animation: introFade 700ms var(--ease-out) forwards;
+  pointer-events: none;
+}
+
+@keyframes introFade {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+  30% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .introBanner { animation-duration: 1ms; }
+  .hpFill { transition: none; }
 }
