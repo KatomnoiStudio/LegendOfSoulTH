@@ -55,8 +55,9 @@ function playLegendPortalSound() {
 
     void context.resume()
     window.setTimeout(() => void context.close(), 900)
-  } catch {
+  } catch (err) {
     // Web Audio may be unavailable; the visual response still works.
+    console.debug('[TitlePage] Web Audio unavailable', err)
   }
 }
 

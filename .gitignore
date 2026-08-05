@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Agent tool internal state — never shipped, machine-local only
+.claude/coalhearth/
+.claude/coalwash/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
