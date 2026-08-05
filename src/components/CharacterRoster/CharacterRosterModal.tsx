@@ -74,7 +74,7 @@ export function CharacterRosterModal({ player, onClose }: CharacterRosterModalPr
         className={styles.shell}
         role="dialog"
         aria-modal="true"
-        aria-label="ทำเนียบวีรชน"
+        aria-label="ตัวละครทั้งหมดของฉัน"
         tabIndex={-1}
       >
         {(['cornerTl', 'cornerTr', 'cornerBr', 'cornerBl'] as const).map((corner) => (
@@ -89,7 +89,7 @@ export function CharacterRosterModal({ player, onClose }: CharacterRosterModalPr
 
         <header className={styles.header}>
           <div className={styles.headerText}>
-            <h2 className={styles.title}>ทำเนียบวีรชน</h2>
+            <h2 className={styles.title}>ตัวละครทั้งหมดของฉัน</h2>
             <span className={styles.count}>
               ครอบครองแล้ว <span className={styles.countNumber}>{ownedRoster.length}</span> ขุนพล
             </span>
@@ -109,7 +109,7 @@ export function CharacterRosterModal({ player, onClose }: CharacterRosterModalPr
               type="button"
               className={`${styles.toolButton} ${styles.closeButton}`}
               onClick={requestClose}
-              aria-label="ปิดหน้าทำเนียบวีรชน"
+              aria-label="ปิดหน้าตัวละครทั้งหมดของฉัน"
             >
               <CloseIcon />
             </button>

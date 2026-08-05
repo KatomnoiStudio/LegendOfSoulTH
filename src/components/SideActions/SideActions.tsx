@@ -7,6 +7,7 @@ import styles from './SideActions.module.css'
 interface SideActionsProps {
   badges: PlayerBadges
   onOpenSettings: () => void
+  onOpenAddFriend: () => void
 }
 
 interface SideAction {
@@ -17,13 +18,13 @@ interface SideAction {
   onClick: () => void
 }
 
-export function SideActions({ badges, onOpenSettings }: SideActionsProps) {
+export function SideActions({ badges, onOpenSettings, onOpenAddFriend }: SideActionsProps) {
   const { comingSoon } = useToast()
   const actions: SideAction[] = [
     { id: 'settings', label: 'ตั้งค่า', icon: <img src="/ui/thai/settings.png" alt="" draggable={false} />, onClick: onOpenSettings },
     { id: 'mail', label: 'จดหมาย', icon: <img src="/ui/thai/mail.png" alt="" draggable={false} />, count: badges.mail, onClick: () => comingSoon('จดหมาย') },
     { id: 'mission', label: 'ภารกิจ', icon: <img src="/ui/thai/mission.png" alt="" draggable={false} />, count: badges.mission, onClick: () => comingSoon('ภารกิจ') },
-    { id: 'add-friend', label: 'เพิ่มเพื่อน', icon: <img src="/ui/thai/add-friend.png" alt="" draggable={false} />, onClick: () => comingSoon('เพิ่มเพื่อน') },
+    { id: 'add-friend', label: 'เพิ่มเพื่อน', icon: <img src="/ui/thai/add-friend.png" alt="" draggable={false} />, onClick: onOpenAddFriend },
   ]
 
   return (

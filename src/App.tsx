@@ -20,7 +20,8 @@ import { TitlePage } from './pages/TitlePage'
 export default function App() {
   // earnGold ยังไม่มีหน้าจอไหนเรียกใช้ตอนนี้ (ตั้งใจ — ทองต้องมาจากเควส/ดรอปของจริงเท่านั้น
   // ไม่ใช่ปุ่มกดเพิ่มเอง) เก็บ hook ไว้ให้ระบบเควส/ต่อสู้ในอนาคตเรียกใช้ตรง ๆ เมื่อสร้างเสร็จ
-  const { status, player, register, login, logout, updatePlayer, topUpGems, redeemCoupon } = useAuth()
+  const { status, player, register, login, logout, updatePlayer, topUpGems, redeemCoupon, findFriendByUid } =
+    useAuth()
   const [authOpen, setAuthOpen] = useState(false)
 
   // ล็อกอินแล้วและตั้งชื่อแล้ว → เข้าลอบบี้
@@ -34,6 +35,7 @@ export default function App() {
             onLogout={logout}
             onTopUpGems={topUpGems}
             onRedeemCoupon={redeemCoupon}
+            onFindFriend={findFriendByUid}
           />
         </ToastProvider>
       </GameViewport>

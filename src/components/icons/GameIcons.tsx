@@ -334,6 +334,16 @@ export function AddFriendIcon(props: IconProps) {
   )
 }
 
+/** วงกลมมีเส้นทแยงตัด — บล็อคผู้เล่น */
+export function BlockIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m5.8 5.8 12.4 12.4" />
+    </Svg>
+  )
+}
+
 /** กระดาษสองแผ่นซ้อน — คัดลอกข้อความ */
 export function CopyIcon(props: IconProps) {
   return (

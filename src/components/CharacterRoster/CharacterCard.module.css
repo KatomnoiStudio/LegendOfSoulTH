@@ -5,7 +5,8 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 9px 13px 9px 10px;
+  /* ระยะขอบเพิ่มตามข้อความที่ใหญ่ขึ้น 30% — กันไม่ให้ตัวอักษรชนขอบและมุมตัดเฉียง */
+  padding: 12px 17px 12px 13px;
   border: 1px solid rgb(213 168 75 / 46%);
   /* มุมตัดเฉียงแบบป้ายไม้แกะ ไม่ใช่กล่องสี่เหลี่ยมธรรมดา */
   clip-path: polygon(13px 0, 100% 0, 100% calc(100% - 13px), calc(100% - 13px) 100%, 0 100%, 0 13px);
@@ -111,7 +112,7 @@
 
 .name {
   font-family: var(--font-display);
-  font-size: 0.88rem;
+  font-size: 1.14rem;
   font-weight: 800;
   letter-spacing: 0.03em;
   color: #f6e3b4;
@@ -123,12 +124,12 @@
 .level {
   flex: none;
   margin-inline-start: auto;
-  padding: 0 6px;
+  padding: 1px 8px 2px;
   border: 1px solid rgb(232 190 92 / 55%);
   clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
   background: rgb(6 16 26 / 80%);
   color: #f0cd7c;
-  font-size: 0.6rem;
+  font-size: 0.78rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -141,11 +142,11 @@
 }
 
 .tag {
-  padding: 0 7px 1px;
+  padding: 1px 9px 2px;
   border: 1px solid rgb(255 255 255 / 14%);
   clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%);
   background: rgb(255 255 255 / 6%);
-  font-size: 0.6rem;
+  font-size: 0.78rem;
   letter-spacing: 0.03em;
   color: rgb(219 228 220 / 78%);
   white-space: nowrap;
@@ -162,7 +163,7 @@
   .card {
     grid-template-columns: 50px 1fr;
     gap: 9px;
-    padding: 7px 10px 7px 8px;
+    padding: 9px 13px 9px 10px;
   }
 
   .portrait {
@@ -171,6 +172,11 @@
   }
 
   .name {
-    font-size: 0.8rem;
+    font-size: 1.04rem;
+  }
+
+  .level,
+  .tag {
+    font-size: 0.7rem;
   }
 }

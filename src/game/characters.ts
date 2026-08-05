@@ -20,6 +20,8 @@ export interface ModelSpec {
 }
 
 export interface CharacterStats {
+  /** พลังชีวิต — สเกลใหญ่กว่าค่าอื่นมาก จึงมีเพดานแยกของตัวเอง (ดู STAT_MAX ใน CharacterStats.tsx) */
+  hp: number
   atk: number
   def: number
   spd: number
@@ -61,7 +63,7 @@ export const ROSTER: Character[] = [
     level: 40,
     exp: 7320,
     expToNext: 12000,
-    stats: { atk: 92, def: 78, spd: 96 },
+    stats: { hp: 1180, atk: 92, def: 78, spd: 96 },
     model: {
       kind: 'monkey-king',
       spriteUrl: '/characters/monkey-v2-idle-0.png',
@@ -80,7 +82,7 @@ export const ROSTER: Character[] = [
     level: 38,
     exp: 5140,
     expToNext: 11000,
-    stats: { atk: 98, def: 84, spd: 71 },
+    stats: { hp: 1420, atk: 98, def: 84, spd: 71 },
     model: {
       kind: 'pig-warrior',
       spriteUrl: '/characters/pigsy-idle-0.png',
@@ -99,7 +101,7 @@ export const ROSTER: Character[] = [
     level: 36,
     exp: 8960,
     expToNext: 10500,
-    stats: { atk: 95, def: 70, spd: 88 },
+    stats: { hp: 980, atk: 95, def: 70, spd: 88 },
     model: {
       kind: 'pilgrim-monk',
       spriteUrl: '/characters/tripitaka-idle-0.png',
@@ -113,13 +115,23 @@ export function getCharacter(id: string | null): Character | null {
   return ROSTER.find((character) => character.id === id) ?? null
 }
 
-/** พลังรบรวมของบัญชี — ผลรวมของ (atk+def+spd ฐาน) คูณเลเวลที่ปลุกพลัง ของทุกตัวละครที่ครอบครอง */
+/**
+ * น้ำหนักของ HP ในการคิดพลังรบ
+ *
+ * HP อยู่คนละสเกลกับค่าอื่น (หลักพัน เทียบกับหลักสิบ) ถ้าบวกดิบ ๆ HP จะกินสัดส่วน
+ * ราว 80% ของพลังรบทั้งหมด ทำให้ atk/def/spd แทบไม่มีผลเลย จึงถ่วงให้ HP
+ * มีน้ำหนักใกล้เคียงกับผลรวมของอีกสามค่า
+ */
+const HP_POWER_WEIGHT = 0.2
+
+/** พลังรบรวมของบัญชี — ผลรวมของค่าสถานะทุกตัว (hp ถ่วงน้ำหนัก + atk + def + spd) คูณเลเวล ของทุกตัวละครที่ครอบครอง */
 export function getCombatPower(ownedCharacters: OwnedCharacter[]): number {
   return ownedCharacters.reduce((total, owned) => {
     const base = getCharacter(owned.characterId)
     if (!base) return total
-    const statSum = base.stats.atk + base.stats.def + base.stats.spd
-    return total + statSum * owned.level
+    const { hp, atk, def, spd } = base.stats
+    const statSum = hp * HP_POWER_WEIGHT + atk + def + spd
+    return total + Math.round(statSum * owned.level)
   }, 0)
 }
 
