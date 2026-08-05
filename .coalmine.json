@@ -7,6 +7,8 @@
     ".agents/rules/**",
     "README.md",
     "AGENTS.md",
-    "MEMORY.md"
+    "MEMORY.md",
+    ".github/workflows/**",
+    ".github/**"
   ]
 }
