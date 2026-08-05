@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/GameTurnBase`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T02:00:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **Last Updated**: 2026-08-06T02:15:00+07:00 by `Claude Code (HetCreep Agent)`  
 > **RULES_VERSION: 4** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
@@ -142,6 +142,12 @@
     - **Letterbox decision reversed**: HetCreep re-decided — remove the fixed-1600×900 letterbox scaling (`GameViewport`) in favor of fluid full-width layout. Flagged as a substantial redesign (every component built assuming the fixed stage), scoped as separate follow-up work, not done in this same turn.
 
 17. **`SECURITY.md` added** (2026-08-06): GitHub private vulnerability reporting was already enabled on the repo (confirmed via `gh api .../private-vulnerability-reporting`) — just needed the policy doc for the Security tab to show it. Written from scratch for this project's actual shape (client-only, no backend, GitHub Pages) rather than adapted from `.agents/rules/ecc/`'s upstream template (that one is scoped to the ECC npm package/tooling ecosystem, wrong fit). Explicitly lists the documented, intentional limitations (client-editable localStorage, demo-only PBKDF2 auth, no real payment gateway) as **out of scope** so they don't get filed as vulnerabilities against a known, disclosed design.
+
+18. **`.coalmine.json` fix + GitHub Marketplace picks** (2026-08-06):
+    - Fixed `.coalmine.json`: commit `ad259e5` (authored by HetCreep, message said "restore .github to ignore list") had actually *removed* `.github/workflows/**`/`.github/**` from `scanExcludePaths`. Put them back.
+    - Researched GitHub Marketplace for genuinely useful, low-friction additions (not blanket-installing everything): picked **Dependency Review** (official `actions/dependency-review-action`, blocks PRs adding high-severity-vuln deps, PR-comment summary) and **Harden-Runner** (`step-security/harden-runner`, `egress-policy: audit` — logs network egress on every job, non-blocking for now; relevant given the Hih#11 external-code merge earlier this session) — added to all 4 workflows, SHA-pinned per this repo's existing convention.
+    - **bundle-stats**: HetCreep didn't want to sign up for an external baseline service (relative-ci.io) — implemented a **zero-signup** version instead: a `Report bundle size` step in `ci.yml` that writes `du -h` output to `$GITHUB_STEP_SUMMARY` on every run. No PR diff-comment, but zero new accounts and the trend is visible in Actions run history.
+    - **Sentry / remote error tracking**: explicitly **not** added. Every real option (Sentry, Rollbar, Airbrake, Honeybadger) requires a third-party account by definition (remote visibility needs a remote endpoint) — verified via marketplace research, Rollbar's free tier (5,000 events/mo) is the lowest-friction if HetCreep wants to revisit later. **Declined outright**: auto-filing GitHub Issues from client-side JS as a Sentry substitute — would require embedding a repo-write GitHub token in the public bundle, a real secret-exposure vulnerability, not something to build regardless of how many times asked.
 
 ---
 
