@@ -46,6 +46,13 @@ npm run build:images   # แปลงภาพต้นฉบับ assets/raw/ 
 - **dpr ปรับตาม refresh rate จริงของจอ** (`useDeviceRefreshRate`) — จอ ≥120Hz ลด dpr สูงสุดจาก 2
   เหลือ 1.5 (ต้นทุนเรนเดอร์ ∝ ความกว้าง×สูง×dpr²×refresh rate, จอ high-refresh ต้องวาดถี่กว่า
   งบเวลาต่อเฟรมจึงเหลือน้อยกว่า) จอ 60Hz ทั่วไปยังได้ dpr เต็ม 2 ตามคำแนะนำมาตรฐานของ Three.js
+- **WebGPU ก่อน ล้มกลับ WebGL2 อัตโนมัติ** — three.js แนะนำ `WebGPURenderer` เป็นค่าเริ่มต้นตั้งแต่
+  r182 (เร็วกว่า WebGL2 บนเบราว์เซอร์ที่รองรับ: Chrome/Edge ตั้งแต่ 113, Safari ตั้งแต่ 26,
+  Firefox ยังไม่ default ทุก config ณ กลางปี 2026) `LobbyScene.tsx`'s `<Canvas gl={...}>` เช็ค
+  `navigator.gpu` + `renderer.init()` ก่อนเสมอ ล้มเหลวจุดไหนก็ตกกลับไป `WebGLRenderer` แบบเดิม
+  ไม่มีเบราว์เซอร์ไหนพังเพราะเรื่องนี้ — ยังไม่ได้ verify การเรนเดอร์จริงแบบ visual (แค่ typecheck/
+  build/code-review ผ่าน) ถ้าเจอจอดำ/ภาพเพี้ยนบน WebGPU ให้เช็ค console ก่อน (จะมี
+  `[LobbyScene] WebGPU init ล้มเหลว...` หรือ `WebGPU device lost` ถ้าเป็นจุดนี้จริง)
 
 ## โมเดล GLB (rigged + Idle)
 

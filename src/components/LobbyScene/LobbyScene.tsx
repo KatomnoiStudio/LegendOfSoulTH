@@ -1,6 +1,6 @@
 import { Suspense, useRef, useState, type CSSProperties } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import type { PerspectiveCamera } from 'three'
+import { WebGLRenderer, type PerspectiveCamera } from 'three'
 import WebGL from 'three/addons/capabilities/WebGL.js'
 import { getCharacter } from '../../game/characters'
 import { useDeviceRefreshRate } from '../../hooks/useDeviceRefreshRate'
@@ -88,11 +88,43 @@ export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps)
         dpr={[1, dprMax]}
         // วัดขนาดผืนผ้าใบจาก offsetWidth/offsetHeight — เสถียรกว่า getBoundingClientRect() เมื่อ layout อยู่ระหว่าง reflow
         resize={{ offsetSize: true }}
-        gl={{ antialias: true, powerPreference: 'high-performance' }}
+        /*
+          WebGPU ก่อน (renderer ที่ three.js แนะนำเป็นค่าเริ่มต้นตั้งแต่ r182 — เร็วกว่า WebGL2
+          จริงบนเบราว์เซอร์ที่รองรับ) ล้มกลับไป WebGL2 อัตโนมัติถ้า navigator.gpu ไม่มี หรือ
+          init() ล้มเหลว (เช่น driver ไม่รองรับจริงแม้ browser ประกาศรองรับ) — ดูสถานะรองรับ
+          ตามเบราว์เซอร์ล่าสุดที่ .agents/rules/ecc/PROJECT-OVERRIDES.md หรือ caniuse ก่อนไว้ใจ
+        */
+        gl={async (defaultProps) => {
+          // canvas ในเกมนี้เป็น HTMLCanvasElement จริงเสมอ (ไม่มี worker-based OffscreenCanvas
+          // rendering) — cast ตรงนี้จุดเดียวเพื่อเลี่ยง type ของ R3F เอง (OffscreenCanvas แบบย่อ)
+          // ชนกับ type ของ three/webgpu (OffscreenCanvas เต็มจาก DOM lib) ซึ่งเข้มกว่า
+          const canvas = defaultProps.canvas as HTMLCanvasElement
+          const rendererProps = { ...defaultProps, canvas, antialias: true, powerPreference: 'high-performance' as const }
+          if (typeof navigator !== 'undefined' && 'gpu' in navigator) {
+            try {
+              const { WebGPURenderer } = await import('three/webgpu')
+              const renderer = new WebGPURenderer(rendererProps)
+              await renderer.init()
+              // WebGPU ไม่ยิง DOM event 'webglcontextlost' (นั่นเป็นกลไกเฉพาะ WebGL) —
+              // ต้องผูก onDeviceLost ของตัว renderer เองแทน ไม่งั้นการ์ดจอหลุดแล้วเงียบ
+              // ไม่มี fallback UI ให้เห็นเลย (ต่างจากฝั่ง WebGL2 ด้านล่างที่ยังใช้ DOM event เดิม)
+              renderer.onDeviceLost = (info) => {
+                console.error('[LobbyScene] WebGPU device lost', info)
+                setContextLost(true)
+              }
+              return renderer
+            } catch (error) {
+              console.warn('[LobbyScene] WebGPU init ล้มเหลว ใช้ WebGL2 แทน', error)
+            }
+          }
+          return new WebGLRenderer(rendererProps)
+        }}
         camera={{ position: CAM_BASE, fov: 32, near: 0.1, far: 60 }}
         // คลิกพื้นที่ว่าง = ยกเลิกการเลือก
         onPointerMissed={() => onSelect(null)}
         onCreated={({ gl }) => {
+          // เส้นทาง WebGL2 (fallback) เท่านั้น — WebGPU ผูก onDeviceLost ไว้ในฟังก์ชัน gl ด้านบนแล้ว
+          // เรียก addEventListener ซ้ำที่นี่กับ WebGPURenderer ไม่พังอะไร แค่ไม่มี event ให้ยิงเฉย ๆ
           gl.domElement.addEventListener('webglcontextlost', (e) => {
             e.preventDefault()
             console.error('[LobbyScene] WebGL context lost')
