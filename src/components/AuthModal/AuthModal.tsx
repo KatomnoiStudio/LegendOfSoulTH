@@ -36,6 +36,16 @@ export function AuthModal({ onRegister, onLogin }: AuthModalProps) {
     setConfirm('')
   }
 
+  // Esc ปิด modal นี้ไม่ได้ (ต้องมีบัญชีก่อนถึงจะเข้าเกมได้ — ดูคอมเมนต์หัวไฟล์)
+  // แต่ยังรับ input ไว้แทนที่จะไม่ทำอะไรเลย: สลับแท็บสมัคร/เข้าสู่ระบบแทน
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') switchMode(mode === 'register' ? 'login' : 'register')
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [mode])
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (busy) return
