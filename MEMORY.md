@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/GameTurnBase`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T01:50:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **Last Updated**: 2026-08-06T02:00:00+07:00 by `Claude Code (HetCreep Agent)`  
 > **RULES_VERSION: 4** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
@@ -140,6 +140,8 @@
     - **HetCreep also asked**: is `kaoshock123`'s agent actually reading `MEMORY.md`/`AGENTS.md`? Checked git history: `AGENTS.md` (with `RULES_VERSION`/mandates) became an ancestor of their tree at merge `1a5d7d7` (23:22) — confirmed via `git merge-base --is-ancestor`. Their next 4 commits (`f8f87c5` through `5bd7685`, spanning ~1 hour) never touched `MEMORY.md` despite mandate #1/#2. **Not a rule-design flaw** — `ring0-authority.md` already states this is markdown convention, not a technical control; it simply confirms their tooling isn't reading/following `AGENTS.md`, which we can observe but not fix from this side.
     - **New rule**: `.agents/rules/commit-granularity-law.md` — one completed task = one commit (don't split a finished task across partial "wip"/"fix typo" commits; don't squash unrelated tasks together either; merge commits are exempt).
     - **Letterbox decision reversed**: HetCreep re-decided — remove the fixed-1600×900 letterbox scaling (`GameViewport`) in favor of fluid full-width layout. Flagged as a substantial redesign (every component built assuming the fixed stage), scoped as separate follow-up work, not done in this same turn.
+
+17. **`SECURITY.md` added** (2026-08-06): GitHub private vulnerability reporting was already enabled on the repo (confirmed via `gh api .../private-vulnerability-reporting`) — just needed the policy doc for the Security tab to show it. Written from scratch for this project's actual shape (client-only, no backend, GitHub Pages) rather than adapted from `.agents/rules/ecc/`'s upstream template (that one is scoped to the ECC npm package/tooling ecosystem, wrong fit). Explicitly lists the documented, intentional limitations (client-editable localStorage, demo-only PBKDF2 auth, no real payment gateway) as **out of scope** so they don't get filed as vulnerabilities against a known, disclosed design.
 
 ---
 
