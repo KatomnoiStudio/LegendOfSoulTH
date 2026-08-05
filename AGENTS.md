@@ -2,7 +2,7 @@
 
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
-> **RULES_VERSION: 5** (bump on every material rule change — see `.agents/rules/rules-freshness-check.md`)
+> **RULES_VERSION: 6** (bump on every material rule change — see `.agents/rules/rules-freshness-check.md`)
 
 ---
 
@@ -22,3 +22,4 @@
 7. **Pre-push sync** (`.agents/rules/pre-push-sync-law.md`): every machine, before every push — `git fetch`, check ahead/behind, merge `origin/master` if behind, resolve any conflict by hand preserving both sides' work, full verify (`typecheck && lint && test && build`) green, only then push. Binding on Ring 0 too — this is code hygiene, not an authority question.
 8. **Commit granularity** (`.agents/rules/commit-granularity-law.md`): one completed task = one commit. Don't split a single finished task across several partial commits ("wip", "fix typo"); don't squash unrelated tasks together either.
 9. **Personal content stays out of `MEMORY.md`** (`.agents/rules/personal-scope-law.md`): personal/off-project notes go in the gitignored `MEMORY.local.md` at repo root, never in `MEMORY.md` — that file is mandatory reading for every future agent, so anything not relevant to this project is a standing token cost on every session after yours.
+10. **Gold-standard baseline** (`.agents/rules/gold-standard-baseline.md`): from the 2026-08-06 AUDIT — CSP meta tag, LICENSE (human decision, never auto-picked), CHANGELOG.md, CONTRIBUTING/CODE_OF_CONDUCT, pre-commit hooks, and component test coverage are named MUST-HAVE gaps. Codified as binding targets, not yet all true — creating the actual artifacts is a separately-gated CONFORM pass, never auto-done.

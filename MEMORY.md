@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T05:05:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **Last Updated**: 2026-08-06T05:20:00+07:00 by `Claude Code (HetCreep Agent)`  
 > **RULES_VERSION: 4** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
@@ -201,6 +201,19 @@
     - **Could not get live visual confirmation this session** — same class of harness limitation as item 31, but sharper this time: the dynamic `import('three/webgpu')` never showed up in `read_network_requests` even after a full clean restart (killed all node processes, deleted `node_modules/.vite`, hard page reload), meaning R3F's `<Canvas>` likely never got far enough into its own mount/renderer-construction sequence in this non-composited pane to invoke the `gl` factory at all — consistent with the canvas staying stuck at the browser's default 300×150 size in earlier tests. Told HetCreep plainly and asked whether to push now (defensive fallback already in place) or wait for manual testing first — HetCreep chose push now. **If a real browser shows a black canvas or broken 3D scene after this**, check the console first: `[LobbyScene] WebGPU init ล้มเหลว...` or `WebGPU device lost` in the log means this exact code path, not something unrelated.
     - Full verify green (typecheck/lint/test/build).
 
+33. **rot-canary follow-up: WebGPURenderer disposal on fallback** (2026-08-06): the auto QUICK scan on item 32's diff caught a real resource-leak path — if `renderer.init()` throws after the `WebGPURenderer` already claimed a GPU adapter/device, the partially-initialized instance was discarded without `.dispose()` before constructing the `WebGLRenderer` fallback. Fixed (HetCreep approved via the "apply safe fix" menu): `renderer?.dispose()` in the catch block. Full verify green.
+
+34. **Gold-standard AUDIT + FILL: ~67% vs named exemplars** (2026-08-06): HetCreep ran `/coalmine:gold-standard` (manual, bare invocation → layman wizard → chose "go deeper" = AUDIT + FILL + ADOPT in one consent, CONFORM offered separately per the skill's own gating). Bar picked fresh: OWASP ASVS 5.0.0 (security, L1 target justified — client-only app, no server/auth/payments), GitHub's own Community Standards checklist (governance), Keep a Changelog 2.0.0 + SemVer 2.0.0 (release discipline), pmndrs/react-three-fiber (comparable-stack testing/CI reference), MDN CSP + GitHub Pages' documented no-custom-headers limitation (realistic security-header baseline for this deploy target). Scored 8 dimensions (Correctness/Performance/UX-DX/Compatibility explicitly N-A'd — each got a dedicated pass earlier this session already, re-auditing would be stale-ground waste per the skill's freshness cap):
+    - **Security 85%** — input validation, secret scanning, dep scanning, Action-pinning, Harden-Runner, private vuln reporting all ✅; CSP meta tag is the one real gap (confirmed via grep — genuinely absent from `index.html`).
+    - **Testing/CI 45%** — CI runs test+typecheck+lint ✅, but actual coverage is one file (`format.test.ts`, 5 tests, pure functions only) — zero component/integration/E2E coverage on dozens of interactive components. The single biggest real gap found.
+    - **Distribution/integrity 40%** — `npm ci` + committed lockfile ✅ (reproducible builds), but no `CHANGELOG.md` at all and no ongoing release cadence beyond the one tag cut this session (item 23).
+    - **Governance/licensing 50%** — SECURITY.md + issue/PR templates ✅ (confirmed `.github/PULL_REQUEST_TEMPLATE.md` exists, hadn't been checked before), but `LICENSE`/`CONTRIBUTING.md`/`CODE_OF_CONDUCT.md` all confirmed missing via direct `ls`.
+    - **Docs/onboarding 85%**, **Observability 75%** (remote error tracking is a *justified* N-A, not a gap — already explicitly declined earlier this session, no zero-signup option exists), **Error handling 75%**, **Maintainability 80%** (no pre-commit hooks — no husky/lint-staged).
+    - **Overall ~67%**, not inflated (per the skill's own anti-inflation discipline) — genuinely middling, dragged down hard by testing depth and release/governance artifacts despite this project's unusually strong docs/security-process for a solo repo.
+    - **FILL**: wrote [`.agents/rules/gold-standard-baseline.md`](.agents/rules/gold-standard-baseline.md) codifying the MUST-HAVE gaps (CSP meta tag, LICENSE **as a human decision, never auto-picked**, CHANGELOG.md, CONTRIBUTING/CODE_OF_CONDUCT, pre-commit hooks, component test coverage) as binding future standards — deliberately does NOT create the artifacts itself, per the skill's own act separation (FILL writes rules, CONFORM retrofits code, and CONFORM is a separate explicit gate HetCreep hasn't pulled yet). `AGENTS.md` mandate #10 added, `RULES_VERSION` 5 → 6, this file's `last synced` bumped to match.
+    - **ADOPT**: implicit in the "go deeper" choice per the skill's own wizard — the ruleset is binding for the rest of this session (governs *how* future work here should be approached; doesn't authorize auto-editing code, per the skill's own P7).
+    - **CONFORM not run** — HetCreep hasn't asked for it yet. If asked: expect a per-fix choice-gate (checkpoint → one fix → verify → revert-if-red), starting with the low-effort ones (CSP tag, CHANGELOG.md) before the human-decision one (LICENSE) and the genuinely large one (test coverage, which needs its own scope conversation, not a blind sweep).
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
@@ -212,7 +225,7 @@
 - **Remote check**: `git remote -v` on this machine correctly points `origin` at `https://github.com/LegendofSoulTH/LegendOfSoulTH.git` (updated after the rename via `git remote set-url`) — the "remote mismatch" flagged in the prior concurrent session's notes was local to that machine/clone (remote URLs are per-clone git config, never part of repo content) and doesn't apply here; no action needed on this machine.
 - **Player accounts/currency**: functional locally (see Past Summary item 6) but entirely client-side — no real backend, no payment gateway. Do not treat as production-ready for real money or cross-device play.
 - **Open/next work**: no quest system, no real drop table, no shop UI beyond `GemShopModal`, no battle system. Project's own `LICENSE` file still undecided (see item 8).
-- **RULES_VERSION last synced: 5** (`.agents/rules/rules-freshness-check.md`)
+- **RULES_VERSION last synced: 6** (`.agents/rules/rules-freshness-check.md`)
 - **Ring**: this machine is Ring 0 (`.agents/ring0.local` present, gitignored). Any other clone is Ring 1 by default — see `.agents/rules/ring0-authority.md`.
 - **Pre-push sync**: `.agents/rules/pre-push-sync-law.md` — binding on every machine before every push.
 
