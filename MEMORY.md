@@ -180,7 +180,30 @@
     - Baseline ก่อนเริ่ม: `typecheck` ผ่าน, `lint` เหลือ warning เดิม 3 ตัว (ไม่ใช่ error),
       `test` 5/5 ผ่าน, `build` สำเร็จ (318 kB + 884 kB chunk)
 
-21. **Cursor Cloud Agent environment added** (2026-08-06T03:40+07:00, `Cursor Cloud Agent (cloud session, Ring 1)`, operator สายนี้: `nustanakritwithai`):
+21. **ทางเข้าห้องต่อสู้ใช้งานไม่ได้จริงมาตลอด — แก้แล้ว** (2026-08-06T02:45+07:00, `Claude Code (cloud session, Ring 1)`, สาย fork `nustanakritwithai/GameTurnBase`):
+    - เจอระหว่างพยายามทดสอบโหมดสำรวจในเบราว์เซอร์จริงด้วย Playwright ก่อนเริ่มงาน migration
+      ห้องต่อสู้ — ปรากฏว่า**เดินไม่ได้เลยและคุยกับ NPC ด่านแรกไม่ได้เลย** ทั้งสองอย่างเป็นบั๊ก
+      ที่มีอยู่ก่อนแล้ว ไม่ได้เกิดจากงานใหม่
+    - **บั๊กที่ 1 — ปุ่มบังคับทิศถูกฉากบังทั้งใบ**: `ExplorationControls.module.css` ตั้ง
+      `z-index: 30` ขณะที่ `ExplorationScene` เป็น `z-index: 500` ทั้งคู่เป็น absolute ใน
+      stacking context เดียวกัน ปุ่ม d-pad และปุ่ม "คุย" จึงถูก `.world` ของฉากทับ — เห็นปุ่ม
+      แต่กดไม่ติด ยืนยันด้วย `document.elementFromPoint()` ที่จุดกึ่งกลางปุ่ม ▲ ได้ `div._world_`
+      กลับมาแทนตัวปุ่ม แก้เป็น `z-index: 510` (สูงกว่าฉาก แต่ยังต่ำกว่า BattleScene 600 /
+      BattleTransition 650 / DialogueBox 700 ซึ่งต้องบังปุ่มได้ตอนเปิด)
+    - **บั๊กที่ 2 — NPC ด่านแรกอยู่ในสิ่งกีดขวาง**: `npc-shadow-guard` อยู่ที่ (620, 360)
+      ซึ่งอยู่ในสิ่งกีดขวาง (480,280 ขนาด 240×120 = x 480–720, y 280–400) `findNearbyNpc`
+      เรียก `hasLineOfSight` ที่ probe ทุกจุดบนเส้นทางด้วย `isWalkable` จุดปลายอยู่ในสิ่ง
+      กีดขวางจึง false เสมอ → ปุ่ม "คุย" ไม่เคยขึ้น และ **ด่าน `trial-01` เข้าไม่ได้เลยทั้งเกม**
+      ย้าย NPC ลงมาที่ (620, 448) พ้นขอบล่างของสิ่งกีดขวาง ยังยืนหน้าวิหารเหมือนเดิม
+    - **ยืนยันด้วยเบราว์เซอร์จริง** (Chromium 1280×720): Title → สมัคร → ล็อบบี้ → สำรวจ →
+      เดินด้วย d-pad → ปุ่ม "คุย" ขึ้น → บทสนทนา → เลือก "ต่อสู้" → เข้าห้องต่อสู้ได้
+      ไม่มี console error และไม่มี response ≥ 400
+    - **ข้อสังเกตสำหรับงานถัดไป**: NPC เป็นสิ่งกีดขวางสี่เหลี่ยม (`npcObstacle`, ขนาด
+      `interactionRadius × 1.2`) การเดินเข้าหาแบบเฉียงจะติดมุมแล้วค้าง ต้องจัดแกนใดแกนหนึ่ง
+      ให้ตรงก่อนถึงจะเข้าไปในระยะคุยได้ — เป็นความรู้สึกที่ฝืดสำหรับผู้เล่นจริง แต่ยังไม่แก้
+      ในรอบนี้เพราะอยู่นอกขอบเขตงานที่ตกลงไว้
+
+22. **Cursor Cloud Agent environment added** (2026-08-06T03:40+07:00, `Cursor Cloud Agent (cloud session, Ring 1)`, operator สายนี้: `nustanakritwithai`):
     - **บริบท**: ก่อนหน้านี้ repo ยังไม่มี `.cursor/environment.json` เลย — cloud agent ทุกตัวต้อง
       ตั้ง toolchain เองทุกครั้ง. เพิ่มไฟล์ config มาตรฐานเพื่อให้ future Cloud Agents ใช้งานได้ทันที.
     - **Ring**: session นี้เป็น **Ring 1** (ไม่มี `.agents/ring0.local`, git identity ไม่ใช่ `HetCreep`)
@@ -213,7 +236,7 @@
 - **RULES_VERSION last synced: 4** (`.agents/rules/rules-freshness-check.md`)
 - **Ring**: this machine is Ring 0 (`.agents/ring0.local` present, gitignored). Any other clone is Ring 1 by default — see `.agents/rules/ring0-authority.md`.
 - **Pre-push sync**: `.agents/rules/pre-push-sync-law.md` — binding on every machine before every push.
-- **Cloud Agent env**: `.cursor/environment.json` present (item 21) — committed file is the highest-precedence environment source for Cursor Cloud Agents (`install: npm ci`, dev server via `terminals`).
+- **Cloud Agent env**: `.cursor/environment.json` present (item 22) — committed file is the highest-precedence environment source for Cursor Cloud Agents (`install: npm ci`, dev server via `terminals`).
 
 ---
 
