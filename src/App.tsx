@@ -3,6 +3,7 @@ import { AuthModal } from './components/AuthModal/AuthModal'
 import { GameViewport } from './components/GameViewport/GameViewport'
 import { NameModal } from './components/NameModal/NameModal'
 import { ToastProvider } from './components/Toast/ToastProvider'
+import { UpdateBanner } from './components/UpdateBanner/UpdateBanner'
 import { useAuth } from './hooks/useAuth'
 import { LobbyPage } from './pages/LobbyPage'
 import { TitlePage } from './pages/TitlePage'
@@ -38,6 +39,7 @@ export default function App() {
   if (status === 'signed-in' && player && player.name.length > 0) {
     return (
       <GameViewport>
+        <UpdateBanner />
         <ToastProvider>
           <LobbyPage
             player={player}
@@ -57,6 +59,7 @@ export default function App() {
 
   return (
     <GameViewport>
+      <UpdateBanner />
       <ToastProvider>
         {/* หน้าเริ่มเกมเป็นฉากหลังตลอดช่วงก่อนเข้าลอบบี้ */}
         <TitlePage onStart={() => setAuthOpen(true)} />

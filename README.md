@@ -133,8 +133,10 @@ src/
 │  ├─ TitlePage.tsx               หน้าแรกก่อนล็อกอิน
 │  └─ LobbyPage.tsx               ประกอบ layout, ถือ state การเลือกตัวละคร/modal ต่าง ๆ
 ├─ hooks/
-│  └─ useAuth.ts                  ⭐ state บัญชีผู้เล่นของทั้งเกม — ทุกหน้าจอคุยผ่าน hook นี้เท่านั้น
-│                                  (register/login/logout/updatePlayer/earnGold/topUpGems/redeemCoupon)
+│  ├─ useAuth.ts                  ⭐ state บัญชีผู้เล่นของทั้งเกม — ทุกหน้าจอคุยผ่าน hook นี้เท่านั้น
+│  │                               (register/login/logout/updatePlayer/earnGold/topUpGold/topUpGems/redeemCoupon)
+│  └─ useDeployWatcher.ts         เช็คทุก 5 นาที + ตอนกลับมาโฟกัสแท็บ ว่ามี build ใหม่ deploy หรือยัง
+│                                  (เทียบชื่อไฟล์ entry script ที่มี hash — ดู UpdateBanner/)
 ├─ data/
 │  ├─ accountRepository.ts        ⭐ "ฐานข้อมูล" ตอนนี้ = localStorage (คีย์ `los:db:v1`)
 │  │                               บัญชี/ล็อกอิน/UID + ทอง (เฉพาะ quest/drop) + หยก (เฉพาะ topup/coupon)
@@ -166,6 +168,7 @@ src/
 │  ├─ MainNavigation/              Battle / Heroes / Barracks / Summon / Guild
 │  ├─ SideActions/                 Mail / Mission / Settings (มี badge)
 │  ├─ Toast/                       ระบบ toast + `useToast().comingSoon()`
+│  ├─ UpdateBanner/                แถบเตือนลอยด้านบน โผล่เมื่อ useDeployWatcher เจอ build ใหม่
 │  └─ icons/GameIcons.tsx          ไอคอน SVG ที่วาดเองทั้งหมด
 └─ types/player.ts                Player, PlayerBadges, PlayerState
 ```
