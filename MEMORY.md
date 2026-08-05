@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T05:20:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **Last Updated**: 2026-08-06T05:35:00+07:00 by `Claude Code (HetCreep Agent)`  
 > **RULES_VERSION: 4** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
@@ -213,6 +213,16 @@
     - **FILL**: wrote [`.agents/rules/gold-standard-baseline.md`](.agents/rules/gold-standard-baseline.md) codifying the MUST-HAVE gaps (CSP meta tag, LICENSE **as a human decision, never auto-picked**, CHANGELOG.md, CONTRIBUTING/CODE_OF_CONDUCT, pre-commit hooks, component test coverage) as binding future standards — deliberately does NOT create the artifacts itself, per the skill's own act separation (FILL writes rules, CONFORM retrofits code, and CONFORM is a separate explicit gate HetCreep hasn't pulled yet). `AGENTS.md` mandate #10 added, `RULES_VERSION` 5 → 6, this file's `last synced` bumped to match.
     - **ADOPT**: implicit in the "go deeper" choice per the skill's own wizard — the ruleset is binding for the rest of this session (governs *how* future work here should be approached; doesn't authorize auto-editing code, per the skill's own P7).
     - **CONFORM not run** — HetCreep hasn't asked for it yet. If asked: expect a per-fix choice-gate (checkpoint → one fix → verify → revert-if-red), starting with the low-effort ones (CSP tag, CHANGELOG.md) before the human-decision one (LICENSE) and the genuinely large one (test coverage, which needs its own scope conversation, not a blind sweep).
+
+35. **Gold-standard CONFORM: 5 of 6 MUST-HAVEs fixed** (2026-08-06): HetCreep said "ต่อทั้งหมด" (do all of it) right after item 34's report. Asked two clarifying questions first rather than blindly running everything: LICENSE choice (needs a human decision, item 34's own rule explicitly forbids auto-picking) and test-coverage scope (the rule file itself flags this as needing a separate scope conversation, not a blind sweep). HetCreep answered **skip both this round** — LICENSE waits for HetCreep to ask the original creator, test coverage waits for a dedicated round. Fixed the remaining 5, mechanically, with full verify after:
+    - **CSP meta tag** in `index.html`: `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'`. `style-src` needs `'unsafe-inline'` — confirmed via grep that this app has zero external font/CDN/script references, but DOES use React inline `style` props extensively for dynamic CSS custom properties (background-image URLs that need `import.meta.env.BASE_URL`, see `publicUrl.ts`) throughout — no way to avoid that without a full CSS-in-JS-with-nonce rewrite, a real and documented trade-off, not an oversight. `frame-ancestors`/`sandbox`/`report-uri` are noted in a comment as NOT enforceable via meta tag per spec (HTTP-header-only) — GitHub Pages can't set custom headers at all, so full clickjacking protection isn't achievable on this deploy target without fronting a CDN.
+    - **`CHANGELOG.md`**: bootstrapped with the `v0.1.0` entry (matches the tag/Release from item 23), Keep a Changelog 2.0.0 format, comparison links to the actual GitHub repo.
+    - **`CONTRIBUTING.md`**: setup/PR/issue process, plus an explicit note that this repo has binding AI-agent rules (`AGENTS.md`/`MEMORY.md`) that apply regardless of which agent/tool is used.
+    - **`CODE_OF_CONDUCT.md`**: Contributor Covenant 2.1 (the standard GitHub itself points to), enforcement contact routed through the same GitHub private-vulnerability-reporting flow `SECURITY.md` already uses rather than publishing a personal email.
+    - **Pre-commit hooks**: added `husky`+`lint-staged` as devDependencies, `npm run prepare` wires `.husky/pre-commit` → `npx lint-staged` → `oxlint` on staged `*.{ts,tsx}`. `.husky/_/` is husky's own auto-managed/gitignored internal dir (has its own `.gitignore: *`, didn't need to touch the project's own).
+    - Verified the CSP change doesn't break anything live (dev server): app rendered fully, no `Refused to...` CSP-violation console errors, no visible breakage — the only console noise was the same stale-cached `useLayoutEffect is not defined` log from items 26/32 (confirmed harness artifact again, not live, via `get_page_text` showing full normal UI).
+    - Full verify green (typecheck/lint/test/build) — `dist/index.html` grew from 0.91KB to 2.58KB (the CSP meta tag + comments), everything else unchanged.
+    - **Still open per HetCreep's explicit choice**: LICENSE (waiting on the creator), component/integration test coverage (waiting for its own scoped round).
 
 ---
 

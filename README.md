@@ -25,6 +25,7 @@ npm run test      # Vitest
 npm run build     # typecheck + build production ลง dist/
 npm run preview   # ดู production build
 npm run ci        # typecheck + lint + test + build ครบ (เหมือนที่ CI รัน)
+                  # pre-commit hook (husky + lint-staged) รัน oxlint บนไฟล์ที่ staged อัตโนมัติแล้ว
 
 npm run build:models   # สร้างไฟล์ GLB ของตัวละครลง public/models/
 npm run build:images   # แปลงภาพต้นฉบับ assets/raw/ -> WebP บีบอัดแล้วลง public/
@@ -32,6 +33,9 @@ npm run build:images   # แปลงภาพต้นฉบับ assets/raw/ 
 
 > อยากรู้ว่าโปรเจกต์นี้ทำงานร่วมกับ AI agent ยังไง (กฎบังคับ, ที่มาโค้ด, ประวัติการตัดสินใจ) ดู
 > [`AGENTS.md`](AGENTS.md) และ [`MEMORY.md`](MEMORY.md)
+>
+> จะส่ง PR ดู [`CONTRIBUTING.md`](CONTRIBUTING.md) · รายงานช่องโหว่ดู [`SECURITY.md`](SECURITY.md)
+> · [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) · ประวัติเวอร์ชันดู [`CHANGELOG.md`](CHANGELOG.md)
 
 ## ฉาก 3D
 
