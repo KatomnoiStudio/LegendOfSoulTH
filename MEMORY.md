@@ -180,6 +180,22 @@
     - Baseline ก่อนเริ่ม: `typecheck` ผ่าน, `lint` เหลือ warning เดิม 3 ตัว (ไม่ใช่ error),
       `test` 5/5 ผ่าน, `build` สำเร็จ (318 kB + 884 kB chunk)
 
+21. **Cursor Cloud Agent environment added** (2026-08-06T03:40+07:00, `Cursor Cloud Agent (cloud session, Ring 1)`, operator สายนี้: `nustanakritwithai`):
+    - **บริบท**: ก่อนหน้านี้ repo ยังไม่มี `.cursor/environment.json` เลย — cloud agent ทุกตัวต้อง
+      ตั้ง toolchain เองทุกครั้ง. เพิ่มไฟล์ config มาตรฐานเพื่อให้ future Cloud Agents ใช้งานได้ทันที.
+    - **Ring**: session นี้เป็น **Ring 1** (ไม่มี `.agents/ring0.local`, git identity ไม่ใช่ `HetCreep`)
+      → เพิ่มเฉพาะ environment config + MEMORY.md เท่านั้น, ไม่แตะโค้ดแอปหรือไฟล์กฎ.
+    - **ส่งมอบ**: `.cursor/environment.json` — `install: npm ci` (idempotent, ใช้ committed
+      lockfile), `terminals[dev]: npm run dev -- --host` (Vite dev server, port 5173). ใช้ base image
+      ปริยายของ Cursor (Node 22) — ไม่ต้องมี Dockerfile.
+    - **ตรวจสอบครบ**: `npm ci` รันซ้ำได้ (idempotent), `npm run ci` (typecheck + lint + 5/5 test +
+      build) ผ่าน, dev server ตอบ HTTP 200 ที่ `localhost:5173`, และทดสอบเกมจริงผ่าน GUI ครบ flow
+      (Splash → Register → NameModal → Lobby 3D → Character roster หมุนโมเดล 3D ได้ → กลับ Lobby)
+      ไม่มี error. Snapshot VM + trigger environment build สำเร็จ (install exit 0, 0 vulnerabilities).
+    - **หมายเหตุ engine warning**: `vite`/`vitest` ประกาศ engines `^22.22.2 || ^24.15.0 || >=26`
+      ส่วน VM มี Node `v22.14.0` → เป็นแค่ warning ไม่ทำให้ pipeline พัง (typecheck/lint/test/build
+      ผ่านหมด). ถ้าต้องการล้าง warning ในอนาคต ค่อยพิจารณาเพิ่ม Dockerfile ปักหมุด Node รุ่นใหม่กว่านี้.
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
@@ -197,6 +213,7 @@
 - **RULES_VERSION last synced: 4** (`.agents/rules/rules-freshness-check.md`)
 - **Ring**: this machine is Ring 0 (`.agents/ring0.local` present, gitignored). Any other clone is Ring 1 by default — see `.agents/rules/ring0-authority.md`.
 - **Pre-push sync**: `.agents/rules/pre-push-sync-law.md` — binding on every machine before every push.
+- **Cloud Agent env**: `.cursor/environment.json` present (item 21) — committed file is the highest-precedence environment source for Cursor Cloud Agents (`install: npm ci`, dev server via `terminals`).
 
 ---
 
