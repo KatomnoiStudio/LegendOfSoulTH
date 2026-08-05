@@ -101,9 +101,10 @@ export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps)
           const canvas = defaultProps.canvas as HTMLCanvasElement
           const rendererProps = { ...defaultProps, canvas, antialias: true, powerPreference: 'high-performance' as const }
           if (typeof navigator !== 'undefined' && 'gpu' in navigator) {
+            let renderer: InstanceType<Awaited<typeof import('three/webgpu')>['WebGPURenderer']> | undefined
             try {
               const { WebGPURenderer } = await import('three/webgpu')
-              const renderer = new WebGPURenderer(rendererProps)
+              renderer = new WebGPURenderer(rendererProps)
               await renderer.init()
               // WebGPU ไม่ยิง DOM event 'webglcontextlost' (นั่นเป็นกลไกเฉพาะ WebGL) —
               // ต้องผูก onDeviceLost ของตัว renderer เองแทน ไม่งั้นการ์ดจอหลุดแล้วเงียบ
@@ -115,6 +116,9 @@ export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps)
               return renderer
             } catch (error) {
               console.warn('[LobbyScene] WebGPU init ล้มเหลว ใช้ WebGL2 แทน', error)
+              // init() ล้มเหลวหลังจาก renderer จอง GPU adapter/device ไปแล้วบางส่วน —
+              // dispose ทิ้งก่อนตกไปสร้าง WebGLRenderer ตัวใหม่ กัน GPU resource ค้าง
+              renderer?.dispose()
             }
           }
           return new WebGLRenderer(rendererProps)
