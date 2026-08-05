@@ -1,3 +1,4 @@
+import { publicUrl } from '../lib/publicUrl'
 import type { CharacterModelKind } from './characters'
 
 /**
@@ -15,7 +16,10 @@ import type { CharacterModelKind } from './characters'
  */
 
 export interface WalkKit {
-  /** พาธนำหน้าไฟล์เดิน เช่น '/characters/walk/monkey-walk' — null คือยังไม่มี */
+  /**
+   * พาธนำหน้าไฟล์เดิน — null คือยังไม่มี
+   * ทุกพาธในไฟล์นี้ผ่าน publicUrl() แล้ว (ดู src/lib/publicUrl.ts) ผู้เรียกจึงต่อท้ายได้เลย
+   */
   walkPrefix: string | null
   /** พาธนำหน้าไฟล์หันทิศ 8 ทิศ (มีครบทุกตัว) */
   turnPrefix: string
@@ -26,21 +30,21 @@ export interface WalkKit {
 
 const WALK_KITS: Record<CharacterModelKind, WalkKit> = {
   'monkey-king': {
-    walkPrefix: '/characters/walk/monkey-walk',
-    turnPrefix: '/characters/turnaround/monkey-turn',
-    idlePrefix: '/characters/monkey-v2-idle',
+    walkPrefix: publicUrl('characters/walk/monkey-walk'),
+    turnPrefix: publicUrl('characters/turnaround/monkey-turn'),
+    idlePrefix: publicUrl('characters/monkey-v2-idle'),
     idleCount: 24,
   },
   'pig-warrior': {
     walkPrefix: null,
-    turnPrefix: '/characters/turnaround/pigsy-turn',
-    idlePrefix: '/characters/pigsy-idle',
+    turnPrefix: publicUrl('characters/turnaround/pigsy-turn'),
+    idlePrefix: publicUrl('characters/pigsy-idle'),
     idleCount: 24,
   },
   'pilgrim-monk': {
     walkPrefix: null,
-    turnPrefix: '/characters/turnaround/tripitaka-turn',
-    idlePrefix: '/characters/tripitaka-idle',
+    turnPrefix: publicUrl('characters/turnaround/tripitaka-turn'),
+    idlePrefix: publicUrl('characters/tripitaka-idle'),
     idleCount: 24,
   },
 }

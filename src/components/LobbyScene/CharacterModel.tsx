@@ -5,6 +5,7 @@ import type { Mesh, MeshBasicMaterial } from 'three'
 import type { Character, ModelSpec } from '../../game/characters'
 import { getSpriteSequence } from '../../game/spriteSequences'
 import type { SlotTransform } from '../../game/team'
+import { publicUrl } from '../../lib/publicUrl'
 
 /**
  * ตัวละครหนึ่งตัวในฉาก Lobby — วาดด้วยภาพสไปรต์ที่วาดมือไว้แล้ว
@@ -173,7 +174,7 @@ function TripitakaEffects({ actionKey }: { actionKey: number }) {
   const aura = useRef<Mesh>(null)
   const palm = useRef<Mesh>(null)
   const waves = useRef<Mesh[]>([])
-  const auraTexture = useLoader(TextureLoader, '/characters/tripitaka-buddha-aura.png')
+  const auraTexture = useLoader(TextureLoader, publicUrl('characters/tripitaka-buddha-aura.png'))
 
   useEffect(() => {
     auraTexture.colorSpace = SRGBColorSpace

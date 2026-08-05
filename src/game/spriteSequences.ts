@@ -1,3 +1,4 @@
+import { publicUrl } from '../lib/publicUrl'
 import type { CharacterModelKind } from './characters'
 
 /**
@@ -21,9 +22,14 @@ export interface SpriteSequence {
   autoPeriod: number
 }
 
-/** ช่วยสร้างรายชื่อไฟล์เฟรมที่ตั้งชื่อเรียงเลขต่อกัน */
+/** ช่วยสร้างรายชื่อไฟล์เฟรมที่ตั้งชื่อเรียงเลขต่อกัน (ผ่าน publicUrl เสมอ ดู src/lib/publicUrl.ts) */
 function frames(prefix: string, count: number): string[] {
-  return Array.from({ length: count }, (_, index) => `/characters/${prefix}-${index}.png`)
+  return Array.from({ length: count }, (_, index) => publicUrl(`characters/${prefix}-${index}.png`))
+}
+
+/** ชุดเฟรมหมุน 8 ทิศของตัวละครหนึ่งตัว */
+function turnFrames(prefix: string): string[] {
+  return Array.from({ length: 8 }, (_, index) => publicUrl(`characters/turnaround/${prefix}-${index}.png`))
 }
 
 /**
@@ -37,7 +43,7 @@ const SEQUENCES: Record<CharacterModelKind, SpriteSequence> = {
   'monkey-king': {
     idleUrls: frames('monkey-v2-idle', 24),
     actionUrls: frames('monkey-v2', 10),
-    turnUrls: Array.from({ length: 8 }, (_, index) => `/characters/turnaround/monkey-turn-${index}.png`),
+    turnUrls: turnFrames('monkey-turn'),
     actionOrder: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
     idleRate: 8,
     actionRate: 8,
@@ -46,7 +52,7 @@ const SEQUENCES: Record<CharacterModelKind, SpriteSequence> = {
   'pig-warrior': {
     idleUrls: frames('pigsy-idle', 24),
     actionUrls: frames('pigsy-team', 8),
-    turnUrls: Array.from({ length: 8 }, (_, index) => `/characters/turnaround/pigsy-turn-${index}.png`),
+    turnUrls: turnFrames('pigsy-turn'),
     actionOrder: [0, 1, 2, 3, 4, 5, 6, 7, 7, 7, 6, 5, 4, 3, 2, 1, 0],
     idleRate: 8,
     actionRate: 5.5,
@@ -55,7 +61,7 @@ const SEQUENCES: Record<CharacterModelKind, SpriteSequence> = {
   'pilgrim-monk': {
     idleUrls: frames('tripitaka-idle', 24),
     actionUrls: [],
-    turnUrls: Array.from({ length: 8 }, (_, index) => `/characters/turnaround/tripitaka-turn-${index}.png`),
+    turnUrls: turnFrames('tripitaka-turn'),
     actionOrder: [],
     idleRate: 8,
     actionRate: 8,
