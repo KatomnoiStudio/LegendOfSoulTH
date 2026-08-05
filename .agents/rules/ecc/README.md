@@ -26,4 +26,4 @@ Only these four layers were pulled in — this project doesn't use Angular/Vue/N
 - No `performance.md` existed for `react/` or a game-engine layer upstream — this project added `react/performance.md` locally (R3F/Three.js/Phaser-specific, not from ECC upstream).
 - No `observability.md` existed upstream in any imported layer — this project added `web/observability.md` locally.
 - No `compatibility.md` existed upstream — this project added `web/compatibility.md` locally.
-- Project's own `LICENSE` (for GameTurnBase itself, distinct from this `ecc/` subtree's MIT terms) is still undecided — see MEMORY.md open item.
+- Project's own `LICENSE` (for Legend of Soul-TH itself, distinct from this `ecc/` subtree's MIT terms) is still undecided — see MEMORY.md open item.

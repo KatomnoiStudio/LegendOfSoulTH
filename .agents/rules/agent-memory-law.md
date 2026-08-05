@@ -1,6 +1,6 @@
 # Project Law: Mandatory Agent Memory & Identity Protocol
 
-> **Target Workspace**: `GameTurnBase` (LegendofSoulTH)  
+> **Target Workspace**: `LegendOfSoulTH` (LegendofSoulTH)  
 > **Operator / Human User Identity**: `HetCreep`  
 > **Scope**: Binding for ALL AI agents, subagents, and automated assistants operating on this codebase.
 

@@ -1,7 +1,7 @@
 # AGENTS.md — Global Project Mandates for AI Agents
 
 > **Operator / Human User**: `HetCreep`  
-> **Repository**: `LegendofSoulTH/GameTurnBase`  
+> **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
 > **RULES_VERSION: 4** (bump on every material rule change — see `.agents/rules/rules-freshness-check.md`)
 
 ---

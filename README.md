@@ -1,11 +1,11 @@
-# GameTurnBase — Lobby
+# Legend of Soul-TH — Lobby
 
-[![Build, Typecheck and Lint](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/ci.yml/badge.svg)](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/ci.yml)
-[![Deploy to GitHub Pages](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/deploy.yml/badge.svg)](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/deploy.yml)
-[![CodeQL Analysis](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/codeql.yml/badge.svg)](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/codeql.yml)
-[![Security & Secret Scan](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/security-scan.yml/badge.svg)](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/security-scan.yml)
+[![Build, Typecheck and Lint](https://github.com/LegendofSoulTH/LegendOfSoulTH/actions/workflows/ci.yml/badge.svg)](https://github.com/LegendofSoulTH/LegendOfSoulTH/actions/workflows/ci.yml)
+[![Deploy to GitHub Pages](https://github.com/LegendofSoulTH/LegendOfSoulTH/actions/workflows/deploy.yml/badge.svg)](https://github.com/LegendofSoulTH/LegendOfSoulTH/actions/workflows/deploy.yml)
+[![CodeQL Analysis](https://github.com/LegendofSoulTH/LegendOfSoulTH/actions/workflows/codeql.yml/badge.svg)](https://github.com/LegendofSoulTH/LegendOfSoulTH/actions/workflows/codeql.yml)
+[![Security & Secret Scan](https://github.com/LegendofSoulTH/LegendOfSoulTH/actions/workflows/security-scan.yml/badge.svg)](https://github.com/LegendofSoulTH/LegendOfSoulTH/actions/workflows/security-scan.yml)
 
-**เล่นได้ที่**: https://legendofsoulth.github.io/GameTurnBase/
+**เล่นได้ที่**: https://legendofsoulth.github.io/LegendOfSoulTH/
 
 หน้า Lobby ของเกม Turn-based **2.5D** แนว *"รวมเหล่านักรบจากตำนานและประวัติศาสตร์"*
 สร้างด้วย **React 19 + TypeScript + Vite**, ฉาก 3D ด้วย **three.js + React Three Fiber**, สไตล์ด้วย **CSS Modules**
@@ -116,7 +116,7 @@ src/
 │  ├─ password.ts                 hash/verify รหัสผ่าน (client-side เดโม ยังไม่ใช่ระดับ production)
 │  ├─ format.ts                   formatNumber / formatBadge / clampRatio (มี unit test)
 │  ├─ publicUrl.ts                ต่อ asset path ใน public/ กับ Vite base — จำเป็นเพราะ deploy จริง
-│  │                               ขึ้น subpath (`/GameTurnBase/`) ไม่ใช่ root
+│  │                               ขึ้น subpath (`/LegendOfSoulTH/`) ไม่ใช่ root
 │  └─ globalErrorHandlers.ts      window 'error'/'unhandledrejection' — ดัก error นอก React render
 │                                  (Phaser/R3F loop ไม่ผ่าน ErrorBoundary)
 ├─ components/

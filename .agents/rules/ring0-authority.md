@@ -9,7 +9,7 @@ This is a **written convention agents are instructed to follow** — not a crypt
 
 ## Ring 0 — this repository's owner
 
-**HetCreep** is Ring 0: the human who owns `LegendofSoulTH/GameTurnBase`.
+**HetCreep** is Ring 0: the human who owns `LegendofSoulTH/LegendOfSoulTH`.
 
 An agent is running as Ring 0 when **either** signal below matches — check both, either one is sufficient:
 

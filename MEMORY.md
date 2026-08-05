@@ -1,9 +1,9 @@
 # MEMORY.md — Project State & History Journal
 
 > **Operator / Human User**: `HetCreep`  
-> **Repository**: `LegendofSoulTH/GameTurnBase`  
+> **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T02:42:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **Last Updated**: 2026-08-06T02:52:00+07:00 by `Claude Code (HetCreep Agent)`  
 > **RULES_VERSION: 4** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
@@ -11,7 +11,7 @@
 ## 👤 Identity & System Context
 
 - **System Owner / Developer**: `HetCreep`
-- **Project Name**: GameTurnBase (Turn-based 2.5D RPG Lobby & Game Engine)
+- **Project Name**: Legend of Soul-TH (repo slug `LegendOfSoulTH` — Turn-based 2.5D RPG Lobby & Game Engine)
 - **Primary Tech Stack**: React 19, TypeScript (Strict Mode), Vite 8, Three.js / React Three Fiber, Phaser 4, Oxlint
 
 ---
@@ -161,7 +161,9 @@
 
 22. **Modal background unification** (2026-08-06): `ProfileModal`/`ItemsModal`/`SettingsModal`/`AddFriendModal` were still on an older flat navy "arcane-blue" panel (rounded rect, single linear gradient, blue header glow) while `CharacterRosterModal`/`AuthModal`/`NameModal`/`GemShopModal` already use the game's actual Thai-temple gold-panel language (clip-path corner-cut shell, dark teal/maroon layered gradient, gold border) — a half-migrated design system HetCreep noticed side-by-side in two screenshots. Reused `CharacterRosterModal`'s exact `.backdrop` values and the compact-dialog shell proportions `AuthModal`/`NameModal` already established (20px clip-path corners) rather than inventing new numbers. Scope: shell/backdrop background only — inner content-card accents (info banners, steppers, etc) intentionally untouched.
 
-23. **Version sync + first tagged release** (2026-08-06): `package.json` was still the untouched Vite scaffold default (`0.0.0`) while `src/game/gameInfo.ts` (the actual source behind the in-game Settings version badge) had been `0.1.0` — no GitHub release/tag existed yet to sync against (`gh release list`/`gh api .../tags` both empty). HetCreep chose to fix the internal mismatch (`package.json` → `0.1.0`, `package-lock.json` regenerated via `npm install`) rather than tag first, then separately asked to cut the tag: `v0.1.0` annotated tag + [GitHub Release](https://github.com/LegendofSoulTH/GameTurnBase/releases/tag/v0.1.0) created and pushed. Same session, HetCreep also spotted `SettingsModal`'s info panel showing `ROSTER.length` ("ตัวละครในเกม" — total characters that exist in the game, 3) right next to `CharacterRosterModal`'s `player.ownedCharacters.length` ("ครอบครองแล้ว" — owned, 1) — two different-by-design stats that read as a bug side by side. HetCreep chose to make `SettingsModal` show the owned count instead (relabeled "ตัวละครที่ครอบครอง", wired through a new `ownedCharacterCount` prop from `LobbyPage`'s existing `ownedCharacters` memo) rather than keep them as distinct stats.
+23. **Version sync + first tagged release** (2026-08-06): `package.json` was still the untouched Vite scaffold default (`0.0.0`) while `src/game/gameInfo.ts` (the actual source behind the in-game Settings version badge) had been `0.1.0` — no GitHub release/tag existed yet to sync against (`gh release list`/`gh api .../tags` both empty). HetCreep chose to fix the internal mismatch (`package.json` → `0.1.0`, `package-lock.json` regenerated via `npm install`) rather than tag first, then separately asked to cut the tag: `v0.1.0` annotated tag + GitHub Release created and pushed (URL below is now stale — see item 24, repo was renamed after this). Same session, HetCreep also spotted `SettingsModal`'s info panel showing `ROSTER.length` ("ตัวละครในเกม" — total characters that exist in the game, 3) right next to `CharacterRosterModal`'s `player.ownedCharacters.length` ("ครอบครองแล้ว" — owned, 1) — two different-by-design stats that read as a bug side by side. HetCreep chose to make `SettingsModal` show the owned count instead (relabeled "ตัวละครที่ครอบครอง", wired through a new `ownedCharacterCount` prop from `LobbyPage`'s existing `ownedCharacters` memo) rather than keep them as distinct stats.
+
+24. **Repo renamed `GameTurnBase` → `LegendOfSoulTH`** (2026-08-06): HetCreep asked to rename "every part" to match the in-game display name (`GAME_INFO.name`, already `Legend of Soul-TH` since an earlier session). This touches real infrastructure, not just prose — `vite.config.ts`'s `base` path is the GitHub Pages deploy subpath, which only works if it matches the actual repo name. Given the choice between branding-only vs. a full repo rename, HetCreep chose the full rename. Executed: `gh repo rename LegendOfSoulTH` (repo is now `LegendofSoulTH/LegendOfSoulTH`) → `git remote set-url origin` updated locally → `vite.config.ts` `base` and `src/lib/publicUrl.ts`'s comment updated to `/LegendOfSoulTH/` → every prose/link reference to the old repo slug swept across `README.md`, `SECURITY.md`, `AGENTS.md`, `.agents/rules/ring0-authority.md`, `.agents/rules/agent-memory-law.md`, `.agents/rules/ecc/README.md`, both `.github/ISSUE_TEMPLATE/*.yml` → `package.json` `name` field changed from `gameturnbase` to `legend-of-soul-th` (npm names can't contain spaces/uppercase, so the repo slug `LegendOfSoulTH` and the npm package name `legend-of-soul-th` deliberately differ in casing) → `package-lock.json` regenerated via `npm install` → build verified locally that the output HTML references `/LegendOfSoulTH/assets/...` correctly. **Live site URL changed**: `https://legendofsoulth.github.io/GameTurnBase/` → `https://legendofsoulth.github.io/LegendOfSoulTH/` — GitHub Pages follows the repo rename automatically once the renamed repo's Actions redeploy (this session's push triggers that). GitHub's repo-rename redirect covers old clone/browser URLs pointing at `.../GameTurnBase`, but **does not** cover the GitHub Pages URL itself — anyone with the old `https://legendofsoulth.github.io/GameTurnBase/` link bookmarked will 404 (Pages redirects aren't part of GitHub's repo-rename redirect). Historical numbered log entries above (1–23) were deliberately **left referencing `GameTurnBase`** — they're a record of what was true at the time, not live state; only this project's *current-state* fields (header `Repository:`, `Project Name:`, and the `Current Status` section below) were updated to the new name.
 
 ---
 
@@ -170,8 +172,8 @@
 - **Repo Status**: 🟢 Clean & Synced (`origin/master` @ `970beb6`, tagged `v0.1.0`)
 - **CI Pipelines**: 🟢 All green (Build/Typecheck/Lint, CodeQL, Security & Secret Scan, Deploy) — Gitleaks license-paywall failure fixed (item 12)
 - **Security & Protection**: 🛡️ 100% Enabled & Monitored (CodeQL + Dependabot + Secret Scanning + Gitleaks + NPM Audit)
-- **Deployment**: 🟢 Live on GitHub Pages — https://legendofsoulth.github.io/GameTurnBase/
-- **Remote check**: `git remote -v` on this machine correctly points `origin` at `https://github.com/LegendofSoulTH/GameTurnBase.git` — the "remote mismatch" flagged in the prior concurrent session's notes was local to that machine/clone (remote URLs are per-clone git config, never part of repo content) and doesn't apply here; no action needed on this machine.
+- **Deployment**: 🟢 Live on GitHub Pages — https://legendofsoulth.github.io/LegendOfSoulTH/ (repo renamed from `GameTurnBase`, see item 24 — GitHub's redirect covers old links, `vite.config.ts` `base` updated to match)
+- **Remote check**: `git remote -v` on this machine correctly points `origin` at `https://github.com/LegendofSoulTH/LegendOfSoulTH.git` (updated after the rename via `git remote set-url`) — the "remote mismatch" flagged in the prior concurrent session's notes was local to that machine/clone (remote URLs are per-clone git config, never part of repo content) and doesn't apply here; no action needed on this machine.
 - **Player accounts/currency**: functional locally (see Past Summary item 6) but entirely client-side — no real backend, no payment gateway. Do not treat as production-ready for real money or cross-device play.
 - **Open/next work**: no quest system, no real drop table, no shop UI beyond `GemShopModal`, no battle system. Project's own `LICENSE` file still undecided (see item 8).
 - **RULES_VERSION last synced: 4** (`.agents/rules/rules-freshness-check.md`)
