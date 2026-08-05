@@ -1,7 +1,14 @@
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { BattleIcon } from '../components/icons/GameIcons'
 import { GAME_INFO } from '../game/gameInfo'
+import { publicUrl } from '../lib/publicUrl'
 import styles from './TitlePage.module.css'
+
+// url('/backgrounds/...') ตรง ๆ ใน CSS ชี้ผิดที่ตอน deploy ขึ้น subpath (ดู src/lib/publicUrl.ts) —
+// ส่งเข้าไปเป็น CSS custom property แทน
+const BG_BATTLE_ART_STYLE: CSSProperties = {
+  ['--bg-battle-art' as string]: `url(${publicUrl('backgrounds/wukong-vs-bull-demon-v2-game-art.png')})`,
+}
 
 interface TitlePageProps {
   /**
@@ -91,7 +98,7 @@ export function TitlePage({ onStart }: TitlePageProps) {
         <i className={`${styles.corner} ${styles.cornerBr}`} />
       </div>
 
-      <div className={styles.battleArt} aria-hidden="true" />
+      <div className={styles.battleArt} aria-hidden="true" style={BG_BATTLE_ART_STYLE} />
 
       <header className={styles.topBar}>
         <span className={styles.chapter}>บทที่ ๑ · การตื่นของตำนาน</span>

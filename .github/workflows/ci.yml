@@ -3,8 +3,16 @@ name: Build, Typecheck and Lint
 on:
   push:
     branches: [ main, master ]
+    paths-ignore:
+      - '**/*.md'
+      - '.agents/**'
+      - '.coalmine.json'
   pull_request:
     branches: [ main, master ]
+    paths-ignore:
+      - '**/*.md'
+      - '.agents/**'
+      - '.coalmine.json'
 
 jobs:
   ci:

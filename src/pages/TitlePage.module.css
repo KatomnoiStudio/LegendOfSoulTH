@@ -25,7 +25,7 @@
   pointer-events: none;
   translate: -50%;
   opacity: 0.58;
-  background: url('/backgrounds/wukong-vs-bull-demon-v2-game-art.png') center / contain no-repeat;
+  background: var(--bg-battle-art) center / contain no-repeat;
   filter: saturate(0.76) contrast(0.92) brightness(0.78);
   -webkit-mask-image: radial-gradient(ellipse 76% 74% at 50% 48%, #000 42%, rgb(0 0 0 / 78%) 70%, transparent 100%);
   mask-image: radial-gradient(ellipse 76% 74% at 50% 48%, #000 42%, rgb(0 0 0 / 78%) 70%, transparent 100%);

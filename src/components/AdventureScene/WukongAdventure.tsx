@@ -9,7 +9,14 @@ import {
 } from 'react'
 import { ROSTER, type Character } from '../../game/characters'
 import { getWalkKit } from '../../game/walkKits'
+import { publicUrl } from '../../lib/publicUrl'
 import styles from './WukongAdventure.module.css'
+
+// url('/ui/...') ตรง ๆ ใน CSS ชี้ผิดที่ตอน deploy ขึ้น subpath (ดู src/lib/publicUrl.ts) —
+// ส่งเข้าไปเป็น CSS custom property แทน
+const BG_TEMPLE_STYLE: CSSProperties = {
+  ['--bg-temple' as string]: `url(${publicUrl('ui/thai/thai-temple-lobby.png')})`,
+}
 
 const WORLD_WIDTH = 1600
 const WORLD_HEIGHT = 900
@@ -443,7 +450,7 @@ export function WukongAdventure({ onExit, mode = 'trial', characters }: WukongAd
     if (mode === 'moonlight') return null
 
     return (
-      <section className={`${styles.scene} ${styles.moonlight}`} aria-label={copy.heading}>
+      <section className={`${styles.scene} ${styles.moonlight}`} aria-label={copy.heading} style={BG_TEMPLE_STYLE}>
         <div className={styles.emptyCast}>
           <strong>ยังไม่มีขุนพลที่ออกเดินได้</strong>
           <p>ขุนพลที่ท่านมีอยู่ยังไม่มีชุดท่าเดิน โปรดรอการอัญเชิญขุนพลที่พร้อมออกเดิน</p>
@@ -461,6 +468,7 @@ export function WukongAdventure({ onExit, mode = 'trial', characters }: WukongAd
       className={`${styles.scene} ${mode === 'moonlight' ? styles.moonlight : ''}`}
       aria-label={`${copy.heading} — ควบคุม${active.name}`}
       onPointerDown={onFloorPointerDown}
+      style={BG_TEMPLE_STYLE}
     >
       <div className={styles.atmosphere} aria-hidden="true" />
       {mode === 'moonlight' ? <div className={styles.moonBeam} aria-hidden="true" /> : null}

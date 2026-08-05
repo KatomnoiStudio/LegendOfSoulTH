@@ -106,7 +106,7 @@
   padding: 54px 68px 9px;
   border: 0;
   clip-path: none;
-  background: url('/ui/thai/rahu-button-frame.png') center / 100% 100% no-repeat;
+  background: var(--bg-rahu) center / 100% 100% no-repeat;
   background-position: center !important;
   color: #321b06;
   overflow: visible;

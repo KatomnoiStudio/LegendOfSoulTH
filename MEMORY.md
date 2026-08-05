@@ -3,8 +3,8 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/GameTurnBase`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T00:05:00+07:00 by `Claude Code (HetCreep Agent)` — merge of concurrent work from `Claude Sonnet 5 (Claude Code Agent)` session (commits `6157f89`, `0a66592`)  
-> **RULES_VERSION: 1** (see `.agents/rules/rules-freshness-check.md`)
+> **Last Updated**: 2026-08-06T01:20:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **RULES_VERSION: 3** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
 
@@ -100,20 +100,44 @@
    - **Explicit limitation, stated to HetCreep**: this is agent-instruction-level governance (markdown a compliant agent reads and follows), not a cryptographic access control. It cannot stop a non-compliant tool or a human editing files by hand — its job is to keep every rule-reading agent (Claude Code, Copilot, etc.) aligned on whose call is authoritative, not to enforce it at the OS/git level.
 
 10. **Merged concurrent session work + pushed to `origin/master`** (2026-08-06): items 6 (this machine's clone was behind) and items 7–9 (this session's own work) landed in parallel on two machines. Merged by hand (`vite.config.ts`: kept both the `command`-conditional `base` fix and the new `test` block; `MEMORY.md`: renumbered/interleaved both timelines; `ProfileModal.tsx` auto-merged clean — the earlier session's edits and this session's `console.warn`-before-swallow fix touched non-overlapping lines). Full verify (`typecheck && lint && test && build`) re-run green after the merge before push.
+   - **Deploy fixed too**: GitHub Pages had never been enabled on the repo (`configure-pages` 404'd on every deploy run, unrelated to code) — enabled via `gh api POST /repos/.../pages build_type=workflow`. A second concurrent push landed mid-deploy (`ead2fca`, another gold top-up button) and merged automatically with this session's push; the resulting run (`1a5d7d7`) deployed successfully — https://legendofsoulth.github.io/GameTurnBase/ live.
+
+11. **Pre-Push Sync Law codified** (2026-08-06), `RULES_VERSION` → 2:
+    - `.agents/rules/pre-push-sync-law.md` (new) — turns the procedure from item 10 into a binding rule for every machine (Ring 0 included, since this is code hygiene not an authority question): `fetch` → check ahead/behind → merge if behind → resolve conflicts **by hand, preserving both sides' work** (never blind `--ours`/`--theirs`, never silently drop the other side's committed changes) → full `typecheck && lint && test && build` green → only then push.
+    - `AGENTS.md` — mandate #7 added, `RULES_VERSION` bumped 1→2.
+
+12. **CI cleanup + broken images fixed live** (2026-08-06):
+    - **Gitleaks license paywall**: `gitleaks/gitleaks-action@v2` requires a paid `GITLEAKS_LICENSE` for org-owned repos (this repo is under `LegendofSoulTH`) — every run had been failing on this since the action was first added, unrelated to any code. Fixed by running the free/OSS `gitleaks` CLI directly (`.github/workflows/security-scan.yml`: download `v8.30.1` linux_x64, checksum-verified, `gitleaks detect`) instead of the Action wrapper. Confirmed green.
+    - `.coalmine.json` (new, project-level) — `scanExcludePaths` keeps rot-canary's auto-scan budget off pure docs (`**/*.md`, `.agents/rules/**`) and `.github/**`.
+    - **`paths-ignore` added to `ci.yml`/`codeql.yml`/`deploy.yml`** (docs/rules/`.coalmine.json` changes no longer burn a build+typecheck+lint+test+deploy cycle) — deliberately **not** added to `security-scan.yml`, since gitleaks needs to scan docs too (a secret pasted into a `.md` file is still a leak).
+    - **Broken images fixed (live, user-reported via screenshot)**: `url('/ui/...')` in CSS and `<img src="/ui/...">` in JSX resolve against the domain root, not the app base — fine in dev (`base: '/'`) but 404 once built for GitHub Pages (`base: '/GameTurnBase/'`). Every background/icon image on the deployed site was broken. Added `src/lib/publicUrl.ts` (prefixes with `import.meta.env.BASE_URL`, the Vite-documented fix) and applied it at all 12 call sites across `WukongAdventure`, `LobbyScene`, `StartAdventure`, `TopBar`, `TitlePage`, `SideActions` (CSS backgrounds via inline `--custom-property` style props, `<img>` tags directly). Verified against the live deployed bundle (`GameTurnBase` prefix + path segments both present) after redeploy.
+    - Full verify (`typecheck && lint && test && build`) green before every push in this batch, per the Pre-Push Sync Law above. rot-canary QUICK on the touched files: no CONFIRMED findings.
+
+13. **Ring 0 fixed for cloud agents** (2026-08-06), `RULES_VERSION` → 3, `.agents/rules/ring0-authority.md` rewritten:
+    - **Gap found by HetCreep**: the original version gated Ring 0 (and the "HetCreep's live instruction always wins" clause) on `.agents/ring0.local` alone — a gitignored local-only file. A cloud/hosted agent session (GitHub Copilot coding agent, Claude Code cloud, etc.) is an ephemeral clone that never has that file, so it would've read as Ring 1 even when HetCreep was the one directly driving it.
+    - **Fix**: Ring 0 is now determined by *either* signal — the local marker (fast path for a persistent machine) *or* git identity (`git config user.name`/`user.email`, or the authenticated actor via `gh api user`) matching HetCreep. Git identity travels with a cloud session authenticated under HetCreep's own account, the local file doesn't.
+    - **Also decoupled**: "HetCreep's live instruction always wins" no longer requires the Ring-0 marker specifically — it fires whenever the live human in the session is confirmed as HetCreep by either signal, or by the platform's own session context. Ring marker vs. live-instruction-override were conflated before; they're separate concerns now.
+
+14. **ponytail-audit cleanup + README refresh + AuthModal Esc** (2026-08-06):
+    - Repo-wide over-engineering scan (ponytail-audit): removed `phaser` dependency (^4.2.1, 116MB, zero imports anywhere in `src/` or the build output — game runs on R3F only) and dead `src/hooks/usePlayer.ts` (+ its only consumer `MOCK_PLAYER` in `mockPlayer.ts`, `MOCK_BADGES` kept). Bundle size byte-identical before/after — confirms phaser was never actually bundled.
+    - `README.md` brought back in sync: removed stale `usePlayer.ts` references, fixed the gold "+" description (demo "collect drop" button was removed earlier — both gold and gem "+" now open `GemShopModal`), added live site link + `security-scan` badge + missing npm scripts (`typecheck`/`test`/`ci`) + new files (`ErrorBoundary`, `publicUrl`, `globalErrorHandlers`), corrected bundle-size numbers, added a pointer to `AGENTS.md`/`MEMORY.md`.
+    - `AuthModal.tsx`: Esc previously did nothing (modal is intentionally non-dismissible — must have an account before entering the game, per the file's own header comment). Per HetCreep's direction, kept that design but made Esc do something instead of being dead input: it now toggles the register/login tab.
+    - Full verify green + rot-canary QUICK clean on every change in this batch.
 
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
 
-- **Repo Status**: 🟢 Clean & Synced (`origin/master`) — working tree matches `HEAD` after merge, no pending changes
-- **CI Pipelines**: 🟢 Passing (Typecheck 0 errors, Lint 0 errors, Test 5/5, Build clean) — re-verified after merge
+- **Repo Status**: 🟢 Clean & Synced (`origin/master` @ `b93b025`)
+- **CI Pipelines**: 🟢 All green (Build/Typecheck/Lint, CodeQL, Security & Secret Scan, Deploy) — Gitleaks license-paywall failure fixed (item 12)
 - **Security & Protection**: 🛡️ 100% Enabled & Monitored (CodeQL + Dependabot + Secret Scanning + Gitleaks + NPM Audit)
-- **Deployment**: Configured for GitHub Pages (`/GameTurnBase/`)
+- **Deployment**: 🟢 Live on GitHub Pages — https://legendofsoulth.github.io/GameTurnBase/
 - **Remote check**: `git remote -v` on this machine correctly points `origin` at `https://github.com/LegendofSoulTH/GameTurnBase.git` — the "remote mismatch" flagged in the prior concurrent session's notes was local to that machine/clone (remote URLs are per-clone git config, never part of repo content) and doesn't apply here; no action needed on this machine.
 - **Player accounts/currency**: functional locally (see Past Summary item 6) but entirely client-side — no real backend, no payment gateway. Do not treat as production-ready for real money or cross-device play.
 - **Open/next work**: no quest system, no real drop table, no shop UI beyond `GemShopModal`, no battle system. Project's own `LICENSE` file still undecided (see item 8).
-- **RULES_VERSION last synced: 1** (`.agents/rules/rules-freshness-check.md`)
+- **RULES_VERSION last synced: 3** (`.agents/rules/rules-freshness-check.md`)
 - **Ring**: this machine is Ring 0 (`.agents/ring0.local` present, gitignored). Any other clone is Ring 1 by default — see `.agents/rules/ring0-authority.md`.
+- **Pre-push sync**: `.agents/rules/pre-push-sync-law.md` — binding on every machine before every push.
 
 ---
 
