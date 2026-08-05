@@ -6,24 +6,25 @@
 }
 
 .dpad {
+  --dpad-cell: clamp(44px, 3.6vw, 56px);
   position: absolute;
   inset-block-end: 28px;
   inset-inline-start: 24px;
   display: grid;
-  grid-template-columns: repeat(3, 56px);
-  grid-template-rows: repeat(3, 56px);
+  grid-template-columns: repeat(3, var(--dpad-cell));
+  grid-template-rows: repeat(3, var(--dpad-cell));
   gap: 6px;
   pointer-events: auto;
 }
 
 .dpadBtn {
-  min-width: 56px;
-  min-height: 56px;
+  min-width: var(--dpad-cell);
+  min-height: var(--dpad-cell);
   border-radius: 14px;
   border: 1px solid rgb(255 255 255 / 18%);
   background: rgb(8 14 28 / 78%);
   color: var(--c-gold-light);
-  font-size: 1.2rem;
+  font-size: clamp(1rem, 0.9vw, 1.2rem);
 }
 
 .dpadBtn:active {
@@ -35,8 +36,8 @@
   position: absolute;
   inset-block-end: 36px;
   inset-inline-end: 28px;
-  min-width: 96px;
-  min-height: 96px;
+  min-width: clamp(72px, 6vw, 96px);
+  min-height: clamp(72px, 6vw, 96px);
   border-radius: 50%;
   border: 2px solid var(--c-gold);
   background: linear-gradient(180deg, rgb(240 200 90 / 24%), rgb(20 24 40 / 92%));

@@ -58,7 +58,8 @@
 .gem .currencyIcon { filter: drop-shadow(0 0 7px rgb(98 210 255 / 65%)); }
 .amount { color: #f4e8cb; font-family: var(--font-display); font-size: 0.82rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: 0.06em; text-shadow: 0 2px 4px #000; }
 .addButton { display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid #ebc46d; rotate: 45deg; background: linear-gradient(145deg, #f2c968, #8e5c18); color: #261805; box-shadow: 0 3px 8px rgb(0 0 0 / 55%), inset 0 1px #fff0ba; transition: transform 180ms ease, filter 180ms ease; }
-.addButton svg { width: 0.82rem; height: 0.82rem; rotate: -45deg; }
+/* % ของ .addButton เอง (25px→20px @760px) แทน rem ตายตัว จะได้ย่อตามปุ่มพ่อจริง ๆ */
+.addButton svg { width: 52%; height: 52%; rotate: -45deg; }
 .addButton:hover:not(:disabled) { transform: scale(1.14) rotate(90deg); filter: brightness(1.18); }
 .addButton:active:not(:disabled) { transform: scale(0.9) rotate(90deg); }
 .addButton:disabled { cursor: not-allowed; filter: saturate(0.3) brightness(0.7); opacity: 0.6; }

@@ -136,14 +136,14 @@
   inset-inline-end: 14px;
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: clamp(24px, 1.9vw, 30px);
+  height: clamp(24px, 1.9vw, 30px);
   padding: 0;
   border: 1px solid rgb(231 187 86 / 42%);
   border-radius: 50%;
   background: linear-gradient(180deg, rgb(76 37 30 / 86%), rgb(7 22 31 / 92%));
   color: #eec86f;
-  font-size: 1rem;
+  font-size: clamp(0.8rem, 0.85vw, 1rem);
   box-shadow: 0 4px 10px rgb(0 0 0 / 38%);
   transition: transform 160ms ease, filter 160ms ease;
 }
