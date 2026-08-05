@@ -1,5 +1,9 @@
 # GameTurnBase — Lobby
 
+[![Build, Typecheck and Lint](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/ci.yml/badge.svg)](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/ci.yml)
+[![Deploy to GitHub Pages](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/deploy.yml/badge.svg)](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/deploy.yml)
+[![CodeQL Analysis](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/codeql.yml/badge.svg)](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/codeql.yml)
+
 หน้า Lobby ของเกม Turn-based **2.5D** แนว *"รวมเหล่านักรบจากตำนานและประวัติศาสตร์"*
 สร้างด้วย **React 19 + TypeScript + Vite**, ฉาก 3D ด้วย **three.js + React Three Fiber**, สไตล์ด้วย **CSS Modules**
 
@@ -172,3 +176,20 @@ src/
 - ฉาก 3D ถูกแยกเป็น chunk แยกและโหลดแบบ lazy (HUD ~66 kB gzip, ฉาก ~237 kB gzip)
 - รองรับ `prefers-reduced-motion` (ปิด animation และการโยกกล้อง)
 - รองรับ safe-area ของมือถือ และ breakpoint ที่ 720px / 900px
+
+## GitHub Repository Settings Guide
+
+เพื่อให้การทำงานของ CI/CD และความปลอดภัยครอบคลุม 100% ให้เปิดใช้งานการตั้งค่าบน GitHub Web UI ดังนี้:
+
+1. **GitHub Pages (`Settings -> Pages`)**:
+   - Source: เลือก **GitHub Actions**
+2. **Branch Protection (`Settings -> Branches`)**:
+   - เพิ่ม protection rule สำหรับ branch `main`:
+     - [x] **Require a pull request before merging**
+     - [x] **Require status checks to pass before merging** (เลือก `Continuous Integration`)
+     - [x] **Require branches to be up to date before merging**
+3. **Code Security and Analysis (`Settings -> Code security and analysis`)**:
+   - [x] **Dependabot alerts**: Enabled
+   - [x] **Dependabot security updates**: Enabled
+   - [x] **Secret scanning**: Enabled
+   - [x] **CodeQL analysis**: Enabled (via `.github/workflows/codeql.yml`)
