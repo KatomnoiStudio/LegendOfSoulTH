@@ -30,6 +30,8 @@ interface LobbyPageProps {
   /** บันทึกความคืบหน้ากลับลงฐานข้อมูล */
   onPlayerChange: (next: Player) => Promise<void>
   onLogout: () => Promise<void>
+  /** เติมทองด้วยเงินจริง */
+  onTopUpGold: (packageId: string) => Promise<CurrencyResult>
   /** เติมหยกด้วยเงินจริง */
   onTopUpGems: (packageId: string) => Promise<CurrencyResult>
   /** แลกโค้ดคูปองเป็นหยก */
@@ -42,6 +44,7 @@ export function LobbyPage({
   player,
   onPlayerChange,
   onLogout,
+  onTopUpGold,
   onTopUpGems,
   onRedeemCoupon,
   onFindFriend,
@@ -92,6 +95,7 @@ export function LobbyPage({
       <TopBar
         player={player}
         onOpenProfile={() => setProfileOpen(true)}
+        onTopUpGold={onTopUpGold}
         onTopUpGems={onTopUpGems}
       />
 

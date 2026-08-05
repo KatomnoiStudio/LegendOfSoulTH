@@ -47,8 +47,8 @@ By design, not bugs — don't file these:
   see [`src/lib/password.ts`](src/lib/password.ts)'s header comment. This is a local-only demo
   auth layer (PBKDF2 + salt, constant-time compare) so passwords aren't stored in the clear
   even locally; it is explicitly **not** a substitute for real server-side authentication.
-- **"GemShopModal payments aren't real / always succeed."** Intentional — no payment gateway is
-  wired up yet (see `accountRepository.ts` `topUpGems`). Not a payment-bypass vulnerability;
+- **"CurrencyShopModal payments (gold or gems) aren't real / always succeed."** Intentional — no
+  payment gateway is wired up yet (see `accountRepository.ts` `topUpGold`/`topUpGems`). Not a payment-bypass vulnerability;
   there is no real payment to bypass.
 - Vulnerabilities in a dependency that this project doesn't actually reach at runtime
   (see `npm audit` in CI first — if it's already flagged/tracked there, no need to duplicate).

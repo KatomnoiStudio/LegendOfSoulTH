@@ -93,12 +93,21 @@
 .package:active:not(:disabled) { transform: translateY(0) scale(0.99); }
 .package:disabled { cursor: not-allowed; opacity: 0.55; }
 
-.packageGem {
+.packageAmount {
   font-family: var(--font-display);
   font-size: 0.98rem;
   font-weight: 800;
   letter-spacing: 0.03em;
+}
+
+/* หยก — คงสีฟ้าเดิม (ตรงกับไอคอนหยก/จี้เขียวใน TopBar) */
+.packageAmount.gem {
   color: #7ee0ff;
+}
+
+/* ทอง — สีทองอำพัน ตรงกับไอคอนทองใน TopBar กันสับสนว่าเป็นแพ็กเกจไหน */
+.packageAmount.gold {
+  color: #f2c968;
 }
 
 .packagePrice {
