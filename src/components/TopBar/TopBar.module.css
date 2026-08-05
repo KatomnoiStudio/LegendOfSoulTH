@@ -36,7 +36,7 @@
 
 .identity { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .name { margin: 0; font-family: var(--font-display); font-size: 1rem; font-weight: 800; letter-spacing: 0.05em; color: #f4e6c4; text-shadow: 0 2px 6px #000; white-space: nowrap; }
-.title { font-size: 0.63rem; color: rgb(158 198 186 / 62%); letter-spacing: 0.07em; white-space: nowrap; }
+.power { max-width: 100%; overflow: hidden; font-size: 0.63rem; color: rgb(158 198 186 / 62%); letter-spacing: 0.07em; white-space: nowrap; text-overflow: ellipsis; }
 .expRow { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
 .expTrack { position: relative; width: clamp(105px, 9vw, 145px); height: 7px; border: 1px solid rgb(223 181 89 / 28%); clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%); background: rgb(2 8 14 / 88%); overflow: hidden; }
 .expFill { position: relative; height: 100%; overflow: hidden; background: linear-gradient(90deg, #3da889, #81dfbf 65%, #f2cf78); box-shadow: 0 0 9px rgb(92 211 170 / 48%); transition: width 900ms ease-out; }
@@ -63,7 +63,7 @@
 @media (max-width: 760px) {
   .bar { padding-inline: 12px; gap: 8px; }
   .profile { min-width: 0; padding: 8px 17px 8px 8px; }
-  .profileTag, .title, .expText { display: none; }
+  .profileTag, .expText { display: none; }
   .avatarFrame { --frame-size: 3rem; }
   .name { font-size: 0.76rem; }
   .expTrack { width: 75px; }
@@ -77,11 +77,14 @@
 
 /* Thai fantasy skin — ภาพวาดพญานาคและคลังสมบัติ */
 .profile {
-  /* กว้างคงที่ตามสัดส่วนจริงของภาพเฟรม (2243x701) กันไม่ให้ชื่อยาวดันกล่องจนภาพยืดเพี้ยน */
+  /* กว้างคงที่ตามสัดส่วนจริงของภาพเฟรม (2243x701) กันไม่ให้ชื่อยาวดันกล่องจนภาพยืดเพี้ยน
+     สูงคงที่แยกจากความกว้าง (ไม่ผูก aspect-ratio) เพื่อเหลือพื้นที่แนวตั้งพอให้ชื่อ+พลังรบ
+     ไม่ล้นออกนอกลายกรอบพญานาคที่ช่วงล่าง — ความเพี้ยนของภาพที่กว้างช่วง 430–510px นั้นเล็กน้อยมาก */
   width: clamp(430px, 36vw, 510px);
-  aspect-ratio: 2243 / 701;
+  height: 158px;
   min-height: 0;
-  padding: 62px 58px 24px 70px;
+  padding: 50px 52px 16px 68px;
+  overflow: hidden;
   border: 0;
   clip-path: none;
   background: url('/ui/thai/naga-profile-frame.png') center / 100% 100% no-repeat;
@@ -113,30 +116,21 @@
 .identity {
   position: relative;
   /* ดันชื่อลงไปซ้อนอยู่ช่วงล่างของแผ่นป้ายในกรอบพญานาค
-     (กรอบมีหัวนาคกินพื้นที่ครึ่งบน ชื่อจึงต้องอยู่ต่ำกว่ากึ่งกลาง) */
+     (กรอบมีหัวนาคกินพื้นที่ครึ่งบน ชื่อจึงต้องอยู่ต่ำกว่ากึ่งกลาง)
+     ไม่มีพื้นหลังของตัวเอง — ใช้พื้นสีน้ำเงินเข้มที่วาดมากับภาพกรอบพญานาคเลย
+     (เดิมเคยใส่กล่องพื้นเข้มซ้อนทับอีกชั้น แต่ขอบกล่องไม่ตรงกับพื้นที่สีน้ำเงินจริงในภาพ
+     ทำให้เห็นเป็นเงาดำ/แผ่นดำโผล่ทับลายทองของพญานาค) */
   align-self: flex-end;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
-  margin-block-end: -4px;
-  padding: 7px 14px 6px 16px;
-  border-inline-start: 2px solid #d8a53f;
-  clip-path: polygon(7px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
-  background:
-    linear-gradient(90deg, rgb(112 30 29 / 36%), transparent 62%),
-    linear-gradient(180deg, rgb(4 18 30 / 78%), rgb(7 26 31 / 64%));
-  box-shadow: inset 0 1px rgb(244 205 114 / 18%);
+  max-width: 100%;
+  margin-block-end: -2px;
+  padding: 5px 12px 4px 14px;
 }
-.identity::after {
-  position: absolute;
-  top: 7px;
-  right: 9px;
-  color: rgb(231 183 66 / 52%);
-  content: '◆';
-  font-size: 0.42rem;
-}
-.name { max-width: 100%; overflow: hidden; color: #f6d885; font-size: 1.32rem; text-overflow: ellipsis; text-shadow: 0 2px 4px #000, 0 0 8px rgb(222 163 48 / 22%); }
-.title { color: rgb(235 222 184 / 74%); font-size: 0.83rem; }
-.expText { font-size: 0.77rem; }
+.name { max-width: 100%; overflow: hidden; color: #f6d885; font-size: 1.15rem; text-overflow: ellipsis; text-shadow: 0 2px 4px #000, 0 0 8px rgb(222 163 48 / 22%); }
+.power { color: #a8e0c8; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-shadow: 0 2px 4px #000; }
+.expRow { margin-top: 3px; }
+.expText { font-size: 0.7rem; }
 .expTrack { border-color: rgb(241 195 80 / 58%); background: rgb(25 7 14 / 88%); }
 .expFill { background: linear-gradient(90deg, #8d2631, #d79834 58%, #ffe392); box-shadow: 0 0 9px rgb(224 161 48 / 42%); }
 .avatarWrap::before {
@@ -196,8 +190,15 @@
 .levelBadge { font-size: 0.77rem; }
 
 @media (max-width: 760px) {
-  .profile { width: 300px; min-height: 0; padding: 40px 34px 16px 46px; }
-  .identity { margin-block-end: -2px; padding: 4px 8px 4px 10px; }
+  .profile { width: 300px; height: 108px; min-height: 0; padding: 32px 24px 10px 36px; }
+  .identity { margin-block-end: -1px; padding: 3px 8px 3px 9px; }
+  /*
+     .name/.power ต้องประกาศซ้ำในนี้ เพราะ block นี้มาหลัง block มือถือทั่วไป (บรรทัด ~63)
+     แต่มาก่อนกฎแบบไม่มี media query ที่บรรทัด ~137 — ถ้าไม่ประกาศซ้ำ ฟอนต์เดสก์ท็อป
+     (1.15rem) จะชนะบนมือถือ ทำให้ชื่อ/พลังรบล้นกรอบที่แคบลง
+  */
+  .name { font-size: 0.86rem; }
+  .power { font-size: 0.6rem; }
   .currency { grid-template-columns: 22px minmax(66px, auto) 19px; gap: 6px; min-height: 29px; padding: 2px 6px 2px 7px; }
   .currencyIcon { width: 23px; height: 23px; }
 }

@@ -17,10 +17,17 @@ import type { Player } from '../types/player'
  *   players(uid PK/FK, name, title, level, exp, exp_to_next, gold, gem, frame_id)
  *   owned_characters(uid FK, character_id, level, exp, exp_to_next, obtained_at)
  *   team_slots(uid FK, slot_index, character_id NULL)
+ *   currency_transactions(id PK, uid FK, currency enum('gold','gem'),
+ *     source enum('quest','drop','topup','coupon'), amount, ref_id, created_at)
+ *     — ชั้นแอปบังคับว่า gold มาจาก source 'quest'/'drop' เท่านั้น
+ *       และ gem มาจาก 'topup'/'coupon' เท่านั้น (ดู earnGold/topUpGems/redeemCoupon
+ *       ด้านล่าง — ไม่มีฟังก์ชันเซตทอง/หยกตรง ๆ ให้เรียกจากที่อื่นโดยไม่ระบุแหล่งที่มา)
  *
  * ─── ข้อจำกัดที่ต้องรู้ ────────────────────────────────────
  * ข้อมูลอยู่ในเบราว์เซอร์ของผู้เล่นเอง จึงแก้ได้ด้วย DevTools
  * ระบบนี้ใช้ "จำผู้เล่นบนเครื่องนี้" ได้ แต่ยังไม่ใช่การยืนยันตัวตนที่เชื่อถือได้
+ * การ "จ่ายเงินจริง" ใน topUpGems ยังไม่ต่อ payment gateway — ถือว่าจ่ายสำเร็จเสมอ
+ * (ใช้ทดสอบ/เดโมเท่านั้น ห้ามใช้ค้าจริงจนกว่าจะต่อระบบชำระเงินที่ตรวจสอบได้จริง)
  * ───────────────────────────────────────────────────────────
  */
 
@@ -30,6 +37,21 @@ const SESSION_KEY = 'los:session:v1'
 /** ตัวละครที่ได้ฟรีตอนสมัครบัญชีใหม่ */
 const STARTER_CHARACTER_ID = 'monkey-king'
 
+/** ทองหาได้จากการเล่นเท่านั้น — ทำเควสสำเร็จ หรือของดรอประหว่างเล่น */
+export type GoldSource = 'quest' | 'drop'
+/** หยกได้จากการเติมเงินจริง หรือแลกคูปองเท่านั้น — ห้ามมีทางอื่น */
+export type GemSource = 'topup' | 'coupon'
+
+export interface CurrencyTransaction {
+  id: string
+  currency: 'gold' | 'gem'
+  source: GoldSource | GemSource
+  amount: number
+  createdAt: string
+  /** อ้างอิงที่มา เช่น questId, dropId, รหัสคูปอง, หรือ id แพ็กเกจเติมหยก */
+  refId?: string
+}
+
 interface StoredAccount {
   uid: string
   email: string
@@ -37,6 +59,8 @@ interface StoredAccount {
   passwordSalt: string
   createdAt: string
   player: Player
+  /** ประวัติการได้ทอง/หยกทุกครั้ง — ใช้ตรวจสอบที่มาและกันแลกคูปองซ้ำ */
+  transactions: CurrencyTransaction[]
 }
 
 interface Database {
@@ -60,6 +84,59 @@ function saveDb(db: Database): boolean {
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase()
 }
+
+function findAccountEntry(db: Database, uid: string): [string, StoredAccount] | undefined {
+  return Object.entries(db.accounts).find(([, account]) => account.uid === uid)
+}
+
+/** เพิ่มรายการธุรกรรมและอัปเดตยอดทอง/หยกไปพร้อมกัน — จุดเดียวที่แก้ currency ได้ */
+function appendTransaction(
+  account: StoredAccount,
+  entry: Omit<CurrencyTransaction, 'id' | 'createdAt'>,
+): StoredAccount {
+  const transaction: CurrencyTransaction = {
+    ...entry,
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+  }
+
+  const currency = { ...account.player.currency }
+  if (transaction.currency === 'gold') currency.gold += transaction.amount
+  else currency.gem += transaction.amount
+
+  return {
+    ...account,
+    player: { ...account.player, currency },
+    transactions: [...(account.transactions ?? []), transaction],
+  }
+}
+
+/* ---------------- ตารางคูปอง / แพ็กเกจเติมหยก ---------------- */
+
+interface CouponDefinition {
+  gem: number
+  /** จำนวนครั้งสูงสุดที่แลกได้รวมทุกบัญชี — ไม่ระบุ = ไม่จำกัด */
+  maxRedemptions?: number
+  expiresAt?: string
+}
+
+/** โค้ดคูปอง — คีย์เป็นตัวพิมพ์ใหญ่เสมอ (ดู redeemCoupon ที่ normalize ก่อนเทียบ) */
+const COUPONS: Record<string, CouponDefinition> = {
+  WELCOME2026: { gem: 50 },
+}
+
+export interface GemPackage {
+  id: string
+  gem: number
+  /** ราคาที่แสดงผล — ยังไม่ผูกกับ payment gateway จริง */
+  priceLabel: string
+}
+
+export const GEM_PACKAGES: GemPackage[] = [
+  { id: 'gem-small', gem: 60, priceLabel: '฿30' },
+  { id: 'gem-medium', gem: 320, priceLabel: '฿150' },
+  { id: 'gem-large', gem: 980, priceLabel: '฿450' },
+]
 
 /* ---------------- ผลลัพธ์ ---------------- */
 
@@ -101,6 +178,9 @@ function createNewPlayer(uid: string): Player {
     level: 1,
     exp: 0,
     expToNext: 100,
+    // ของขวัญตอนสมัครบัญชี — ข้อยกเว้นเดียวที่ตั้งค่าทอง/หยกตรง ๆ ได้
+    // (เกิดครั้งเดียวตอนสร้างบัญชี ไม่ใช่ endpoint ที่เรียกซ้ำได้ระหว่างเล่น)
+    // หลังจากนี้ทองต้องผ่าน earnGold และหยกต้องผ่าน topUpGems/redeemCoupon เท่านั้น
     currency: { gold: 500, gem: 20 },
     // สมัครใหม่ได้ตัวละครฟรี 1 ตัว ยืนช่องแรก อีก 3 ช่องว่าง
     ownedCharacters: [
@@ -152,6 +232,7 @@ export async function register(email: string, password: string): Promise<AuthRes
     passwordSalt,
     createdAt: new Date().toISOString(),
     player: createNewPlayer(uid),
+    transactions: [],
   }
 
   db.accounts[key] = account
@@ -202,10 +283,111 @@ export async function getSessionPlayer(): Promise<Player | null> {
 /** บันทึกความคืบหน้าของผู้เล่นกลับลงฐานข้อมูล */
 export async function savePlayer(player: Player): Promise<boolean> {
   const db = loadDb()
-  const entry = Object.entries(db.accounts).find(([, account]) => account.uid === player.uid)
+  const entry = findAccountEntry(db, player.uid)
   if (!entry) return false
 
   const [key, account] = entry
   db.accounts[key] = { ...account, player }
   return saveDb(db)
+}
+
+/* ---------------- ทอง/หยก — ต้องผ่านฟังก์ชันที่ระบุแหล่งที่มาเท่านั้น ---------------- */
+
+export type CurrencyResult =
+  | { ok: true; player: Player }
+  | { ok: false; error: string }
+
+/** ให้ทองจากการเล่นเท่านั้น — ทำเควสสำเร็จ หรือของดรอประหว่างเล่น */
+export async function earnGold(
+  uid: string,
+  source: GoldSource,
+  amount: number,
+  refId?: string,
+): Promise<CurrencyResult> {
+  if (!Number.isInteger(amount) || amount <= 0) {
+    return { ok: false, error: 'จำนวนทองไม่ถูกต้อง' }
+  }
+
+  const db = loadDb()
+  const entry = findAccountEntry(db, uid)
+  if (!entry) return { ok: false, error: 'ไม่พบบัญชีผู้เล่น' }
+
+  const [key, account] = entry
+  const updated = appendTransaction(account, { currency: 'gold', source, amount, refId })
+  db.accounts[key] = updated
+
+  if (!saveDb(db)) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
+  return { ok: true, player: updated.player }
+}
+
+/** เติมหยกด้วยเงินจริง — ยังไม่ต่อ payment gateway จริง ถือว่าจ่ายสำเร็จเสมอ (ใช้เดโม) */
+export async function topUpGems(uid: string, packageId: string): Promise<CurrencyResult> {
+  const pack = GEM_PACKAGES.find((item) => item.id === packageId)
+  if (!pack) return { ok: false, error: 'ไม่พบแพ็กเกจหยกนี้' }
+
+  const db = loadDb()
+  const entry = findAccountEntry(db, uid)
+  if (!entry) return { ok: false, error: 'ไม่พบบัญชีผู้เล่น' }
+
+  const [key, account] = entry
+  const updated = appendTransaction(account, {
+    currency: 'gem',
+    source: 'topup',
+    amount: pack.gem,
+    refId: pack.id,
+  })
+  db.accounts[key] = updated
+
+  if (!saveDb(db)) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
+  return { ok: true, player: updated.player }
+}
+
+/** แลกโค้ดคูปองเป็นหยก — แลกได้บัญชีละ 1 ครั้งต่อโค้ด และเช็กโควตารวมถ้ากำหนดไว้ */
+export async function redeemCoupon(uid: string, code: string): Promise<CurrencyResult> {
+  const normalized = code.trim().toUpperCase()
+  const coupon = COUPONS[normalized]
+  if (!coupon) return { ok: false, error: 'โค้ดนี้ไม่ถูกต้องหรือหมดอายุแล้ว' }
+  if (coupon.expiresAt && new Date(coupon.expiresAt).getTime() < Date.now()) {
+    return { ok: false, error: 'โค้ดนี้หมดอายุแล้ว' }
+  }
+
+  const db = loadDb()
+  const entry = findAccountEntry(db, uid)
+  if (!entry) return { ok: false, error: 'ไม่พบบัญชีผู้เล่น' }
+  const [key, account] = entry
+
+  const alreadyRedeemed = (account.transactions ?? []).some(
+    (tx) => tx.source === 'coupon' && tx.refId === normalized,
+  )
+  if (alreadyRedeemed) return { ok: false, error: 'ใช้โค้ดนี้ไปแล้ว' }
+
+  if (coupon.maxRedemptions !== undefined) {
+    const totalRedeemed = Object.values(db.accounts).reduce(
+      (count, other) =>
+        count +
+        (other.transactions ?? []).filter((tx) => tx.source === 'coupon' && tx.refId === normalized).length,
+      0,
+    )
+    if (totalRedeemed >= coupon.maxRedemptions) {
+      return { ok: false, error: 'โค้ดนี้ถูกใช้ครบจำนวนแล้ว' }
+    }
+  }
+
+  const updated = appendTransaction(account, {
+    currency: 'gem',
+    source: 'coupon',
+    amount: coupon.gem,
+    refId: normalized,
+  })
+  db.accounts[key] = updated
+
+  if (!saveDb(db)) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
+  return { ok: true, player: updated.player }
+}
+
+/** ประวัติทอง/หยกทั้งหมดของบัญชี เรียงเก่า→ใหม่ — ใช้แสดงหน้าประวัติการทำรายการ */
+export async function getTransactions(uid: string): Promise<CurrencyTransaction[]> {
+  const db = loadDb()
+  const entry = findAccountEntry(db, uid)
+  return entry ? (entry[1].transactions ?? []) : []
 }

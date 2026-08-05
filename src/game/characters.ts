@@ -1,3 +1,5 @@
+import type { OwnedCharacter } from '../types/player'
+
 export type CharacterModelKind = 'monkey-king' | 'pig-warrior' | 'pilgrim-monk'
 export type CharacterOrigin = 'Myth' | 'History' | 'Original'
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary'
@@ -109,6 +111,16 @@ export const ROSTER: Character[] = [
 export function getCharacter(id: string | null): Character | null {
   if (!id) return null
   return ROSTER.find((character) => character.id === id) ?? null
+}
+
+/** พลังรบรวมของบัญชี — ผลรวมของ (atk+def+spd ฐาน) คูณเลเวลที่ปลุกพลัง ของทุกตัวละครที่ครอบครอง */
+export function getCombatPower(ownedCharacters: OwnedCharacter[]): number {
+  return ownedCharacters.reduce((total, owned) => {
+    const base = getCharacter(owned.characterId)
+    if (!base) return total
+    const statSum = base.stats.atk + base.stats.def + base.stats.spd
+    return total + statSum * owned.level
+  }, 0)
 }
 
 export const RARITY_LABEL: Record<Rarity, string> = {

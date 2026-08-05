@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { Player } from '../../types/player'
+import { getCombatPower } from '../../game/characters'
 import { clampRatio, formatNumber } from '../../lib/format'
 import { PlusIcon } from '../icons/GameIcons'
 import { useToast } from '../Toast/useToast'
@@ -16,6 +17,7 @@ interface TopBarProps {
 export function TopBar({ player, onOpenProfile }: TopBarProps) {
   const { comingSoon } = useToast()
   const expRatio = clampRatio(player.exp, player.expToNext)
+  const combatPower = getCombatPower(player.ownedCharacters)
 
   // เติมแถบ EXP จาก 0 ตอนเข้าหน้า ให้รู้สึกมีชีวิต
   const [fill, setFill] = useState(0)
@@ -42,7 +44,7 @@ export function TopBar({ player, onOpenProfile }: TopBarProps) {
 
         <div className={styles.identity}>
           <p className={styles.name}>{player.name}</p>
-          <span className={styles.title}>{player.title}</span>
+          <span className={styles.power}>พลังรบ {formatNumber(combatPower)}</span>
           <div className={styles.expRow}>
             <div
               className={styles.expTrack}
