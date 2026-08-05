@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/GameTurnBase`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-05T22:11:00+07:00 by `Antigravity AI (HetCreep Agent)`
+> **Last Updated**: 2026-08-05T22:24:00+07:00 by `Antigravity AI (HetCreep Agent)`
 
 ---
 
@@ -37,12 +37,17 @@
    - Consolidated repository to a single branch: `master`.
    - Merged initial Dependabot PRs #1 through #7.
 
+4. **GitHub Security Enforcement (Enabled by HetCreep)**:
+   - Full GitHub Security suite enabled at `https://github.com/LegendofSoulTH/GameTurnBase/security`.
+   - Active: Dependabot Alerts, Automated Security Updates, Secret Scanning, and CodeQL Vulnerability Analysis.
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
 
 - **Repo Status**: 🟢 Clean & Synced (`origin/master`)
 - **CI Pipelines**: 🟢 Passing (Typecheck 0 errors, Lint 0 errors, Build clean)
+- **Security & Protection**: 🛡️ 100% Enabled & Monitored (CodeQL + Dependabot + Secret Scanning)
 - **Deployment**: Configured for GitHub Pages (`/GameTurnBase/`)
 
 ---
