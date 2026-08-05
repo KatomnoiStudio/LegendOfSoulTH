@@ -1,0 +1,76 @@
+.scene {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-scene);
+  overflow: hidden;
+  /* ฟ้า/หมอกด้านหลังฉาก 3D — ทำเป็น CSS เพื่อไม่ต้องเสียค่า render */
+  background:
+    linear-gradient(180deg, rgb(4 8 24 / 9%), rgb(4 5 15 / 24%)),
+    url('/ui/thai/thai-temple-lobby.png') center / cover no-repeat,
+    #080d20;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  touch-action: manipulation;
+}
+
+/* ประกายไฟลอยขึ้นจากกระถางไฟ */
+.embers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ember {
+  position: absolute;
+  bottom: 12%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--c-ember-light);
+  opacity: 0;
+  box-shadow: 0 0 8px rgb(255 122 61 / 80%);
+  animation: rise linear infinite;
+}
+
+@keyframes rise {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.5);
+  }
+  15% {
+    opacity: 0.9;
+  }
+  80% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-52vh) translateX(22px) scale(1.1);
+  }
+}
+
+/* ขอบมืดให้ HUD อ่านง่าย */
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 51%, transparent 50%, rgb(4 5 12 / 46%) 100%),
+    linear-gradient(180deg, rgb(3 5 15 / 32%) 0%, transparent 23%, transparent 68%, rgb(4 5 12 / 56%) 100%);
+}
+
+/* สถานะระหว่างรอ WebGL พร้อม */
+.fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--c-text-dim);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}

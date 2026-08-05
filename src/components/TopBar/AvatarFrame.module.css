@@ -1,0 +1,79 @@
+.wrap {
+  position: relative;
+  flex: none;
+  /* ผู้เรียกตั้ง --frame-size ผ่าน class ของตัวเอง */
+  width: var(--frame-size, 3rem);
+  height: var(--frame-size, 3rem);
+  filter: drop-shadow(0 5px 7px rgb(0 0 0 / 68%));
+}
+
+.wrap::before {
+  content: '';
+  position: absolute;
+  z-index: 4;
+  top: -6%;
+  left: 50%;
+  width: 17%;
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--frame-gem) 65%, white);
+  translate: -50%;
+  rotate: 45deg;
+  background: var(--frame-gem);
+  box-shadow: 0 0 9px var(--frame-gem);
+}
+
+/* ชั้นนอก: แผ่นโลหะสีตามระดับกรอบ ไล่เฉดเองจากสีเดียว (ไม่ใช้ glow วงกลม) */
+.plate {
+  position: absolute;
+  inset: 0;
+  border-radius: 0;
+  clip-path: polygon(18% 0, 82% 0, 100% 18%, 100% 82%, 82% 100%, 18% 100%, 0 82%, 0 18%);
+  padding: 11%;
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--frame-ring) 60%, white) 0%,
+    var(--frame-ring) 26%,
+    color-mix(in srgb, var(--frame-ring) 55%, black) 82%,
+    color-mix(in srgb, var(--frame-ring) 30%, black) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 40%),
+    inset 0 -2px 3px rgb(0 0 0 / 45%),
+    0 0 0 1px color-mix(in srgb, var(--frame-ring) 45%, black);
+}
+
+/* ชั้นกลาง: ร่องสลักบาง ๆ ระหว่างแผ่นโลหะกับรูปด้านใน */
+.bezel {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  clip-path: polygon(15% 0, 85% 0, 100% 15%, 100% 85%, 85% 100%, 15% 100%, 0 85%, 0 15%);
+  padding: 6%;
+  background: color-mix(in srgb, var(--frame-ring) 22%, black);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 65%);
+}
+
+/* ชั้นใน: กรอบสี่เหลี่ยมมุมมนของรูปจริง */
+.inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  clip-path: polygon(13% 0, 87% 0, 100% 13%, 100% 87%, 87% 100%, 13% 100%, 0 87%, 0 13%);
+  overflow: hidden;
+  background: #0a0d1c;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 40%);
+}
+
+.inner > * {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.rivets {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}

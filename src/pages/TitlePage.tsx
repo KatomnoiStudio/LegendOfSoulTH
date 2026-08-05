@@ -1,0 +1,149 @@
+import { useState } from 'react'
+import { BattleIcon } from '../components/icons/GameIcons'
+import { GAME_INFO } from '../game/gameInfo'
+import styles from './TitlePage.module.css'
+
+interface TitlePageProps {
+  /**
+   * ผู้เล่นกดปุ่มเข้าสู่ตำนาน
+   * หน้านี้ไม่รู้ว่าขั้นถัดไปคืออะไร — App เป็นคนตัดสินว่าจะให้สมัคร ล็อกอิน
+   * หรือตั้งชื่อตัวละคร (ดู src/App.tsx)
+   */
+  onStart: () => void
+}
+
+function playLegendPortalSound() {
+  try {
+    const context = new AudioContext()
+    const now = context.currentTime
+    const master = context.createGain()
+
+    master.gain.setValueAtTime(0.0001, now)
+    master.gain.exponentialRampToValueAtTime(0.18, now + 0.025)
+    master.gain.exponentialRampToValueAtTime(0.0001, now + 0.72)
+    master.connect(context.destination)
+
+    const notes = [174.61, 261.63, 392]
+    notes.forEach((frequency, index) => {
+      const tone = context.createOscillator()
+      const toneGain = context.createGain()
+      const startAt = now + index * 0.045
+
+      tone.type = index === 0 ? 'triangle' : 'sine'
+      tone.frequency.setValueAtTime(frequency, startAt)
+      tone.frequency.exponentialRampToValueAtTime(frequency * 1.012, startAt + 0.42)
+      toneGain.gain.setValueAtTime(0.0001, startAt)
+      toneGain.gain.exponentialRampToValueAtTime(index === 0 ? 0.55 : 0.34, startAt + 0.018)
+      toneGain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.54)
+      tone.connect(toneGain)
+      toneGain.connect(master)
+      tone.start(startAt)
+      tone.stop(startAt + 0.56)
+    })
+
+    const strike = context.createOscillator()
+    const strikeGain = context.createGain()
+    strike.type = 'square'
+    strike.frequency.setValueAtTime(92, now)
+    strike.frequency.exponentialRampToValueAtTime(54, now + 0.11)
+    strikeGain.gain.setValueAtTime(0.22, now)
+    strikeGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.13)
+    strike.connect(strikeGain)
+    strikeGain.connect(master)
+    strike.start(now)
+    strike.stop(now + 0.14)
+
+    void context.resume()
+    window.setTimeout(() => void context.close(), 900)
+  } catch {
+    // Web Audio may be unavailable; the visual response still works.
+  }
+}
+
+export function TitlePage({ onStart }: TitlePageProps) {
+  const [isOpening, setIsOpening] = useState(false)
+
+  const handleStart = () => {
+    if (isOpening) return
+    setIsOpening(true)
+    playLegendPortalSound()
+    // รอให้เสียงและแอนิเมชันประตูเล่นจบก่อนค่อยเปิดหน้าถัดไป
+    window.setTimeout(() => {
+      onStart()
+      setIsOpening(false)
+    }, 440)
+  }
+
+  return (
+    <main className={styles.page}>
+      <div className={styles.sky} aria-hidden="true">
+        <span className={styles.moon} />
+        <span className={styles.cloudOne} />
+        <span className={styles.cloudTwo} />
+        <span className={styles.grain} />
+      </div>
+
+      <div className={styles.frame} aria-hidden="true">
+        <i className={`${styles.corner} ${styles.cornerTl}`} />
+        <i className={`${styles.corner} ${styles.cornerTr}`} />
+        <i className={`${styles.corner} ${styles.cornerBl}`} />
+        <i className={`${styles.corner} ${styles.cornerBr}`} />
+      </div>
+
+      <div className={styles.battleArt} aria-hidden="true" />
+
+      <header className={styles.topBar}>
+        <span className={styles.chapter}>บทที่ ๑ · การตื่นของตำนาน</span>
+        <span className={styles.topMark} aria-hidden="true">✦</span>
+        <span className={styles.genre}>MYTHIC TURN-BASED RPG</span>
+      </header>
+
+      <section className={styles.brand} aria-labelledby="game-title">
+        <div className={styles.seal} aria-hidden="true">
+          <span className={styles.sealOrbit} />
+          <span className={styles.sealCore}>魂</span>
+        </div>
+        <div className={styles.eyebrow}><span /><em>THE JOURNEY BEGINS</em><span /></div>
+        <h1 className={styles.title} id="game-title" aria-label="Legend of Soul-TH">
+          <span className={styles.legend}>Legend of</span>
+          <span className={styles.soul}>Soul</span>
+          <span className={styles.th}>TH</span>
+        </h1>
+        <p className={styles.subtitle}>เมื่อเหล่าตำนานกลับมามีลมหายใจอีกครั้ง</p>
+        <p className={styles.description}>รวบรวมผู้กล้า · วางกลยุทธ์ · เขียนชะตาของคุณ</p>
+      </section>
+
+      <div className={styles.startZone}>
+        <span className={styles.buttonWing} aria-hidden="true" />
+        <div className={`${styles.buttonFrame} ${isOpening ? styles.buttonFrameOpening : ''}`}>
+          <i className={`${styles.frameCorner} ${styles.frameCornerTl}`} aria-hidden="true" />
+          <i className={`${styles.frameCorner} ${styles.frameCornerTr}`} aria-hidden="true" />
+          <i className={`${styles.frameCorner} ${styles.frameCornerBl}`} aria-hidden="true" />
+          <i className={`${styles.frameCorner} ${styles.frameCornerBr}`} aria-hidden="true" />
+          <span className={styles.frameCrown} aria-hidden="true"><b>魂</b></span>
+          <button
+            type="button"
+            className={styles.start}
+            onClick={handleStart}
+            disabled={isOpening}
+            aria-busy={isOpening}
+          >
+            <span className={styles.buttonRune} aria-hidden="true">◆</span>
+            <span className={styles.buttonCopy}><strong>เข้าสู่ตำนาน</strong><small>BEGIN YOUR JOURNEY</small></span>
+            <BattleIcon className={styles.startIcon} />
+          </button>
+          <span className={styles.clickBurst} aria-hidden="true" />
+        </div>
+        <span className={`${styles.buttonWing} ${styles.buttonWingRight}`} aria-hidden="true" />
+        <span className={styles.keyHint}>กดเพื่อเริ่มการเดินทาง</span>
+      </div>
+
+      <footer className={styles.footer}>
+        <span className={styles.online}><i /> ตำนานพร้อมแล้ว</span>
+        <span className={styles.footerEmblem} aria-hidden="true">◈</span>
+        <span>VERSION {GAME_INFO.version}</span>
+      </footer>
+
+    </main>
+  )
+}

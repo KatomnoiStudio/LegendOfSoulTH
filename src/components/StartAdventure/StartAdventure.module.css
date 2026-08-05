@@ -1,0 +1,141 @@
+.wrap {
+  position: relative;
+  z-index: var(--z-hud);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
+}
+
+.tagline {
+  padding-inline-end: 10px;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: rgb(216 224 211 / 54%);
+  text-shadow: 0 2px 5px #000;
+  animation: fade-up 600ms ease-out both;
+}
+
+.button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-width: clamp(270px, 20vw, 330px);
+  padding: 14px 30px 13px;
+  border: 1px solid #f1cb78;
+  clip-path: polygon(14px 0, calc(100% - 36px) 0, 100% 50%, calc(100% - 36px) 100%, 14px 100%, 0 50%);
+  background:
+    linear-gradient(105deg, transparent 0 38%, rgb(255 243 190 / 32%) 49%, transparent 61%) -190px 0 / 170px 100% no-repeat,
+    linear-gradient(180deg, #eac45e 0%, #bd8226 55%, #795016 100%);
+  color: #241604;
+  font-family: var(--font-display);
+  font-size: 0.94rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  overflow: visible;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 58%), inset 0 2px 0 rgb(255 247 206 / 62%), inset 0 -4px 0 rgb(60 35 5 / 38%), 0 0 22px rgb(220 166 56 / 18%);
+  transition: transform 220ms cubic-bezier(.2,.8,.2,1), filter 220ms ease, background-position 500ms ease;
+  animation: fade-up 620ms 100ms ease-out both;
+}
+
+.button::before {
+  content: '';
+  position: absolute;
+  inset: 5px 8px;
+  border: 1px solid rgb(75 47 10 / 43%);
+  clip-path: inherit;
+  pointer-events: none;
+}
+
+.button::after {
+  content: '◆';
+  position: absolute;
+  inset-inline-end: 27px;
+  color: rgb(66 39 4 / 58%);
+  font-size: 0.48rem;
+}
+
+.button:hover,
+.button:focus-visible {
+  outline: none;
+  transform: translateY(-4px);
+  filter: brightness(1.12) saturate(1.08);
+  background-position: 220px 0, 0 0;
+}
+.button:active { transform: translateY(1px) scale(0.97); }
+
+.buttonIcon {
+  width: 1.32rem;
+  height: 1.32rem;
+  flex: none;
+  stroke-width: 2;
+  animation: sway 4.2s ease-in-out infinite;
+}
+
+.halo {
+  position: absolute;
+  inset: -7px -9px;
+  border: 1px solid rgb(247 209 126 / 24%);
+  clip-path: inherit;
+  pointer-events: none;
+  animation: halo 3s ease-out infinite;
+}
+
+@keyframes halo { 0% { opacity: 0.7; transform: scale(0.98); } 100% { opacity: 0; transform: scale(1.08, 1.25); } }
+@keyframes sway { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+@keyframes fade-up { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 860px) {
+  .wrap { align-items: flex-end; }
+  .tagline { display: none; }
+  .button { min-width: 230px; padding: 11px 23px 10px; font-size: 0.78rem; }
+  .buttonIcon { width: 1.1rem; height: 1.1rem; }
+}
+
+/* ราหูอมกรอบปุ่ม — ภาพวาด 2D ไทยแฟนตาซี */
+.button {
+  width: clamp(330px, 27vw, 390px);
+  min-width: 0;
+  min-height: 122px;
+  /* แผ่นป้ายทองในภาพราหูอยู่ช่วงล่าง (ราว 68% ของความสูงภาพ)
+     padding บน-ล่างจึงไม่เท่ากัน เพื่อดันข้อความลงไปกลางแผ่นป้ายพอดี */
+  padding: 54px 68px 9px;
+  border: 0;
+  clip-path: none;
+  background: url('/ui/thai/rahu-button-frame.png') center / 100% 100% no-repeat;
+  background-position: center !important;
+  color: #321b06;
+  overflow: visible;
+  box-shadow: none;
+  filter: drop-shadow(0 12px 10px rgb(0 0 0 / 72%));
+  transition: transform 220ms cubic-bezier(.2,.8,.2,1), filter 220ms ease;
+  animation: none;
+}
+.button::before,
+.button::after { display: none; }
+.buttonText {
+  position: relative;
+  z-index: 2;
+  font-size: 1.32rem;
+  text-shadow: 0 1px rgb(255 239 174 / 72%), 0 2px 3px rgb(103 56 5 / 20%);
+}
+.button:hover,
+.button:focus-visible {
+  background-position: center !important;
+  filter: brightness(1.1) saturate(1.08) drop-shadow(0 15px 12px rgb(0 0 0 / 76%)) drop-shadow(0 0 8px rgb(238 181 55 / 42%));
+}
+.halo {
+  inset: 12px 30px 4px;
+  border-radius: 50%;
+  clip-path: none;
+  box-shadow: 0 0 25px rgb(244 192 64 / 28%);
+}
+
+@media (max-width: 860px) {
+  .button { width: 290px; min-height: 104px; padding: 46px 58px 8px; }
+  .buttonText { font-size: 1.08rem; }
+}

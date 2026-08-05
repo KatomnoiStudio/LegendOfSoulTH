@@ -1,0 +1,164 @@
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { PASSWORD_MIN_LENGTH } from '../../data/accountRepository'
+import styles from './AuthModal.module.css'
+
+type Mode = 'register' | 'login'
+
+interface AuthModalProps {
+  /** คืน null เมื่อสำเร็จ คืนข้อความเมื่อผิดพลาด */
+  onRegister: (email: string, password: string) => Promise<string | null>
+  onLogin: (email: string, password: string) => Promise<string | null>
+}
+
+/**
+ * หน้าสมัคร / เข้าสู่ระบบ
+ *
+ * ปิดไม่ได้โดยตั้งใจ — ต้องมีบัญชีก่อนถึงจะเข้าเกมได้
+ * ตัวฟอร์มไม่รู้จัก localStorage เลย คุยผ่าน callback เท่านั้น
+ * เปลี่ยนหลังบ้านเป็นเซิร์ฟเวอร์จริงเมื่อไหร่ ไฟล์นี้ไม่ต้องแก้
+ */
+export function AuthModal({ onRegister, onLogin }: AuthModalProps) {
+  const [mode, setMode] = useState<Mode>('register')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const emailRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    emailRef.current?.focus()
+  }, [])
+
+  const switchMode = (next: Mode) => {
+    setMode(next)
+    setError(null)
+    setConfirm('')
+  }
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault()
+    if (busy) return
+
+    if (mode === 'register' && password !== confirm) {
+      setError('รหัสผ่านทั้งสองช่องไม่ตรงกัน')
+      return
+    }
+
+    setBusy(true)
+    setError(null)
+    const message = mode === 'register'
+      ? await onRegister(email, password)
+      : await onLogin(email, password)
+
+    // สำเร็จแล้ว component จะถูกถอดออกโดยหน้าแม่ จึงตั้ง busy กลับเฉพาะตอนพลาด
+    if (message) {
+      setError(message)
+      setBusy(false)
+    }
+  }
+
+  const isRegister = mode === 'register'
+
+  return (
+    <div className={styles.backdrop}>
+      <div className={styles.dialog} role="dialog" aria-modal="true" aria-label="เข้าสู่ตำนาน">
+        <div className={styles.head}>
+          <h2 className={styles.title}>{isRegister ? 'สมัครบัญชีใหม่' : 'เข้าสู่ระบบ'}</h2>
+          <p className={styles.subtitle}>
+            {isRegister ? 'สมัครแล้วรับขุนพลคนแรกฟรีทันที' : 'ยินดีต้อนรับกลับสู่ลานประลอง'}
+          </p>
+        </div>
+
+        <div className={styles.tabs} role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={isRegister}
+            className={styles.tab}
+            onClick={() => switchMode('register')}
+          >
+            สมัครสมาชิก
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={!isRegister}
+            className={styles.tab}
+            onClick={() => switchMode('login')}
+          >
+            เข้าสู่ระบบ
+          </button>
+        </div>
+
+        <form className={styles.form} onSubmit={handleSubmit}>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="auth-email">
+              อีเมล
+            </label>
+            <input
+              ref={emailRef}
+              id="auth-email"
+              className={styles.input}
+              type="email"
+              value={email}
+              autoComplete="email"
+              placeholder="you@example.com"
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="auth-password">
+              รหัสผ่าน
+            </label>
+            <input
+              id="auth-password"
+              className={styles.input}
+              type="password"
+              value={password}
+              autoComplete={isRegister ? 'new-password' : 'current-password'}
+              placeholder="••••••••"
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            {isRegister ? (
+              <span className={styles.hint}>อย่างน้อย {PASSWORD_MIN_LENGTH} ตัวอักษร</span>
+            ) : null}
+          </div>
+
+          {isRegister ? (
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="auth-confirm">
+                ยืนยันรหัสผ่าน
+              </label>
+              <input
+                id="auth-confirm"
+                className={styles.input}
+                type="password"
+                value={confirm}
+                autoComplete="new-password"
+                placeholder="••••••••"
+                onChange={(e) => setConfirm(e.target.value)}
+              />
+            </div>
+          ) : null}
+
+          {error ? (
+            <div className={styles.error} role="alert">
+              {error}
+            </div>
+          ) : null}
+
+          <button type="submit" className={styles.submit} disabled={busy}>
+            {busy ? 'กำลังดำเนินการ…' : isRegister ? 'สมัครและเริ่มเล่น' : 'เข้าสู่ลานประลอง'}
+          </button>
+
+          <p className={styles.note}>
+            ข้อมูลบัญชีถูกเก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น
+            ยังไม่ได้ซิงก์ขึ้นเซิร์ฟเวอร์ ล้างข้อมูลเบราว์เซอร์แล้วบัญชีจะหายไป
+          </p>
+        </form>
+      </div>
+    </div>
+  )
+}

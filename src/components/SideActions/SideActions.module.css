@@ -1,0 +1,77 @@
+.column { position: relative; z-index: var(--z-hud); display: flex; flex-direction: column; align-items: flex-end; gap: 9px; padding-inline-end: clamp(22px, 2.5vw, 42px); }
+.column::before { content: ''; position: absolute; right: clamp(4px, 0.7vw, 12px); top: 21px; bottom: 16px; width: 1px; background: linear-gradient(transparent, rgb(218 175 85 / 44%), transparent); }
+.railTitle { margin: 0 3px 3px 0; color: rgb(218 188 124 / 42%); font: 700 0.43rem/1 var(--font-display); letter-spacing: 0.18em; }
+.action { --action-accent: #72cdb0; position: relative; display: flex; align-items: center; justify-content: flex-end; min-width: 47px; min-height: 47px; border: 0; background: transparent; color: #dce9e3; filter: drop-shadow(0 6px 6px rgb(0 0 0 / 54%)); transition: transform 220ms ease, filter 220ms ease; }
+.action[data-action='mail'] { --action-accent: #78c7e6; }
+.action[data-action='mission'] { --action-accent: #e5b85d; }
+.action[data-action='add-friend'] { --action-accent: #7ed9a7; }
+.iconPlate { position: relative; display: grid; place-items: center; width: 47px; height: 47px; border: 1px solid rgb(220 179 91 / 55%); clip-path: polygon(11px 0, calc(100% - 11px) 0, 100% 11px, 100% calc(100% - 11px), calc(100% - 11px) 100%, 11px 100%, 0 calc(100% - 11px), 0 11px); background: linear-gradient(145deg, color-mix(in srgb, var(--action-accent) 25%, #102331), #071521 72%); box-shadow: inset 0 0 0 3px rgb(3 10 16 / 72%), inset 0 0 14px color-mix(in srgb, var(--action-accent) 18%, transparent); transition: border-color 200ms ease, filter 200ms ease; }
+.iconPlate::after { content: ''; position: absolute; inset: 6px; border: 1px solid color-mix(in srgb, var(--action-accent) 35%, transparent); clip-path: inherit; }
+.action svg { width: 1.35rem; height: 1.35rem; filter: drop-shadow(0 0 5px color-mix(in srgb, var(--action-accent) 55%, transparent)); }
+.actionLabel { position: absolute; right: 42px; z-index: -1; min-width: 86px; padding: 7px 15px 7px 10px; border-block: 1px solid rgb(219 178 89 / 28%); opacity: 0; color: #efe2c4; background: linear-gradient(90deg, transparent, rgb(7 22 31 / 94%) 25%); font: 700 0.61rem/1 var(--font-display); letter-spacing: 0.06em; text-align: right; translate: 14px 0; transition: opacity 180ms ease, translate 220ms ease; pointer-events: none; }
+.action:hover, .action:focus-visible { outline: none; transform: translateX(-5px) scale(1.05); filter: drop-shadow(0 9px 8px rgb(0 0 0 / 65%)); }
+.action:hover .iconPlate, .action:focus-visible .iconPlate { border-color: #f1ce83; filter: brightness(1.13); }
+.action:hover .actionLabel, .action:focus-visible .actionLabel { opacity: 1; translate: 0; }
+.action:active { transform: translateX(-2px) scale(0.93); }
+.badge { position: absolute; z-index: 4; top: -4px; right: -5px; min-width: 18px; padding: 1px 5px; border: 1px solid #ffd1b9; border-radius: 9px; background: linear-gradient(180deg, #ff765f, #b72d28); color: #fff; font-size: 0.61rem; font-weight: 900; line-height: 16px; text-align: center; box-shadow: 0 0 10px rgb(230 75 55 / 65%); animation: pulse 2.4s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { scale: 1; } 50% { scale: 1.12; } }
+@media (max-width: 720px) { .column { padding-inline-end: 12px; gap: 6px; } .railTitle, .actionLabel { display: none; } .iconPlate { width: 40px; height: 40px; } .action { min-width: 40px; min-height: 40px; } .action svg { width: 1.12rem; height: 1.12rem; } }
+
+/* เมนูด่วนลายไทย — ใช้ภาพไอคอนวาดมือแทนสัญลักษณ์เส้น */
+/* ยกแถบเมนูด่วนขึ้นให้พ้นปุ่มราหูและใกล้ระดับคลังสมบัติมากขึ้น */
+.column { --quick-icon-size: 48px; gap: var(--quick-icon-size); translate: 0 -122px; }
+.column::before {
+  right: clamp(2px, 0.55vw, 9px);
+  width: 2px;
+  background: linear-gradient(transparent, #e8bb54 15%, #5ac39b 50%, #e8bb54 85%, transparent);
+  filter: drop-shadow(0 0 5px rgb(230 178 57 / 38%));
+}
+.railTitle {
+  margin-right: -1px;
+  color: #e5bd68;
+  font-size: 0.48rem;
+  letter-spacing: 0.13em;
+  text-shadow: 0 2px 5px #000;
+}
+.action { min-width: 57px; min-height: 57px; }
+.iconPlate {
+  width: var(--quick-icon-size);
+  height: var(--quick-icon-size);
+  border: 0;
+  clip-path: none;
+  background: transparent;
+  box-shadow: none;
+}
+.iconPlate::after { display: none; }
+.action img {
+  width: var(--quick-icon-size);
+  height: var(--quick-icon-size);
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 5px rgb(0 0 0 / 72%));
+  transition: filter 180ms ease, rotate 220ms ease;
+}
+.action:hover img,
+.action:focus-visible img {
+  rotate: -3deg;
+  filter: brightness(1.14) drop-shadow(0 8px 7px rgb(0 0 0 / 75%)) drop-shadow(0 0 7px rgb(241 187 56 / 46%));
+}
+.actionLabel {
+  right: 45px;
+  min-width: 92px;
+  font-size: 0.8rem;
+  border: 1px solid rgb(229 184 75 / 54%);
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  background: linear-gradient(90deg, rgb(28 11 25 / 65%), rgb(7 28 32 / 96%) 28%);
+  color: #f2d98e;
+}
+.badge { top: 1px; right: 2px; border-color: #f8d790; background: linear-gradient(180deg, #df5545, #811d25); font-size: 0.8rem; }
+.railTitle { font-size: 0.64rem; }
+
+@media (max-width: 720px) {
+  .column { --quick-icon-size: 40px; gap: var(--quick-icon-size); translate: 0 -78px; }
+  .iconPlate, .action img { width: var(--quick-icon-size); height: var(--quick-icon-size); }
+  .action { min-width: 46px; min-height: 46px; }
+}

@@ -1,0 +1,260 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 14px 14px 12px;
+  border: 1px solid rgb(225 179 76 / 18%);
+  background: linear-gradient(180deg, rgb(66 31 29 / 22%), rgb(3 14 24 / 30%));
+  box-shadow: inset 0 0 24px rgb(0 0 0 / 28%);
+}
+
+/* ---------- หัวเรื่อง ---------- */
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.34rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: #f7dc93;
+  text-shadow: 0 2px 7px #000;
+}
+
+.epithet {
+  font-size: 0.74rem;
+  letter-spacing: 0.09em;
+  color: rgb(230 218 184 / 68%);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-block-start: 4px;
+}
+
+.chip {
+  padding: 2px 10px 3px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  background: rgb(255 255 255 / 6%);
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  color: rgb(220 230 222 / 82%);
+  white-space: nowrap;
+}
+
+.chipRarity {
+  border-color: color-mix(in srgb, var(--rarity-color) 62%, transparent);
+  background: color-mix(in srgb, var(--rarity-color) 15%, transparent);
+  color: var(--rarity-color);
+  font-weight: 800;
+}
+
+/* ---------- ประวัติย่อ ---------- */
+.lore {
+  position: relative;
+  margin: 0;
+  padding: 10px 12px 10px 15px;
+  border-inline-start: 2px solid rgb(216 165 63 / 72%);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 9px) 100%, 0 100%);
+  background: linear-gradient(90deg, rgb(112 30 29 / 26%), rgb(5 20 30 / 62%) 58%);
+  font-size: 0.76rem;
+  line-height: 1.85;
+  color: rgb(230 224 202 / 84%);
+}
+
+/* ---------- ค่าสถานะ ---------- */
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: rgb(245 205 112 / 92%);
+}
+
+.sectionTitle::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgb(226 183 88 / 46%), transparent);
+}
+
+.statList {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0;
+}
+
+.statRow {
+  display: grid;
+  grid-template-columns: 74px 1fr 40px;
+  align-items: center;
+  gap: 10px;
+}
+
+.statLabel {
+  font-size: 0.72rem;
+  color: rgb(214 224 216 / 76%);
+}
+
+.statTrack {
+  position: relative;
+  height: 9px;
+  border: 1px solid rgb(223 181 89 / 32%);
+  clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%);
+  background: rgb(2 9 16 / 88%);
+  overflow: hidden;
+}
+
+.statFill {
+  height: 100%;
+  background: linear-gradient(90deg, #3da889, #81dfbf 62%, #f2cf78);
+  box-shadow: 0 0 9px rgb(92 211 170 / 45%);
+  transition: width 520ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.statValue {
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  color: #f2e2b6;
+}
+
+/* ---------- แถบ EXP ---------- */
+.expHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  color: rgb(214 224 216 / 72%);
+}
+
+.expNumbers {
+  font-variant-numeric: tabular-nums;
+  color: #efd18a;
+}
+
+.expTrack {
+  position: relative;
+  height: 12px;
+  margin-block-start: 5px;
+  border: 1px solid rgb(241 195 80 / 52%);
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  background: rgb(25 7 14 / 88%);
+  overflow: hidden;
+}
+
+.expFill {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(90deg, #8d2631, #d79834 58%, #ffe392);
+  box-shadow: 0 0 10px rgb(224 161 48 / 45%);
+  transition: width 700ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.expFill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 35%, rgb(255 255 255 / 45%) 50%, transparent 65%);
+  animation: exp-sheen 3.4s ease-in-out infinite;
+}
+
+/* ---------- ปุ่มลายไทย ---------- */
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-block-start: auto;
+  padding-block-start: 4px;
+}
+
+.action {
+  position: relative;
+  padding: 11px 14px 10px;
+  border: 1px solid var(--btn-edge);
+  clip-path: polygon(11px 0, calc(100% - 11px) 0, 100% 50%, calc(100% - 11px) 100%, 11px 100%, 0 50%);
+  background: var(--btn-face);
+  color: var(--btn-ink);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  box-shadow: 0 7px 18px rgb(0 0 0 / 52%), inset 0 2px 0 rgb(255 255 255 / 34%), inset 0 -3px 0 rgb(0 0 0 / 26%), 0 0 0 3px rgb(226 181 78 / 8%);
+  transition: transform 200ms cubic-bezier(.2, .8, .2, 1), filter 200ms ease;
+}
+
+/* ขอบในซ้อนอีกชั้น — รายละเอียดแบบป้ายโลหะตีขึ้น */
+.action::before {
+  content: '';
+  position: absolute;
+  inset: 4px 7px;
+  border: 1px solid rgb(0 0 0 / 26%);
+  clip-path: inherit;
+  pointer-events: none;
+}
+
+.action:hover,
+.action:focus-visible {
+  outline: none;
+  transform: translateY(-3px);
+  filter: brightness(1.13) saturate(1.06);
+}
+
+.action:active {
+  transform: translateY(1px) scale(0.97);
+  filter: brightness(0.94);
+}
+
+.upgrade {
+  --btn-edge: #f1cb78;
+  --btn-face: linear-gradient(180deg, #eac45e 0%, #bd8226 55%, #795016 100%);
+  --btn-ink: #2c1a05;
+}
+
+.enlist {
+  --btn-edge: #6fd2ac;
+  --btn-face: linear-gradient(180deg, #59c8a2 0%, #2d8168 56%, #17513f 100%);
+  --btn-ink: #04231a;
+}
+
+@keyframes exp-sheen {
+  0%,
+  100% {
+    transform: translateX(-130%);
+  }
+  55% {
+    transform: translateX(130%);
+  }
+}
+
+@media (max-width: 900px) {
+  .name {
+    font-size: 1.1rem;
+  }
+
+  .lore {
+    font-size: 0.72rem;
+  }
+
+  .statRow {
+    grid-template-columns: 62px 1fr 34px;
+  }
+}

@@ -1,0 +1,137 @@
+/* =========================================================
+   Design tokens — เปลี่ยนธีมทั้งเกมได้จากไฟล์นี้ไฟล์เดียว
+   ธีม: ลานประลองแฟนตาซี / ฐานทัพนักรบ (หิน + เวทมนตร์ + ถ่านไฟ)
+   ========================================================= */
+:root {
+  /* --- Palette --- */
+  --c-void: #06070d;
+  --c-deep: #101426;
+  --c-stone-dark: #1a1f33;
+  --c-stone: #2b3350;
+  --c-stone-light: #4a5478;
+
+  --c-arcane-deep: #2a3f8f;
+  --c-arcane: #6d8cff;
+  --c-arcane-light: #b9c9ff;
+
+  --c-ember: #ff6a3d;
+  --c-ember-light: #ffb073;
+
+  --c-gold: #f0c85a;
+  --c-gold-light: #ffe6a8;
+  --c-gold-deep: #9c7418;
+
+  --c-gem: #7ce8ff;
+  --c-bone: #ece7f2;
+
+  /* --- Semantic --- */
+  --c-text: var(--c-bone);
+  --c-text-dim: #98a0c0;
+  --c-panel: rgb(16 20 38 / 82%);
+  --c-panel-solid: #131832;
+  --c-border: rgb(240 200 90 / 40%);
+  --c-border-arcane: rgb(109 140 255 / 45%);
+  --c-danger: #f0553f;
+
+  /* --- Spacing scale (4px base) --- */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 3rem;
+
+  /* --- Radius --- */
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --r-pill: 999px;
+
+  /* --- Elevation --- */
+  --shadow-1: 0 2px 6px rgb(0 0 0 / 45%);
+  --shadow-2: 0 6px 18px rgb(0 0 0 / 55%);
+  --shadow-3: 0 14px 40px rgb(0 0 0 / 65%);
+  --glow-gold: 0 0 18px rgb(240 200 90 / 50%);
+  --glow-arcane: 0 0 22px rgb(109 140 255 / 50%);
+
+  /* --- Motion --- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 140ms;
+  --dur-mid: 260ms;
+  --dur-slow: 520ms;
+
+  /* --- Layers --- */
+  --z-scene: 0;
+  --z-hud: 10;
+  --z-nav: 20;
+  --z-panel: 30;
+  --z-toast: 50;
+
+  /* --- Type ---
+     ฟอนต์ไทยเรียงตามที่มีในเครื่องผู้ใช้ (ไม่โหลดจากภายนอก เพื่อให้เล่นออฟไลน์ได้)
+     Windows → Leelawadee UI, macOS/iOS → Thonburi, Android → Noto Sans Thai */
+  --font-thai: 'Noto Sans Thai', 'Leelawadee UI', 'Thonburi', 'Sarabun', 'Tahoma';
+  --font-display: 'Trebuchet MS', var(--font-thai), 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Segoe UI', var(--font-thai), system-ui, -apple-system, sans-serif;
+
+  color-scheme: dark;
+  font-family: var(--font-body);
+  font-size: 16px;
+  /* ภาษาไทยมีวรรณยุกต์ซ้อนบน-ล่าง จึงต้องการ line-height สูงกว่าปกติ */
+  line-height: 1.55;
+  color: var(--c-text);
+  background-color: var(--c-void);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--c-void);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--c-gold-light);
+  outline-offset: 3px;
+}
+
+/* ปิด animation ทั้งหมดเมื่อผู้ใช้ขอลดการเคลื่อนไหว */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

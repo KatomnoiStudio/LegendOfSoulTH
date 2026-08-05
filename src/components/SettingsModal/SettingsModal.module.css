@@ -1,0 +1,480 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  display: grid;
+  place-items: center;
+  padding: var(--sp-4);
+  background: rgb(3 4 10 / 72%);
+  backdrop-filter: blur(6px);
+  animation: fade-in var(--dur-mid) var(--ease-out) both;
+}
+
+.dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 30rem);
+  /* % ของเวที ไม่ใช่ dvh — เวทีถูกย่อด้วย transform หน่วย viewport จึงไม่ตรง */
+  max-height: min(88%, 40rem);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: linear-gradient(160deg, rgb(26 32 60 / 97%), rgb(11 14 30 / 99%));
+  box-shadow: var(--shadow-3), inset 0 1px 0 rgb(255 255 255 / 12%);
+  overflow: hidden;
+  animation: dialog-in var(--dur-mid) var(--ease-bounce) both;
+}
+
+.header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-5) var(--sp-5) var(--sp-4);
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+  background: radial-gradient(ellipse 70% 100% at 20% 0%, rgb(109 140 255 / 18%), transparent 70%);
+}
+
+.headerIcon {
+  width: 1.6rem;
+  height: 1.6rem;
+  color: var(--c-gold);
+}
+
+.headerTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--c-bone);
+}
+
+.close {
+  position: absolute;
+  inset-block-start: var(--sp-3);
+  inset-inline-end: var(--sp-3);
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  color: var(--c-text-dim);
+  font-size: 1.3rem;
+  line-height: 1;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.close:hover {
+  color: var(--c-bone);
+  background: rgb(255 255 255 / 12%);
+}
+
+/* =========================================================
+   แถบหมวดหมู่ — เสียง / คูปอง แยกกันคนละหน้า
+   ========================================================= */
+.tabs {
+  display: flex;
+  gap: var(--sp-1);
+  padding: var(--sp-3) var(--sp-5) 0;
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  color: var(--c-text-dim);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.tab:hover {
+  color: var(--c-bone);
+}
+
+.tab[aria-selected='true'] {
+  color: var(--c-gold);
+}
+
+.tab[aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  inset-block-end: -1px;
+  inset-inline: var(--sp-2);
+  height: 2px;
+  border-radius: var(--r-pill);
+  background: var(--c-gold);
+  box-shadow: var(--glow-gold);
+}
+
+.tab svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: none;
+}
+
+/* ---------- เนื้อหาของหมวดที่เลือก ---------- */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-height: 0;
+  padding: var(--sp-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: panel-in var(--dur-mid) var(--ease-out) both;
+}
+
+.panelNote {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.7;
+  color: var(--c-text-dim);
+}
+
+/* ---------- หมวดข้อมูลเกม ---------- */
+.infoBanner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-5) var(--sp-4);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: radial-gradient(ellipse 90% 120% at 50% 0%, rgb(109 140 255 / 22%), transparent 70%),
+    rgb(255 255 255 / 4%);
+  text-align: center;
+}
+
+.infoName {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  background: linear-gradient(180deg, var(--c-gold-light), var(--c-gold) 60%, var(--c-gold-deep));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.infoVersion {
+  font-size: 0.68rem;
+  letter-spacing: 1.5px;
+  color: var(--c-text-dim);
+}
+
+.infoList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+}
+
+.infoRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-1);
+}
+
+/* เส้นคั่นเฉพาะระหว่างแถว ไม่มีเส้นบนสุด-ล่างสุด */
+.infoRow + .infoRow {
+  border-block-start: 1px solid rgb(255 255 255 / 8%);
+}
+
+.infoLabel {
+  flex: none;
+  font-size: 0.78rem;
+  color: var(--c-text-dim);
+}
+
+.infoValue {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  color: var(--c-bone);
+}
+
+.logout {
+  margin-block-start: auto;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid color-mix(in srgb, var(--c-danger) 58%, transparent);
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--c-danger) 12%, transparent);
+  color: #ffb3a6;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-bounce);
+}
+
+.logout:hover {
+  background: color-mix(in srgb, var(--c-danger) 24%, transparent);
+}
+
+.logout:active {
+  transform: scale(0.97);
+}
+
+/* ---------- หมวดเสียง ---------- */
+/* หนึ่งช่องเสียง = ป้ายชื่อ + แถบระดับ + ปุ่มลด/เพิ่มที่แยกกันชัดเจน */
+.volumeRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: var(--r-md);
+  background: rgb(255 255 255 / 4%);
+  transition: opacity var(--dur-mid) var(--ease-out);
+}
+
+/* ปิดเสียงอยู่ — ทั้งแถวจางลงให้เห็นว่าไม่ทำงาน */
+.volumeRow[data-muted='true'] {
+  opacity: 0.5;
+}
+
+.volumeLabel {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--c-text);
+}
+
+.volumeValue {
+  font-variant-numeric: tabular-nums;
+  color: var(--c-gold);
+}
+
+/* ปุ่มลด/เพิ่มแบ่งครึ่งเท่ากัน มีข้อความกำกับทั้งสองปุ่ม */
+.stepper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-2);
+  margin-block-start: var(--sp-1);
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--c-border-arcane);
+  border-radius: var(--r-md);
+  background: rgb(109 140 255 / 12%);
+  color: var(--c-arcane-light);
+  font-size: 0.76rem;
+  font-weight: 700;
+  transition:
+    transform var(--dur-fast) var(--ease-bounce),
+    background-color var(--dur-fast) var(--ease-out),
+    filter var(--dur-fast) var(--ease-out);
+}
+
+.step:hover:not(:disabled) {
+  background: rgb(109 140 255 / 26%);
+  box-shadow: var(--glow-arcane);
+}
+
+.step:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.step:disabled {
+  cursor: not-allowed;
+  filter: grayscale(1);
+  opacity: 0.35;
+}
+
+.step svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex: none;
+}
+
+.track {
+  position: relative;
+  height: 0.5rem;
+  border-radius: var(--r-pill);
+  background: rgb(0 0 0 / 60%);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--c-arcane), var(--c-gold));
+  box-shadow: var(--glow-arcane);
+  transition: width var(--dur-fast) var(--ease-out);
+}
+
+.muteButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  margin-block-start: var(--sp-1);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--c-border-arcane);
+  border-radius: var(--r-pill);
+  color: var(--c-arcane-light);
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.muteButton:hover {
+  background: rgb(109 140 255 / 18%);
+}
+
+.muteButton[data-muted='true'] {
+  border-color: var(--c-danger);
+  color: var(--c-danger);
+}
+
+.muteButton svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+/* ---------- หมวดคูปอง ---------- */
+.couponForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.couponLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--c-arcane-light);
+}
+
+.couponInput {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--c-border-arcane);
+  border-radius: var(--r-md);
+  background: rgb(0 0 0 / 45%);
+  color: var(--c-bone);
+  font: inherit;
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.couponInput::placeholder {
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--c-text-dim);
+  opacity: 0.7;
+}
+
+.couponInput:focus {
+  outline: none;
+  border-color: var(--c-gold);
+  box-shadow: var(--glow-gold);
+}
+
+.couponHint {
+  font-size: 0.68rem;
+  color: var(--c-text-dim);
+}
+
+.redeem {
+  margin-block-start: var(--sp-1);
+  padding: var(--sp-3) var(--sp-5);
+  border: 2px solid var(--c-gold-light);
+  border-radius: var(--r-pill);
+  background: linear-gradient(180deg, #f7c94e 0%, var(--c-gold) 45%, var(--c-gold-deep) 100%);
+  color: #2b1a05;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  box-shadow:
+    var(--shadow-2),
+    inset 0 2px 0 rgb(255 255 255 / 55%),
+    inset 0 -3px 0 rgb(0 0 0 / 25%);
+  transition:
+    transform var(--dur-fast) var(--ease-bounce),
+    box-shadow var(--dur-fast) var(--ease-out),
+    filter var(--dur-fast) var(--ease-out);
+}
+
+.redeem:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-3), 0 0 30px rgb(242 181 44 / 50%);
+}
+
+.redeem:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+}
+
+.redeem:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.7) brightness(0.7);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* สลับหมวดแล้วเนื้อหาเลื่อนเข้ามาเบา ๆ */
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 720px) {
+  .backdrop {
+    padding: var(--sp-2);
+  }
+
+  .dialog {
+    max-height: 92%;
+  }
+
+  .header,
+  .panel {
+    padding: var(--sp-4);
+  }
+
+  .tabs {
+    padding-inline: var(--sp-4);
+  }
+}
