@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/GameTurnBase`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T01:05:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **Last Updated**: 2026-08-06T01:20:00+07:00 by `Claude Code (HetCreep Agent)`  
 > **RULES_VERSION: 3** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
@@ -117,6 +117,12 @@
     - **Gap found by HetCreep**: the original version gated Ring 0 (and the "HetCreep's live instruction always wins" clause) on `.agents/ring0.local` alone — a gitignored local-only file. A cloud/hosted agent session (GitHub Copilot coding agent, Claude Code cloud, etc.) is an ephemeral clone that never has that file, so it would've read as Ring 1 even when HetCreep was the one directly driving it.
     - **Fix**: Ring 0 is now determined by *either* signal — the local marker (fast path for a persistent machine) *or* git identity (`git config user.name`/`user.email`, or the authenticated actor via `gh api user`) matching HetCreep. Git identity travels with a cloud session authenticated under HetCreep's own account, the local file doesn't.
     - **Also decoupled**: "HetCreep's live instruction always wins" no longer requires the Ring-0 marker specifically — it fires whenever the live human in the session is confirmed as HetCreep by either signal, or by the platform's own session context. Ring marker vs. live-instruction-override were conflated before; they're separate concerns now.
+
+14. **ponytail-audit cleanup + README refresh + AuthModal Esc** (2026-08-06):
+    - Repo-wide over-engineering scan (ponytail-audit): removed `phaser` dependency (^4.2.1, 116MB, zero imports anywhere in `src/` or the build output — game runs on R3F only) and dead `src/hooks/usePlayer.ts` (+ its only consumer `MOCK_PLAYER` in `mockPlayer.ts`, `MOCK_BADGES` kept). Bundle size byte-identical before/after — confirms phaser was never actually bundled.
+    - `README.md` brought back in sync: removed stale `usePlayer.ts` references, fixed the gold "+" description (demo "collect drop" button was removed earlier — both gold and gem "+" now open `GemShopModal`), added live site link + `security-scan` badge + missing npm scripts (`typecheck`/`test`/`ci`) + new files (`ErrorBoundary`, `publicUrl`, `globalErrorHandlers`), corrected bundle-size numbers, added a pointer to `AGENTS.md`/`MEMORY.md`.
+    - `AuthModal.tsx`: Esc previously did nothing (modal is intentionally non-dismissible — must have an account before entering the game, per the file's own header comment). Per HetCreep's direction, kept that design but made Esc do something instead of being dead input: it now toggles the register/login tab.
+    - Full verify green + rot-canary QUICK clean on every change in this batch.
 
 ---
 
