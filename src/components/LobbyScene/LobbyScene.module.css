@@ -6,7 +6,7 @@
   /* ฟ้า/หมอกด้านหลังฉาก 3D — ทำเป็น CSS เพื่อไม่ต้องเสียค่า render */
   background:
     linear-gradient(180deg, rgb(4 8 24 / 9%), rgb(4 5 15 / 24%)),
-    url('/ui/thai/thai-temple-lobby.png') center / cover no-repeat,
+    var(--bg-temple) center / cover no-repeat,
     #080d20;
 }
 

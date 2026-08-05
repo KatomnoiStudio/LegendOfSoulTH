@@ -9,7 +9,7 @@
   cursor: crosshair;
   background:
     linear-gradient(180deg, rgba(3, 9, 24, 0.08) 28%, rgba(5, 10, 20, 0.24) 58%, rgba(3, 6, 14, 0.54) 100%),
-    url('/ui/thai/thai-temple-lobby.png') center / cover no-repeat;
+    var(--bg-temple) center / cover no-repeat;
 }
 
 /* ---------- แถบเลือกขุนพล (โหมดเดินชมจันทร์) ---------- */
@@ -126,7 +126,7 @@
   cursor: default;
   background:
     linear-gradient(180deg, rgba(6, 14, 38, 0.34) 20%, rgba(4, 10, 26, 0.5) 60%, rgba(2, 5, 14, 0.72) 100%),
-    url('/ui/thai/thai-temple-lobby.png') center / cover no-repeat;
+    var(--bg-temple) center / cover no-repeat;
 }
 
 /* มือถือ: MainNavigation กินมุมล่างซ้ายอยู่ ดันปุ่มควบคุมทิศทางขึ้นให้พ้น */

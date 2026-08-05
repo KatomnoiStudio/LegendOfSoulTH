@@ -1,13 +1,20 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import type { CurrencyResult } from '../../data/accountRepository'
 import type { Player } from '../../types/player'
 import { getCombatPower } from '../../game/characters'
 import { clampRatio, formatNumber } from '../../lib/format'
+import { publicUrl } from '../../lib/publicUrl'
 import { GemShopModal } from '../GemShopModal/GemShopModal'
 import { PlusIcon } from '../icons/GameIcons'
 import { AvatarFrame } from './AvatarFrame'
 import { CommanderAvatar } from './CommanderAvatar'
 import styles from './TopBar.module.css'
+
+// url('/ui/...') ตรง ๆ ใน CSS ชี้ผิดที่ตอน deploy ขึ้น subpath (ดู src/lib/publicUrl.ts) —
+// ส่งเข้าไปเป็น CSS custom property แทน
+const BG_NAGA_STYLE: CSSProperties = {
+  ['--bg-naga' as string]: `url(${publicUrl('ui/thai/naga-profile-frame.png')})`,
+}
 
 interface TopBarProps {
   player: Player
@@ -36,6 +43,7 @@ export function TopBar({ player, onOpenProfile, onTopUpGems }: TopBarProps) {
         className={styles.profile}
         onClick={onOpenProfile}
         aria-label={`เปิดโปรไฟล์ของ ${player.name}`}
+        style={BG_NAGA_STYLE}
       >
         <span className={styles.profileTag}>ผู้พิทักษ์ตำนาน</span>
         <div className={styles.avatarWrap}>
@@ -74,7 +82,7 @@ export function TopBar({ player, onOpenProfile, onTopUpGems }: TopBarProps) {
         */}
         <CurrencyPill
           tone={styles.gold}
-          icon={<img className={styles.currencyIcon} src="/ui/thai/gold-ingot.png" alt="" draggable={false} />}
+          icon={<img className={styles.currencyIcon} src={publicUrl('ui/thai/gold-ingot.png')} alt="" draggable={false} />}
           label="ทอง"
           value={player.currency.gold}
           addLabel="ไปหน้าเติมเงิน"
@@ -82,7 +90,7 @@ export function TopBar({ player, onOpenProfile, onTopUpGems }: TopBarProps) {
         />
         <CurrencyPill
           tone={styles.gem}
-          icon={<img className={styles.currencyIcon} src="/ui/thai/jade.png" alt="" draggable={false} />}
+          icon={<img className={styles.currencyIcon} src={publicUrl('ui/thai/jade.png')} alt="" draggable={false} />}
           label="หยก"
           value={player.currency.gem}
           addLabel="เติมหยก"

@@ -1,8 +1,9 @@
-import { Suspense, useRef, useState } from 'react'
+import { Suspense, useRef, useState, type CSSProperties } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import type { PerspectiveCamera } from 'three'
 import WebGL from 'three/addons/capabilities/WebGL.js'
 import { getCharacter } from '../../game/characters'
+import { publicUrl } from '../../lib/publicUrl'
 import { SLOT_INDEXES, SLOT_TRANSFORM, normalizeTeam, type TeamSlots } from '../../game/team'
 import { ArenaSlotRing } from './ArenaSlotRing'
 import { CharacterModel } from './CharacterModel'
@@ -40,6 +41,12 @@ const CAM_BASE: [number, number, number] = [0, 3.75, 8.4]
  */
 const SHOW_ARENA_SLOTS = false
 
+// url('/ui/...') ตรง ๆ ใน CSS ชี้ผิดที่ตอน deploy ขึ้น subpath (ดู src/lib/publicUrl.ts) —
+// ส่งเข้าไปเป็น CSS custom property แทน
+const BG_TEMPLE_STYLE: CSSProperties = {
+  ['--bg-temple' as string]: `url(${publicUrl('ui/thai/thai-temple-lobby.png')})`,
+}
+
 const EMBERS = [
   { left: '18%', delay: '0s', duration: '9s' },
   { left: '24%', delay: '-4s', duration: '11s' },
@@ -54,14 +61,14 @@ export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps)
 
   if (!webglAvailable) {
     return (
-      <div className={styles.scene}>
+      <div className={styles.scene} style={BG_TEMPLE_STYLE}>
         <div className={styles.fallback}>เบราว์เซอร์นี้ไม่รองรับ WebGL2 — ไม่สามารถแสดงฉาก 3D ได้</div>
       </div>
     )
   }
 
   return (
-    <div className={styles.scene}>
+    <div className={styles.scene} style={BG_TEMPLE_STYLE}>
       {contextLost ? (
         <div className={styles.fallback}>การ์ดจอขาดการเชื่อมต่อ — กำลังลองใหม่ ลองรีเฟรชหน้าถ้ายังไม่กลับมา</div>
       ) : null}

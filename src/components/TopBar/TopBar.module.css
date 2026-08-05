@@ -88,7 +88,7 @@
   overflow: hidden;
   border: 0;
   clip-path: none;
-  background: url('/ui/thai/naga-profile-frame.png') center / 100% 100% no-repeat;
+  background: var(--bg-naga) center / 100% 100% no-repeat;
   box-shadow: none;
   filter: drop-shadow(0 13px 13px rgb(0 0 0 / 66%));
   backdrop-filter: none;
