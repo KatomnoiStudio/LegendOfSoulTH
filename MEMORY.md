@@ -3,8 +3,8 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/GameTurnBase`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T01:35:00+07:00 by `Claude Code (HetCreep Agent)`  
-> **RULES_VERSION: 3** (see `.agents/rules/rules-freshness-check.md`)
+> **Last Updated**: 2026-08-06T01:50:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **RULES_VERSION: 4** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
 
@@ -132,6 +132,14 @@
     - **Second `publicUrl` sweep — found the same subpath-404 bug in more places**: `game/walkKits.ts`, `game/characters.ts`, `game/spriteSequences.ts`, `components/LobbyScene/CharacterModel.tsx` (all **pre-existing**, not from the PR — missed in the original sweep because the paths live in data/config objects, not literal JSX `src=`/CSS `url()`) plus the new `game/npc/npcs.ts`, `game/battle/stages.ts`, `game/exploration/maps.ts`, `DialogueBox.tsx`, `ExplorationScene.tsx`. All fixed with `publicUrl()`.
     - **Verified in-browser** (dev server): full flow Title → Register → NameModal → Lobby → "ต่อสู้" opens `GameExplorationSession` (map + NPCs + movement controls render, exit returns cleanly to Lobby) → no console errors. `.claude/launch.json` added for future `preview_start`-based dev-server checks.
     - Full verify (`typecheck && lint && test && build`) green; bundle now 129 modules (was 95).
+    - Second merge round with `kaoshock123`'s concurrent items-system commit (`5bd7685`): resolved a duplicate `normalizePlayer()` (both sides independently added a same-named function at different line numbers — auto-merge didn't flag it as a conflict since the lines didn't textually overlap, but it was a real duplicate-declaration bug); merged so it backfills both `progress` and `inventory`. Also resolved `MainNavigation.tsx`/`LobbyPage.tsx` conflicts (`onOpenBattle` + `onOpenItems` coexist). Full verify green, pushed.
+
+16. **False-positive bug investigation + commit-granularity law** (2026-08-06), `RULES_VERSION` → 4:
+    - **HetCreep reported**: registered account not persisting on production ("cache data หาย"). Investigated by scripting the live site — found what looked like a real repro (form stuck, no localStorage write) using raw `dispatchEvent(new Event('input'))` to fill the form. Root cause of *that* symptom: React 19's controlled inputs don't reliably pick up state from a raw synthetic `Event('input')` in this browser-automation context — the DOM value visually changed but React's internal `email`/`password` state stayed empty, so submission correctly (silently, from my test's perspective) failed client-side validation.
+    - **Re-tested with the proper tool** (`form_input`, which sets values in a React-compatible way): registration succeeded, `los:db:v1`/`los:session:v1`/`los:last-email` all written, **survived a full page reload**, correctly resumed to the name-entry step. **No app bug found** — production register/session persistence works correctly as verified. If HetCreep still sees the symptom, need repro specifics (private/incognito mode? different browser/tab? extension blocking storage?) — the app-side investigation is exhausted without a reproducible defect.
+    - **HetCreep also asked**: is `kaoshock123`'s agent actually reading `MEMORY.md`/`AGENTS.md`? Checked git history: `AGENTS.md` (with `RULES_VERSION`/mandates) became an ancestor of their tree at merge `1a5d7d7` (23:22) — confirmed via `git merge-base --is-ancestor`. Their next 4 commits (`f8f87c5` through `5bd7685`, spanning ~1 hour) never touched `MEMORY.md` despite mandate #1/#2. **Not a rule-design flaw** — `ring0-authority.md` already states this is markdown convention, not a technical control; it simply confirms their tooling isn't reading/following `AGENTS.md`, which we can observe but not fix from this side.
+    - **New rule**: `.agents/rules/commit-granularity-law.md` — one completed task = one commit (don't split a finished task across partial "wip"/"fix typo" commits; don't squash unrelated tasks together either; merge commits are exempt).
+    - **Letterbox decision reversed**: HetCreep re-decided — remove the fixed-1600×900 letterbox scaling (`GameViewport`) in favor of fluid full-width layout. Flagged as a substantial redesign (every component built assuming the fixed stage), scoped as separate follow-up work, not done in this same turn.
 
 ---
 
@@ -144,7 +152,7 @@
 - **Remote check**: `git remote -v` on this machine correctly points `origin` at `https://github.com/LegendofSoulTH/GameTurnBase.git` — the "remote mismatch" flagged in the prior concurrent session's notes was local to that machine/clone (remote URLs are per-clone git config, never part of repo content) and doesn't apply here; no action needed on this machine.
 - **Player accounts/currency**: functional locally (see Past Summary item 6) but entirely client-side — no real backend, no payment gateway. Do not treat as production-ready for real money or cross-device play.
 - **Open/next work**: no quest system, no real drop table, no shop UI beyond `GemShopModal`, no battle system. Project's own `LICENSE` file still undecided (see item 8).
-- **RULES_VERSION last synced: 3** (`.agents/rules/rules-freshness-check.md`)
+- **RULES_VERSION last synced: 4** (`.agents/rules/rules-freshness-check.md`)
 - **Ring**: this machine is Ring 0 (`.agents/ring0.local` present, gitignored). Any other clone is Ring 1 by default — see `.agents/rules/ring0-authority.md`.
 - **Pre-push sync**: `.agents/rules/pre-push-sync-law.md` — binding on every machine before every push.
 
