@@ -406,13 +406,27 @@ export function WukongAdventure({ onExit, mode = 'trial', characters }: WukongAd
         frameRef.current = Math.floor(time / 170) % FRAME_COUNT
       }
 
-      setView({
-        x: position.x,
-        y: position.y,
-        direction: directionRef.current,
-        frame: frameRef.current,
-        moving,
-        running,
+      // ยืนนิ่งไม่ขยับ ตำแหน่ง/เฟรมก็ไม่เปลี่ยนทุก tick (เฟรม idle ขยับแค่ทุก 170ms ไม่ใช่ 60fps) —
+      // คืน object เดิม (ไม่ใช่ตัวใหม่) เมื่อค่าไม่เปลี่ยนจริง ให้ React ข้าม re-render รอบนั้นไปเลย
+      // (setState แบบ functional: ถ้าคืนค่าเดิมด้วย Object.is React จะไม่ re-render)
+      // ไม่งั้นทั้ง component จะ re-render รัว ๆ 60 ครั้ง/วิ ตลอดเวลาที่อยู่ Lobby แม้ผู้เล่น AFK
+      setView((previousView) => {
+        const next = {
+          x: position.x,
+          y: position.y,
+          direction: directionRef.current,
+          frame: frameRef.current,
+          moving,
+          running,
+        }
+        const unchanged =
+          previousView.x === next.x &&
+          previousView.y === next.y &&
+          previousView.direction === next.direction &&
+          previousView.frame === next.frame &&
+          previousView.moving === next.moving &&
+          previousView.running === next.running
+        return unchanged ? previousView : next
       })
       animationId = requestAnimationFrame(animate)
     }
