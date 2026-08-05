@@ -3,8 +3,8 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/GameTurnBase`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T00:05:00+07:00 by `Claude Code (HetCreep Agent)` — merge of concurrent work from `Claude Sonnet 5 (Claude Code Agent)` session (commits `6157f89`, `0a66592`)  
-> **RULES_VERSION: 1** (see `.agents/rules/rules-freshness-check.md`)
+> **Last Updated**: 2026-08-06T00:20:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **RULES_VERSION: 2** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
 
@@ -100,6 +100,11 @@
    - **Explicit limitation, stated to HetCreep**: this is agent-instruction-level governance (markdown a compliant agent reads and follows), not a cryptographic access control. It cannot stop a non-compliant tool or a human editing files by hand — its job is to keep every rule-reading agent (Claude Code, Copilot, etc.) aligned on whose call is authoritative, not to enforce it at the OS/git level.
 
 10. **Merged concurrent session work + pushed to `origin/master`** (2026-08-06): items 6 (this machine's clone was behind) and items 7–9 (this session's own work) landed in parallel on two machines. Merged by hand (`vite.config.ts`: kept both the `command`-conditional `base` fix and the new `test` block; `MEMORY.md`: renumbered/interleaved both timelines; `ProfileModal.tsx` auto-merged clean — the earlier session's edits and this session's `console.warn`-before-swallow fix touched non-overlapping lines). Full verify (`typecheck && lint && test && build`) re-run green after the merge before push.
+   - **Deploy fixed too**: GitHub Pages had never been enabled on the repo (`configure-pages` 404'd on every deploy run, unrelated to code) — enabled via `gh api POST /repos/.../pages build_type=workflow`. A second concurrent push landed mid-deploy (`ead2fca`, another gold top-up button) and merged automatically with this session's push; the resulting run (`1a5d7d7`) deployed successfully — https://legendofsoulth.github.io/GameTurnBase/ live.
+
+11. **Pre-Push Sync Law codified** (2026-08-06), `RULES_VERSION` → 2:
+    - `.agents/rules/pre-push-sync-law.md` (new) — turns the procedure from item 10 into a binding rule for every machine (Ring 0 included, since this is code hygiene not an authority question): `fetch` → check ahead/behind → merge if behind → resolve conflicts **by hand, preserving both sides' work** (never blind `--ours`/`--theirs`, never silently drop the other side's committed changes) → full `typecheck && lint && test && build` green → only then push.
+    - `AGENTS.md` — mandate #7 added, `RULES_VERSION` bumped 1→2.
 
 ---
 
@@ -108,12 +113,13 @@
 - **Repo Status**: 🟢 Clean & Synced (`origin/master`) — working tree matches `HEAD` after merge, no pending changes
 - **CI Pipelines**: 🟢 Passing (Typecheck 0 errors, Lint 0 errors, Test 5/5, Build clean) — re-verified after merge
 - **Security & Protection**: 🛡️ 100% Enabled & Monitored (CodeQL + Dependabot + Secret Scanning + Gitleaks + NPM Audit)
-- **Deployment**: Configured for GitHub Pages (`/GameTurnBase/`)
+- **Deployment**: 🟢 Live on GitHub Pages — https://legendofsoulth.github.io/GameTurnBase/
 - **Remote check**: `git remote -v` on this machine correctly points `origin` at `https://github.com/LegendofSoulTH/GameTurnBase.git` — the "remote mismatch" flagged in the prior concurrent session's notes was local to that machine/clone (remote URLs are per-clone git config, never part of repo content) and doesn't apply here; no action needed on this machine.
 - **Player accounts/currency**: functional locally (see Past Summary item 6) but entirely client-side — no real backend, no payment gateway. Do not treat as production-ready for real money or cross-device play.
 - **Open/next work**: no quest system, no real drop table, no shop UI beyond `GemShopModal`, no battle system. Project's own `LICENSE` file still undecided (see item 8).
-- **RULES_VERSION last synced: 1** (`.agents/rules/rules-freshness-check.md`)
+- **RULES_VERSION last synced: 2** (`.agents/rules/rules-freshness-check.md`)
 - **Ring**: this machine is Ring 0 (`.agents/ring0.local` present, gitignored). Any other clone is Ring 1 by default — see `.agents/rules/ring0-authority.md`.
+- **Pre-push sync**: `.agents/rules/pre-push-sync-law.md` — binding on every machine before every push.
 
 ---
 
