@@ -1,0 +1,118 @@
+/* โครงหน้า Lobby: ฉาก 3D เป็นพื้นหลังเต็มจอ, HUD ซ้อนเป็น 4 แถว
+   แถวกลางเว้นว่างไว้ให้เห็นโมเดลตัวละคร — HUD จึงไม่บังโมเดล */
+.page {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  /* สูงเต็มเวทีที่ GameViewport กำหนด (ไม่ใช้ dvh เพราะเวทีถูกย่อด้วย transform) */
+  height: 100%;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* กรอบ HUD รอบจอแบบเกม 2D: ช่วยรวมฉากและเมนูให้เป็นงานชุดเดียวกัน */
+.page::before,
+.page::after {
+  position: absolute;
+  z-index: 2;
+  content: '';
+  pointer-events: none;
+}
+
+.page::before {
+  inset: 0;
+  border: 1px solid rgb(240 190 82 / 20%);
+  background:
+    linear-gradient(90deg, transparent 12%, rgb(104 225 202 / 42%) 28%, rgb(244 191 70 / 62%) 50%, rgb(104 225 202 / 42%) 72%, transparent 88%) top / 100% 2px no-repeat,
+    linear-gradient(135deg, rgb(237 177 57 / 32%), transparent 9%) top left / 170px 170px no-repeat,
+    linear-gradient(225deg, rgb(237 177 57 / 32%), transparent 9%) top right / 170px 170px no-repeat,
+    linear-gradient(45deg, rgb(61 194 177 / 22%), transparent 10%) bottom left / 210px 210px no-repeat,
+    linear-gradient(315deg, rgb(61 194 177 / 22%), transparent 10%) bottom right / 210px 210px no-repeat;
+  box-shadow: inset 0 0 80px rgb(0 0 0 / 32%);
+}
+
+.page::after {
+  inset-inline: clamp(18px, 3vw, 54px);
+  inset-block-end: 12px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #44bda9 12%, #e9b947 32%, transparent 47% 53%, #e9b947 68%, #44bda9 88%, transparent);
+  filter: drop-shadow(0 0 7px rgb(231 177 62 / 38%));
+  opacity: 0.72;
+}
+
+/* หน้าจอระหว่างรอ chunk ของฉาก 3D — ใช้พื้นหลังเดียวกับฉากจริงเพื่อไม่ให้กระพริบ */
+.sceneFallback {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-scene);
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 78%, rgb(109 140 255 / 22%) 0%, transparent 62%),
+    linear-gradient(180deg, #05060f 0%, #0d1226 45%, #161c33 100%);
+  color: var(--c-text-dim);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  animation: hint-pulse 2s ease-in-out infinite;
+}
+
+/* แถวกลาง: ปล่อยว่างให้ฉาก 3D มีปุ่มด้านข้างชิดขวาเท่านั้น */
+.stage {
+  position: relative;
+  z-index: var(--z-hud);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 0;
+  padding-block: var(--sp-4);
+  /* ให้คลิกทะลุไปโดนโมเดล 3D ได้ ยกเว้นตัวปุ่มเอง */
+  pointer-events: none;
+}
+
+.stage > * {
+  pointer-events: auto;
+}
+
+.startRow {
+  position: absolute;
+  z-index: var(--z-hud);
+  inset-inline-end: clamp(28px, 4vw, 72px);
+  inset-block-end: max(24px, env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+
+.startRow > * {
+  pointer-events: auto;
+}
+
+@keyframes hint-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+@media (max-width: 720px) {
+  .stage {
+    padding-block: var(--sp-3);
+    align-items: flex-start;
+  }
+
+  .startRow {
+    inset-inline-end: 12px;
+    inset-block-end: 92px;
+  }
+}
+
+/* จอเตี้ย (มือถือแนวนอน) — บีบระยะห่าง */
+@media (max-height: 560px) {
+  .stage {
+    padding-block: var(--sp-2);
+  }
+}

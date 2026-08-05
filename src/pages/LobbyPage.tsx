@@ -1,0 +1,124 @@
+import { Suspense, lazy, useMemo, useState } from 'react'
+import { getCharacter } from '../game/characters'
+import { WukongAdventure } from '../components/AdventureScene/WukongAdventure'
+import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRosterModal'
+import { MainNavigation } from '../components/MainNavigation/MainNavigation'
+import { ProfileModal } from '../components/ProfileModal/ProfileModal'
+import {
+  SettingsModal,
+  type AudioSettings,
+} from '../components/SettingsModal/SettingsModal'
+import { SideActions } from '../components/SideActions/SideActions'
+import { StartAdventure } from '../components/StartAdventure/StartAdventure'
+import { TopBar } from '../components/TopBar/TopBar'
+import { MOCK_BADGES } from '../data/mockPlayer'
+import type { Player } from '../types/player'
+import styles from './LobbyPage.module.css'
+
+/** โหลดฉาก 3D แยก chunk เพื่อให้ HUD ขึ้นก่อน (three.js มีขนาดใหญ่) */
+const LobbyScene = lazy(() =>
+  import('../components/LobbyScene/LobbyScene').then((m) => ({ default: m.LobbyScene })),
+)
+
+interface LobbyPageProps {
+  /** ผู้เล่นที่ล็อกอินอยู่ — มาจากฐานข้อมูล ไม่ใช่ mock อีกแล้ว */
+  player: Player
+  /** บันทึกความคืบหน้ากลับลงฐานข้อมูล */
+  onPlayerChange: (next: Player) => Promise<void>
+  onLogout: () => Promise<void>
+}
+
+export function LobbyPage({ player, onLogout }: LobbyPageProps) {
+  // แจ้งเตือนจดหมาย/ภารกิจยังเป็น mock เพราะยังไม่มีระบบทั้งสองอย่าง
+  const badges = MOCK_BADGES
+
+  /** ตัวละครที่บัญชีนี้ครอบครองจริง — ใช้เป็นตัวเลือกในฉากเดิน */
+  const ownedCharacters = useMemo(
+    () =>
+      player.ownedCharacters.flatMap((owned) => {
+        const character = getCharacter(owned.characterId)
+        return character
+          ? [{ ...character, level: owned.level, exp: owned.exp, expToNext: owned.expToNext }]
+          : []
+      }),
+    [player.ownedCharacters],
+  )
+  /**
+   * ตัวละครที่ถูกแตะในฉาก — ตอนนี้ใช้แค่แสดงวงแหวนใต้เท้าและกระตุ้นท่าประจำตัว
+   * (แผงข้อมูลตอนแตะโมเดลถูกถอดออกไว้ก่อน รอดูว่าจะใส่อะไรแทนในอนาคต)
+   */
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [rosterOpen, setRosterOpen] = useState(false)
+  const [adventureOpen, setAdventureOpen] = useState(false)
+  /** โหมดเดินชมจันทร์ — ใช้ฉากเดินชุดเดียวกับการผจญภัย แต่คนละบรรยากาศ */
+  const [moonWalkOpen, setMoonWalkOpen] = useState(false)
+  // เก็บค่าเสียงไว้ที่นี่เพื่อให้ค่าคงอยู่หลังปิดหน้าต่างตั้งค่า
+  const [audio, setAudio] = useState<AudioSettings>({
+    master: 70,
+    music: 60,
+    sfx: 80,
+    muted: false,
+  })
+
+  return (
+    <main className={styles.page}>
+      <Suspense fallback={<div className={styles.sceneFallback}>กำลังเข้าสู่ลานประลอง…</div>}>
+        <LobbyScene
+          teamSlots={player.teamSlots}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+        />
+      </Suspense>
+
+      <TopBar player={player} onOpenProfile={() => setProfileOpen(true)} />
+
+      <div className={styles.stage}>
+        <SideActions badges={badges} onOpenSettings={() => setSettingsOpen(true)} />
+      </div>
+
+      <div className={styles.startRow}>
+        <StartAdventure onStart={() => setAdventureOpen(true)} />
+      </div>
+
+      <MainNavigation onOpenHeroes={() => setRosterOpen(true)} />
+
+      {adventureOpen ? (
+        <WukongAdventure characters={ownedCharacters} onExit={() => setAdventureOpen(false)} />
+      ) : null}
+
+      {moonWalkOpen ? (
+        <WukongAdventure
+          mode="moonlight"
+          characters={ownedCharacters}
+          onExit={() => setMoonWalkOpen(false)}
+        />
+      ) : null}
+
+      {/* หน้า Lobby ยังคง mount อยู่ข้างหลัง ฉาก 3D และแอนิเมชันตัวละครจึงไม่รีเซ็ต */}
+      {rosterOpen ? <CharacterRosterModal player={player} onClose={() => setRosterOpen(false)} /> : null}
+
+      {profileOpen ? (
+        <ProfileModal
+          player={player}
+          // ปิดโปรไฟล์ก่อน ไม่งั้นหน้าต่างจะบังฉากเดิน
+          onMoonWalk={() => {
+            setProfileOpen(false)
+            setMoonWalkOpen(true)
+          }}
+          onClose={() => setProfileOpen(false)}
+        />
+      ) : null}
+
+      {settingsOpen ? (
+        <SettingsModal
+          audio={audio}
+          onAudioChange={setAudio}
+          onLogout={onLogout}
+          onClose={() => setSettingsOpen(false)}
+        />
+      ) : null}
+    </main>
+  )
+}

@@ -1,0 +1,176 @@
+.card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 13px 9px 10px;
+  border: 1px solid rgb(213 168 75 / 46%);
+  /* มุมตัดเฉียงแบบป้ายไม้แกะ ไม่ใช่กล่องสี่เหลี่ยมธรรมดา */
+  clip-path: polygon(13px 0, 100% 0, 100% calc(100% - 13px), calc(100% - 13px) 100%, 0 100%, 0 13px);
+  background:
+    linear-gradient(103deg, color-mix(in srgb, var(--card-accent) 13%, transparent), transparent 52%),
+    repeating-linear-gradient(135deg, transparent 0 16px, rgb(235 190 87 / 3%) 17px 18px),
+    linear-gradient(160deg, rgb(67 34 31 / 94%), rgb(8 24 33 / 97%));
+  color: #e9dcbb;
+  text-align: start;
+  box-shadow: inset 0 0 0 2px rgb(4 10 18 / 62%), 0 6px 16px rgb(0 0 0 / 42%);
+  transition:
+    transform 200ms cubic-bezier(.2, .8, .2, 1),
+    border-color 200ms ease,
+    filter 200ms ease;
+}
+
+.card:hover,
+.card:focus-visible {
+  outline: none;
+  transform: translateX(5px);
+  border-color: rgb(243 205 122 / 72%);
+  filter: brightness(1.1);
+}
+
+.card:active {
+  transform: translateX(2px) scale(0.985);
+}
+
+/* ตัวที่ถูกเลือก — กรอบทองและแสงเรือง */
+.card[aria-pressed='true'] {
+  border-color: #f3ce7c;
+  background:
+    linear-gradient(103deg, color-mix(in srgb, var(--card-accent) 26%, transparent), transparent 56%),
+    linear-gradient(160deg, rgb(101 45 34 / 97%), rgb(11 32 39 / 97%));
+  box-shadow:
+    inset 0 0 0 2px rgb(4 10 18 / 62%),
+    inset 0 0 22px rgb(238 187 74 / 20%),
+    0 8px 20px rgb(0 0 0 / 50%),
+    0 0 20px rgb(240 190 78 / 26%);
+}
+
+/* หมุดกนกด้านซ้ายของใบที่เลือก */
+.card[aria-pressed='true']::before {
+  content: '';
+  position: absolute;
+  inset-block: 12px;
+  inset-inline-start: -1px;
+  width: 3px;
+  background: linear-gradient(transparent, #f2c96e, #5fc7a0, transparent);
+  box-shadow: 0 0 8px rgb(240 196 92 / 65%);
+}
+
+/* ---------- รูปตัวละคร ---------- */
+.portrait {
+  position: relative;
+  width: 62px;
+  height: 62px;
+  flex: none;
+  overflow: hidden;
+  border: 2px solid rgb(232 190 94 / 68%);
+  clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% calc(100% - 9px), calc(100% - 9px) 100%, 9px 100%, 0 calc(100% - 9px), 0 9px);
+  background: radial-gradient(circle at 50% 32%, color-mix(in srgb, var(--card-accent) 30%, transparent), rgb(6 16 26 / 95%) 70%);
+  box-shadow: inset 0 0 0 3px rgb(26 9 15 / 70%), 0 0 10px rgb(230 179 66 / 12%);
+}
+
+/*
+   ครอปเฉพาะช่วงหัว-ไหล่จากเฟรมเต็มตัว
+   (ขยายภาพแล้วเลื่อนขึ้น — ไม่ต้องมีไฟล์ภาพใบหน้าชุดใหม่)
+*/
+.portrait img {
+  position: absolute;
+  inset-block-start: -34%;
+  inset-inline-start: 50%;
+  width: 230%;
+  translate: -50% 0;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.rarityPip {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 0;
+  height: 3px;
+  background: var(--rarity-color);
+  box-shadow: 0 0 7px var(--rarity-color);
+}
+
+/* ---------- ข้อความ ---------- */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.topRow {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #f6e3b4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.level {
+  flex: none;
+  margin-inline-start: auto;
+  padding: 0 6px;
+  border: 1px solid rgb(232 190 92 / 55%);
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+  background: rgb(6 16 26 / 80%);
+  color: #f0cd7c;
+  font-size: 0.6rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.tag {
+  padding: 0 7px 1px;
+  border: 1px solid rgb(255 255 255 / 14%);
+  clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%);
+  background: rgb(255 255 255 / 6%);
+  font-size: 0.6rem;
+  letter-spacing: 0.03em;
+  color: rgb(219 228 220 / 78%);
+  white-space: nowrap;
+}
+
+.tagRarity {
+  border-color: color-mix(in srgb, var(--rarity-color) 60%, transparent);
+  background: color-mix(in srgb, var(--rarity-color) 14%, transparent);
+  color: var(--rarity-color);
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .card {
+    grid-template-columns: 50px 1fr;
+    gap: 9px;
+    padding: 7px 10px 7px 8px;
+  }
+
+  .portrait {
+    width: 50px;
+    height: 50px;
+  }
+
+  .name {
+    font-size: 0.8rem;
+  }
+}

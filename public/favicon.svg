@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3a4a8f"/>
+      <stop offset="100%" stop-color="#06070d"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <!-- ดาบไขว้ในวงเวท -->
+  <circle cx="32" cy="32" r="21" fill="none" stroke="#6d8cff" stroke-width="2" opacity="0.55"/>
+  <g stroke="#f0c85a" stroke-width="3.4" stroke-linecap="round">
+    <path d="M20 17 40 40"/>
+    <path d="M44 17 24 40"/>
+  </g>
+  <g stroke="#ece7f2" stroke-width="3" stroke-linecap="round">
+    <path d="M17 44 24 37"/>
+    <path d="M47 44 40 37"/>
+  </g>
+  <circle cx="32" cy="32" r="3.6" fill="#7ce8ff"/>
+</svg>

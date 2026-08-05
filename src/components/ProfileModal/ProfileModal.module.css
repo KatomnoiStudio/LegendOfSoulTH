@@ -1,0 +1,413 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  display: grid;
+  place-items: center;
+  padding: var(--sp-4);
+  background: rgb(3 4 10 / 72%);
+  backdrop-filter: blur(6px);
+  animation: fade-in var(--dur-mid) var(--ease-out) both;
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 34rem);
+  /* % ของเวที ไม่ใช่ dvh — เวทีถูกย่อด้วย transform หน่วย viewport จึงไม่ตรง */
+  max-height: min(86%, 44rem);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: linear-gradient(160deg, rgb(26 32 60 / 97%), rgb(11 14 30 / 99%));
+  box-shadow: var(--shadow-3), inset 0 1px 0 rgb(255 255 255 / 12%);
+  overflow: hidden;
+  animation: dialog-in var(--dur-mid) var(--ease-bounce) both;
+}
+
+/* ---------- ส่วนหัว ---------- */
+.header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-5) var(--sp-5) var(--sp-4);
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+  background: radial-gradient(ellipse 70% 100% at 20% 0%, rgb(109 140 255 / 18%), transparent 70%);
+}
+
+.bigFrame {
+  --frame-size: 5.5rem;
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--c-bone);
+}
+
+.levelChip {
+  padding: 0.1rem var(--sp-2);
+  border: 1px solid var(--c-gold);
+  border-radius: var(--r-pill);
+  color: var(--c-gold);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.title {
+  font-size: 0.8rem;
+  color: var(--c-text-dim);
+}
+
+/* ---------- รหัสผู้เล่น (UID) ---------- */
+.uidRow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  align-self: flex-start;
+  margin-block-start: var(--sp-1);
+  padding: 0.1rem 0.15rem 0.1rem var(--sp-2);
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: var(--r-pill);
+  background: rgb(0 0 0 / 35%);
+}
+
+.uidLabel {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--c-text-dim);
+}
+
+.uidValue {
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+  color: var(--c-gold);
+}
+
+.uidCopy {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  color: var(--c-text-dim);
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.uidCopy:hover {
+  color: var(--c-gold-light);
+  background: rgb(255 255 255 / 12%);
+}
+
+.uidCopy svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.expRow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.expTrack {
+  flex: 1;
+  min-width: 5rem;
+  height: 0.4rem;
+  border-radius: var(--r-pill);
+  background: rgb(0 0 0 / 60%);
+  overflow: hidden;
+}
+
+.expFill {
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--c-arcane), var(--c-arcane-light));
+  box-shadow: var(--glow-arcane);
+}
+
+.expText {
+  font-size: 0.66rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text-dim);
+  white-space: nowrap;
+}
+
+.close {
+  position: absolute;
+  inset-block-start: var(--sp-3);
+  inset-inline-end: var(--sp-3);
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  color: var(--c-text-dim);
+  font-size: 1.3rem;
+  line-height: 1;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.close:hover {
+  color: var(--c-bone);
+  background: rgb(255 255 255 / 12%);
+}
+
+/* ---------- ปุ่มจัดการโปรไฟล์ ---------- */
+.editRow {
+  display: grid;
+  /* 4 ปุ่มแล้ว — บีบอัตโนมัติแทนการตรึง 3 ช่อง */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-2);
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+}
+
+.editButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-3) var(--sp-2);
+  border: 1px solid var(--c-border-arcane);
+  border-radius: var(--r-md);
+  background: rgb(109 140 255 / 10%);
+  color: var(--c-arcane-light);
+  font-size: 0.72rem;
+  font-weight: 700;
+  transition:
+    transform var(--dur-fast) var(--ease-bounce),
+    background-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.editButton:hover {
+  background: rgb(109 140 255 / 22%);
+  box-shadow: var(--glow-arcane);
+  transform: translateY(-2px);
+}
+
+.editButton:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.editButton svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* ปุ่มเดินชมจันทร์ — เป็นปุ่มเดียวในแถวที่ใช้งานได้จริงแล้ว จึงย้อมโทนจันทร์ให้เด่น */
+.moonWalk {
+  border-color: rgb(174 205 255 / 55%);
+  background: linear-gradient(180deg, rgb(150 190 255 / 20%), rgb(96 128 214 / 14%));
+  color: #cfe1ff;
+}
+
+.moonWalk:hover {
+  background: linear-gradient(180deg, rgb(160 200 255 / 32%), rgb(110 145 230 / 22%));
+  box-shadow: 0 0 20px rgb(150 190 255 / 32%);
+}
+
+@media (max-width: 720px) {
+  .editRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---------- แท็บ ---------- */
+.tabs {
+  display: flex;
+  gap: var(--sp-1);
+  padding: var(--sp-3) var(--sp-5) 0;
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+}
+
+.tab {
+  position: relative;
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  color: var(--c-text-dim);
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.tab:hover {
+  color: var(--c-bone);
+}
+
+.tab[aria-selected='true'] {
+  color: var(--c-gold);
+}
+
+.tab[aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  inset-block-end: -1px;
+  inset-inline: var(--sp-2);
+  height: 2px;
+  border-radius: var(--r-pill);
+  background: var(--c-gold);
+  box-shadow: var(--glow-gold);
+}
+
+.count {
+  margin-inline-start: var(--sp-1);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+/* ---------- เนื้อหา ---------- */
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--sp-4) var(--sp-5) var(--sp-5);
+  overscroll-behavior: contain;
+}
+
+/* ---------- ตัวเลขสรุป (แสดงแทนรายชื่อ) ---------- */
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-7) var(--sp-4);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: radial-gradient(ellipse 90% 120% at 50% 0%, rgb(109 140 255 / 20%), transparent 70%),
+    rgb(255 255 255 / 4%);
+  text-align: center;
+}
+
+.statIcon {
+  width: 2.4rem;
+  height: 2.4rem;
+  color: var(--c-arcane-light);
+  opacity: 0.8;
+}
+
+.statValue {
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, var(--c-gold-light), var(--c-gold) 60%, var(--c-gold-deep));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.statLabel {
+  font-size: 0.78rem;
+  color: var(--c-text-dim);
+}
+
+/* ---------- สถานะว่าง ---------- */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-7) var(--sp-4);
+  text-align: center;
+  color: var(--c-text-dim);
+}
+
+.emptyIcon {
+  width: 2.5rem;
+  height: 2.5rem;
+  opacity: 0.45;
+}
+
+.emptyTitle {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--c-bone);
+}
+
+.emptyText {
+  max-width: 22rem;
+  font-size: 0.75rem;
+  line-height: 1.7;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 720px) {
+  .backdrop {
+    padding: var(--sp-2);
+  }
+
+  .dialog {
+    max-height: 92%;
+  }
+
+  .header {
+    gap: var(--sp-3);
+    padding: var(--sp-4) var(--sp-4) var(--sp-3);
+  }
+
+  .bigFrame {
+    --frame-size: 4.25rem;
+  }
+
+  .name {
+    font-size: 1.05rem;
+  }
+
+  .editRow,
+  .tabs,
+  .body {
+    padding-inline: var(--sp-4);
+  }
+
+  .tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tab {
+    font-size: 0.72rem;
+  }
+}
