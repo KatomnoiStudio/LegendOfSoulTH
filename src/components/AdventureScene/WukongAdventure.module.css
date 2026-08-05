@@ -115,12 +115,23 @@
   font-weight: 800;
 }
 
-/* โหมดเดินชมจันทร์ — ฉากเดิม ย้อมโทนคืนเดือนเพ็ญให้เย็นและเงียบกว่า */
+/*
+   โหมดเดินชมจันทร์ — ฉากเดิม ย้อมโทนคืนเดือนเพ็ญให้เย็นและเงียบกว่า
+   z-index ต่ำกว่า TopBar/SideActions/MainNavigation/StartAdventure (--z-hud:10, --z-nav:20)
+   โดยตั้งใจ — โหมดนี้เดินอยู่ "ในหน้าหลัก" ที่ยังเห็นเมนูจริงอยู่ด้านบน ไม่ใช่ฉากเต็มจอแยกต่างหาก
+   เหมือนโหมด trial (บทฝึก) ซึ่งยังใช้ z-index เดิม (500, เต็มจอ) อยู่ตามปกติ
+*/
 .moonlight {
+  z-index: 3;
   cursor: default;
   background:
     linear-gradient(180deg, rgba(6, 14, 38, 0.34) 20%, rgba(4, 10, 26, 0.5) 60%, rgba(2, 5, 14, 0.72) 100%),
     url('/ui/thai/thai-temple-lobby.png') center / cover no-repeat;
+}
+
+/* มือถือ: MainNavigation กินมุมล่างซ้ายอยู่ ดันปุ่มควบคุมทิศทางขึ้นให้พ้น */
+@media (pointer: coarse), (max-width: 820px) {
+  .moonlight .mobilePad { bottom: 96px; }
 }
 
 /* ลำแสงจันทร์ทอดลงกลางลาน */

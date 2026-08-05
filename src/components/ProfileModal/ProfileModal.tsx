@@ -7,7 +7,6 @@ import type { Player } from '../../types/player'
 import {
   CopyIcon,
   FrameIcon,
-  MoonWalkIcon,
   HeroesIcon,
   HistoryIcon,
   PawIcon,
@@ -23,8 +22,6 @@ type TabId = 'characters' | 'pets' | 'history'
 
 interface ProfileModalProps {
   player: Player
-  /** พาตัวละครออกไปเดินเล่นในลานวัดใต้แสงจันทร์ */
-  onMoonWalk: () => void
   onClose: () => void
 }
 
@@ -36,7 +33,7 @@ interface ProfileModalProps {
  * - สัตว์เลี้ยงและประวัติการต่อสู้ มาจาก src/game/collection.ts ซึ่งยังว่างจริง
  *   เพราะยังไม่มีระบบทั้งสองอย่าง จึงแสดงสถานะว่างแทนการใส่ข้อมูลปลอม
  */
-export function ProfileModal({ player, onMoonWalk, onClose }: ProfileModalProps) {
+export function ProfileModal({ player, onClose }: ProfileModalProps) {
   const { comingSoon } = useToast()
   const [tab, setTab] = useState<TabId>('characters')
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -125,14 +122,6 @@ export function ProfileModal({ player, onMoonWalk, onClose }: ProfileModalProps)
           >
             <FrameIcon />
             เปลี่ยนกรอบ
-          </button>
-          <button
-            type="button"
-            className={`${styles.editButton} ${styles.moonWalk}`}
-            onClick={onMoonWalk}
-          >
-            <MoonWalkIcon />
-            เดินชมจันทร์
           </button>
           <button
             type="button"

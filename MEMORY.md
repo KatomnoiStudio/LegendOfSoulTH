@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/GameTurnBase`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-05T22:26:00+07:00 by `Antigravity AI (HetCreep Agent)`
+> **Last Updated**: 2026-08-05T22:40:00+07:00 by `Claude Sonnet 5 (Claude Code Agent)`
 
 ---
 
@@ -45,14 +45,45 @@
    - Added `.github/workflows/security-scan.yml` (Gitleaks secret leak detection + daily NPM audit).
    - Added `"audit": "npm audit --audit-level=high"` script to `package.json`.
 
+6. **Player Accounts + Gold/Gem Currency System** (commit `c019bb7`, merged via `0ff3f92`):
+   - Built `src/data/accountRepository.ts` as the "database" (localStorage-backed, no server yet).
+     Stores accounts (uid/email/password hash+salt), each with a `player: Player` and a
+     `transactions: CurrencyTransaction[]` audit ledger.
+   - **Hard rule enforced at the API layer**: gold can ONLY be credited via
+     `earnGold(uid, 'quest' | 'drop', amount)`; gems can ONLY be credited via
+     `topUpGems(uid, packageId)` or `redeemCoupon(uid, code)`. No generic setGold/setGem exists
+     anywhere — every credit is logged with its source for auditability and coupon-reuse checks.
+   - `useAuth.ts` is the single hook every screen talks to (`register/login/logout/updatePlayer/
+     earnGold/topUpGems/redeemCoupon`) — no component calls `accountRepository` or `localStorage`
+     directly.
+   - New `TopBar` "+" buttons: gold = demo "collect drop" (random 20–80, stand-in until a real
+     quest/battle system exists); gem = opens new `GemShopModal` (3 static package tiers,
+     **no real payment gateway wired — always succeeds, demo only**).
+   - `SettingsModal`'s previously non-functional "คูปอง" tab now actually calls `redeemCoupon`.
+     Seeded test code: `WELCOME2026` → 50 gems, one redemption per account.
+   - `src/hooks/usePlayer.ts` confirmed **dead code** — `App.tsx` uses `useAuth` exclusively;
+     `usePlayer` is leftover mock-hook scaffolding, not part of the live data path.
+   - `README.md` rewritten to match current reality (was claiming "no login/backend" — false).
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
 
-- **Repo Status**: 🟢 Clean & Synced (`origin/master`)
-- **CI Pipelines**: 🟢 Passing (Typecheck 0 errors, Lint 0 errors, Build clean)
+- **Repo Status**: 🟢 Clean & Synced (`origin/master`) — working tree matches `HEAD`, no pending changes
+- **CI Pipelines**: 🟢 Passing (Typecheck 0 errors, Lint 0 errors, Build clean) — re-verified `npx tsc -b --noEmit` after latest merges, zero errors
 - **Security & Protection**: 🛡️ 100% Enabled & Monitored (CodeQL + Dependabot + Secret Scanning + Gitleaks + NPM Audit)
 - **Deployment**: Configured for GitHub Pages (`/GameTurnBase/`)
+- **⚠️ Remote mismatch noted**: `git remote -v` currently points `origin` at
+  `https://github.com/DemoGODRTX/GameTurnBase.git`, but this file's header still says repo
+  `LegendofSoulTH/GameTurnBase`. Not corrected here since it's unclear which is authoritative
+  (fork vs. rename vs. stale doc) — flag to human operator to confirm and fix the header, or the
+  remote, whichever is wrong.
+- **Player accounts/currency**: functional locally (see item 6 above) but entirely client-side —
+  no real backend, no payment gateway. Do not treat as production-ready for real money or
+  cross-device play.
+- **Open/next work**: no quest system, no real drop table, no shop UI beyond `GemShopModal`, no
+  battle system — `earnGold('drop', ...)` on the TopBar "+" is a placeholder standing in for all
+  of that.
 
 ---
 

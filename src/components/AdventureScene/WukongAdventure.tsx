@@ -190,7 +190,8 @@ const MODE_COPY: Record<AdventureMode, {
 }
 
 interface WukongAdventureProps {
-  onExit: () => void
+  /** โหมด moonlight เปิดค้างในลอบบี้ ไม่มีปุ่มออก จึงไม่ต้องส่งมา */
+  onExit?: () => void
   mode?: AdventureMode
   /** ตัวละครที่ผู้เล่นครอบครอง — ใช้เป็นตัวเลือกในแถบเลือกขุนพล */
   characters: Character[]
@@ -437,12 +438,16 @@ export function WukongAdventure({ onExit, mode = 'trial', characters }: WukongAd
 
   // ผู้เล่นมีตัวละครแต่ยังไม่มีตัวไหนที่มีชุดเฟรมเดิน
   if (!active) {
+    // โหมดชมจันทร์อยู่ในหน้าหลักตลอดเวลา — ไม่มีขุนพลเดินได้ก็แค่ไม่ต้องแสดงอะไรเลย
+    // (การ์ดเต็มจอแบบเดิมเหมาะกับโหมดผจญภัยที่เป็นฉากแยกต่างหากเท่านั้น)
+    if (mode === 'moonlight') return null
+
     return (
       <section className={`${styles.scene} ${styles.moonlight}`} aria-label={copy.heading}>
         <div className={styles.emptyCast}>
           <strong>ยังไม่มีขุนพลที่ออกเดินได้</strong>
           <p>ขุนพลที่ท่านมีอยู่ยังไม่มีชุดท่าเดิน โปรดรอการอัญเชิญขุนพลที่พร้อมออกเดิน</p>
-          <button type="button" onClick={onExit}>
+          <button type="button" onClick={() => onExit?.()}>
             กลับลานประลอง
           </button>
         </div>
@@ -460,22 +465,24 @@ export function WukongAdventure({ onExit, mode = 'trial', characters }: WukongAd
       <div className={styles.atmosphere} aria-hidden="true" />
       {mode === 'moonlight' ? <div className={styles.moonBeam} aria-hidden="true" /> : null}
 
-      <header className={styles.hud}>
-        <div className={styles.chapter}>
-          <span className={styles.eyebrow}>{copy.eyebrow}</span>
-          <strong>{copy.heading}</strong>
-          <span>{copy.caption}</span>
-        </div>
-        <div className={styles.status}>
-          <span className={view.moving ? styles.activeDot : styles.idleDot} />
-          <div><small>สถานะ</small><b>{view.moving ? (view.running ? 'วิ่ง' : 'เดิน') : 'พร้อมรบ'}</b></div>
-          <i />
-          <div><small>ทิศ</small><b>{DIRECTION_LABEL[view.direction]}</b></div>
-        </div>
-        <button className={styles.exitButton} type="button" onClick={onExit}>
-          <span aria-hidden="true">‹</span> กลับลานประลอง
-        </button>
-      </header>
+      {mode === 'moonlight' ? null : (
+        <header className={styles.hud}>
+          <div className={styles.chapter}>
+            <span className={styles.eyebrow}>{copy.eyebrow}</span>
+            <strong>{copy.heading}</strong>
+            <span>{copy.caption}</span>
+          </div>
+          <div className={styles.status}>
+            <span className={view.moving ? styles.activeDot : styles.idleDot} />
+            <div><small>สถานะ</small><b>{view.moving ? (view.running ? 'วิ่ง' : 'เดิน') : 'พร้อมรบ'}</b></div>
+            <i />
+            <div><small>ทิศ</small><b>{DIRECTION_LABEL[view.direction]}</b></div>
+          </div>
+          <button className={styles.exitButton} type="button" onClick={() => onExit?.()}>
+            <span aria-hidden="true">‹</span> กลับลานประลอง
+          </button>
+        </header>
+      )}
 
       <div className={styles.locationTitle} aria-hidden="true">
         <span />
@@ -497,10 +504,12 @@ export function WukongAdventure({ onExit, mode = 'trial', characters }: WukongAd
           </div>
         ) : null}
         <img className={styles.sprite} src={spriteUrl} alt={active.name} draggable={false} />
-        <div className={styles.nameplate}>
-          <span>{active.epithet}</span>
-          <strong>{active.name}</strong>
-        </div>
+        {mode === 'moonlight' ? null : (
+          <div className={styles.nameplate}>
+            <span>{active.epithet}</span>
+            <strong>{active.name}</strong>
+          </div>
+        )}
       </div>
 
       {canPickCharacter ? (
@@ -521,13 +530,15 @@ export function WukongAdventure({ onExit, mode = 'trial', characters }: WukongAd
         </div>
       ) : null}
 
-      <div className={styles.helpBar}>
-        <span><kbd>WASD</kbd><kbd>↑↓←→</kbd> เคลื่อนที่</span>
-        <i />
-        <span><kbd>SHIFT</kbd> วิ่ง</span>
-        <i />
-        <span><kbd className={styles.mouse}>◉</kbd> คลิกพื้นเพื่อเดิน</span>
-      </div>
+      {mode === 'moonlight' ? null : (
+        <div className={styles.helpBar}>
+          <span><kbd>WASD</kbd><kbd>↑↓←→</kbd> เคลื่อนที่</span>
+          <i />
+          <span><kbd>SHIFT</kbd> วิ่ง</span>
+          <i />
+          <span><kbd className={styles.mouse}>◉</kbd> คลิกพื้นเพื่อเดิน</span>
+        </div>
+      )}
 
       <div className={styles.mobilePad} aria-label="ปุ่มควบคุมทิศทาง">
         <HoldButton label="ขึ้น" symbol="▲" keyName="w" className={styles.up} onChange={setVirtualDirection} />

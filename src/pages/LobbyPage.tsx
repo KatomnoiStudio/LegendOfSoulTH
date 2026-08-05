@@ -65,8 +65,6 @@ export function LobbyPage({
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [rosterOpen, setRosterOpen] = useState(false)
   const [adventureOpen, setAdventureOpen] = useState(false)
-  /** โหมดเดินชมจันทร์ — ใช้ฉากเดินชุดเดียวกับการผจญภัย แต่คนละบรรยากาศ */
-  const [moonWalkOpen, setMoonWalkOpen] = useState(false)
   // เก็บค่าเสียงไว้ที่นี่เพื่อให้ค่าคงอยู่หลังปิดหน้าต่างตั้งค่า
   const [audio, setAudio] = useState<AudioSettings>({
     master: 70,
@@ -106,28 +104,17 @@ export function LobbyPage({
         <WukongAdventure characters={ownedCharacters} onExit={() => setAdventureOpen(false)} />
       ) : null}
 
-      {moonWalkOpen ? (
-        <WukongAdventure
-          mode="moonlight"
-          characters={ownedCharacters}
-          onExit={() => setMoonWalkOpen(false)}
-        />
-      ) : null}
+      {/*
+        เดินชมจันทร์เปิดอยู่ตลอดเวลาที่อยู่ในลอบบี้ ไม่ต้องกดปุ่มเปิดจากโปรไฟล์อีกต่อไป
+        คุมทิศทางด้วย WASD/คลิกพื้นได้เหมือนเดิม เลือกตัวที่จะเดินได้จากแถบเลือกขุนพล
+        (ตำแหน่งที่เดินอยู่ยังคงอยู่แม้สลับตัวละคร เพราะ component ไม่ถูก mount ใหม่)
+      */}
+      <WukongAdventure mode="moonlight" characters={ownedCharacters} />
 
       {/* หน้า Lobby ยังคง mount อยู่ข้างหลัง ฉาก 3D และแอนิเมชันตัวละครจึงไม่รีเซ็ต */}
       {rosterOpen ? <CharacterRosterModal player={player} onClose={() => setRosterOpen(false)} /> : null}
 
-      {profileOpen ? (
-        <ProfileModal
-          player={player}
-          // ปิดโปรไฟล์ก่อน ไม่งั้นหน้าต่างจะบังฉากเดิน
-          onMoonWalk={() => {
-            setProfileOpen(false)
-            setMoonWalkOpen(true)
-          }}
-          onClose={() => setProfileOpen(false)}
-        />
-      ) : null}
+      {profileOpen ? <ProfileModal player={player} onClose={() => setProfileOpen(false)} /> : null}
 
       {settingsOpen ? (
         <SettingsModal
