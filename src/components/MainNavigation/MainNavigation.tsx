@@ -15,14 +15,14 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'battle', label: 'ต่อสู้', image: publicUrl('ui/navigation/battle.png'), accent: '#f2a443' },
-  { id: 'heroes', label: 'ตัวละคร', image: publicUrl('ui/navigation/heroes.png'), accent: '#f0c35e' },
+  { id: 'battle', label: 'ต่อสู้', image: publicUrl('ui/navigation/battle.webp'), accent: '#f2a443' },
+  { id: 'heroes', label: 'ตัวละคร', image: publicUrl('ui/navigation/heroes.webp'), accent: '#f0c35e' },
   { id: 'pets', label: 'สัตว์เลี้ยง', icon: <PawIcon />, accent: '#e58fb4' },
-  { id: 'training', label: 'ค่ายฝึก', image: publicUrl('ui/navigation/training.png'), accent: '#77b9db' },
+  { id: 'training', label: 'ค่ายฝึก', image: publicUrl('ui/navigation/training.webp'), accent: '#77b9db' },
   { id: 'team', label: 'จัดทีม', icon: <TeamFormationIcon />, accent: '#8fa9f0' },
   { id: 'items', label: 'ไอเทม', icon: <ItemBagIcon />, accent: '#e0a86b' },
-  { id: 'summon', label: 'อัญเชิญ', image: publicUrl('ui/navigation/summon.png'), accent: '#67d6a0' },
-  { id: 'guild', label: 'กิลด์', image: publicUrl('ui/navigation/guild.png'), accent: '#7ad1b0' },
+  { id: 'summon', label: 'อัญเชิญ', image: publicUrl('ui/navigation/summon.webp'), accent: '#67d6a0' },
+  { id: 'guild', label: 'กิลด์', image: publicUrl('ui/navigation/guild.webp'), accent: '#7ad1b0' },
 ]
 
 interface MainNavigationProps {

@@ -1,6 +1,14 @@
+import type { CSSProperties } from 'react'
 import type { Combatant } from '../../game/battle/types'
 import type { ActionKind } from '../../game/battle/types'
+import { publicUrl } from '../../lib/publicUrl'
 import styles from './BattleScene.module.css'
+
+// url('/ui/...') ตรง ๆ ใน CSS ชี้ผิดที่ตอน deploy ขึ้น subpath (ดู src/lib/publicUrl.ts) —
+// ส่งเข้าไปเป็น CSS custom property แทน
+const BG_TEMPLE_STYLE: CSSProperties = {
+  ['--bg-temple' as string]: `url(${publicUrl('ui/thai/thai-temple-lobby.webp')})`,
+}
 
 function HpBar({ unit }: { unit: Combatant }) {
   const ratio = unit.maxHp > 0 ? unit.hp / unit.maxHp : 0
@@ -84,7 +92,7 @@ export function BattleScene({
   const targetSet = new Set(validTargetIds)
 
   return (
-    <div className={styles.scene} role="dialog" aria-label="ฉากต่อสู้">
+    <div className={styles.scene} role="dialog" aria-label="ฉากต่อสู้" style={BG_TEMPLE_STYLE}>
       <header className={styles.header}>
         <span className={styles.stageName}>{snapshot.stageName}</span>
         <span className={styles.round}>รอบ {snapshot.round}</span>

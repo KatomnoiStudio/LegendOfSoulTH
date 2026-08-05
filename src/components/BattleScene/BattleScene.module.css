@@ -9,7 +9,7 @@
   color: var(--c-text);
   background:
     linear-gradient(180deg, rgb(6 10 22 / 92%), rgb(10 16 32 / 96%)),
-    url('/ui/thai/thai-temple-lobby.png') center / cover no-repeat;
+    var(--bg-temple) center / cover no-repeat;
 }
 
 .header {

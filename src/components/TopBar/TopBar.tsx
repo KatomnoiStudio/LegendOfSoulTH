@@ -13,7 +13,7 @@ import styles from './TopBar.module.css'
 // url('/ui/...') ตรง ๆ ใน CSS ชี้ผิดที่ตอน deploy ขึ้น subpath (ดู src/lib/publicUrl.ts) —
 // ส่งเข้าไปเป็น CSS custom property แทน
 const BG_NAGA_STYLE: CSSProperties = {
-  ['--bg-naga' as string]: `url(${publicUrl('ui/thai/naga-profile-frame.png')})`,
+  ['--bg-naga' as string]: `url(${publicUrl('ui/thai/naga-profile-frame.webp')})`,
 }
 
 interface TopBarProps {
@@ -81,7 +81,7 @@ export function TopBar({ player, onOpenProfile, onTopUpGold, onTopUpGems }: TopB
         <span className={styles.walletLabel}>คลังสมบัติ</span>
         <CurrencyPill
           tone={styles.gold}
-          icon={<img className={styles.currencyIcon} src={publicUrl('ui/thai/gold-ingot.png')} alt="" draggable={false} />}
+          icon={<img className={styles.currencyIcon} src={publicUrl('ui/thai/gold-ingot.webp')} alt="" draggable={false} />}
           label="ทอง"
           value={player.currency.gold}
           addLabel="เติมทอง"
@@ -89,7 +89,7 @@ export function TopBar({ player, onOpenProfile, onTopUpGold, onTopUpGems }: TopB
         />
         <CurrencyPill
           tone={styles.gem}
-          icon={<img className={styles.currencyIcon} src={publicUrl('ui/thai/jade.png')} alt="" draggable={false} />}
+          icon={<img className={styles.currencyIcon} src={publicUrl('ui/thai/jade.webp')} alt="" draggable={false} />}
           label="หยก"
           value={player.currency.gem}
           addLabel="เติมหยก"

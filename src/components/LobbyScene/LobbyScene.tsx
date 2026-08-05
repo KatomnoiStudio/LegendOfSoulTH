@@ -44,7 +44,7 @@ const SHOW_ARENA_SLOTS = false
 // url('/ui/...') ตรง ๆ ใน CSS ชี้ผิดที่ตอน deploy ขึ้น subpath (ดู src/lib/publicUrl.ts) —
 // ส่งเข้าไปเป็น CSS custom property แทน
 const BG_TEMPLE_STYLE: CSSProperties = {
-  ['--bg-temple' as string]: `url(${publicUrl('ui/thai/thai-temple-lobby.png')})`,
+  ['--bg-temple' as string]: `url(${publicUrl('ui/thai/thai-temple-lobby.webp')})`,
 }
 
 const EMBERS = [

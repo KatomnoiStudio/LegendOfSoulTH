@@ -7,7 +7,7 @@ import styles from './TitlePage.module.css'
 // url('/backgrounds/...') ตรง ๆ ใน CSS ชี้ผิดที่ตอน deploy ขึ้น subpath (ดู src/lib/publicUrl.ts) —
 // ส่งเข้าไปเป็น CSS custom property แทน
 const BG_BATTLE_ART_STYLE: CSSProperties = {
-  ['--bg-battle-art' as string]: `url(${publicUrl('backgrounds/wukong-vs-bull-demon-v2-game-art.png')})`,
+  ['--bg-battle-art' as string]: `url(${publicUrl('backgrounds/wukong-vs-bull-demon-v2-game-art.webp')})`,
 }
 
 interface TitlePageProps {

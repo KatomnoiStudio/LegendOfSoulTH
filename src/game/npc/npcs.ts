@@ -5,7 +5,7 @@ export const NPCS: NpcDefinition[] = [
   {
     id: 'npc-shadow-guard',
     name: 'ทหารเงา',
-    spriteUrl: publicUrl('characters/monkey-v2-idle-0.png'),
+    spriteUrl: publicUrl('characters/monkey-v2-idle-0.webp'),
     mapId: 'village-01',
     position: { x: 620, y: 360 },
     dialogueId: 'shadow-guard',
@@ -15,7 +15,7 @@ export const NPCS: NpcDefinition[] = [
   {
     id: 'npc-shadow-captain',
     name: 'หัวหน้าทหารเงา',
-    spriteUrl: publicUrl('characters/pigsy-idle-0.png'),
+    spriteUrl: publicUrl('characters/pigsy-idle-0.webp'),
     mapId: 'village-01',
     position: { x: 920, y: 300 },
     dialogueId: 'shadow-captain',

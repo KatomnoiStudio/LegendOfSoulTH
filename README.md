@@ -27,6 +27,7 @@ npm run preview   # ดู production build
 npm run ci        # typecheck + lint + test + build ครบ (เหมือนที่ CI รัน)
 
 npm run build:models   # สร้างไฟล์ GLB ของตัวละครลง public/models/
+npm run build:images   # แปลงภาพต้นฉบับ assets/raw/ -> WebP บีบอัดแล้วลง public/
 ```
 
 > อยากรู้ว่าโปรเจกต์นี้ทำงานร่วมกับ AI agent ยังไง (กฎบังคับ, ที่มาโค้ด, ประวัติการตัดสินใจ) ดู
@@ -92,6 +93,34 @@ Root › Hips › Spine › Chest › Neck › Head
 
 โมเดลใช้ **vertex + material สีล้วน ไม่มี texture** และอบ normal แบบ faceted ไว้ตอน export
 (glTF ไม่มีธง `flatShading` จึงต้องทำที่ geometry) — หน้าตา low-poly จึงคงอยู่หลังโหลด
+
+## ภาพ 2D (สไปรต์/พื้นหลัง/ไอคอน) — pipeline WebP
+
+Vite **ไม่แตะไฟล์ใน `public/` เลย** (copy ดิบ ๆ ตอน build) ต้นฉบับที่ export จากโปรแกรมวาดภาพ
+จึงมักใหญ่เกินจำเป็นสำหรับสิ่งที่จอเกมแสดงจริง ภาพทุกภาพในเกมจึงมีสองชุด:
+
+- **`assets/raw/`** — ต้นฉบับ PNG (git-tracked, **ไม่ถูก deploy** เพราะอยู่นอก `public/`)
+- **`public/{characters,ui,backgrounds}/`** — ผลลัพธ์ WebP ที่ `build:images` สร้างให้
+  (คอมมิตเข้า git เหมือนกับ `public/models/*.glb` จาก `build:models` — ไม่ต้องรัน build ตอน deploy)
+
+```bash
+npm run build:images   # แปลง assets/raw/**/*.png -> public/**/*.webp ด้วย sharp
+```
+
+ข้าม path/ไฟล์ที่ `public/` มีอยู่แล้วและ `assets/raw/` ไม่ได้แก้ (เทียบ mtime) — เพิ่มความเร็วรอบถัดไป
+`--force` แปลงใหม่ทั้งหมด
+
+**เพิ่มภาพใหม่**: วางไฟล์ PNG ต้นฉบับใน `assets/raw/<characters|ui|backgrounds>/...` แล้วรัน
+`npm run build:images` — โค้ดฝั่งเกมอ้างพาธผ่าน [`publicUrl()`](src/lib/publicUrl.ts) เสมอ
+(ดู [`src/game/walkKits.ts`](src/game/walkKits.ts)/[`spriteSequences.ts`](src/game/spriteSequences.ts))
+ให้ต่อท้ายด้วย **`.webp`** ไม่ใช่ `.png`
+
+**ไฟล์ต้นฉบับที่ไม่มีโค้ดอ้างถึงเลย** (คอนเซปต์อาร์ต, working file ระหว่างตัดต่อ ฯลฯ) ให้เก็บใน
+`assets/archive/` แทน `assets/raw/` — จะได้ไม่ถูก build:images ประมวลผลทิ้งไว้ใน `public/` โดยไม่มีใครใช้
+
+ผลจริงตอนย้ายมาใช้ระบบนี้ (2026-08-06): asset ที่เกมใช้จริงจาก 26.5MB (PNG ดิบ) เหลือ 6.1MB
+(WebP คุณภาพสูง ลด ~77%) และเจอไฟล์ต้นฉบับ 88MB ที่ไม่มีโค้ดอ้างถึงเลยแต่ถูก deploy ไปด้วยทุกครั้ง
+(ย้ายไป `assets/archive/` แล้ว) — ขนาด `dist/` รวมลดจาก 100MB+ เหลือ ~8MB
 
 ## โครงสร้าง
 

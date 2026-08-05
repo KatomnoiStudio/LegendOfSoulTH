@@ -17,7 +17,7 @@ export function DialogueBox({ speaker, text, choices, onAdvance, onChoice }: Dia
       <div className={styles.panel}>
         <img
           className={styles.portrait}
-          src={speaker?.spriteUrl ?? publicUrl('characters/monkey-v2-idle-0.png')}
+          src={speaker?.spriteUrl ?? publicUrl('characters/monkey-v2-idle-0.webp')}
           alt=""
           draggable={false}
         />

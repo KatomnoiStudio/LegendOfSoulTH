@@ -16,7 +16,7 @@ import styles from './WukongAdventure.module.css'
 // url('/ui/...') ตรง ๆ ใน CSS ชี้ผิดที่ตอน deploy ขึ้น subpath (ดู src/lib/publicUrl.ts) —
 // ส่งเข้าไปเป็น CSS custom property แทน
 const BG_TEMPLE_STYLE: CSSProperties = {
-  ['--bg-temple' as string]: `url(${publicUrl('ui/thai/thai-temple-lobby.png')})`,
+  ['--bg-temple' as string]: `url(${publicUrl('ui/thai/thai-temple-lobby.webp')})`,
 }
 
 const WORLD_WIDTH = 1600
@@ -280,17 +280,17 @@ export function WukongAdventure({ onExit, mode = 'trial', characters }: WukongAd
       ? DIRECTIONS.flatMap((direction) =>
           Array.from(
             { length: FRAME_COUNT },
-            (_, frame) => `${kit.walkPrefix}-${direction}-${frame}.png`,
+            (_, frame) => `${kit.walkPrefix}-${direction}-${frame}.webp`,
           ),
         )
       : []
     const turn = Array.from(
       { length: FRAME_COUNT },
-      (_, frame) => `${kit.turnPrefix}-${frame}.png`,
+      (_, frame) => `${kit.turnPrefix}-${frame}.webp`,
     )
     const idle = Array.from(
       { length: kit.idleCount },
-      (_, frame) => `${kit.idlePrefix}-${frame}.png`,
+      (_, frame) => `${kit.idlePrefix}-${frame}.webp`,
     )
     return [...walk, ...turn, ...idle]
   }, [kit])
@@ -461,14 +461,14 @@ export function WukongAdventure({ onExit, mode = 'trial', characters }: WukongAd
 
   const depthProgress = Math.min(1, Math.max(0, (view.y - DEPTH_TOP) / (DEPTH_BOTTOM - DEPTH_TOP)))
   const perspectiveScale = 0.8 + depthProgress * 0.24
-  const turnUrl = `${kit.turnPrefix}-${TURN_INDEX[view.direction]}.png`
+  const turnUrl = `${kit.turnPrefix}-${TURN_INDEX[view.direction]}.webp`
   const idleFrame = view.direction === 'down' ? (view.frame * 3) % kit.idleCount : null
 
   // เดิน = เฟรมเดินตามทิศ, ยืนหันหน้า = เฟรม idle, ยืนหันทิศอื่น = เฟรมหันทิศ
   const spriteUrl = view.moving
-    ? `${walkPrefix}-${view.direction}-${view.frame}.png`
+    ? `${walkPrefix}-${view.direction}-${view.frame}.webp`
     : idleFrame !== null
-      ? `${kit.idlePrefix}-${idleFrame}.png`
+      ? `${kit.idlePrefix}-${idleFrame}.webp`
       : turnUrl
 
   const actorScreenPos = worldToScreen(view)

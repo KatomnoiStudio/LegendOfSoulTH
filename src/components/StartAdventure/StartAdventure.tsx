@@ -9,7 +9,7 @@ interface StartAdventureProps {
 // url('/ui/...') ตรง ๆ ใน CSS ชี้ผิดที่ตอน deploy ขึ้น subpath (ดู src/lib/publicUrl.ts) —
 // ส่งเข้าไปเป็น CSS custom property แทน
 const BG_RAHU_STYLE: CSSProperties = {
-  ['--bg-rahu' as string]: `url(${publicUrl('ui/thai/rahu-button-frame.png')})`,
+  ['--bg-rahu' as string]: `url(${publicUrl('ui/thai/rahu-button-frame.webp')})`,
 }
 
 /** ปุ่มหลักของหน้า Lobby สำหรับเข้าสู่ฉากผจญภัยจริง */
