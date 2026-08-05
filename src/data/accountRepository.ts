@@ -1,3 +1,4 @@
+import { getItem } from '../game/items'
 import { generateUid } from '../game/uid'
 import { TEAM_SIZE } from '../game/team'
 import { createSalt, hashPassword, verifyPassword } from '../lib/password'
@@ -17,6 +18,8 @@ import type { Player } from '../types/player'
  *   players(uid PK/FK, name, title, level, exp, exp_to_next, gold, gem, frame_id)
  *   owned_characters(uid FK, character_id, level, exp, exp_to_next, obtained_at)
  *   team_slots(uid FK, slot_index, character_id NULL)
+ *   inventory(uid FK, item_id, quantity, obtained_at, obtained_from)
+ *     — ไอเทมเพิ่มได้ผ่าน grantItem (source 'quest'/'drop') เท่านั้น กติกาเดียวกับทอง
  *   currency_transactions(id PK, uid FK, currency enum('gold','gem'),
  *     source enum('quest','drop','topup','coupon'), amount, ref_id, created_at)
  *     — ชั้นแอปบังคับว่า gold มาจาก source 'quest'/'drop' เท่านั้น
@@ -87,6 +90,17 @@ function normalizeEmail(email: string): string {
 
 function findAccountEntry(db: Database, uid: string): [string, StoredAccount] | undefined {
   return Object.entries(db.accounts).find(([, account]) => account.uid === uid)
+}
+
+/**
+ * เติมฟิลด์ที่เพิ่มเข้ามาทีหลังให้บัญชีเก่า
+ *
+ * ข้อมูลใน localStorage ถูกเขียนไว้ตั้งแต่ตอนที่ Player ยังไม่มีฟิลด์นั้น การอ่านตรง ๆ
+ * จึงได้ undefined แล้วหน้าจอที่วนลูป (เช่น inventory.map) จะพังทันที
+ * ทุกทางที่อ่านผู้เล่นออกจากฐานข้อมูลต้องผ่านฟังก์ชันนี้เสมอ
+ */
+function normalizePlayer(player: Player): Player {
+  return { ...player, inventory: player.inventory ?? [] }
 }
 
 /** เพิ่มรายการธุรกรรมและอัปเดตยอดทอง/หยกไปพร้อมกัน — จุดเดียวที่แก้ currency ได้ */
@@ -195,6 +209,8 @@ function createNewPlayer(uid: string): Player {
     teamSlots: Array.from({ length: TEAM_SIZE }, (_, index) =>
       index === 0 ? STARTER_CHARACTER_ID : null,
     ),
+    // กระเป๋าเริ่มต้นว่างเปล่า — ไอเทมต้องได้จากการเล่นเท่านั้น (ดู grantItem)
+    inventory: [],
     frameId: 'arcane',
   }
 }
@@ -258,7 +274,7 @@ export async function login(email: string, password: string): Promise<AuthResult
   if (!matched) return failure
 
   writeJson(SESSION_KEY, { uid: account.uid, email: key })
-  return { ok: true, player: account.player }
+  return { ok: true, player: normalizePlayer(account.player) }
 }
 
 export async function logout(): Promise<void> {
@@ -277,7 +293,7 @@ export async function getSessionPlayer(): Promise<Player | null> {
     return null
   }
 
-  return account.player
+  return normalizePlayer(account.player)
 }
 
 export interface FriendCandidate {
@@ -413,4 +429,57 @@ export async function getTransactions(uid: string): Promise<CurrencyTransaction[
   const db = loadDb()
   const entry = findAccountEntry(db, uid)
   return entry ? (entry[1].transactions ?? []) : []
+}
+
+/* ---------------- ไอเทม ---------------- */
+
+/** ไอเทมได้จากการเล่นเท่านั้น — ทำเควสสำเร็จ หรือของดรอป (กติกาเดียวกับทอง) */
+export type ItemSource = GoldSource
+
+export type ItemResult =
+  | { ok: true; player: Player }
+  | { ok: false; error: string }
+
+/**
+ * เพิ่มไอเทมเข้ากระเป๋าผู้เล่น — มีอยู่แล้วให้บวกจำนวน ไม่มีให้สร้างช่องใหม่
+ *
+ * ยังไม่มีหน้าจอไหนเรียกฟังก์ชันนี้ (ตั้งใจ — ไอเทมต้องมาจากเควส/ดรอปของจริงเท่านั้น
+ * ไม่ใช่ปุ่มกดแจกเอง) เตรียมไว้ให้ระบบเควส/ต่อสู้เรียกใช้เมื่อสร้างเสร็จ
+ */
+export async function grantItem(
+  uid: string,
+  itemId: string,
+  quantity: number,
+  source: ItemSource,
+): Promise<ItemResult> {
+  if (!getItem(itemId)) return { ok: false, error: 'ไม่พบไอเทมนี้' }
+  if (!Number.isInteger(quantity) || quantity <= 0) {
+    return { ok: false, error: 'จำนวนไอเทมไม่ถูกต้อง' }
+  }
+
+  const db = loadDb()
+  const entry = findAccountEntry(db, uid)
+  if (!entry) return { ok: false, error: 'ไม่พบบัญชีผู้เล่น' }
+
+  const [key, account] = entry
+  const inventory = account.player.inventory ?? []
+  const existing = inventory.find((slot) => slot.itemId === itemId)
+
+  const nextInventory = existing
+    ? inventory.map((slot) =>
+        slot.itemId === itemId ? { ...slot, quantity: slot.quantity + quantity } : slot,
+      )
+    : [
+        ...inventory,
+        { itemId, quantity, obtainedAt: new Date().toISOString(), obtainedFrom: source },
+      ]
+
+  const updated: StoredAccount = {
+    ...account,
+    player: { ...account.player, inventory: nextInventory },
+  }
+  db.accounts[key] = updated
+
+  if (!saveDb(db)) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
+  return { ok: true, player: updated.player }
 }

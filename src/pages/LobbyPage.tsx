@@ -3,6 +3,7 @@ import { getCharacter } from '../game/characters'
 import { AddFriendModal } from '../components/AddFriendModal/AddFriendModal'
 import { WukongAdventure } from '../components/AdventureScene/WukongAdventure'
 import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRosterModal'
+import { ItemsModal } from '../components/ItemsModal/ItemsModal'
 import { MainNavigation } from '../components/MainNavigation/MainNavigation'
 import { ProfileModal } from '../components/ProfileModal/ProfileModal'
 import {
@@ -67,6 +68,7 @@ export function LobbyPage({
   const [rosterOpen, setRosterOpen] = useState(false)
   const [adventureOpen, setAdventureOpen] = useState(false)
   const [addFriendOpen, setAddFriendOpen] = useState(false)
+  const [itemsOpen, setItemsOpen] = useState(false)
   // เก็บค่าเสียงไว้ที่นี่เพื่อให้ค่าคงอยู่หลังปิดหน้าต่างตั้งค่า
   const [audio, setAudio] = useState<AudioSettings>({
     master: 70,
@@ -103,7 +105,10 @@ export function LobbyPage({
         <StartAdventure onStart={() => setAdventureOpen(true)} />
       </div>
 
-      <MainNavigation onOpenHeroes={() => setRosterOpen(true)} />
+      <MainNavigation
+        onOpenHeroes={() => setRosterOpen(true)}
+        onOpenItems={() => setItemsOpen(true)}
+      />
 
       {adventureOpen ? (
         <WukongAdventure characters={ownedCharacters} onExit={() => setAdventureOpen(false)} />
@@ -124,6 +129,8 @@ export function LobbyPage({
       {addFriendOpen ? (
         <AddFriendModal onSearch={onFindFriend} onClose={() => setAddFriendOpen(false)} />
       ) : null}
+
+      {itemsOpen ? <ItemsModal player={player} onClose={() => setItemsOpen(false)} /> : null}
 
       {settingsOpen ? (
         <SettingsModal

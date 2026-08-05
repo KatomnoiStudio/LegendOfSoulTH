@@ -1,0 +1,212 @@
+/* โครงหน้าต่างชุดเดียวกับ SettingsModal/AddFriendModal (backdrop/dialog/header/tabs/panel) */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  display: grid;
+  place-items: center;
+  padding: var(--sp-4);
+  background: rgb(3 4 10 / 72%);
+  backdrop-filter: blur(6px);
+  animation: fade-in var(--dur-mid) var(--ease-out) both;
+}
+
+.dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 34rem);
+  max-height: min(88%, 40rem);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: linear-gradient(160deg, rgb(26 32 60 / 97%), rgb(11 14 30 / 99%));
+  box-shadow: var(--shadow-3), inset 0 1px 0 rgb(255 255 255 / 12%);
+  overflow: hidden;
+  animation: dialog-in var(--dur-mid) var(--ease-bounce) both;
+}
+
+.header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-5) var(--sp-5) var(--sp-4);
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+  background: radial-gradient(ellipse 70% 100% at 20% 0%, rgb(109 140 255 / 18%), transparent 70%);
+}
+
+.headerIcon {
+  width: 1.6rem;
+  height: 1.6rem;
+  color: var(--c-gold);
+}
+
+.headerTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--c-bone);
+}
+
+.count {
+  margin-inline-end: var(--sp-5);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text-dim);
+}
+
+.close {
+  position: absolute;
+  inset-block-start: var(--sp-3);
+  inset-inline-end: var(--sp-3);
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  color: var(--c-text-dim);
+  font-size: 1.3rem;
+  line-height: 1;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.close:hover {
+  color: var(--c-bone);
+  background: rgb(255 255 255 / 12%);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--sp-1);
+  padding: var(--sp-3) var(--sp-5) 0;
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+}
+
+.tab {
+  position: relative;
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  color: var(--c-text-dim);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.tab:hover {
+  color: var(--c-bone);
+}
+
+.tab[aria-selected='true'] {
+  color: var(--c-gold);
+}
+
+.tab[aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  inset-block-end: -1px;
+  inset-inline: var(--sp-2);
+  height: 2px;
+  border-radius: var(--r-pill);
+  background: var(--c-gold);
+  box-shadow: var(--glow-gold);
+}
+
+/* ความสูงคงที่ กันหน้าต่างกระโดดตอนสลับหมวดที่มีไอเทมไม่เท่ากัน */
+.panel {
+  min-height: 22rem;
+  padding: var(--sp-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: panel-in var(--dur-mid) var(--ease-out) both;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: var(--sp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ขอบซ้ายใช้สีตามระดับความหายากของไอเทม */
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--c-border);
+  border-inline-start: 3px solid var(--item-rarity);
+  border-radius: var(--r-md);
+  background: rgb(255 255 255 / 4%);
+}
+
+.itemHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.itemName {
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  color: var(--c-bone);
+}
+
+.itemQty {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: var(--c-gold);
+}
+
+.itemRarity {
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--item-rarity);
+}
+
+.itemDesc {
+  margin: 4px 0 0;
+  font-size: 0.74rem;
+  line-height: 1.75;
+  color: var(--c-text-dim);
+}
+
+.empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  margin: 0;
+  padding: var(--sp-5);
+  text-align: center;
+  font-size: 0.8rem;
+  line-height: 1.9;
+  color: var(--c-text-dim);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(24px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 720px) {
+  .backdrop { padding: var(--sp-2); }
+  .dialog { max-height: 92%; }
+  .header,
+  .panel { padding: var(--sp-4); }
+  .tabs { padding-inline: var(--sp-4); }
+  .grid { grid-template-columns: 1fr; }
+}
