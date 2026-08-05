@@ -5,8 +5,11 @@
   display: grid;
   place-items: center;
   padding: var(--sp-4);
-  background: rgb(3 4 10 / 72%);
-  backdrop-filter: blur(6px);
+  /* พื้นหลัง backdrop ชุดเดียวกับ CharacterRosterModal — ให้ modal ทั้งหมดในเกมเป็นภาษาภาพเดียวกัน */
+  background:
+    radial-gradient(circle at 50% 42%, rgb(132 75 28 / 14%), transparent 28%),
+    radial-gradient(ellipse 70% 60% at 50% 45%, rgb(6 14 26 / 76%), rgb(2 5 12 / 92%));
+  backdrop-filter: blur(5px) saturate(0.85);
   animation: fade-in var(--dur-mid) var(--ease-out) both;
 }
 
@@ -16,11 +19,13 @@
   width: min(100%, 34rem);
   /* % ของเวที ไม่ใช่ dvh — เวทีถูกย่อด้วย transform หน่วย viewport จึงไม่ตรง */
   max-height: min(86%, 44rem);
-  border: 1px solid var(--c-border);
-  border-radius: var(--r-lg);
-  background: linear-gradient(160deg, rgb(26 32 60 / 97%), rgb(11 14 30 / 99%));
-  box-shadow: var(--shadow-3), inset 0 1px 0 rgb(255 255 255 / 12%);
-  overflow: hidden;
+  /* แผ่นป้ายทองมุมตัดเฉียง ชุดเดียวกับ CharacterRosterModal/AuthModal/NameModal */
+  border: 1px solid rgb(226 183 88 / 52%);
+  clip-path: polygon(20px 0, calc(100% - 20px) 0, 100% 20px, 100% calc(100% - 20px), calc(100% - 20px) 100%, 20px 100%, 0 calc(100% - 20px), 0 20px);
+  background:
+    radial-gradient(ellipse 70% 45% at 50% 0%, rgb(112 30 29 / 34%), transparent 64%),
+    linear-gradient(165deg, rgb(14 34 46 / 98%), rgb(6 14 27 / 99%));
+  box-shadow: 0 24px 62px rgb(0 0 0 / 72%), inset 0 0 0 3px rgb(3 9 16 / 70%);
   animation: dialog-in var(--dur-mid) var(--ease-bounce) both;
 }
 
@@ -32,7 +37,6 @@
   gap: var(--sp-4);
   padding: var(--sp-5) var(--sp-5) var(--sp-4);
   border-bottom: 1px solid rgb(255 255 255 / 8%);
-  background: radial-gradient(ellipse 70% 100% at 20% 0%, rgb(109 140 255 / 18%), transparent 70%);
 }
 
 .bigFrame {
