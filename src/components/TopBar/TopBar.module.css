@@ -6,6 +6,10 @@
   justify-content: space-between;
   gap: 20px;
   padding: max(18px, env(safe-area-inset-top)) clamp(24px, 3vw, 48px) 0;
+  /* grid item ของ .page (LobbyPage) — ไม่มีนี้ min-width:auto เริ่มต้นจะยึด
+     max-content ของลูก (โปรไฟล์+wallet) แล้วดันแถวกว้างเกินจอ ล้นออกไปโดน
+     overflow:hidden ของ .page ตัดทิ้งเงียบ ๆ (ไม่มี scrollbar ให้เห็นด้วย) */
+  min-width: 0;
 }
 
 .profile {

@@ -66,6 +66,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  min-width: 0;
   min-height: 0;
   padding-block: var(--sp-4);
   /* ให้คลิกทะลุไปโดนโมเดล 3D ได้ ยกเว้นตัวปุ่มเอง */

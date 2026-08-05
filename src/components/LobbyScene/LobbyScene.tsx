@@ -76,14 +76,7 @@ export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps)
         className={styles.canvas}
         shadows
         dpr={[1, 2]}
-        /*
-          วัดขนาดผืนผ้าใบจาก offsetWidth/offsetHeight ไม่ใช่ getBoundingClientRect()
-
-          GameViewport ย่อเวทีทั้งก้อนด้วย transform: scale() ซึ่ง getBoundingClientRect()
-          จะคืนขนาด "หลังย่อ" ทำให้ three.js ตั้งกล้องและ renderer ตามขนาดที่เล็กกว่าจริง
-          ผลคือภาพถูกวาดเล็กลงและเลื่อนไปมุมซ้ายบน ตัวละครจึงลอยเหนือพื้นฉาก
-          ส่วน offsetWidth/offsetHeight ไม่ถูก transform กระทบ จึงตรงกับที่ CSS วาดจริง
-        */
+        // วัดขนาดผืนผ้าใบจาก offsetWidth/offsetHeight — เสถียรกว่า getBoundingClientRect() เมื่อ layout อยู่ระหว่าง reflow
         resize={{ offsetSize: true }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
         camera={{ position: CAM_BASE, fov: 32, near: 0.1, far: 60 }}

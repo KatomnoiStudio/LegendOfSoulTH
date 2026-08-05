@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -249,6 +250,26 @@ export function WukongAdventure({ onExit, mode = 'trial', characters }: WukongAd
   })
   const [destination, setDestination] = useState<Point | null>(null)
   const [dustTick, setDustTick] = useState(0)
+  const [sceneSize, setSceneSize] = useState({ width: WORLD_WIDTH, height: WORLD_HEIGHT })
+
+  // ฉากนี้ไม่ได้อยู่บนเวทีคงที่ 1600x900 อีกแล้ว (GameViewport ตัด letterbox ออก) —
+  // ต้องวัดขนาดจริงของ .scene เองแล้วแม็ปพิกัดโลก (WORLD_WIDTH/HEIGHT) เป็นพิกัดจอจริง
+  // ด้วยสูตรเดียวกับที่ CSS background-size:cover ใช้กับภาพพื้นหลัง (ย่อ/ขยายเท่ากันทั้งสองแกน
+  // แล้ว crop ส่วนเกิน) ตำแหน่งเดินจึงตรงกับลานวัดในภาพเสมอไม่ว่าอัตราส่วนจอจะเป็นเท่าไหร่
+  useLayoutEffect(() => {
+    const el = sceneRef.current
+    if (!el) return
+    // วัด sync ทันทีตอน mount กัน ResizeObserver callback แรก (async เสมอ) ทำให้ตัวละคร
+    // กระพริบไปโผล่ตำแหน่งเดิม (world coords ดิบ) ก่อนขยับมาตำแหน่งจริงในเฟรมถัดไป
+    const rect = el.getBoundingClientRect()
+    setSceneSize({ width: rect.width, height: rect.height })
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect
+      setSceneSize({ width, height })
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   // โหลดเฟรมของตัวที่กำลังใช้ล่วงหน้า เพื่อไม่ให้ภาพกระพริบตอนเริ่มเดิน
   const allFrames = useMemo(() => {
@@ -402,17 +423,28 @@ export function WukongAdventure({ onExit, mode = 'trial', characters }: WukongAd
     return () => window.clearInterval(timer)
   }, [view.moving, view.running])
 
+  const courtyardScale = Math.max(sceneSize.width / WORLD_WIDTH, sceneSize.height / WORLD_HEIGHT)
+  const courtyardOffsetX = (sceneSize.width - WORLD_WIDTH * courtyardScale) / 2
+  const courtyardOffsetY = (sceneSize.height - WORLD_HEIGHT * courtyardScale) / 2
+  const worldToScreen = useCallback(
+    (point: Point) => ({
+      x: courtyardOffsetX + point.x * courtyardScale,
+      y: courtyardOffsetY + point.y * courtyardScale,
+    }),
+    [courtyardScale, courtyardOffsetX, courtyardOffsetY],
+  )
+
   const onFloorPointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {
     if (event.target !== event.currentTarget) return
     const bounds = sceneRef.current?.getBoundingClientRect()
     if (!bounds) return
     const target = projectToWalkableArea({
-      x: ((event.clientX - bounds.left) / bounds.width) * WORLD_WIDTH,
-      y: ((event.clientY - bounds.top) / bounds.height) * WORLD_HEIGHT,
+      x: (event.clientX - bounds.left - courtyardOffsetX) / courtyardScale,
+      y: (event.clientY - bounds.top - courtyardOffsetY) / courtyardScale,
     })
     targetRef.current = target
     setDestination(target)
-  }, [])
+  }, [courtyardScale, courtyardOffsetX, courtyardOffsetY])
 
   const setVirtualDirection = (key: string, active: boolean) => {
     if (active) {
@@ -436,12 +468,14 @@ export function WukongAdventure({ onExit, mode = 'trial', characters }: WukongAd
       ? `${kit.idlePrefix}-${idleFrame}.png`
       : turnUrl
 
+  const actorScreenPos = worldToScreen(view)
   const actorStyle = {
-    '--actor-x': `${view.x}px`,
-    '--actor-y': `${view.y}px`,
+    '--actor-x': `${actorScreenPos.x}px`,
+    '--actor-y': `${actorScreenPos.y}px`,
     '--actor-scale': perspectiveScale,
     zIndex: Math.round(view.y),
   } as CSSProperties
+  const destinationScreenPos = destination ? worldToScreen(destination) : null
 
   // ผู้เล่นมีตัวละครแต่ยังไม่มีตัวไหนที่มีชุดเฟรมเดิน
   if (!active) {
@@ -498,8 +532,12 @@ export function WukongAdventure({ onExit, mode = 'trial', characters }: WukongAd
         <small>{copy.placeEn}</small>
       </div>
 
-      {destination ? (
-        <div className={styles.destination} style={{ left: destination.x, top: destination.y }} aria-hidden="true">
+      {destinationScreenPos ? (
+        <div
+          className={styles.destination}
+          style={{ left: destinationScreenPos.x, top: destinationScreenPos.y }}
+          aria-hidden="true"
+        >
           <span />
         </div>
       ) : null}
