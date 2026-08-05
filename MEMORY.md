@@ -3,8 +3,8 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/GameTurnBase`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T00:50:00+07:00 by `Claude Code (HetCreep Agent)`  
-> **RULES_VERSION: 2** (see `.agents/rules/rules-freshness-check.md`)
+> **Last Updated**: 2026-08-06T01:05:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **RULES_VERSION: 3** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
 
@@ -113,6 +113,11 @@
     - **Broken images fixed (live, user-reported via screenshot)**: `url('/ui/...')` in CSS and `<img src="/ui/...">` in JSX resolve against the domain root, not the app base — fine in dev (`base: '/'`) but 404 once built for GitHub Pages (`base: '/GameTurnBase/'`). Every background/icon image on the deployed site was broken. Added `src/lib/publicUrl.ts` (prefixes with `import.meta.env.BASE_URL`, the Vite-documented fix) and applied it at all 12 call sites across `WukongAdventure`, `LobbyScene`, `StartAdventure`, `TopBar`, `TitlePage`, `SideActions` (CSS backgrounds via inline `--custom-property` style props, `<img>` tags directly). Verified against the live deployed bundle (`GameTurnBase` prefix + path segments both present) after redeploy.
     - Full verify (`typecheck && lint && test && build`) green before every push in this batch, per the Pre-Push Sync Law above. rot-canary QUICK on the touched files: no CONFIRMED findings.
 
+13. **Ring 0 fixed for cloud agents** (2026-08-06), `RULES_VERSION` → 3, `.agents/rules/ring0-authority.md` rewritten:
+    - **Gap found by HetCreep**: the original version gated Ring 0 (and the "HetCreep's live instruction always wins" clause) on `.agents/ring0.local` alone — a gitignored local-only file. A cloud/hosted agent session (GitHub Copilot coding agent, Claude Code cloud, etc.) is an ephemeral clone that never has that file, so it would've read as Ring 1 even when HetCreep was the one directly driving it.
+    - **Fix**: Ring 0 is now determined by *either* signal — the local marker (fast path for a persistent machine) *or* git identity (`git config user.name`/`user.email`, or the authenticated actor via `gh api user`) matching HetCreep. Git identity travels with a cloud session authenticated under HetCreep's own account, the local file doesn't.
+    - **Also decoupled**: "HetCreep's live instruction always wins" no longer requires the Ring-0 marker specifically — it fires whenever the live human in the session is confirmed as HetCreep by either signal, or by the platform's own session context. Ring marker vs. live-instruction-override were conflated before; they're separate concerns now.
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
@@ -124,7 +129,7 @@
 - **Remote check**: `git remote -v` on this machine correctly points `origin` at `https://github.com/LegendofSoulTH/GameTurnBase.git` — the "remote mismatch" flagged in the prior concurrent session's notes was local to that machine/clone (remote URLs are per-clone git config, never part of repo content) and doesn't apply here; no action needed on this machine.
 - **Player accounts/currency**: functional locally (see Past Summary item 6) but entirely client-side — no real backend, no payment gateway. Do not treat as production-ready for real money or cross-device play.
 - **Open/next work**: no quest system, no real drop table, no shop UI beyond `GemShopModal`, no battle system. Project's own `LICENSE` file still undecided (see item 8).
-- **RULES_VERSION last synced: 2** (`.agents/rules/rules-freshness-check.md`)
+- **RULES_VERSION last synced: 3** (`.agents/rules/rules-freshness-check.md`)
 - **Ring**: this machine is Ring 0 (`.agents/ring0.local` present, gitignored). Any other clone is Ring 1 by default — see `.agents/rules/ring0-authority.md`.
 - **Pre-push sync**: `.agents/rules/pre-push-sync-law.md` — binding on every machine before every push.
 

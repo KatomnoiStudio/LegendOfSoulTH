@@ -2,7 +2,7 @@
 
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/GameTurnBase`  
-> **RULES_VERSION: 2** (bump on every material rule change — see `.agents/rules/rules-freshness-check.md`)
+> **RULES_VERSION: 3** (bump on every material rule change — see `.agents/rules/rules-freshness-check.md`)
 
 ---
 
