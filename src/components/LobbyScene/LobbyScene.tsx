@@ -1,6 +1,7 @@
-import { Suspense, useRef } from 'react'
+import { Suspense, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import type { PerspectiveCamera } from 'three'
+import WebGL from 'three/addons/capabilities/WebGL.js'
 import { getCharacter } from '../../game/characters'
 import { SLOT_INDEXES, SLOT_TRANSFORM, normalizeTeam, type TeamSlots } from '../../game/team'
 import { ArenaSlotRing } from './ArenaSlotRing'
@@ -48,9 +49,22 @@ const EMBERS = [
 
 export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps) {
   const team = normalizeTeam(teamSlots)
+  const [webglAvailable] = useState(() => WebGL.isWebGL2Available())
+  const [contextLost, setContextLost] = useState(false)
+
+  if (!webglAvailable) {
+    return (
+      <div className={styles.scene}>
+        <div className={styles.fallback}>เบราว์เซอร์นี้ไม่รองรับ WebGL2 — ไม่สามารถแสดงฉาก 3D ได้</div>
+      </div>
+    )
+  }
 
   return (
     <div className={styles.scene}>
+      {contextLost ? (
+        <div className={styles.fallback}>การ์ดจอขาดการเชื่อมต่อ — กำลังลองใหม่ ลองรีเฟรชหน้าถ้ายังไม่กลับมา</div>
+      ) : null}
       <Canvas
         className={styles.canvas}
         shadows
@@ -68,6 +82,16 @@ export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps)
         camera={{ position: CAM_BASE, fov: 32, near: 0.1, far: 60 }}
         // คลิกพื้นที่ว่าง = ยกเลิกการเลือก
         onPointerMissed={() => onSelect(null)}
+        onCreated={({ gl }) => {
+          gl.domElement.addEventListener('webglcontextlost', (e) => {
+            e.preventDefault()
+            console.error('[LobbyScene] WebGL context lost')
+            setContextLost(true)
+          })
+          gl.domElement.addEventListener('webglcontextrestored', () => {
+            setContextLost(false)
+          })
+        }}
       >
         <Suspense fallback={null}>
           <CameraRig />

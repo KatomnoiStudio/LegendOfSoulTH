@@ -11,8 +11,9 @@ export function readJson<T>(key: string): T | null {
     const raw = window.localStorage.getItem(key)
     if (raw === null) return null
     return JSON.parse(raw) as T
-  } catch {
+  } catch (err) {
     // ข้อมูลเสียหรืออ่านไม่ได้ — ถือว่ายังไม่มีข้อมูล
+    console.error(`[storage] readJson("${key}") failed`, err)
     return null
   }
 }
@@ -22,7 +23,8 @@ export function writeJson(key: string, value: unknown): boolean {
   try {
     window.localStorage.setItem(key, JSON.stringify(value))
     return true
-  } catch {
+  } catch (err) {
+    console.error(`[storage] writeJson("${key}") failed`, err)
     return false
   }
 }
@@ -30,8 +32,9 @@ export function writeJson(key: string, value: unknown): boolean {
 export function removeKey(key: string): void {
   try {
     window.localStorage.removeItem(key)
-  } catch {
+  } catch (err) {
     // ลบไม่ได้ก็ปล่อยผ่าน ไม่มีอะไรให้กู้
+    console.error(`[storage] removeKey("${key}") failed`, err)
   }
 }
 

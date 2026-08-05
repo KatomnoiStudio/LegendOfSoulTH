@@ -1,0 +1,41 @@
+.screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--c-void);
+  color: var(--c-text);
+  z-index: 9999;
+}
+
+.panel {
+  max-width: 28rem;
+  padding: var(--sp-6, 1.5rem);
+  border: 1px solid var(--c-border);
+  border-radius: 0.75rem;
+  background: var(--c-panel-solid);
+  text-align: center;
+}
+
+.title {
+  margin: 0 0 var(--sp-2) 0;
+  color: var(--c-danger);
+}
+
+.message {
+  margin: 0 0 var(--sp-4) 0;
+  color: var(--c-text-dim);
+}
+
+.reload {
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--c-border-arcane);
+  border-radius: 0.5rem;
+  background: var(--c-arcane-deep);
+  color: var(--c-text);
+  cursor: pointer;
+}
+
+.reload:hover {
+  background: var(--c-arcane);
+}

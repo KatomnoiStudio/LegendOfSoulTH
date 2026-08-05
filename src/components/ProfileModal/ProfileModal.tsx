@@ -182,8 +182,9 @@ function UidRow({ uid }: { uid: string }) {
     try {
       await navigator.clipboard.writeText(uid)
       showToast('คัดลอกรหัสผู้เล่นแล้ว')
-    } catch {
+    } catch (err) {
       // เบราว์เซอร์บางตัวไม่ให้สิทธิ์คลิปบอร์ด — บอกให้ผู้เล่นคัดลอกเองแทน
+      console.warn('[ProfileModal] clipboard write failed', err)
       showToast('คัดลอกอัตโนมัติไม่ได้ กรุณาจดรหัสด้วยตนเอง')
     }
   }
