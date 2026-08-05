@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import type { CurrencyResult } from '../../data/accountRepository'
-import { ROSTER } from '../../game/characters'
 import { GAME_INFO } from '../../game/gameInfo'
 import {
   CouponIcon,
@@ -49,6 +48,8 @@ interface SettingsModalProps {
   onLogout: () => Promise<void>
   /** แลกโค้ดคูปองเป็นหยก */
   onRedeemCoupon: (code: string) => Promise<CurrencyResult>
+  /** จำนวนตัวละครที่ผู้เล่นครอบครองแล้ว — ให้ตรงกับตัวเลขใน CharacterRosterModal */
+  ownedCharacterCount: number
   onClose: () => void
 }
 
@@ -66,6 +67,7 @@ export function SettingsModal({
   onAudioChange,
   onLogout,
   onRedeemCoupon,
+  ownedCharacterCount,
   onClose,
 }: SettingsModalProps) {
   const { showToast } = useToast()
@@ -135,7 +137,9 @@ export function SettingsModal({
         </div>
 
         {/* key บังคับให้ animation เล่นใหม่ทุกครั้งที่สลับหมวด */}
-        {tab === 'info' ? <GameInfoPanel key="info" onLogout={onLogout} /> : null}
+        {tab === 'info' ? (
+          <GameInfoPanel key="info" onLogout={onLogout} ownedCharacterCount={ownedCharacterCount} />
+        ) : null}
         {tab === 'audio' ? (
           <AudioPanel
             key="audio"
@@ -162,16 +166,22 @@ export function SettingsModal({
 /**
  * หน้าที่ 1 — ข้อมูลเกม
  *
- * ทุกค่าอ่านจากแหล่งจริง (src/game/gameInfo.ts และ ROSTER)
+ * ทุกค่าอ่านจากแหล่งจริง (src/game/gameInfo.ts และ player.ownedCharacters)
  * ไม่มีตัวเลขที่เขียนตายไว้ในหน้านี้ เพื่อไม่ให้ข้อมูลเพี้ยนเมื่อเกมโตขึ้น
  */
-function GameInfoPanel({ onLogout }: { onLogout: () => Promise<void> }) {
+function GameInfoPanel({
+  onLogout,
+  ownedCharacterCount,
+}: {
+  onLogout: () => Promise<void>
+  ownedCharacterCount: number
+}) {
   const rows: { label: string; value: string }[] = [
     { label: 'ชื่อเกม', value: GAME_INFO.name },
     { label: 'ประเภท', value: GAME_INFO.genre },
     { label: 'เวอร์ชัน', value: `v${GAME_INFO.version}` },
     { label: 'สถานะ', value: GAME_INFO.stage },
-    { label: 'ตัวละครในเกม', value: `${ROSTER.length} ตัว` },
+    { label: 'ตัวละครที่ครอบครอง', value: `${ownedCharacterCount} ตัว` },
   ]
 
   return (

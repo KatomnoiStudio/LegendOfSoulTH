@@ -145,6 +145,7 @@ export function LobbyPage({
           onAudioChange={setAudio}
           onLogout={onLogout}
           onRedeemCoupon={onRedeemCoupon}
+          ownedCharacterCount={ownedCharacters.length}
           onClose={() => setSettingsOpen(false)}
         />
       ) : null}
