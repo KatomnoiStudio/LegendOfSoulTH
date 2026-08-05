@@ -15,6 +15,7 @@ dist-ssr
 # Agent tool internal state — never shipped, machine-local only
 .claude/coalhearth/
 .claude/coalwash/
+.coalmine.json
 
 # Editor directories and files
 .vscode/*

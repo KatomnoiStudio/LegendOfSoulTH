@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/GameTurnBase`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T02:15:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **Last Updated**: 2026-08-06T02:20:00+07:00 by `Claude Code (HetCreep Agent)`  
 > **RULES_VERSION: 4** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
@@ -148,6 +148,8 @@
     - Researched GitHub Marketplace for genuinely useful, low-friction additions (not blanket-installing everything): picked **Dependency Review** (official `actions/dependency-review-action`, blocks PRs adding high-severity-vuln deps, PR-comment summary) and **Harden-Runner** (`step-security/harden-runner`, `egress-policy: audit` — logs network egress on every job, non-blocking for now; relevant given the Hih#11 external-code merge earlier this session) — added to all 4 workflows, SHA-pinned per this repo's existing convention.
     - **bundle-stats**: HetCreep didn't want to sign up for an external baseline service (relative-ci.io) — implemented a **zero-signup** version instead: a `Report bundle size` step in `ci.yml` that writes `du -h` output to `$GITHUB_STEP_SUMMARY` on every run. No PR diff-comment, but zero new accounts and the trend is visible in Actions run history.
     - **Sentry / remote error tracking**: explicitly **not** added. Every real option (Sentry, Rollbar, Airbrake, Honeybadger) requires a third-party account by definition (remote visibility needs a remote endpoint) — verified via marketplace research, Rollbar's free tier (5,000 events/mo) is the lowest-friction if HetCreep wants to revisit later. **Declined outright**: auto-filing GitHub Issues from client-side JS as a Sentry substitute — would require embedding a repo-write GitHub token in the public bundle, a real secret-exposure vulnerability, not something to build regardless of how many times asked.
+
+19. **`.coalmine.json` untracked from git entirely** (2026-08-06): after two rounds of flip-flopping the `.github/` entry inside it, HetCreep clarified the real objection was the *whole file* being on GitHub at all — it's a personal rot-canary tuning knob, not a team-shared contract (unlike `.oxlintrc.json`/`tsconfig.json`, which genuinely need to be identical for every contributor). `git rm --cached .coalmine.json` + added to `.gitignore` (same pattern as `.claude/coalhearth/`/`.claude/coalwash/`). File still exists locally on this machine and still works — just no longer tracked/pushed. **Consequence for other machines/Ring 1**: rot-canary now falls back to whatever `~/.claude/.coalmine.json` (home-level) or CoalMine's own defaults say for scan-exclusion scope — this project no longer ships a shared override. If a future session wants the doc-exclusion behavior team-wide again, it needs to be re-added deliberately (not by accident via `git add -A`).
 
 ---
 
