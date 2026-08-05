@@ -25,6 +25,18 @@ const FRAME_COUNT = 8
 const WALK_SPEED = 215
 const RUN_SPEED = 345
 
+/**
+ * เพดาน commit ของ React state (ไม่ใช่เพดาน physics) — 60fps เป็นค่ามาตรฐานสากลที่ยึดได้จริง
+ * (baseline ของงานภาพเคลื่อนไหว/เกมทั่วไป, ตรงกับสมมติฐานพื้นฐานของ requestAnimationFrame เอง)
+ *
+ * physics ยังคำนวณทุกเฟรมเนทีฟของจอเสมอ (ผ่าน ref ไม่ผ่าน state) ตัวเลขนี้จำกัดแค่ "commit
+ * ขึ้นจอกี่ครั้ง/วิ" — จอ 120Hz/144Hz จะ re-render ไม่เกิน 60 ครั้ง/วิเหมือนจอ 60Hz ทั่วไป
+ * เพราะสไปรต์เดินเป็นเฟรมขั้นบันได (step) ไม่ใช่ interpolation ต่อเนื่อง re-render ถี่กว่านี้
+ * ไม่ได้ให้ภาพลื่นขึ้นจริง มีแต่เปลืองซีพียู/แบตเปล่า ๆ
+ */
+const TARGET_COMMIT_HZ = 60
+const COMMIT_INTERVAL_MS = 1000 / TARGET_COMMIT_HZ
+
 type Direction =
   | 'down'
   | 'down-right'
@@ -240,6 +252,7 @@ export function WukongAdventure({ onExit, mode = 'trial', characters }: WukongAd
   const frameRef = useRef(0)
   const distanceRef = useRef(0)
   const lastTimeRef = useRef<number | null>(null)
+  const lastCommitRef = useRef(0)
   const [view, setView] = useState({
     x: 800,
     y: 650,
@@ -409,25 +422,33 @@ export function WukongAdventure({ onExit, mode = 'trial', characters }: WukongAd
       // ยืนนิ่งไม่ขยับ ตำแหน่ง/เฟรมก็ไม่เปลี่ยนทุก tick (เฟรม idle ขยับแค่ทุก 170ms ไม่ใช่ 60fps) —
       // คืน object เดิม (ไม่ใช่ตัวใหม่) เมื่อค่าไม่เปลี่ยนจริง ให้ React ข้าม re-render รอบนั้นไปเลย
       // (setState แบบ functional: ถ้าคืนค่าเดิมด้วย Object.is React จะไม่ re-render)
-      // ไม่งั้นทั้ง component จะ re-render รัว ๆ 60 ครั้ง/วิ ตลอดเวลาที่อยู่ Lobby แม้ผู้เล่น AFK
-      setView((previousView) => {
-        const next = {
-          x: position.x,
-          y: position.y,
-          direction: directionRef.current,
-          frame: frameRef.current,
-          moving,
-          running,
-        }
-        const unchanged =
-          previousView.x === next.x &&
-          previousView.y === next.y &&
-          previousView.direction === next.direction &&
-          previousView.frame === next.frame &&
-          previousView.moving === next.moving &&
-          previousView.running === next.running
-        return unchanged ? previousView : next
-      })
+      // ไม่งั้นทั้ง component จะ re-render รัว ๆ ตามอัตราเฟรมเนทีฟของจอตลอดเวลาที่อยู่ Lobby แม้ผู้เล่น AFK
+      //
+      // ส่วนตอนกำลังเดิน (ค่าเปลี่ยนจริงทุกเฟรม) ยัง cap commit ไว้ที่ TARGET_COMMIT_HZ อยู่ดี —
+      // จอ 120Hz/144Hz ไม่จำเป็นต้อง re-render ถี่กว่าจอ 60Hz เพราะสไปรต์เดินเป็นเฟรมขั้นบันได
+      // (ดูคอมเมนต์ที่ค่าคงที่ด้านบนไฟล์) physics ใน ref ด้านบนยังคำนวณทุกเฟรมเนทีฟเหมือนเดิม
+      // แค่ "ขึ้นจอ" ถูกจำกัดอัตราเท่านั้น ไม่กระทบความแม่นยำของตำแหน่ง/ชนกำแพง
+      if (time - lastCommitRef.current >= COMMIT_INTERVAL_MS) {
+        lastCommitRef.current = time
+        setView((previousView) => {
+          const next = {
+            x: position.x,
+            y: position.y,
+            direction: directionRef.current,
+            frame: frameRef.current,
+            moving,
+            running,
+          }
+          const unchanged =
+            previousView.x === next.x &&
+            previousView.y === next.y &&
+            previousView.direction === next.direction &&
+            previousView.frame === next.frame &&
+            previousView.moving === next.moving &&
+            previousView.running === next.running
+          return unchanged ? previousView : next
+        })
+      }
       animationId = requestAnimationFrame(animate)
     }
     animationId = requestAnimationFrame(animate)

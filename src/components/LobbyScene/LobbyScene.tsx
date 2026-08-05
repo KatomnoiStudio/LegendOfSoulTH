@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import type { PerspectiveCamera } from 'three'
 import WebGL from 'three/addons/capabilities/WebGL.js'
 import { getCharacter } from '../../game/characters'
+import { useDeviceRefreshRate } from '../../hooks/useDeviceRefreshRate'
 import { publicUrl } from '../../lib/publicUrl'
 import { SLOT_INDEXES, SLOT_TRANSFORM, normalizeTeam, type TeamSlots } from '../../game/team'
 import { ArenaSlotRing } from './ArenaSlotRing'
@@ -58,6 +59,15 @@ export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps)
   const team = normalizeTeam(teamSlots)
   const [webglAvailable] = useState(() => WebGL.isWebGL2Available())
   const [contextLost, setContextLost] = useState(false)
+  const refreshRate = useDeviceRefreshRate()
+
+  /**
+   * ต้นทุนเรนเดอร์จริง ๆ ของ Three.js/WebGL แปรผันตาม (ความกว้าง × ความสูง × dpr²) × refresh rate
+   * จอ 120Hz+ ต้องวาดถี่เป็น 2 เท่าของจอ 60Hz ปกติเพื่อความลื่นเท่ากัน งบเวลาต่อเฟรมจึงเหลือครึ่งเดียว
+   * — ลด dpr สูงสุดลงเฉพาะจอ high-refresh (มักเป็นมือถือ/แท็บเล็ตเรือธงที่ dpr สูงอยู่แล้วด้วย)
+   *   กันเฟรมดรอป โดยยังคง dpr เต็ม 2 (ตามคำแนะนำมาตรฐานของ Three.js) ไว้ให้จอ 60Hz ทั่วไป
+   */
+  const dprMax = refreshRate >= 120 ? 1.5 : 2
 
   if (!webglAvailable) {
     return (
@@ -75,7 +85,7 @@ export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps)
       <Canvas
         className={styles.canvas}
         shadows
-        dpr={[1, 2]}
+        dpr={[1, dprMax]}
         // วัดขนาดผืนผ้าใบจาก offsetWidth/offsetHeight — เสถียรกว่า getBoundingClientRect() เมื่อ layout อยู่ระหว่าง reflow
         resize={{ offsetSize: true }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}

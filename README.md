@@ -43,6 +43,9 @@ npm run build:images   # แปลงภาพต้นฉบับ assets/raw/ 
   ผ้าคลุมพลิ้ว, หางสะบัด, ลูกแก้วพลังงานโคจร — แต่ละตัวมี phase ต่างกันจึงไม่ขยับพร้อมกัน
 - **กดที่โมเดล** → วงแหวนใต้เท้าสว่างขึ้น ตัวขยายเล็กน้อย และเปิดกรอบข้อมูลตัวละคร
   (กดพื้นที่ว่างเพื่อยกเลิกการเลือก)
+- **dpr ปรับตาม refresh rate จริงของจอ** (`useDeviceRefreshRate`) — จอ ≥120Hz ลด dpr สูงสุดจาก 2
+  เหลือ 1.5 (ต้นทุนเรนเดอร์ ∝ ความกว้าง×สูง×dpr²×refresh rate, จอ high-refresh ต้องวาดถี่กว่า
+  งบเวลาต่อเฟรมจึงเหลือน้อยกว่า) จอ 60Hz ทั่วไปยังได้ dpr เต็ม 2 ตามคำแนะนำมาตรฐานของ Three.js
 
 ## โมเดล GLB (rigged + Idle)
 
@@ -135,8 +138,10 @@ src/
 ├─ hooks/
 │  ├─ useAuth.ts                  ⭐ state บัญชีผู้เล่นของทั้งเกม — ทุกหน้าจอคุยผ่าน hook นี้เท่านั้น
 │  │                               (register/login/logout/updatePlayer/earnGold/topUpGold/topUpGems/redeemCoupon)
-│  └─ useDeployWatcher.ts         เช็คทุก 5 นาที + ตอนกลับมาโฟกัสแท็บ ว่ามี build ใหม่ deploy หรือยัง
-│                                  (เทียบชื่อไฟล์ entry script ที่มี hash — ดู UpdateBanner/)
+│  ├─ useDeployWatcher.ts         เช็คทุก 5 นาที + ตอนกลับมาโฟกัสแท็บ ว่ามี build ใหม่ deploy หรือยัง
+│  │                               (เทียบชื่อไฟล์ entry script ที่มี hash — ดู UpdateBanner/)
+│  └─ useDeviceRefreshRate.ts     วัด Hz จริงของจอผ่าน requestAnimationFrame (ปัดเข้าค่ามาตรฐาน
+│                                  30/60/90/120/144/165/240) ใช้ปรับ dpr สูงสุดของ Canvas ใน LobbyScene
 ├─ data/
 │  ├─ accountRepository.ts        ⭐ "ฐานข้อมูล" ตอนนี้ = localStorage (คีย์ `los:db:v1`)
 │  │                               บัญชี/ล็อกอิน/UID + ทอง (เฉพาะ quest/drop) + หยก (เฉพาะ topup/coupon)
