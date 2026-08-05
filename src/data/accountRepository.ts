@@ -294,7 +294,7 @@ export async function savePlayer(player: Player): Promise<boolean> {
 /* ---------------- ทอง/หยก — ต้องผ่านฟังก์ชันที่ระบุแหล่งที่มาเท่านั้น ---------------- */
 
 export type CurrencyResult =
-  | { ok: true; player: Player }
+  | { ok: true; player: Player; amount: number }
   | { ok: false; error: string }
 
 /** ให้ทองจากการเล่นเท่านั้น — ทำเควสสำเร็จ หรือของดรอประหว่างเล่น */
@@ -317,7 +317,7 @@ export async function earnGold(
   db.accounts[key] = updated
 
   if (!saveDb(db)) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
-  return { ok: true, player: updated.player }
+  return { ok: true, player: updated.player, amount }
 }
 
 /** เติมหยกด้วยเงินจริง — ยังไม่ต่อ payment gateway จริง ถือว่าจ่ายสำเร็จเสมอ (ใช้เดโม) */
@@ -339,7 +339,7 @@ export async function topUpGems(uid: string, packageId: string): Promise<Currenc
   db.accounts[key] = updated
 
   if (!saveDb(db)) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
-  return { ok: true, player: updated.player }
+  return { ok: true, player: updated.player, amount: pack.gem }
 }
 
 /** แลกโค้ดคูปองเป็นหยก — แลกได้บัญชีละ 1 ครั้งต่อโค้ด และเช็กโควตารวมถ้ากำหนดไว้ */
@@ -382,7 +382,7 @@ export async function redeemCoupon(uid: string, code: string): Promise<CurrencyR
   db.accounts[key] = updated
 
   if (!saveDb(db)) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
-  return { ok: true, player: updated.player }
+  return { ok: true, player: updated.player, amount: coupon.gem }
 }
 
 /** ประวัติทอง/หยกทั้งหมดของบัญชี เรียงเก่า→ใหม่ — ใช้แสดงหน้าประวัติการทำรายการ */

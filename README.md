@@ -3,9 +3,9 @@
 หน้า Lobby ของเกม Turn-based **2.5D** แนว *"รวมเหล่านักรบจากตำนานและประวัติศาสตร์"*
 สร้างด้วย **React 19 + TypeScript + Vite**, ฉาก 3D ด้วย **three.js + React Three Fiber**, สไตล์ด้วย **CSS Modules**
 
-> ขอบเขตปัจจุบัน: หน้า Lobby เท่านั้น
-> ปุ่มเมนูทั้งหมดเป็น placeholder — กดได้แต่แสดง toast `Coming soon`
-> ยังไม่มีหน้าต่อสู้ / ระบบตัวละคร / ล็อกอิน / หลังบ้าน
+> ขอบเขตปัจจุบัน: หน้า Lobby + สมัคร/ล็อกอิน + ระบบทอง/หยกพื้นฐาน
+> ปุ่มเมนูส่วนใหญ่ยังเป็น placeholder — กดได้แต่แสดง toast `Coming soon`
+> ยังไม่มีหน้าต่อสู้จริง / เควส / ระบบดรอปจริง / backend server (ดูหัวข้อ "บัญชีผู้เล่นและทอง/หยก" ด้านล่าง)
 
 ## คำสั่ง
 
@@ -84,26 +84,44 @@ Root › Hips › Spine › Chest › Neck › Head
 
 ```
 src/
-├─ App.tsx                        ครอบ LobbyPage ด้วย ToastProvider
+├─ App.tsx                        เส้นทางเข้าเกม: Title → Auth → NameModal → Lobby (ดู useAuth)
 ├─ index.css                      design token ทั้งหมด (สี / spacing / motion) + reset
-├─ game/characters.ts             ⭐ ทะเบียนนักรบ + ตำแหน่งช่องยืน + นโยบาย IP
-├─ pages/LobbyPage.tsx            ประกอบ layout และถือ state การเลือกตัวละคร
+├─ game/characters.ts             ⭐ ทะเบียนนักรบ + ตำแหน่งช่องยืน + นโยบาย IP + getCombatPower()
+├─ pages/
+│  ├─ TitlePage.tsx               หน้าแรกก่อนล็อกอิน
+│  └─ LobbyPage.tsx               ประกอบ layout, ถือ state การเลือกตัวละคร/modal ต่าง ๆ
+├─ hooks/
+│  ├─ useAuth.ts                  ⭐ state บัญชีผู้เล่นของทั้งเกม — ทุกหน้าจอคุยผ่าน hook นี้เท่านั้น
+│  │                               (register/login/logout/updatePlayer/earnGold/topUpGems/redeemCoupon)
+│  └─ usePlayer.ts                ⚠️ ไม่ได้ใช้งานจริงแล้ว (เหลือไว้เป็นตัวอย่าง mock hook เดิม)
+├─ data/
+│  ├─ accountRepository.ts        ⭐ "ฐานข้อมูล" ตอนนี้ = localStorage (คีย์ `los:db:v1`)
+│  │                               บัญชี/ล็อกอิน/UID + ทอง (เฉพาะ quest/drop) + หยก (เฉพาะ topup/coupon)
+│  │                               มี schema เทียบเท่า SQL ไว้ในคอมเมนต์หัวไฟล์ สำหรับย้ายไป backend จริง
+│  └─ mockPlayer.ts               mock data (ใช้เฉพาะ MOCK_BADGES และใน usePlayer.ts เดิม)
+├─ lib/
+│  ├─ storage.ts                  ตัวห่อ localStorage ที่ไม่โยน exception
+│  ├─ password.ts                 hash/verify รหัสผ่าน (client-side เดโม ยังไม่ใช่ระดับ production)
+│  └─ format.ts                   formatNumber / formatBadge / clampRatio
 ├─ components/
 │  ├─ LobbyScene/
 │  │  ├─ LobbyScene.tsx           <Canvas>, กล้อง, แสง, หมอก
 │  │  ├─ ArenaStage.tsx           ลานหิน เสา ธง กระถางไฟ
 │  │  └─ CharacterModel.tsx       ⭐ โมเดล low-poly + idle animation + วงเลือก
-│  ├─ CharacterPanel/             กรอบข้อมูลตัวละคร (ข้อมูล placeholder)
-│  ├─ TopBar/                     avatar, ชื่อ, เลเวล, แถบ EXP, Gold/Gem + ปุ่ม +
-│  ├─ StartAdventure/             ปุ่มหลัก
-│  ├─ MainNavigation/             Battle / Heroes / Barracks / Summon / Guild
-│  ├─ SideActions/                Mail / Mission / Settings (มี badge)
-│  ├─ Toast/                      ระบบ toast + `useToast().comingSoon()`
-│  └─ icons/GameIcons.tsx         ไอคอน SVG ที่วาดเองทั้งหมด
-├─ hooks/usePlayer.ts             จุดเดียวที่ป้อนข้อมูลผู้เล่นให้ UI
-├─ types/player.ts                Player, PlayerBadges, PlayerState
-├─ data/mockPlayer.ts             mock data (ลบทิ้งเมื่อต่อ API)
-└─ lib/format.ts                  formatNumber / formatBadge / clampRatio
+│  ├─ AuthModal/                  ฟอร์มสมัคร/เข้าสู่ระบบ
+│  ├─ NameModal/                  ตั้งชื่อตัวละครครั้งแรกหลังสมัคร (2–10 ตัวอักษร)
+│  ├─ TopBar/                     avatar, ชื่อ, พลังรบ, แถบ EXP, Gold/Gem + ปุ่ม + (เก็บของตก / เติมหยก)
+│  ├─ GemShopModal/                เลือกแพ็กเกจเติมหยก (เดโม ยังไม่ผูก payment gateway จริง)
+│  ├─ SettingsModal/               แท็บข้อมูลเกม / เสียง / คูปอง (แลกโค้ดหยกจริงผ่าน redeemCoupon)
+│  ├─ ProfileModal/                รายละเอียดผู้เล่น
+│  ├─ CharacterRoster/             ทำเนียบวีรชน (การ์ด/พรีวิวตัวละครที่ครอบครอง)
+│  ├─ CharacterPanel/              กรอบข้อมูลตัวละคร (ข้อมูล placeholder)
+│  ├─ StartAdventure/              ปุ่มหลัก
+│  ├─ MainNavigation/              Battle / Heroes / Barracks / Summon / Guild
+│  ├─ SideActions/                 Mail / Mission / Settings (มี badge)
+│  ├─ Toast/                       ระบบ toast + `useToast().comingSoon()`
+│  └─ icons/GameIcons.tsx          ไอคอน SVG ที่วาดเองทั้งหมด
+└─ types/player.ts                Player, PlayerBadges, PlayerState
 ```
 
 ## เปลี่ยนโมเดล placeholder → โมเดล 3D จริง
@@ -117,10 +135,29 @@ src/
 
 โครงรอบนอก (ตำแหน่งช่อง, hitbox สำหรับกด, วงแหวนเลือก, เอฟเฟกต์ hover) ใช้ซ้ำได้ทั้งหมด
 
-## เปลี่ยนจาก mock เป็นข้อมูลจริง
+## บัญชีผู้เล่นและทอง/หยก
 
-แก้ไฟล์เดียวคือ [`src/hooks/usePlayer.ts`](src/hooks/usePlayer.ts) ให้ดึงข้อมูลจาก API
-แล้ว return เป็น `PlayerState` เหมือนเดิม — ทุก component ทำงานต่อได้ทันที
+ยังไม่มี backend server — "ฐานข้อมูล" ตอนนี้คือ **localStorage ของเบราว์เซอร์ผู้เล่นเอง**
+เก็บที่คีย์ `los:db:v1` (ทั้งฐานข้อมูล) และ `los:session:v1` (session ที่ล็อกอินค้างอยู่)
+ดูได้จริงผ่าน DevTools → Application/Storage → Local Storage
+
+ทุกหน้าจอคุยกับสถานะผู้เล่นผ่าน [`src/hooks/useAuth.ts`](src/hooks/useAuth.ts) เท่านั้น
+ไม่มีหน้าไหนเรียก localStorage หรือ `accountRepository` ตรง ๆ — `App.tsx` ถือ `useAuth()`
+แล้วส่ง `player` + callback ต่าง ๆ ลงไปเป็น props (`LobbyPage` → `TopBar` / `SettingsModal` ฯลฯ)
+
+**กติกาทอง/หยก (บังคับที่ชั้น API ใน [`accountRepository.ts`](src/data/accountRepository.ts)):**
+- ทองเพิ่มได้ทาง `earnGold(uid, 'quest' | 'drop', amount)` เท่านั้น — ยังไม่มีระบบเควส/ดรอปจริง
+  ปุ่ม "+" ข้างทองใน TopBar ตอนนี้เป็นตัวจำลอง "เก็บของตก" (สุ่ม 20–80) ไว้ก่อน
+- หยกเพิ่มได้ทาง `topUpGems(uid, packageId)` (เติมเงินจริง — **ยังไม่ต่อ payment gateway**
+  ถือว่าจ่ายสำเร็จเสมอ ห้ามใช้ค้าจริง) หรือ `redeemCoupon(uid, code)` (โค้ดคูปอง เช่น `WELCOME2026`)
+- ไม่มีฟังก์ชัน set ทอง/หยกตรง ๆ ให้เรียกจากที่อื่น — ทุกการเพิ่มถูกบันทึกลง `account.transactions`
+  เพื่อตรวจสอบที่มาและกันแลกคูปองซ้ำ
+- คอมเมนต์หัวไฟล์ `accountRepository.ts` มี schema เทียบเท่า SQL ไว้ให้ (accounts / players /
+  owned_characters / team_slots / currency_transactions) — สลับไปต่อ backend จริงได้โดยแก้แค่
+  ไฟล์นั้นไฟล์เดียว (เปลี่ยน import ที่ `useAuth.ts` บรรทัดเดียว) โดยไม่กระทบหน้าจอ
+
+⚠️ `src/hooks/usePlayer.ts` เป็นโค้ดตัวอย่าง/mock hook เดิมที่ **ไม่ได้ถูกใช้งานจริงแล้ว**
+(ของจริงไหลผ่าน `useAuth` ตามข้างต้น) เหลือไว้เผื่ออ้างอิงรูปแบบ `PlayerState` เท่านั้น
 
 ## นโยบายทรัพย์สินทางปัญญา
 

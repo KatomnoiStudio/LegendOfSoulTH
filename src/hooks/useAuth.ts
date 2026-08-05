@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import * as accounts from '../data/accountRepository'
+import type { CurrencyResult, GoldSource } from '../data/accountRepository'
 import type { Player } from '../types/player'
 
 /**
@@ -20,6 +21,12 @@ export interface AuthState {
   logout: () => Promise<void>
   /** บันทึกความคืบหน้า เช่น ตั้งชื่อตัวละคร จัดทีม อัปเกรด */
   updatePlayer: (next: Player) => Promise<void>
+  /** ให้ทองจากการเล่นเท่านั้น — ทำเควสสำเร็จหรือของดรอป (ดู accountRepository.earnGold) */
+  earnGold: (source: GoldSource, amount: number, refId?: string) => Promise<CurrencyResult>
+  /** เติมหยกด้วยเงินจริง (ดู accountRepository.topUpGems) */
+  topUpGems: (packageId: string) => Promise<CurrencyResult>
+  /** แลกโค้ดคูปองเป็นหยก (ดู accountRepository.redeemCoupon) */
+  redeemCoupon: (code: string) => Promise<CurrencyResult>
 }
 
 export function useAuth(): AuthState {
@@ -70,5 +77,38 @@ export function useAuth(): AuthState {
     await accounts.savePlayer(next)
   }, [])
 
-  return { status, player, register, login, logout, updatePlayer }
+  // สามฟังก์ชันด้านล่างคุยกับ accountRepository ที่บังคับระบุแหล่งที่มาของทอง/หยกเสมอ
+  // (ดูคอมเมนต์หัวไฟล์ accountRepository.ts) จึงไม่มี setGold/setGem ตรง ๆ ให้เรียกจากที่อื่น
+
+  const earnGold = useCallback(
+    async (source: GoldSource, amount: number, refId?: string) => {
+      if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
+      const result = await accounts.earnGold(player.uid, source, amount, refId)
+      if (result.ok) setPlayer(result.player)
+      return result
+    },
+    [player],
+  )
+
+  const topUpGems = useCallback(
+    async (packageId: string) => {
+      if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
+      const result = await accounts.topUpGems(player.uid, packageId)
+      if (result.ok) setPlayer(result.player)
+      return result
+    },
+    [player],
+  )
+
+  const redeemCoupon = useCallback(
+    async (code: string) => {
+      if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
+      const result = await accounts.redeemCoupon(player.uid, code)
+      if (result.ok) setPlayer(result.player)
+      return result
+    },
+    [player],
+  )
+
+  return { status, player, register, login, logout, updatePlayer, earnGold, topUpGems, redeemCoupon }
 }

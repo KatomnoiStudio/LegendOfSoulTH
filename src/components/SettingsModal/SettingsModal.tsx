@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import type { CurrencyResult } from '../../data/accountRepository'
 import { ROSTER } from '../../game/characters'
 import { GAME_INFO } from '../../game/gameInfo'
 import {
@@ -46,6 +47,8 @@ interface SettingsModalProps {
   onAudioChange: (next: AudioSettings) => void
   /** ออกจากบัญชี — กลับไปหน้าสมัคร/เข้าสู่ระบบ */
   onLogout: () => Promise<void>
+  /** แลกโค้ดคูปองเป็นหยก */
+  onRedeemCoupon: (code: string) => Promise<CurrencyResult>
   onClose: () => void
 }
 
@@ -58,8 +61,8 @@ interface SettingsModalProps {
  * ค่าเสียงถูกยกไปเก็บที่ LobbyPage เพื่อให้ค่าคงอยู่เมื่อปิดแล้วเปิดใหม่
  * และพร้อมส่งต่อให้ระบบเสียงจริงเมื่อมีการเชื่อมต่อ
  */
-export function SettingsModal({ audio, onAudioChange, onLogout, onClose }: SettingsModalProps) {
-  const { comingSoon } = useToast()
+export function SettingsModal({ audio, onAudioChange, onLogout, onRedeemCoupon, onClose }: SettingsModalProps) {
+  const { showToast } = useToast()
   const [tab, setTab] = useState<TabId>('info')
   const dialogRef = useRef<HTMLDivElement>(null)
 
@@ -136,7 +139,14 @@ export function SettingsModal({ audio, onAudioChange, onLogout, onClose }: Setti
           />
         ) : null}
         {tab === 'coupon' ? (
-          <CouponPanel key="coupon" onRedeem={() => comingSoon('แลกคูปอง')} />
+          <CouponPanel
+            key="coupon"
+            onRedeem={async (code) => {
+              const result = await onRedeemCoupon(code)
+              showToast(result.ok ? `แลกโค้ดสำเร็จ ได้หยก +${result.amount}` : result.error)
+              return result.ok
+            }}
+          />
         ) : null}
       </div>
     </div>
@@ -294,16 +304,20 @@ function ChannelRow({
 }
 
 /** หน้าที่ 3 — คูปอง */
-function CouponPanel({ onRedeem }: { onRedeem: () => void }) {
+function CouponPanel({ onRedeem }: { onRedeem: (code: string) => Promise<boolean> }) {
   const [code, setCode] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const isValid = code.length >= COUPON_MIN_LENGTH
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!isValid) return
-    onRedeem()
-    setCode('')
+    if (!isValid || submitting) return
+    setSubmitting(true)
+    const ok = await onRedeem(code)
+    setSubmitting(false)
+    // เคลียร์ช่องกรอกเฉพาะตอนแลกสำเร็จ — แลกไม่ผ่านให้แก้โค้ดเดิมต่อได้เลย
+    if (ok) setCode('')
   }
 
   return (
@@ -331,8 +345,8 @@ function CouponPanel({ onRedeem }: { onRedeem: () => void }) {
           ตัวอักษรอังกฤษและตัวเลขเท่านั้น ({COUPON_MIN_LENGTH}–{COUPON_MAX_LENGTH} ตัว)
         </span>
 
-        <button type="submit" className={styles.redeem} disabled={!isValid}>
-          แลกรางวัล
+        <button type="submit" className={styles.redeem} disabled={!isValid || submitting}>
+          {submitting ? 'กำลังแลก...' : 'แลกรางวัล'}
         </button>
       </form>
 

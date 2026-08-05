@@ -12,6 +12,7 @@ import { SideActions } from '../components/SideActions/SideActions'
 import { StartAdventure } from '../components/StartAdventure/StartAdventure'
 import { TopBar } from '../components/TopBar/TopBar'
 import { MOCK_BADGES } from '../data/mockPlayer'
+import type { CurrencyResult, GoldSource } from '../data/accountRepository'
 import type { Player } from '../types/player'
 import styles from './LobbyPage.module.css'
 
@@ -26,9 +27,21 @@ interface LobbyPageProps {
   /** บันทึกความคืบหน้ากลับลงฐานข้อมูล */
   onPlayerChange: (next: Player) => Promise<void>
   onLogout: () => Promise<void>
+  /** ให้ทองจากการเล่นเท่านั้น — ทำเควสสำเร็จหรือของดรอป */
+  onEarnGold: (source: GoldSource, amount: number, refId?: string) => Promise<CurrencyResult>
+  /** เติมหยกด้วยเงินจริง */
+  onTopUpGems: (packageId: string) => Promise<CurrencyResult>
+  /** แลกโค้ดคูปองเป็นหยก */
+  onRedeemCoupon: (code: string) => Promise<CurrencyResult>
 }
 
-export function LobbyPage({ player, onLogout }: LobbyPageProps) {
+export function LobbyPage({
+  player,
+  onLogout,
+  onEarnGold,
+  onTopUpGems,
+  onRedeemCoupon,
+}: LobbyPageProps) {
   // แจ้งเตือนจดหมาย/ภารกิจยังเป็น mock เพราะยังไม่มีระบบทั้งสองอย่าง
   const badges = MOCK_BADGES
 
@@ -72,7 +85,12 @@ export function LobbyPage({ player, onLogout }: LobbyPageProps) {
         />
       </Suspense>
 
-      <TopBar player={player} onOpenProfile={() => setProfileOpen(true)} />
+      <TopBar
+        player={player}
+        onOpenProfile={() => setProfileOpen(true)}
+        onEarnGold={onEarnGold}
+        onTopUpGems={onTopUpGems}
+      />
 
       <div className={styles.stage}>
         <SideActions badges={badges} onOpenSettings={() => setSettingsOpen(true)} />
@@ -116,6 +134,7 @@ export function LobbyPage({ player, onLogout }: LobbyPageProps) {
           audio={audio}
           onAudioChange={setAudio}
           onLogout={onLogout}
+          onRedeemCoupon={onRedeemCoupon}
           onClose={() => setSettingsOpen(false)}
         />
       ) : null}

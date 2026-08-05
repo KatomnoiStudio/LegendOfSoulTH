@@ -18,7 +18,7 @@ import { TitlePage } from './pages/TitlePage'
  * (session ถูกกู้จากฐานข้อมูลใน useAuth)
  */
 export default function App() {
-  const { status, player, register, login, logout, updatePlayer } = useAuth()
+  const { status, player, register, login, logout, updatePlayer, earnGold, topUpGems, redeemCoupon } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
 
   // ล็อกอินแล้วและตั้งชื่อแล้ว → เข้าลอบบี้
@@ -26,7 +26,14 @@ export default function App() {
     return (
       <GameViewport>
         <ToastProvider>
-          <LobbyPage player={player} onPlayerChange={updatePlayer} onLogout={logout} />
+          <LobbyPage
+            player={player}
+            onPlayerChange={updatePlayer}
+            onLogout={logout}
+            onEarnGold={earnGold}
+            onTopUpGems={topUpGems}
+            onRedeemCoupon={redeemCoupon}
+          />
         </ToastProvider>
       </GameViewport>
     )

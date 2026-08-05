@@ -1,23 +1,39 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import type { CurrencyResult, GoldSource } from '../../data/accountRepository'
 import type { Player } from '../../types/player'
 import { getCombatPower } from '../../game/characters'
 import { clampRatio, formatNumber } from '../../lib/format'
+import { GemShopModal } from '../GemShopModal/GemShopModal'
 import { PlusIcon } from '../icons/GameIcons'
 import { useToast } from '../Toast/useToast'
 import { AvatarFrame } from './AvatarFrame'
 import { CommanderAvatar } from './CommanderAvatar'
 import styles from './TopBar.module.css'
 
+/** ช่วงทองที่ได้ต่อครั้งจากของตกระหว่างเล่น (เดโม — ยังไม่มีระบบดรอปจริง) */
+const DROP_GOLD_MIN = 20
+const DROP_GOLD_MAX = 80
+
+function rollDropGold(): number {
+  return DROP_GOLD_MIN + Math.floor(Math.random() * (DROP_GOLD_MAX - DROP_GOLD_MIN + 1))
+}
+
 interface TopBarProps {
   player: Player
   /** กดที่โปรไฟล์เพื่อเปิดหน้าต่างรายละเอียด */
   onOpenProfile: () => void
+  /** ให้ทองจากการเล่นเท่านั้น — ทำเควสสำเร็จหรือของดรอป */
+  onEarnGold: (source: GoldSource, amount: number, refId?: string) => Promise<CurrencyResult>
+  /** เติมหยกด้วยเงินจริง */
+  onTopUpGems: (packageId: string) => Promise<CurrencyResult>
 }
 
-export function TopBar({ player, onOpenProfile }: TopBarProps) {
-  const { comingSoon } = useToast()
+export function TopBar({ player, onOpenProfile, onEarnGold, onTopUpGems }: TopBarProps) {
+  const { showToast } = useToast()
   const expRatio = clampRatio(player.exp, player.expToNext)
   const combatPower = getCombatPower(player.ownedCharacters)
+  const [collectingGold, setCollectingGold] = useState(false)
+  const [gemShopOpen, setGemShopOpen] = useState(false)
 
   // เติมแถบ EXP จาก 0 ตอนเข้าหน้า ให้รู้สึกมีชีวิต
   const [fill, setFill] = useState(0)
@@ -25,6 +41,16 @@ export function TopBar({ player, onOpenProfile }: TopBarProps) {
     const id = requestAnimationFrame(() => setFill(expRatio))
     return () => cancelAnimationFrame(id)
   }, [expRatio])
+
+  /** จำลอง "เก็บของตก" — ของจริงจะถูกเรียกจากระบบเควส/ต่อสู้เมื่อมีระบบนั้นแล้ว */
+  const handleCollectGoldDrop = async () => {
+    if (collectingGold) return
+    setCollectingGold(true)
+    const amount = rollDropGold()
+    const result = await onEarnGold('drop', amount)
+    setCollectingGold(false)
+    showToast(result.ok ? `เก็บของตกได้ทอง +${formatNumber(result.amount)}` : result.error)
+  }
 
   return (
     <header className={styles.bar}>
@@ -70,16 +96,23 @@ export function TopBar({ player, onOpenProfile }: TopBarProps) {
           icon={<img className={styles.currencyIcon} src="/ui/thai/gold-ingot.png" alt="" draggable={false} />}
           label="ทอง"
           value={player.currency.gold}
-          onAdd={() => comingSoon('ร้านค้าเหรียญทอง')}
+          addLabel="เก็บของตก"
+          pending={collectingGold}
+          onAdd={() => void handleCollectGoldDrop()}
         />
         <CurrencyPill
           tone={styles.gem}
           icon={<img className={styles.currencyIcon} src="/ui/thai/jade.png" alt="" draggable={false} />}
           label="หยก"
           value={player.currency.gem}
-          onAdd={() => comingSoon('ร้านค้าอัญมณี')}
+          addLabel="เติมหยก"
+          onAdd={() => setGemShopOpen(true)}
         />
       </div>
+
+      {gemShopOpen ? (
+        <GemShopModal onBuy={onTopUpGems} onClose={() => setGemShopOpen(false)} />
+      ) : null}
     </header>
   )
 }
@@ -89,10 +122,13 @@ interface CurrencyPillProps {
   icon: ReactNode
   label: string
   value: number
+  /** ข้อความอธิบายปุ่มบวก เช่น "เก็บของตก" หรือ "เติมหยก" */
+  addLabel: string
+  pending?: boolean
   onAdd: () => void
 }
 
-function CurrencyPill({ tone, icon, label, value, onAdd }: CurrencyPillProps) {
+function CurrencyPill({ tone, icon, label, value, addLabel, pending, onAdd }: CurrencyPillProps) {
   return (
     <div className={`${styles.currency} ${tone}`}>
       <span className={styles.currencyGlow} aria-hidden="true" />
@@ -104,7 +140,9 @@ function CurrencyPill({ tone, icon, label, value, onAdd }: CurrencyPillProps) {
         type="button"
         className={styles.addButton}
         onClick={onAdd}
-        aria-label={`เติม${label}`}
+        disabled={pending}
+        aria-label={addLabel}
+        title={addLabel}
       >
         <PlusIcon />
       </button>
