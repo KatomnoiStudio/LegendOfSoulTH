@@ -4,6 +4,7 @@
 > **Repository**: `LegendofSoulTH/GameTurnBase`  
 > **Default Branch**: `master`  
 > **Last Updated**: 2026-08-06T02:20:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **Fork note**: สาย `nustanakritwithai/GameTurnBase` (Ring 1) — ดูข้อ 20  
 > **RULES_VERSION: 4** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
@@ -151,6 +152,34 @@
 
 19. **`.coalmine.json` untracked from git entirely** (2026-08-06): after two rounds of flip-flopping the `.github/` entry inside it, HetCreep clarified the real objection was the *whole file* being on GitHub at all — it's a personal rot-canary tuning knob, not a team-shared contract (unlike `.oxlintrc.json`/`tsconfig.json`, which genuinely need to be identical for every contributor). `git rm --cached .coalmine.json` + added to `.gitignore` (same pattern as `.claude/coalhearth/`/`.claude/coalwash/`). File still exists locally on this machine and still works — just no longer tracked/pushed. **Consequence for other machines/Ring 1**: rot-canary now falls back to whatever `~/.claude/.coalmine.json` (home-level) or CoalMine's own defaults say for scan-exclusion scope — this project no longer ships a shared override. If a future session wants the doc-exclusion behavior team-wide again, it needs to be re-added deliberately (not by accident via `git add -A`).
 
+20. **Fork `nustanakritwithai/GameTurnBase` + Battle Migration Audit** (2026-08-06T02:15+07:00, `Claude Code (cloud session, Ring 1)`, operator ผู้สั่งงานสายนี้: `nustanakritwithai`):
+    - **บริบท**: repo นี้ถูก fork จาก `LegendofSoulTH/GameTurnBase` (master) มาเป็น
+      `nustanakritwithai/GameTurnBase` เพื่อพัฒนางานฝั่งตัวเองก่อน แล้วค่อยพิจารณาส่งกลับ upstream
+      ทีหลัง งานทุกชิ้นในสายนี้เดินเป็น **1 เรื่องเสร็จ = 1 commit = 1 PR** เข้า `master` ของ fork
+    - **Ring**: session นี้เป็น **Ring 1** (git identity `nustanakritwithai` ไม่ใช่ `HetCreep`,
+      ไม่มี `.agents/ring0.local`) → `AGENTS.md` + `.agents/rules/**` เป็น binding, แก้โค้ดให้เข้ากฎ
+      ไม่แก้กฎให้เข้าโค้ด, ไม่แตะไฟล์กฎเอง, ข้อโต้แย้งบันทึกใน PR description ตาม
+      `ring0-authority.md` ข้อ 4
+    - **Freshness check ผ่าน**: `AGENTS.md` RULES_VERSION 4 = `MEMORY.md` last synced 4 (ตรงกัน)
+      อ่าน `AGENTS.md` + `.agents/rules/**` ครบทั้ง 5 ไฟล์แล้วก่อนเริ่มงาน
+    - **งานที่ตกลงไว้**: ยกเครื่องห้องต่อสู้จาก Turn-based → Top-down Hack & Slash Real-time
+      (สเปก 34 ข้อ) แบ่งเป็น 9 PR เรียงลำดับตาม Migration Steps
+    - **ส่งมอบรอบนี้**: `docs/battle-realtime-migration-audit.md` — Step 1 Audit ครบทั้ง reference
+      graph ที่ `grep` จริง (ไม่ได้เดาจากชื่อไฟล์), รายการ KEEP / REPLACE / ADAPT /
+      DELETE-AFTER-MIGRATION, สำรวจ asset ที่มีจริงพร้อม fallback ที่ต้องประกาศ, และข้อสังเกต
+      เชิงออกแบบ 6 ข้อ
+    - **สิ่งที่ audit เจอและมีผลกับงานถัดไป**:
+      - ทางเข้าเดียวของระบบเทิร์นคือ `BattleLayer` ใน `GameExplorationSession.tsx:30-66`
+        ส่วนทางออกที่ผูกกับระบบภายนอกมีจุดเดียวคือ type `BattleResult` ที่ `useGameFlow.ts` ใช้
+      - `game/battle/index.ts` (barrel) **ไม่มีใครอ้างถึงเลย** — dead file ตั้งแต่ก่อน migration
+      - `BattleRecord.turns` เป็น field **required** ของบัญชีเก่า → ต้องทำ migration แบบ optional +
+        backfill ผ่าน `normalizePlayer()` เดิม ไม่งั้นประวัติต่อสู้ของบัญชีเก่าพัง
+      - `formulas.ts` ฝัง `Math.random()` ในสูตรดาเมจ → ระบบใหม่ต้อง inject RNG ได้ เพื่อให้เทสต์
+        damage แบบ deterministic เขียนได้จริงตาม §30
+      - `ExplorationScene` เป็น DOM/CSS ล้วน ไม่ใช่ Three.js — มีแค่ `LobbyScene` ที่ใช้ R3F จริง
+    - Baseline ก่อนเริ่ม: `typecheck` ผ่าน, `lint` เหลือ warning เดิม 3 ตัว (ไม่ใช่ error),
+      `test` 5/5 ผ่าน, `build` สำเร็จ (318 kB + 884 kB chunk)
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
@@ -162,6 +191,9 @@
 - **Remote check**: `git remote -v` on this machine correctly points `origin` at `https://github.com/LegendofSoulTH/GameTurnBase.git` — the "remote mismatch" flagged in the prior concurrent session's notes was local to that machine/clone (remote URLs are per-clone git config, never part of repo content) and doesn't apply here; no action needed on this machine.
 - **Player accounts/currency**: functional locally (see Past Summary item 6) but entirely client-side — no real backend, no payment gateway. Do not treat as production-ready for real money or cross-device play.
 - **Open/next work**: no quest system, no real drop table, no shop UI beyond `GemShopModal`, no battle system. Project's own `LICENSE` file still undecided (see item 8).
+- **สาย fork `nustanakritwithai/GameTurnBase`**: กำลังทำ Battle Room Overhaul (Turn-based →
+  Top-down Realtime) 9 PR — ใบที่ 0 (audit) คือรอบนี้ ระบบเทิร์นเดิม **ยังอยู่ครบ ยังไม่ลบ**
+  จนกว่าจะถึง PR ใบที่ 8 และผ่าน Acceptance Criteria (ดูข้อ 20)
 - **RULES_VERSION last synced: 4** (`.agents/rules/rules-freshness-check.md`)
 - **Ring**: this machine is Ring 0 (`.agents/ring0.local` present, gitignored). Any other clone is Ring 1 by default — see `.agents/rules/ring0-authority.md`.
 - **Pre-push sync**: `.agents/rules/pre-push-sync-law.md` — binding on every machine before every push.
