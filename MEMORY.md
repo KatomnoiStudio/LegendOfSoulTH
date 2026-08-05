@@ -203,6 +203,43 @@
       ให้ตรงก่อนถึงจะเข้าไปในระยะคุยได้ — เป็นความรู้สึกที่ฝืดสำหรับผู้เล่นจริง แต่ยังไม่แก้
       ในรอบนี้เพราะอยู่นอกขอบเขตงานที่ตกลงไว้
 
+22. **ห้องต่อสู้ real-time — วางฐาน runtime + เปลี่ยนทางเข้า** (2026-08-06T03:10+07:00, `Claude Code (cloud session, Ring 1)`, สาย fork `nustanakritwithai/GameTurnBase`, Migration Step 2–3):
+    - **ทางเข้าห้องต่อสู้เปลี่ยนเป็นระบบใหม่แล้ว**: `BattleScene` รับแค่ `player / stageId /
+      onComplete / onExit` — ไม่มี `snapshot`, `activeUnit`, `pendingKind`, `validTargetIds`,
+      `onAttack/onDefend/onSkill/onSelectTarget/onCancelTarget` อีกต่อไป
+      `BattleLayer` ใน `GameExplorationSession` เหลือแค่ส่งต่อ 4 ค่านั้น (เดิม 11 props)
+      **เงื่อนไขเปิดห้อง (`flow.mode === 'battle'`) ไม่ถูกแตะ** ตามข้อห้ามของสเปก
+    - **ระบบเทิร์นเดิมยังอยู่ครบทุกไฟล์ ยังไม่ลบ** (`useBattle.ts`, `game/battle/*`) — จะลบใน
+      Step 9 หลังผ่าน Acceptance Criteria ตอนนี้แค่ไม่มีใครเรียกใช้ใน production flow แล้ว
+    - **สถาปัตยกรรมใหม่** (`src/game/realtimeBattle/`): `types.ts` (snapshot/entity/event ของ
+      ระบบเรียลไทม์ ไม่ยืม `BattleSnapshot` แบบเทิร์นมาใช้), `stageConfig.ts` (ข้อมูลด่าน+
+      แม่แบบศัตรู ไม่ hard-code ใน component), `createRealtimeBattle.ts` (pure — เทสต์ตรงได้),
+      `RealtimeBattleRuntime.ts` (สถานะ mutable **นอก React state**, publish snapshot ~10 Hz
+      ให้ HUD เท่านั้น), `RealtimeBattleLoop.ts` (fixed-step 60 Hz บน rAF + accumulator,
+      หยุดเองเมื่อแท็บอยู่ background, ไม่มี `setInterval` เลย), `battleAssets.ts`,
+      `BattleResultAdapter.ts`, `useRealtimeBattle.ts`, `battleSpriteSequences.ts`
+    - **บทเรียนที่เจอระหว่างทำ (วัดจริง ไม่ได้เดา)**:
+      - **bundle โตจาก 318 kB เป็น 1,205 kB** เพราะ `BattleScene` ดึง three.js เข้า chunk หลัก
+        แก้ด้วยการ `lazy()` ห้องต่อสู้แบบเดียวกับที่ `LobbyPage` ทำกับ `LobbyScene`
+        ผลลัพธ์: chunk หลักเหลือ **305 kB** (เล็กกว่าเดิมด้วยซ้ำ เพราะ UI เทิร์นถูกถอดออก),
+        three อยู่ใน chunk แยก 881 kB ที่โหลดเมื่อเข้าฉาก 3D เท่านั้น
+      - **ชุดเฟรมทั้งหมดของหนึ่งการต่อสู้ราว 16 MB** ถ้ารอโหลดครบก่อนเปิดห้องจะค้างที่หน้า
+        "กำลังเตรียมห้องต่อสู้…" นานมาก (เจอจริงบนจอมือถือแนวนอน 844×390) จึงแบ่งเป็น
+        critical (`idle` + ฉากหลัง) ที่กั้นการเปิดห้อง กับส่วนที่เหลือโหลดเบื้องหลัง
+      - **ภาพฉากใช้เป็นลายพื้นไม่ได้** — วิหารจะถูกกดให้นอนราบ ศัตรูแถวบนดูเหมือนลอย
+        เปลี่ยนเป็นตั้งเป็นฉากหลัง (crop ครึ่งบนด้วย texture clone) + พื้นเป็นลานหินเรียบ+วงมณฑล
+      - **`console.error` หลอกตอนออกจากห้อง** — เบราว์เซอร์ยิง `webglcontextlost` ตอนทำลาย
+        canvas ด้วย ต้องถอด listener ใน cleanup ของ effect ไม่ใช่ผูกทิ้งไว้ใน `onCreated`
+    - **เทสต์**: `RealtimeBattleRuntime.test.ts` 10 เทสต์ (สร้างสถานะจากด่าน/ทีมจริง, id ศัตรู
+      ไม่ซ้ำข้ามคลื่น, intro→running, คูลดาวน์ไม่ติดลบ, subscribe/unsubscribe, snapshot เป็น
+      สำเนาไม่ใช่ reference, requestExit หยุดเวลา, dispose) — ทั้งหมดเรียก `step()` ตรง ๆ
+      ไม่ผ่าน React/rAF จึง deterministic
+    - **ยืนยันในเบราว์เซอร์จริง**: เดสก์ท็อป 1280×720 และมือถือแนวนอน 844×390 —
+      เข้าห้องได้ ห้องเรนเดอร์ครบ (พื้น/ฉากหลัง/ผู้เล่น/ศัตรู 3 ตัว/HUD) กดออกกลับไปสำรวจได้
+      ไม่มี console error และไม่มี response ≥ 400
+    - **ยังไม่มีในรอบนี้ (ตามแผน)**: การเดิน, joystick, กล้องตามตัว, AI ศัตรู, hitbox/ดาเมจ,
+      คอมโบ, dash, สกิล, victory/defeat, รางวัล — เข้ามาทีละใบตามลำดับ PR ที่วางไว้
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)

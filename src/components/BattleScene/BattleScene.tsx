@@ -1,176 +1,63 @@
-import type { Combatant } from '../../game/battle/types'
-import type { ActionKind } from '../../game/battle/types'
+import { useCallback } from 'react'
+import { useRealtimeBattle } from '../../hooks/useRealtimeBattle'
+import type { RealtimeBattleResult } from '../../game/realtimeBattle/types'
+import type { Player } from '../../types/player'
+import { RealtimeBattleRoom } from './RealtimeBattleRoom'
 import styles from './BattleScene.module.css'
 
-function HpBar({ unit }: { unit: Combatant }) {
-  const ratio = unit.maxHp > 0 ? unit.hp / unit.maxHp : 0
-  return (
-    <div className={styles.hpWrap}>
-      <div className={styles.hpTrack}>
-        <div
-          className={styles.hpFill}
-          style={{
-            width: `${Math.max(0, Math.min(100, ratio * 100))}%`,
-            background: unit.accent,
-          }}
-        />
-      </div>
-      <span className={styles.hpText}>
-        {unit.hp}/{unit.maxHp}
-      </span>
-    </div>
-  )
-}
-
-function UnitCard({
-  unit,
-  active,
-  selectable,
-  onSelect,
-}: {
-  unit: Combatant
-  active: boolean
-  selectable: boolean
-  onSelect?: () => void
-}) {
-  const defeated = unit.hp <= 0
-  return (
-    <button
-      type="button"
-      className={styles.unitCard}
-      data-active={active}
-      data-defeated={defeated}
-      data-selectable={selectable}
-      disabled={!selectable || defeated}
-      onClick={onSelect}
-    >
-      <img src={unit.spriteUrl} alt="" className={styles.unitSprite} draggable={false} />
-      <span className={styles.unitName}>{unit.name}</span>
-      <HpBar unit={unit} />
-      {unit.defending ? <span className={styles.defendTag}>ป้องกัน</span> : null}
-    </button>
-  )
-}
-
+/**
+ * ทางเข้าห้องต่อสู้ — ห้องเดียวของเกมที่การต่อสู้เกิดขึ้น
+ *
+ * ระบบเดิมเป็น Turn-based (การ์ดตัวละคร + ปุ่มเลือกคำสั่ง) ถูกแทนที่ด้วย
+ * ห้อง Top-down Hack & Slash แบบเรียลไทม์ทั้งหมด — ไม่มี snapshot แบบเทิร์น,
+ * ไม่มีการเลือกเป้าหมาย, ไม่มี activeUnit ส่งเข้ามาที่นี่อีกแล้ว
+ *
+ * Contract กับระบบนอกห้องต่อสู้ยังเหมือนเดิมเป๊ะ: เปิดเมื่อ flow.mode === 'battle'
+ * รับ player/stageId แล้วคืนผลผ่าน onComplete หรือ onExit เท่านั้น
+ * ห้ามไฟล์นี้ (หรืออะไรใต้มัน) เขียน localStorage / Player / ทอง / กระเป๋าไอเทมเอง
+ */
 interface BattleSceneProps {
-  snapshot: import('../../game/battle/types').BattleSnapshot
-  activeUnit: Combatant | null
-  pendingKind: ActionKind | null
-  validTargetIds: string[]
-  skill?: { name: string; description: string }
-  onAttack: () => void
-  onDefend: () => void
-  onSkill: () => void
-  onSelectTarget: (targetId: string) => void
-  onCancelTarget: () => void
+  player: Player
+  stageId: string
+  onComplete: (result: RealtimeBattleResult) => void
   onExit: () => void
 }
 
-export function BattleScene({
-  snapshot,
-  activeUnit,
-  pendingKind,
-  validTargetIds,
-  skill,
-  onAttack,
-  onDefend,
-  onSkill,
-  onSelectTarget,
-  onCancelTarget,
-  onExit,
-}: BattleSceneProps) {
-  const isPlayerTurn = activeUnit?.isAlly && snapshot.phase === 'awaiting_input'
-  const finished = snapshot.phase === 'victory' || snapshot.phase === 'defeat'
-  const targetSet = new Set(validTargetIds)
+export function BattleScene({ player, stageId, onComplete, onExit }: BattleSceneProps) {
+  const { phase, errorMessage, runtime, snapshot, requestExit } = useRealtimeBattle({
+    player,
+    stageId,
+    onComplete,
+  })
 
-  return (
-    <div className={styles.scene} role="dialog" aria-label="ฉากต่อสู้">
-      <header className={styles.header}>
-        <span className={styles.stageName}>{snapshot.stageName}</span>
-        <span className={styles.round}>รอบ {snapshot.round}</span>
-      </header>
+  // หยุดจำลองก่อนเสมอ แล้วค่อยให้ระบบเกมพาผู้เล่นกลับ — กันไม่ให้ลูปเดินต่อระหว่างเปลี่ยนฉาก
+  const handleExit = useCallback(() => {
+    requestExit()
+    onExit()
+  }, [onExit, requestExit])
 
-      <div className={styles.field}>
-        <div className={styles.row}>
-          <h2 className={styles.rowTitle}>พันธมิตร</h2>
-          <div className={styles.unitRow}>
-            {snapshot.allies.map((unit) => (
-              <UnitCard
-                key={unit.id}
-                unit={unit}
-                active={unit.id === snapshot.activeUnitId}
-                selectable={Boolean(pendingKind && targetSet.has(unit.id))}
-                onSelect={() => onSelectTarget(unit.id)}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.vs}>VS</div>
-
-        <div className={styles.row}>
-          <h2 className={styles.rowTitle}>ศัตรู</h2>
-          <div className={styles.unitRow}>
-            {snapshot.enemies.map((unit) => (
-              <UnitCard
-                key={unit.id}
-                unit={unit}
-                active={unit.id === snapshot.activeUnitId}
-                selectable={Boolean(pendingKind && targetSet.has(unit.id))}
-                onSelect={() => onSelectTarget(unit.id)}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className={styles.log} aria-live="polite">
-        {snapshot.log.slice(-4).map((entry) => (
-          <p key={entry.id} data-tone={entry.tone}>
-            {entry.text}
-          </p>
-        ))}
-      </div>
-
-      {finished ? (
-        <div className={styles.result}>
-          <strong>{snapshot.phase === 'victory' ? 'ชนะ!' : 'แพ้...'}</strong>
-          <button type="button" className={styles.exitBtn} onClick={onExit}>
-            กลับ
+  if (phase === 'error') {
+    return (
+      <div className={styles.scene}>
+        <div className={styles.fallback} role="alert">
+          <p>{errorMessage}</p>
+          <button type="button" className={styles.exitBtn} onClick={handleExit}>
+            กลับไปสำรวจ
           </button>
         </div>
-      ) : (
-        <footer className={styles.actions}>
-          {pendingKind ? (
-            <>
-              <span className={styles.prompt}>เลือกเป้าหมาย</span>
-              <button type="button" className={styles.cancelBtn} onClick={onCancelTarget}>
-                ยกเลิก
-              </button>
-            </>
-          ) : isPlayerTurn ? (
-            <>
-              <button type="button" className={styles.actionBtn} onClick={onAttack}>
-                โจมตี
-              </button>
-              <button type="button" className={styles.actionBtn} onClick={onDefend}>
-                ป้องกัน
-              </button>
-              <button
-                type="button"
-                className={styles.actionBtn}
-                onClick={onSkill}
-                disabled={!skill}
-                title={skill?.description}
-              >
-                {skill?.name ?? 'สกิล'}
-              </button>
-            </>
-          ) : (
-            <span className={styles.waiting}>รอเทิร์นศัตรู…</span>
-          )}
-        </footer>
-      )}
-    </div>
-  )
+      </div>
+    )
+  }
+
+  if (phase === 'loading' || !runtime || !snapshot) {
+    return (
+      <div className={styles.scene}>
+        <div className={styles.fallback} aria-live="polite">
+          <p>กำลังเตรียมห้องต่อสู้…</p>
+        </div>
+      </div>
+    )
+  }
+
+  return <RealtimeBattleRoom runtime={runtime} snapshot={snapshot} onExit={handleExit} />
 }

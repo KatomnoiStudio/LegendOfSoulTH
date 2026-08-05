@@ -1,5 +1,4 @@
-import { useCallback, useEffect } from 'react'
-import { BattleScene } from '../BattleScene/BattleScene'
+import { Suspense, lazy, useCallback, useEffect } from 'react'
 import { BattleTransition } from '../BattleTransition/BattleTransition'
 import { DialogueBox } from '../DialogueBox/DialogueBox'
 import { ExplorationControls } from '../ExplorationControls/ExplorationControls'
@@ -15,7 +14,8 @@ import {
 } from '../../game/dialogue/engine'
 import { useExploration } from '../../hooks/useExploration'
 import { useGameFlow } from '../../hooks/useGameFlow'
-import { useBattle } from '../../hooks/useBattle'
+import { toLegacyBattleResult } from '../../game/realtimeBattle/BattleResultAdapter'
+import type { RealtimeBattleResult } from '../../game/realtimeBattle/types'
 import type { Player } from '../../types/player'
 import { useMemo, useState } from 'react'
 import type { DialogueSession } from '../../game/dialogue/types'
@@ -27,6 +27,24 @@ interface GameExplorationSessionProps {
   onExit: () => void
 }
 
+/*
+  โหลดห้องต่อสู้แบบ lazy — เหตุผลเดียวกับที่ LobbyPage ทำกับ LobbyScene
+
+  ห้องต่อสู้ใหม่ใช้ three.js/R3F ถ้า import ตรง ๆ ตั้งแต่ต้น three จะถูกรวมเข้า chunk หลัก
+  ทำให้ bundle แรกที่ผู้เล่นต้องโหลดตอนเปิดเกมโตจาก ~318 kB เป็น ~1.2 MB
+  (วัดจริงตอนทำงานนี้) ทั้งที่ยังไม่ได้เข้าห้องต่อสู้เลย
+*/
+const BattleScene = lazy(() =>
+  import('../BattleScene/BattleScene').then((m) => ({ default: m.BattleScene })),
+)
+
+/**
+ * ชั้นห้องต่อสู้
+ *
+ * เดิมชั้นนี้ต้องรู้จักกลไกของระบบเทิร์นทั้งหมด (เรียก useBattle เอง แล้วส่งต่อ 11 props
+ * ทั้ง snapshot / activeUnit / การเลือกเป้าหมาย) ตอนนี้เหลือหน้าที่เดียวคือส่ง 4 ค่าที่เป็น
+ * contract จริงเข้าไป — สถานะการต่อสู้ทั้งหมดอยู่ใน runtime ของห้องเอง
+ */
 function BattleLayer({
   player,
   stageId,
@@ -35,33 +53,13 @@ function BattleLayer({
 }: {
   player: Player
   stageId: string
-  onComplete: (result: import('../../game/battle/types').BattleResult) => void
+  onComplete: (result: RealtimeBattleResult) => void
   onExit: () => void
 }) {
-  const battle = useBattle({ player, stageId, onComplete })
-  if (!battle.snapshot) {
-    return (
-      <div style={{ position: 'absolute', inset: 0, zIndex: 600, display: 'grid', placeItems: 'center', color: '#fff' }}>
-        ไม่สามารถเริ่มการต่อสู้ได้
-        <button type="button" onClick={onExit}>กลับ</button>
-      </div>
-    )
-  }
-
   return (
-    <BattleScene
-      snapshot={battle.snapshot}
-      activeUnit={battle.activeUnit}
-      pendingKind={battle.pendingKind}
-      validTargetIds={battle.validTargetIds}
-      skill={battle.skill}
-      onAttack={() => battle.selectAction('attack')}
-      onDefend={() => battle.selectAction('defend')}
-      onSkill={() => battle.selectAction('skill')}
-      onSelectTarget={battle.selectTarget}
-      onCancelTarget={battle.cancelTarget}
-      onExit={onExit}
-    />
+    <Suspense fallback={null}>
+      <BattleScene player={player} stageId={stageId} onComplete={onComplete} onExit={onExit} />
+    </Suspense>
   )
 }
 
@@ -140,6 +138,20 @@ export function GameExplorationSession({
     [dialogueSession, dispatchAction, player.progress],
   )
 
+  /*
+    ผลจากห้องต่อสู้เรียลไทม์ถูกแปลงเป็น contract เดิมก่อนส่งเข้า useGameFlow
+
+    ตั้งใจไม่แก้ useGameFlow ในงานนี้ — เส้นทางบันทึกประวัติ/ธง/การกลับไปสำรวจ
+    ยังเป็นของเดิมทุกบรรทัด (สเปกข้อ 1 ห้ามรื้อระบบนอกห้องต่อสู้)
+    การย้ายไปใช้ durationMs จริงจะเกิดในงาน Reward Integration
+  */
+  const onRealtimeBattleComplete = useCallback(
+    (result: RealtimeBattleResult) => {
+      void gameFlow.onBattleComplete(toLegacyBattleResult(result))
+    },
+    [gameFlow],
+  )
+
   const onTalk = useCallback(() => {
     if (!state.nearbyNpcId) return
     gameFlow.openNpcDialogue(state.nearbyNpcId)
@@ -182,7 +194,7 @@ export function GameExplorationSession({
         <BattleLayer
           player={player}
           stageId={gameFlow.flow.battleContext.stageId}
-          onComplete={gameFlow.onBattleComplete}
+          onComplete={onRealtimeBattleComplete}
           onExit={gameFlow.onBattleExit}
         />
       ) : null}

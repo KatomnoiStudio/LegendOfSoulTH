@@ -1,0 +1,99 @@
+import { useEffect, useState } from 'react'
+import { Canvas } from '@react-three/fiber'
+import WebGL from 'three/addons/capabilities/WebGL.js'
+import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
+import type { RealtimeBattleSnapshot } from '../../game/realtimeBattle/types'
+import { BattleArena } from './BattleArena'
+import { BattleHud } from './BattleHud'
+import styles from './BattleScene.module.css'
+
+/**
+ * ห้องต่อสู้ที่พร้อมเล่นแล้ว — ผืนผ้าใบ 3 มิติ + HUD
+ *
+ * แยกจาก BattleScene เพราะ BattleScene มีหน้าที่จัดการ "ก่อนถึงห้อง" (โหลด/ผิดพลาด/ออก)
+ * ส่วนไฟล์นี้สมมติได้เลยว่า runtime พร้อมใช้งานแล้ว
+ */
+export function RealtimeBattleRoom({
+  runtime,
+  snapshot,
+  onExit,
+}: {
+  runtime: RealtimeBattleRuntime
+  snapshot: RealtimeBattleSnapshot
+  onExit: () => void
+}) {
+  const [webglAvailable] = useState(() => WebGL.isWebGL2Available())
+  const [contextLost, setContextLost] = useState(false)
+  const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null)
+
+  /*
+    ผูก/ถอด listener ของ WebGL context ใน effect ไม่ใช่ผูกทิ้งไว้ตอน onCreated
+
+    เบราว์เซอร์ยิง webglcontextlost ตอนทำลาย canvas ด้วย ถ้าไม่ถอด listener ก่อน unmount
+    จะได้ console.error หลอก ๆ ทุกครั้งที่ผู้เล่นออกจากห้องต่อสู้ ทั้งที่ไม่มีอะไรผิด
+    (เจอจริงตอนทดสอบในเบราว์เซอร์ — ขึ้น "[RealtimeBattleRoom] WebGL context lost" ทุกครั้งที่กดออก)
+    การถอด listener ตอน cleanup ยังเป็นข้อบังคับของ §28 อยู่แล้ว
+  */
+  useEffect(() => {
+    if (!canvasElement) return
+
+    const onLost = (event: Event) => {
+      event.preventDefault()
+      console.error('[RealtimeBattleRoom] WebGL context lost')
+      setContextLost(true)
+    }
+    const onRestored = () => setContextLost(false)
+
+    canvasElement.addEventListener('webglcontextlost', onLost)
+    canvasElement.addEventListener('webglcontextrestored', onRestored)
+
+    return () => {
+      canvasElement.removeEventListener('webglcontextlost', onLost)
+      canvasElement.removeEventListener('webglcontextrestored', onRestored)
+    }
+  }, [canvasElement])
+
+  if (!webglAvailable) {
+    return (
+      <div className={styles.scene}>
+        <div className={styles.fallback}>
+          <p>เบราว์เซอร์นี้ไม่รองรับ WebGL2 — เปิดห้องต่อสู้ไม่ได้</p>
+          <button type="button" className={styles.exitBtn} onClick={onExit}>
+            กลับไปสำรวจ
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <section className={styles.scene} aria-label="ห้องต่อสู้">
+      {contextLost ? (
+        <div className={styles.fallback}>
+          <p>การ์ดจอขาดการเชื่อมต่อ — กำลังลองใหม่</p>
+        </div>
+      ) : null}
+
+      <Canvas
+        className={styles.canvas}
+        dpr={[1, 2]}
+        // GameViewport ย่อเวทีด้วย transform: scale() ทำให้ getBoundingClientRect() คืนขนาดหลังย่อ
+        // (เหตุผลเดียวกับ LobbyScene — ดูคอมเมนต์ในไฟล์นั้น)
+        resize={{ offsetSize: true }}
+        gl={{ antialias: true, powerPreference: 'high-performance' }}
+        camera={{ fov: 42, near: 0.1, far: 200 }}
+        onCreated={({ gl }) => setCanvasElement(gl.domElement)}
+      >
+        <BattleArena runtime={runtime} />
+      </Canvas>
+
+      <BattleHud snapshot={snapshot} onExit={onExit} />
+
+      {snapshot.status === 'intro' ? (
+        <div className={styles.introBanner} aria-live="polite">
+          {snapshot.stageName}
+        </div>
+      ) : null}
+    </section>
+  )
+}
