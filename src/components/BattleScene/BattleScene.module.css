@@ -175,3 +175,63 @@
   .introBanner { animation-duration: 1ms; }
   .hpFill { transition: none; }
 }
+
+/* ── ปุ่มควบคุมบนจอ ─────────────────────────────────────── */
+
+.controls {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  /* ให้เห็นฉากได้เต็ม ๆ — เฉพาะตัวควบคุมเท่านั้นที่รับการแตะ */
+  pointer-events: none;
+  padding:
+    max(var(--sp-4), env(safe-area-inset-top))
+    max(var(--sp-4), env(safe-area-inset-right))
+    max(var(--sp-4), env(safe-area-inset-bottom))
+    max(var(--sp-4), env(safe-area-inset-left));
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.controlsLeft {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-4);
+}
+
+.joystickBase {
+  pointer-events: auto;
+  position: relative;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  border: 2px solid var(--c-border);
+  background: radial-gradient(circle, rgb(24 18 42 / 55%), rgb(10 8 20 / 78%));
+  box-shadow: var(--shadow-2);
+  touch-action: none;
+  /* กันเบราว์เซอร์เด้งเมนูค้างเมื่อกดแช่บนมือถือ */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.joystickKnob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  border-radius: 50%;
+  border: 1px solid var(--c-gold);
+  background: linear-gradient(180deg, rgb(240 200 90 / 55%), rgb(120 92 24 / 75%));
+  box-shadow: var(--glow-gold);
+  pointer-events: none;
+}
+
+/* จอเตี้ยแบบมือถือแนวนอน — ย่อจอยลงเพื่อไม่ให้กินพื้นที่เล่น แต่ยังใหญ่กว่า 44px มาก */
+@media (max-height: 480px) {
+  .joystickBase { width: 104px; height: 104px; }
+  .joystickKnob { width: 46px; height: 46px; margin: -23px 0 0 -23px; }
+}

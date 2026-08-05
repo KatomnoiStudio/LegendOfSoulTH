@@ -65,7 +65,7 @@ export function BattleArena({ runtime }: { runtime: RealtimeBattleRuntime }) {
 
   return (
     <group>
-      <BattleCamera worldWidth={worldWidth} worldDepth={worldDepth} />
+      <BattleCamera runtime={runtime} />
 
       <ambientLight intensity={0.9} />
       <hemisphereLight args={['#cdd6ff', '#241d33', 0.8]} />
@@ -84,6 +84,15 @@ export function BattleArena({ runtime }: { runtime: RealtimeBattleRuntime }) {
         <planeGeometry args={[worldWidth, worldDepth]} />
         <meshBasicMaterial color="#3a2f52" side={DoubleSide} />
       </mesh>
+
+      {/*
+        ตารางบนพื้น — จุดอ้างอิงว่าตัวเองขยับไปไกลแค่ไหนแล้ว
+        พื้นสีเดียวล้วนทำให้บอกความเร็วและระยะไม่ได้เลยตอนกล้องไล่ตาม
+      */}
+      <gridHelper
+        args={[Math.max(worldWidth, worldDepth), 18, '#6a5a92', '#4a3f6b']}
+        position={[0, 0.004, 0]}
+      />
 
       {/* วงมณฑลกลางลาน ให้พื้นไม่โล่งจนไม่รู้ว่าตัวเองขยับไปไหนแล้ว */}
       <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>

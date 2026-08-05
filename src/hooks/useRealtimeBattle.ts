@@ -8,10 +8,11 @@ import { getCharacter } from '../game/characters'
 import { preloadBattleTextures } from '../game/realtimeBattle/battleAssets'
 import { toRealtimeBattleResult } from '../game/realtimeBattle/BattleResultAdapter'
 import { createRealtimeBattle } from '../game/realtimeBattle/createRealtimeBattle'
+import { InputSystem } from '../game/realtimeBattle/InputSystem'
 import { startBattleLoop, type BattleLoopHandle } from '../game/realtimeBattle/RealtimeBattleLoop'
 import { RealtimeBattleRuntime } from '../game/realtimeBattle/RealtimeBattleRuntime'
 import { getEnemyTemplate, getRealtimeStage } from '../game/realtimeBattle/stageConfig'
-import type { RealtimeBattleResult, RealtimeBattleSnapshot } from '../game/realtimeBattle/types'
+import type { RealtimeBattleResult, RealtimeBattleSnapshot, Vec2 } from '../game/realtimeBattle/types'
 import type { Player } from '../types/player'
 
 /**
@@ -39,6 +40,8 @@ interface UseRealtimeBattleValue {
   snapshot: RealtimeBattleSnapshot | null
   /** ขอออกจากห้อง — หยุดจำลองก่อน แล้วผู้เรียกค่อยพาผู้เล่นกลับ */
   requestExit: () => void
+  /** จอยสติกบนจอสัมผัสส่งเวกเตอร์เดินเข้ามาทางนี้ (คีย์บอร์ดต่อตรงกับ InputSystem อยู่แล้ว) */
+  setJoystick: (vector: Vec2) => void
 }
 
 /** ชุดเฟรมที่ห้องนี้ต้องใช้ = ตัวละครนำของผู้เล่น + ศัตรูทุกตัวในทุกคลื่นของด่าน */
@@ -81,10 +84,21 @@ export function useRealtimeBattle({
   /** กันเรียก onComplete ซ้ำมากกว่าหนึ่งครั้ง (§24) */
   const completedRef = useRef(false)
 
+  /*
+    InputSystem อยู่ใน ref ไม่ใช่ state
+
+    มันถูกอ่านทุกเฟรมจำลองและถูกเขียนทุกครั้งที่นิ้วขยับบนจอย — ถ้าเก็บใน state
+    จะเกิด re-render ทั้งห้องต่อสู้ทุกการขยับนิ้ว ซึ่งเป็นสิ่งที่สเปกข้อ 8 ห้ามไว้ตรง ๆ
+  */
+  const inputRef = useRef<InputSystem | null>(null)
+  inputRef.current ??= new InputSystem()
+
   useEffect(() => {
     let cancelled = false
     let created: RealtimeBattleRuntime | null = null
     let loop: BattleLoopHandle | null = null
+    let detachKeyboard: (() => void) | null = null
+    const input = inputRef.current ?? new InputSystem()
 
     const state = createRealtimeBattle(stageId, playerRef.current)
     if (!state) {
@@ -103,7 +117,15 @@ export function useRealtimeBattle({
         await preloadBattleTextures(criticalUrls)
         if (cancelled) return
         created = new RealtimeBattleRuntime(state)
-        loop = startBattleLoop({ step: (deltaMs) => created?.step(deltaMs) })
+        detachKeyboard = input.attachKeyboard()
+
+        loop = startBattleLoop({
+          step: (deltaMs) => {
+            // ป้อนอินพุตล่าสุดก่อนเดินการจำลองทุกก้าว — runtime ไม่รู้จักคีย์บอร์ด/จอย
+            created?.setMoveInput(input.getMoveVector())
+            created?.step(deltaMs)
+          },
+        })
         setRuntime(created)
 
         /*
@@ -128,6 +150,8 @@ export function useRealtimeBattle({
     return () => {
       cancelled = true
       loop?.stop()
+      detachKeyboard?.()
+      input.reset()
       created?.dispose()
       setRuntime(null)
     }
@@ -159,7 +183,11 @@ export function useRealtimeBattle({
     runtime?.requestExit()
   }, [runtime])
 
+  const setJoystick = useCallback((vector: Vec2) => {
+    inputRef.current?.setJoystick(vector)
+  }, [])
+
   const phase: BattlePhase = errorMessage ? 'error' : runtime && snapshot ? 'ready' : 'loading'
 
-  return { phase, errorMessage, runtime, snapshot, requestExit }
+  return { phase, errorMessage, runtime, snapshot, requestExit, setJoystick }
 }
