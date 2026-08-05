@@ -9,7 +9,7 @@
  * สคริปต์นี้รันตอน build asset เท่านั้น ไม่ถูกรวมเข้าไปใน bundle ของเกม
  */
 
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as THREE from 'three'
@@ -27,6 +27,7 @@ if (!('FileReader' in globalThis)) {
         .then((buffer) => {
           this.result = buffer
           this.onloadend?.()
+          return undefined
         })
         .catch((error) => this.onerror?.(error))
     }
@@ -65,7 +66,7 @@ async function main() {
   let failures = 0
 
   for (const result of results) {
-    const buffer = await import('node:fs/promises').then((fs) => fs.readFile(result.file))
+    const buffer = await readFile(result.file)
     const gltf = await new GLTFLoader().parseAsync(
       buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
       '',

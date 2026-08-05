@@ -45,6 +45,7 @@ export function useAuth(): AuthState {
       if (cancelled) return
       setPlayer(restored)
       setStatus(restored ? 'signed-in' : 'guest')
+      return undefined
     })
 
     return () => {
