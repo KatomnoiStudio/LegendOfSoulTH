@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   GOLD_PACKAGES,
   GEM_PACKAGES,
@@ -30,6 +30,15 @@ export function CurrencyShopModal({ currency, onBuy, onClose }: CurrencyShopModa
   const [pendingId, setPendingId] = useState<string | null>(null)
   const copy = COPY[currency]
   const packages: (GoldPackage | GemPackage)[] = currency === 'gold' ? GOLD_PACKAGES : GEM_PACKAGES
+
+  // ปิดด้วยปุ่ม Esc เหมือน modal อื่น ๆ ในเกม
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
 
   const handleBuy = async (pack: GoldPackage | GemPackage) => {
     if (pendingId) return

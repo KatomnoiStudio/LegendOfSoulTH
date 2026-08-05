@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import {
   ITEM_CATEGORY_LABEL,
   ITEM_RARITY_COLOR,
@@ -40,6 +40,15 @@ const FILTERS: { id: FilterId; label: string }[] = [
  */
 export function ItemsModal({ player, onClose }: ItemsModalProps) {
   const [filter, setFilter] = useState<FilterId>('all')
+
+  // ปิดด้วยปุ่ม Esc เหมือน modal อื่น ๆ ในเกม
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
 
   // ข้ามช่องที่อ้าง itemId ที่ไม่มีในทะเบียนแล้ว (เช่น ไอเทมถูกถอดออกจากเกม)
   const owned: ResolvedItem[] = (player.inventory ?? []).flatMap((slot) => {

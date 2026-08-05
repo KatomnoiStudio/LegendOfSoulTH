@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FriendCandidate } from '../../data/accountRepository'
 import { AddFriendIcon, BlockIcon, HeroesIcon } from '../icons/GameIcons'
 import { AddFriendPanel } from './AddFriendPanel'
@@ -18,6 +18,15 @@ type TabId = 'friend' | 'list' | 'block'
  */
 export function AddFriendModal({ onSearch, onClose }: AddFriendModalProps) {
   const [tab, setTab] = useState<TabId>('friend')
+
+  // ปิดด้วยปุ่ม Esc เหมือน modal อื่น ๆ ในเกม
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
   // ยังไม่มีระบบรายชื่อเพื่อน/บล็อคผู้เล่นจริง (ไม่มีที่เก็บถาวรเลย) จึงว่างเสมอตอนนี้
   // เมื่อมีระบบแล้วให้เติมรายชื่อจริงตรงนี้ — มีแล้วค่อยแสดงรายการ ไม่มีก็ปล่อยว่างไว้
   const friendsList: FriendCandidate[] = []
