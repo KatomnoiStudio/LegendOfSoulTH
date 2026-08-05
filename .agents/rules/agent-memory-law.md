@@ -12,7 +12,8 @@
 - Before executing any task, exploring code, or making design decisions, **EVERY AGENT MUST READ** `MEMORY.md` at the project root to load the latest project history, decisions, and system state.
 
 ### 2. Continuous Memory Updates & Synthesis
-- Agents must continuously update and crystallize work state into `MEMORY.md` at the project root (`c:\Users\zxc59\source\repos\LegendofSoulTH\MEMORY.md`).
+- Agents must continuously update and crystallize work state into `MEMORY.md` at the project root (`MEMORY.md`).
+- **CRITICAL**: Use relative file paths (`MEMORY.md`, `.agents/rules/...`) only. Do NOT hardcode machine-specific local absolute file paths so the repository remains portable for all contributors.
 - Updates must summarize:
   - **Past Context & History**: High-level timeline of major milestones achieved.
   - **Present Status**: Current working state, active features, and open tasks.
