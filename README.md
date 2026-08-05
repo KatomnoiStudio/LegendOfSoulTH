@@ -3,6 +3,9 @@
 [![Build, Typecheck and Lint](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/ci.yml/badge.svg)](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/ci.yml)
 [![Deploy to GitHub Pages](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/deploy.yml/badge.svg)](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/deploy.yml)
 [![CodeQL Analysis](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/codeql.yml/badge.svg)](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/codeql.yml)
+[![Security & Secret Scan](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/security-scan.yml/badge.svg)](https://github.com/LegendofSoulTH/GameTurnBase/actions/workflows/security-scan.yml)
+
+**เล่นได้ที่**: https://legendofsoulth.github.io/GameTurnBase/
 
 หน้า Lobby ของเกม Turn-based **2.5D** แนว *"รวมเหล่านักรบจากตำนานและประวัติศาสตร์"*
 สร้างด้วย **React 19 + TypeScript + Vite**, ฉาก 3D ด้วย **three.js + React Three Fiber**, สไตล์ด้วย **CSS Modules**
@@ -14,14 +17,20 @@
 ## คำสั่ง
 
 ```bash
-npm install     # ติดตั้ง dependencies (ทำครั้งเดียว)
-npm run dev     # เปิด dev server -> http://localhost:5173
-npm run build   # type-check (tsc -b) + build production ลง dist/
-npm run preview # ดู production build
-npm run lint    # oxlint
+npm install       # ติดตั้ง dependencies (ทำครั้งเดียว)
+npm run dev       # เปิด dev server -> http://localhost:5173
+npm run typecheck # type-check เท่านั้น (tsc -b)
+npm run lint      # oxlint
+npm run test      # Vitest
+npm run build     # typecheck + build production ลง dist/
+npm run preview   # ดู production build
+npm run ci        # typecheck + lint + test + build ครบ (เหมือนที่ CI รัน)
 
 npm run build:models   # สร้างไฟล์ GLB ของตัวละครลง public/models/
 ```
+
+> อยากรู้ว่าโปรเจกต์นี้ทำงานร่วมกับ AI agent ยังไง (กฎบังคับ, ที่มาโค้ด, ประวัติการตัดสินใจ) ดู
+> [`AGENTS.md`](AGENTS.md) และ [`MEMORY.md`](MEMORY.md)
 
 ## ฉาก 3D
 
@@ -95,27 +104,31 @@ src/
 │  ├─ TitlePage.tsx               หน้าแรกก่อนล็อกอิน
 │  └─ LobbyPage.tsx               ประกอบ layout, ถือ state การเลือกตัวละคร/modal ต่าง ๆ
 ├─ hooks/
-│  ├─ useAuth.ts                  ⭐ state บัญชีผู้เล่นของทั้งเกม — ทุกหน้าจอคุยผ่าน hook นี้เท่านั้น
-│  │                               (register/login/logout/updatePlayer/earnGold/topUpGems/redeemCoupon)
-│  └─ usePlayer.ts                ⚠️ ไม่ได้ใช้งานจริงแล้ว (เหลือไว้เป็นตัวอย่าง mock hook เดิม)
+│  └─ useAuth.ts                  ⭐ state บัญชีผู้เล่นของทั้งเกม — ทุกหน้าจอคุยผ่าน hook นี้เท่านั้น
+│                                  (register/login/logout/updatePlayer/earnGold/topUpGems/redeemCoupon)
 ├─ data/
 │  ├─ accountRepository.ts        ⭐ "ฐานข้อมูล" ตอนนี้ = localStorage (คีย์ `los:db:v1`)
 │  │                               บัญชี/ล็อกอิน/UID + ทอง (เฉพาะ quest/drop) + หยก (เฉพาะ topup/coupon)
 │  │                               มี schema เทียบเท่า SQL ไว้ในคอมเมนต์หัวไฟล์ สำหรับย้ายไป backend จริง
-│  └─ mockPlayer.ts               mock data (ใช้เฉพาะ MOCK_BADGES และใน usePlayer.ts เดิม)
+│  └─ mockPlayer.ts               mock data (MOCK_BADGES — ใช้ใน LobbyPage.tsx)
 ├─ lib/
-│  ├─ storage.ts                  ตัวห่อ localStorage ที่ไม่โยน exception
+│  ├─ storage.ts                  ตัวห่อ localStorage ที่ไม่โยน exception (log ก่อน fallback ทุกจุด)
 │  ├─ password.ts                 hash/verify รหัสผ่าน (client-side เดโม ยังไม่ใช่ระดับ production)
-│  └─ format.ts                   formatNumber / formatBadge / clampRatio
+│  ├─ format.ts                   formatNumber / formatBadge / clampRatio (มี unit test)
+│  ├─ publicUrl.ts                ต่อ asset path ใน public/ กับ Vite base — จำเป็นเพราะ deploy จริง
+│  │                               ขึ้น subpath (`/GameTurnBase/`) ไม่ใช่ root
+│  └─ globalErrorHandlers.ts      window 'error'/'unhandledrejection' — ดัก error นอก React render
+│                                  (Phaser/R3F loop ไม่ผ่าน ErrorBoundary)
 ├─ components/
+│  ├─ ErrorBoundary/              จับ crash ระดับ render ทั้งแอป, แสดงปุ่ม "โหลดใหม่"
 │  ├─ LobbyScene/
-│  │  ├─ LobbyScene.tsx           <Canvas>, กล้อง, แสง, หมอก
+│  │  ├─ LobbyScene.tsx           <Canvas>, กล้อง, แสง, หมอก, เช็ค WebGL2 ก่อน mount + จับ context-lost
 │  │  ├─ ArenaStage.tsx           ลานหิน เสา ธง กระถางไฟ
 │  │  └─ CharacterModel.tsx       ⭐ โมเดล low-poly + idle animation + วงเลือก
 │  ├─ AuthModal/                  ฟอร์มสมัคร/เข้าสู่ระบบ
 │  ├─ NameModal/                  ตั้งชื่อตัวละครครั้งแรกหลังสมัคร (2–10 ตัวอักษร)
-│  ├─ TopBar/                     avatar, ชื่อ, พลังรบ, แถบ EXP, Gold/Gem + ปุ่ม + (เก็บของตก / เติมหยก)
-│  ├─ GemShopModal/                เลือกแพ็กเกจเติมหยก (เดโม ยังไม่ผูก payment gateway จริง)
+│  ├─ TopBar/                     avatar, ชื่อ, พลังรบ, แถบ EXP, ปุ่ม + ของ Gold/Gem ทั้งคู่พาไปหน้าเติมเงิน
+│  ├─ GemShopModal/                เลือกแพ็กเกจเติมหยก (เดโม ยังไม่ผูก payment gateway จริง — ใช้ทั้งทองและหยก)
 │  ├─ SettingsModal/               แท็บข้อมูลเกม / เสียง / คูปอง (แลกโค้ดหยกจริงผ่าน redeemCoupon)
 │  ├─ ProfileModal/                รายละเอียดผู้เล่น
 │  ├─ CharacterRoster/             ทำเนียบวีรชน (การ์ด/พรีวิวตัวละครที่ครอบครอง)
@@ -151,17 +164,16 @@ src/
 
 **กติกาทอง/หยก (บังคับที่ชั้น API ใน [`accountRepository.ts`](src/data/accountRepository.ts)):**
 - ทองเพิ่มได้ทาง `earnGold(uid, 'quest' | 'drop', amount)` เท่านั้น — ยังไม่มีระบบเควส/ดรอปจริง
-  ปุ่ม "+" ข้างทองใน TopBar ตอนนี้เป็นตัวจำลอง "เก็บของตก" (สุ่ม 20–80) ไว้ก่อน
+  จึงยังไม่มีปุ่มไหนเรียกฟังก์ชันนี้ในเกม (เอาปุ่มเดโม "เก็บของตก" ออกแล้ว รอระบบเควส/ต่อสู้จริง)
 - หยกเพิ่มได้ทาง `topUpGems(uid, packageId)` (เติมเงินจริง — **ยังไม่ต่อ payment gateway**
   ถือว่าจ่ายสำเร็จเสมอ ห้ามใช้ค้าจริง) หรือ `redeemCoupon(uid, code)` (โค้ดคูปอง เช่น `WELCOME2026`)
+- ปุ่ม "+" ทั้งข้างทองและข้างหยกใน TopBar พาไปหน้าเดียวกันคือ `GemShopModal` (ทางเข้าซื้อของจริงทางเดียวที่มีตอนนี้)
+  — กดฝั่งทองก็ยังไม่ได้เพิ่มทองตรง ๆ แค่พาไปหน้าเติมเงิน
 - ไม่มีฟังก์ชัน set ทอง/หยกตรง ๆ ให้เรียกจากที่อื่น — ทุกการเพิ่มถูกบันทึกลง `account.transactions`
   เพื่อตรวจสอบที่มาและกันแลกคูปองซ้ำ
 - คอมเมนต์หัวไฟล์ `accountRepository.ts` มี schema เทียบเท่า SQL ไว้ให้ (accounts / players /
   owned_characters / team_slots / currency_transactions) — สลับไปต่อ backend จริงได้โดยแก้แค่
   ไฟล์นั้นไฟล์เดียว (เปลี่ยน import ที่ `useAuth.ts` บรรทัดเดียว) โดยไม่กระทบหน้าจอ
-
-⚠️ `src/hooks/usePlayer.ts` เป็นโค้ดตัวอย่าง/mock hook เดิมที่ **ไม่ได้ถูกใช้งานจริงแล้ว**
-(ของจริงไหลผ่าน `useAuth` ตามข้างต้น) เหลือไว้เผื่ออ้างอิงรูปแบบ `PlayerState` เท่านั้น
 
 ## นโยบายทรัพย์สินทางปัญญา
 
@@ -173,7 +185,7 @@ src/
 
 ## หมายเหตุ
 
-- ฉาก 3D ถูกแยกเป็น chunk แยกและโหลดแบบ lazy (HUD ~66 kB gzip, ฉาก ~237 kB gzip)
+- ฉาก 3D ถูกแยกเป็น chunk แยกและโหลดแบบ lazy (HUD ~85 kB gzip, ฉาก ~235 kB gzip)
 - รองรับ `prefers-reduced-motion` (ปิด animation และการโยกกล้อง)
 - รองรับ safe-area ของมือถือ และ breakpoint ที่ 720px / 900px
 
