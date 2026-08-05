@@ -4,6 +4,7 @@ import { AdditiveBlending, DoubleSide, SRGBColorSpace, TextureLoader } from 'thr
 import type { Mesh, MeshBasicMaterial } from 'three'
 import type { Character, ModelSpec } from '../../game/characters'
 import { getSpriteSequence } from '../../game/spriteSequences'
+import { publicUrl } from '../../lib/publicUrl'
 import type { SlotTransform } from '../../game/team'
 
 /**
@@ -173,7 +174,7 @@ function TripitakaEffects({ actionKey }: { actionKey: number }) {
   const aura = useRef<Mesh>(null)
   const palm = useRef<Mesh>(null)
   const waves = useRef<Mesh[]>([])
-  const auraTexture = useLoader(TextureLoader, '/characters/tripitaka-buddha-aura.png')
+  const auraTexture = useLoader(TextureLoader, publicUrl('characters/tripitaka-buddha-aura.png'))
 
   useEffect(() => {
     auraTexture.colorSpace = SRGBColorSpace

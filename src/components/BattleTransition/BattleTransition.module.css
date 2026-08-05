@@ -1,0 +1,35 @@
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 650;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 72%);
+  animation: fadeIn 400ms var(--ease-out);
+}
+
+.card {
+  padding: var(--sp-6) var(--sp-7);
+  border: 2px solid var(--c-ember);
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, rgb(24 16 28 / 96%), rgb(8 8 16 / 98%));
+  text-align: center;
+  box-shadow: var(--shadow-3);
+}
+
+.vs {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  color: var(--c-ember);
+}
+
+.label {
+  margin-top: var(--sp-2);
+  color: var(--c-gold-light);
+  font-size: 1.1rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

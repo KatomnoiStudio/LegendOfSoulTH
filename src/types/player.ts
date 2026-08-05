@@ -42,6 +42,28 @@ export interface Player {
   teamSlots: (string | null)[]
   /** id ของกรอบโปรไฟล์ที่สวมอยู่ (ดู src/game/frames.ts) */
   frameId: string
+  /** ความคืบหน้าเควสต์ การต่อสู้ และ flags */
+  progress: PlayerProgress
+}
+
+export interface BattleRecord {
+  id: string
+  opponent: string
+  result: 'win' | 'lose'
+  finishedAt: string
+  turns: number
+}
+
+export interface PlayerProgress {
+  flags: Record<string, boolean>
+  defeatedNpcIds: string[]
+  battleHistory: BattleRecord[]
+}
+
+export const EMPTY_PROGRESS: PlayerProgress = {
+  flags: {},
+  defeatedNpcIds: [],
+  battleHistory: [],
 }
 
 /** จำนวนแจ้งเตือนค้างอยู่ของปุ่มด้านข้าง */

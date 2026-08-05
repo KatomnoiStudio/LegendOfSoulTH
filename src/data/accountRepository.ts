@@ -2,7 +2,7 @@ import { generateUid } from '../game/uid'
 import { TEAM_SIZE } from '../game/team'
 import { createSalt, hashPassword, verifyPassword } from '../lib/password'
 import { isStorageAvailable, readJson, removeKey, writeJson } from '../lib/storage'
-import type { Player } from '../types/player'
+import { EMPTY_PROGRESS, type Player } from '../types/player'
 
 /**
  * ฐานข้อมูลผู้เล่น (เวอร์ชันเก็บใน localStorage)
@@ -168,6 +168,14 @@ export function validatePassword(password: string): string | null {
 
 /* ---------------- ผู้เล่นเริ่มต้น ---------------- */
 
+/** เติม progress ให้บัญชีเก่าที่สร้างก่อนมีฟิลด์นี้ (ป้องกันข้อมูลใน localStorage เดิมพัง) */
+function normalizePlayer(player: Player): Player {
+  return {
+    ...player,
+    progress: player.progress ?? EMPTY_PROGRESS,
+  }
+}
+
 function createNewPlayer(uid: string): Player {
   return {
     id: uid,
@@ -196,6 +204,7 @@ function createNewPlayer(uid: string): Player {
       index === 0 ? STARTER_CHARACTER_ID : null,
     ),
     frameId: 'arcane',
+    progress: { ...EMPTY_PROGRESS },
   }
 }
 
@@ -241,7 +250,7 @@ export async function register(email: string, password: string): Promise<AuthRes
   }
 
   writeJson(SESSION_KEY, { uid, email: key })
-  return { ok: true, player: account.player }
+  return { ok: true, player: normalizePlayer(account.player) }
 }
 
 export async function login(email: string, password: string): Promise<AuthResult> {
@@ -258,7 +267,7 @@ export async function login(email: string, password: string): Promise<AuthResult
   if (!matched) return failure
 
   writeJson(SESSION_KEY, { uid: account.uid, email: key })
-  return { ok: true, player: account.player }
+  return { ok: true, player: normalizePlayer(account.player) }
 }
 
 export async function logout(): Promise<void> {
@@ -277,7 +286,7 @@ export async function getSessionPlayer(): Promise<Player | null> {
     return null
   }
 
-  return account.player
+  return normalizePlayer(account.player)
 }
 
 /** บันทึกความคืบหน้าของผู้เล่นกลับลงฐานข้อมูล */
@@ -287,7 +296,7 @@ export async function savePlayer(player: Player): Promise<boolean> {
   if (!entry) return false
 
   const [key, account] = entry
-  db.accounts[key] = { ...account, player }
+  db.accounts[key] = { ...account, player: normalizePlayer(player) }
   return saveDb(db)
 }
 

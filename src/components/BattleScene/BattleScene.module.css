@@ -1,0 +1,186 @@
+.scene {
+  position: absolute;
+  inset: 0;
+  z-index: 600;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  color: var(--c-text);
+  background:
+    linear-gradient(180deg, rgb(6 10 22 / 92%), rgb(10 16 32 / 96%)),
+    url('/ui/thai/thai-temple-lobby.png') center / cover no-repeat;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-panel);
+}
+
+.stageName {
+  font-family: var(--font-display);
+  color: var(--c-gold);
+}
+
+.round {
+  color: var(--c-text-dim);
+  font-size: 0.9rem;
+}
+
+.field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--sp-4);
+}
+
+.rowTitle {
+  margin: 0 0 var(--sp-2);
+  font-size: 0.85rem;
+  color: var(--c-text-dim);
+}
+
+.unitRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+
+.unitCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+  min-width: 96px;
+  padding: var(--sp-2);
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: var(--r-md);
+  background: rgb(0 0 0 / 28%);
+  color: inherit;
+  transition: transform var(--dur-fast) var(--ease-out), border-color var(--dur-fast);
+}
+
+.unitCard[data-active='true'] {
+  border-color: var(--c-gold);
+  box-shadow: var(--glow-gold);
+}
+
+.unitCard[data-selectable='true']:not(:disabled):hover {
+  transform: translateY(-3px);
+  border-color: var(--c-arcane);
+}
+
+.unitCard[data-defeated='true'] {
+  opacity: 0.35;
+  filter: grayscale(0.8);
+}
+
+.unitSprite {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.unitName {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.hpWrap {
+  width: 100%;
+}
+
+.hpTrack {
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: rgb(0 0 0 / 45%);
+  overflow: hidden;
+}
+
+.hpFill {
+  height: 100%;
+  transition: width var(--dur-mid) var(--ease-out);
+}
+
+.hpText {
+  font-size: 0.68rem;
+  color: var(--c-text-dim);
+}
+
+.defendTag {
+  font-size: 0.65rem;
+  color: var(--c-arcane-light);
+}
+
+.vs {
+  align-self: center;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--c-ember);
+}
+
+.log {
+  min-height: 4.5rem;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  background: rgb(0 0 0 / 35%);
+  font-size: 0.82rem;
+}
+
+.log p {
+  margin: 0.15rem 0;
+}
+
+.log p[data-tone='damage'] { color: #ff9b7d; }
+.log p[data-tone='heal'] { color: #7dffb0; }
+.log p[data-tone='buff'] { color: var(--c-arcane-light); }
+
+.actions,
+.result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--c-panel);
+}
+
+.actionBtn,
+.exitBtn,
+.cancelBtn {
+  min-width: 88px;
+  min-height: 44px;
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-pill);
+  background: linear-gradient(180deg, rgb(240 200 90 / 18%), rgb(20 24 40 / 90%));
+  color: var(--c-gold-light);
+  font-weight: 700;
+}
+
+.actionBtn:disabled {
+  opacity: 0.45;
+}
+
+.waiting,
+.prompt {
+  color: var(--c-text-dim);
+}
+
+.result strong {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--c-gold);
+}
+
+@media (max-width: 720px) {
+  .unitSprite { width: 52px; height: 52px; }
+  .actions { flex-wrap: wrap; }
+}

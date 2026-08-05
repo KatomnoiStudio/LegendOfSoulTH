@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { BATTLE_HISTORY, PETS } from '../../game/collection'
-import { ROSTER } from '../../game/characters'
+import { PETS } from '../../game/collection'
 import { formatUid } from '../../game/uid'
 import { clampRatio, formatNumber } from '../../lib/format'
 import type { Player } from '../../types/player'
@@ -51,9 +50,9 @@ export function ProfileModal({ player, onClose }: ProfileModalProps) {
   const expRatio = clampRatio(player.exp, player.expToNext)
 
   const tabs: { id: TabId; label: string; count: number }[] = [
-    { id: 'characters', label: 'ตัวละครทั้งหมด', count: ROSTER.length },
+    { id: 'characters', label: 'ตัวละครทั้งหมด', count: player.ownedCharacters.length },
     { id: 'pets', label: 'สัตว์เลี้ยงทั้งหมด', count: PETS.length },
-    { id: 'history', label: 'ประวัติการต่อสู้', count: BATTLE_HISTORY.length },
+    { id: 'history', label: 'ประวัติการต่อสู้', count: player.progress.battleHistory.length },
   ]
 
   return (
@@ -150,7 +149,7 @@ export function ProfileModal({ player, onClose }: ProfileModalProps) {
         </div>
 
         <div className={styles.body} role="tabpanel">
-          {tab === 'characters' ? <CharacterCount /> : null}
+          {tab === 'characters' ? <CharacterCount count={player.ownedCharacters.length} /> : null}
           {tab === 'pets' ? (
             <EmptyState
               icon={<PawIcon className={styles.emptyIcon} />}
@@ -159,11 +158,22 @@ export function ProfileModal({ player, onClose }: ProfileModalProps) {
             />
           ) : null}
           {tab === 'history' ? (
-            <EmptyState
-              icon={<HistoryIcon className={styles.emptyIcon} />}
-              title="ยังไม่มีประวัติการต่อสู้"
-              text="ระบบต่อสู้ยังไม่เปิดให้บริการ เมื่อคุณเริ่มออกรบ ผลการต่อสู้ย้อนหลังจะถูกบันทึกไว้ที่นี่"
-            />
+            player.progress.battleHistory.length === 0 ? (
+              <EmptyState
+                icon={<HistoryIcon className={styles.emptyIcon} />}
+                title="ยังไม่มีประวัติการต่อสู้"
+                text="เมื่อคุณเริ่มออกรบ ผลการต่อสู้ย้อนหลังจะถูกบันทึกไว้ที่นี่"
+              />
+            ) : (
+              <ul className={styles.historyList}>
+                {player.progress.battleHistory.map((record) => (
+                  <li key={record.id}>
+                    <strong>{record.opponent}</strong> — {record.result === 'win' ? 'ชนะ' : 'แพ้'} (
+                    {record.turns} เทิร์น)
+                  </li>
+                ))}
+              </ul>
+            )
           ) : null}
         </div>
       </div>
@@ -204,8 +214,8 @@ function UidRow({ uid }: { uid: string }) {
  * สรุปจำนวนตัวละครที่มีอยู่จริงในเกม (นับจาก ROSTER)
  * แสดงเฉพาะตัวเลขรวม ไม่ลงรายชื่อหรือช่องของแต่ละตัว
  */
-function CharacterCount() {
-  if (ROSTER.length === 0) {
+function CharacterCount({ count }: { count: number }) {
+  if (count === 0) {
     return (
       <EmptyState
         icon={<HeroesIcon className={styles.emptyIcon} />}
@@ -218,7 +228,7 @@ function CharacterCount() {
   return (
     <div className={styles.stat}>
       <HeroesIcon className={styles.statIcon} />
-      <span className={styles.statValue}>{formatNumber(ROSTER.length)}</span>
+      <span className={styles.statValue}>{formatNumber(count)}</span>
       <span className={styles.statLabel}>ตัวละครทั้งหมด</span>
     </div>
   )

@@ -1,0 +1,57 @@
+.controls {
+  position: absolute;
+  z-index: 30;
+  inset: 0;
+  pointer-events: none;
+}
+
+.dpad {
+  position: absolute;
+  inset-block-end: 28px;
+  inset-inline-start: 24px;
+  display: grid;
+  grid-template-columns: repeat(3, 56px);
+  grid-template-rows: repeat(3, 56px);
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.dpadBtn {
+  min-width: 56px;
+  min-height: 56px;
+  border-radius: 14px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  background: rgb(8 14 28 / 78%);
+  color: var(--c-gold-light);
+  font-size: 1.2rem;
+}
+
+.dpadBtn:active {
+  transform: scale(0.94);
+  background: rgb(240 200 90 / 18%);
+}
+
+.talkBtn {
+  position: absolute;
+  inset-block-end: 36px;
+  inset-inline-end: 28px;
+  min-width: 96px;
+  min-height: 96px;
+  border-radius: 50%;
+  border: 2px solid var(--c-gold);
+  background: linear-gradient(180deg, rgb(240 200 90 / 24%), rgb(20 24 40 / 92%));
+  color: var(--c-gold-light);
+  font-weight: 800;
+  pointer-events: auto;
+  box-shadow: var(--glow-gold);
+}
+
+.talkLabel {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--c-text-dim);
+}
+
+@media (min-width: 900px) {
+  .dpad { opacity: 0.72; }
+}

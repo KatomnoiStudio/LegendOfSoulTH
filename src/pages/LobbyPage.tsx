@@ -1,6 +1,7 @@
 import { Suspense, lazy, useMemo, useState } from 'react'
 import { getCharacter } from '../game/characters'
 import { WukongAdventure } from '../components/AdventureScene/WukongAdventure'
+import { GameExplorationSession } from '../components/GameExplorationSession/GameExplorationSession'
 import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRosterModal'
 import { MainNavigation } from '../components/MainNavigation/MainNavigation'
 import { ProfileModal } from '../components/ProfileModal/ProfileModal'
@@ -35,6 +36,7 @@ interface LobbyPageProps {
 
 export function LobbyPage({
   player,
+  onPlayerChange,
   onLogout,
   onTopUpGems,
   onRedeemCoupon,
@@ -61,7 +63,7 @@ export function LobbyPage({
   const [profileOpen, setProfileOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [rosterOpen, setRosterOpen] = useState(false)
-  const [adventureOpen, setAdventureOpen] = useState(false)
+  const [explorationOpen, setExplorationOpen] = useState(false)
   // เก็บค่าเสียงไว้ที่นี่เพื่อให้ค่าคงอยู่หลังปิดหน้าต่างตั้งค่า
   const [audio, setAudio] = useState<AudioSettings>({
     master: 70,
@@ -91,13 +93,20 @@ export function LobbyPage({
       </div>
 
       <div className={styles.startRow}>
-        <StartAdventure onStart={() => setAdventureOpen(true)} />
+        <StartAdventure onStart={() => setExplorationOpen(true)} />
       </div>
 
-      <MainNavigation onOpenHeroes={() => setRosterOpen(true)} />
+      <MainNavigation
+        onOpenHeroes={() => setRosterOpen(true)}
+        onOpenBattle={() => setExplorationOpen(true)}
+      />
 
-      {adventureOpen ? (
-        <WukongAdventure characters={ownedCharacters} onExit={() => setAdventureOpen(false)} />
+      {explorationOpen ? (
+        <GameExplorationSession
+          player={player}
+          onPlayerChange={onPlayerChange}
+          onExit={() => setExplorationOpen(false)}
+        />
       ) : null}
 
       {/*

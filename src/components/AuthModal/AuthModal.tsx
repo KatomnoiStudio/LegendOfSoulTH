@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { PASSWORD_MIN_LENGTH } from '../../data/accountRepository'
+import { getLastEmail, setLastEmail } from '../../lib/authUi'
 import styles from './AuthModal.module.css'
 
 type Mode = 'register' | 'login'
@@ -18,8 +19,10 @@ interface AuthModalProps {
  * เปลี่ยนหลังบ้านเป็นเซิร์ฟเวอร์จริงเมื่อไหร่ ไฟล์นี้ไม่ต้องแก้
  */
 export function AuthModal({ onRegister, onLogin }: AuthModalProps) {
-  const [mode, setMode] = useState<Mode>('register')
-  const [email, setEmail] = useState('')
+  const [lastEmail] = useState(() => getLastEmail())
+  // เคยล็อกอินเครื่องนี้มาก่อน (มีอีเมลจำไว้) → เปิดแท็บเข้าสู่ระบบให้เลย ไม่ต้องเดา
+  const [mode, setMode] = useState<Mode>(() => (lastEmail ? 'login' : 'register'))
+  const [email, setEmail] = useState(() => lastEmail)
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -60,6 +63,8 @@ export function AuthModal({ onRegister, onLogin }: AuthModalProps) {
     const message = mode === 'register'
       ? await onRegister(email, password)
       : await onLogin(email, password)
+
+    if (!message) setLastEmail(email)
 
     // สำเร็จแล้ว component จะถูกถอดออกโดยหน้าแม่ จึงตั้ง busy กลับเฉพาะตอนพลาด
     if (message) {

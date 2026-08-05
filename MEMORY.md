@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/GameTurnBase`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T01:20:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **Last Updated**: 2026-08-06T01:35:00+07:00 by `Claude Code (HetCreep Agent)`  
 > **RULES_VERSION: 3** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
@@ -123,6 +123,15 @@
     - `README.md` brought back in sync: removed stale `usePlayer.ts` references, fixed the gold "+" description (demo "collect drop" button was removed earlier — both gold and gem "+" now open `GemShopModal`), added live site link + `security-scan` badge + missing npm scripts (`typecheck`/`test`/`ci`) + new files (`ErrorBoundary`, `publicUrl`, `globalErrorHandlers`), corrected bundle-size numbers, added a pointer to `AGENTS.md`/`MEMORY.md`.
     - `AuthModal.tsx`: Esc previously did nothing (modal is intentionally non-dismissible — must have an account before entering the game, per the file's own header comment). Per HetCreep's direction, kept that design but made Esc do something instead of being dead input: it now toggles the register/login tab.
     - Full verify green + rot-canary QUICK clean on every change in this batch.
+
+15. **Battle/exploration/dialogue/NPC system merged from `nustanakritwithai/Hih#11`** (2026-08-06):
+    - **Source**: external PR (447 files, +15,113/-0) from a *different, unrelated* repo (not a fork of this one — confirmed via `gh api`) built by a Cursor background agent for `nustanakritwithai/Hih`, claiming integration with "latest `LegendofSoulTH/GameTurnBase`". Treated as untrusted third-party code per `.agents/rules/ring0-authority.md` Ring 1 obligations — investigated before touching anything, nothing merged blind.
+    - **Investigation found the true diff was tiny**: 330 of 447 files were pre-existing image assets already in this repo; ~100 code files were mostly the PR's *older* snapshot of files we'd already fixed this session (CRLF-vs-LF made `diff` initially misreport ~1200-line rewrites that were actually ~10-line real differences — always `diff --strip-trailing-cr` when comparing against a non-Windows checkout). After normalizing: 40 genuinely new files, 22 files with real (small) differences, 5 files where PR was strictly behind our session's own fixes (kept ours, e.g. `usePlayer.ts` resurrected as dead code — deleted again).
+    - **Pulled in as new**: `game/battle/*` (engine/ai/formulas/skills/stages/combatants), `game/dialogue/*`, `game/exploration/*`, `game/npc/*`, `game/flow/GameFlowController.ts`, components `BattleScene`/`BattleTransition`/`DialogueBox`/`ExplorationControls`/`ExplorationScene`/`GameExplorationSession`, hooks `useBattle`/`useDialogue`/`useExploration`/`useGameFlow`, `lib/authUi.ts` (remember-last-email).
+    - **Reconciled by hand** (not blind overwrite): `types/player.ts` (+`PlayerProgress`/`BattleRecord`/`EMPTY_PROGRESS`), `accountRepository.ts` (+`normalizePlayer()` backfill for pre-existing accounts), `LobbyPage.tsx` (swapped full-screen `WukongAdventure` "trial" mode for `GameExplorationSession` on the battle button; **deliberately dropped** the PR's `onEarnGold`/demo-gold-drop wiring — confirmed via grep that the new battle system never calls `earnGold`, only mutates `progress`, so reintroducing it would have resurrected the exact demo button kaoshock123 removed), `MainNavigation.tsx` (+`onOpenBattle`), `ProfileModal.tsx`+css (real battle-history list + a genuine bug fix: character count now reads `player.ownedCharacters.length` instead of the global `ROSTER.length`), `AuthModal.tsx` (remember-last-email UX — kept our Esc-tab-switch fix, improved on the PR's own logic by defaulting to the login tab only when a last-used email actually exists).
+    - **Second `publicUrl` sweep — found the same subpath-404 bug in more places**: `game/walkKits.ts`, `game/characters.ts`, `game/spriteSequences.ts`, `components/LobbyScene/CharacterModel.tsx` (all **pre-existing**, not from the PR — missed in the original sweep because the paths live in data/config objects, not literal JSX `src=`/CSS `url()`) plus the new `game/npc/npcs.ts`, `game/battle/stages.ts`, `game/exploration/maps.ts`, `DialogueBox.tsx`, `ExplorationScene.tsx`. All fixed with `publicUrl()`.
+    - **Verified in-browser** (dev server): full flow Title → Register → NameModal → Lobby → "ต่อสู้" opens `GameExplorationSession` (map + NPCs + movement controls render, exit returns cleanly to Lobby) → no console errors. `.claude/launch.json` added for future `preview_start`-based dev-server checks.
+    - Full verify (`typecheck && lint && test && build`) green; bundle now 129 modules (was 95).
 
 ---
 
