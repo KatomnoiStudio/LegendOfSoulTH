@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import WebGL from 'three/addons/capabilities/WebGL.js'
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
-import type { RealtimeBattleSnapshot } from '../../game/realtimeBattle/types'
+import type { RealtimeBattleSnapshot, Vec2 } from '../../game/realtimeBattle/types'
 import { BattleArena } from './BattleArena'
+import { BattleControls } from './BattleControls'
 import { BattleHud } from './BattleHud'
 import styles from './BattleScene.module.css'
 
@@ -17,10 +18,12 @@ export function RealtimeBattleRoom({
   runtime,
   snapshot,
   onExit,
+  onMove,
 }: {
   runtime: RealtimeBattleRuntime
   snapshot: RealtimeBattleSnapshot
   onExit: () => void
+  onMove: (vector: Vec2) => void
 }) {
   const [webglAvailable] = useState(() => WebGL.isWebGL2Available())
   const [contextLost, setContextLost] = useState(false)
@@ -88,6 +91,7 @@ export function RealtimeBattleRoom({
       </Canvas>
 
       <BattleHud snapshot={snapshot} onExit={onExit} />
+      <BattleControls onMove={onMove} />
 
       {snapshot.status === 'intro' ? (
         <div className={styles.introBanner} aria-live="polite">

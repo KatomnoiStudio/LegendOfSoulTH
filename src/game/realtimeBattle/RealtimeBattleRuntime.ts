@@ -1,9 +1,11 @@
 import type { RealtimeBattleState } from './createRealtimeBattle'
+import { stepMovement } from './MovementSystem'
 import type {
   BattleEffectEvent,
   DamageEvent,
   RealtimeBattleEntity,
   RealtimeBattleSnapshot,
+  Vec2,
 } from './types'
 
 /**
@@ -37,6 +39,8 @@ export class RealtimeBattleRuntime {
   private publishTimerMs = 0
   private snapshot: RealtimeBattleSnapshot
   private disposed = false
+  /** เวกเตอร์เดินล่าสุดจากผู้เล่น — ป้อนเข้ามาจากชั้น React ทุกเฟรม */
+  private moveInput: Vec2 = { x: 0, y: 0 }
 
   constructor(state: RealtimeBattleState) {
     this.state = state
@@ -64,6 +68,14 @@ export class RealtimeBattleRuntime {
     this.tickTimers(state.player, deltaMs)
     for (const enemy of state.enemies) this.tickTimers(enemy, deltaMs)
 
+    const moved = stepMovement(state.player, this.moveInput, deltaMs, {
+      stage: state.stage,
+      blockers: state.enemies,
+    })
+    // สถานะเดิน/ยืน คุมจากผลของระบบเดินจุดเดียว ไม่ให้ component เดาเอง
+    if (state.player.state === 'idle' && moved) state.player.state = 'walk'
+    else if (state.player.state === 'walk' && !moved) state.player.state = 'idle'
+
     this.pruneEvents()
 
     this.publishTimerMs += deltaMs
@@ -90,6 +102,16 @@ export class RealtimeBattleRuntime {
     if (this.effectEvents.length > 0 && this.effectEvents[0].createdAtMs < cutoff) {
       this.effectEvents = this.effectEvents.filter((event) => event.createdAtMs >= cutoff)
     }
+  }
+
+  /**
+   * ป้อนเวกเตอร์เดินของผู้เล่น
+   *
+   * แยกจาก InputSystem โดยตั้งใจ: runtime ไม่ควรรู้ว่าอินพุตมาจากคีย์บอร์ด จอยสติก
+   * หรือเทสต์ที่ป้อนค่าตรง ๆ — มันรู้แค่ "ตอนนี้ผู้เล่นอยากเดินไปทางไหน"
+   */
+  setMoveInput(vector: Vec2): void {
+    this.moveInput = vector
   }
 
   /** ขอออกจากห้องต่อสู้ — หยุดจำลองทันที ไม่ให้ระบบใดเดินต่อ */
