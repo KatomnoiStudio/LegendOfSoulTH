@@ -22,7 +22,6 @@ interface SideAction {
 export function SideActions({ badges, onOpenSettings, onOpenAddFriend }: SideActionsProps) {
   const { comingSoon } = useToast()
   const actions: SideAction[] = [
-<<<<<<< HEAD
     { id: 'settings', label: 'ตั้งค่า', icon: <img src={publicUrl('ui/thai/settings.png')} alt="" draggable={false} />, onClick: onOpenSettings },
     { id: 'mail', label: 'จดหมาย', icon: <img src={publicUrl('ui/thai/mail.png')} alt="" draggable={false} />, count: badges.mail, onClick: () => comingSoon('จดหมาย') },
     { id: 'mission', label: 'ภารกิจ', icon: <img src={publicUrl('ui/thai/mission.png')} alt="" draggable={false} />, count: badges.mission, onClick: () => comingSoon('ภารกิจ') },
