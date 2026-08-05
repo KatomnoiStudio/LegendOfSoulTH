@@ -17,6 +17,10 @@ dist-ssr
 .claude/coalwash/
 .coalmine.json
 
+# Personal/off-project notes — see .agents/rules/personal-scope-law.md
+# (never goes in the shared, mandatory-read MEMORY.md)
+MEMORY.local.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

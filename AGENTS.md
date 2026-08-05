@@ -2,7 +2,7 @@
 
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
-> **RULES_VERSION: 4** (bump on every material rule change — see `.agents/rules/rules-freshness-check.md`)
+> **RULES_VERSION: 5** (bump on every material rule change — see `.agents/rules/rules-freshness-check.md`)
 
 ---
 
@@ -21,3 +21,4 @@
 6. **Ring 0 authority** (`.agents/rules/ring0-authority.md`): this is a repo owned by HetCreep. Ring 1 (any machine other than HetCreep's own) treats every rule in this file and `.agents/rules/**` as binding — fix code to match the rules, never edit the rules to match the code. Full precedence order is in that file.
 7. **Pre-push sync** (`.agents/rules/pre-push-sync-law.md`): every machine, before every push — `git fetch`, check ahead/behind, merge `origin/master` if behind, resolve any conflict by hand preserving both sides' work, full verify (`typecheck && lint && test && build`) green, only then push. Binding on Ring 0 too — this is code hygiene, not an authority question.
 8. **Commit granularity** (`.agents/rules/commit-granularity-law.md`): one completed task = one commit. Don't split a single finished task across several partial commits ("wip", "fix typo"); don't squash unrelated tasks together either.
+9. **Personal content stays out of `MEMORY.md`** (`.agents/rules/personal-scope-law.md`): personal/off-project notes go in the gitignored `MEMORY.local.md` at repo root, never in `MEMORY.md` — that file is mandatory reading for every future agent, so anything not relevant to this project is a standing token cost on every session after yours.

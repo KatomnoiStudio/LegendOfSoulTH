@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T04:28:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **Last Updated**: 2026-08-06T04:35:00+07:00 by `Claude Code (HetCreep Agent)`  
 > **RULES_VERSION: 4** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
@@ -184,6 +184,8 @@
     - **Testing note for future sessions**: verifying this required a real production build served with the correct base path — `vite preview` does **not** reuse `vite.config.ts`'s build-time `base` (its `command` value isn't `'build'`), so it silently served everything from `/` and SPA-fallback-served `index.html` (as `text/html`) for every asset request, which *looked* like the real bundle 404ing. Fix: `vite preview --base /LegendOfSoulTH/`, and on this Windows/Git-Bash setup that leading-slash argument needs `MSYS_NO_PATHCONV=1` prefixed or Git Bash silently rewrites it to a Windows path (`/Program Files/Git/LegendOfSoulTH/`) before Node ever sees it. Separately, `document.visibilityState` reads `'hidden'` in this harness's Browser pane (same root cause as the compositor-suspended issues logged earlier this session) — testing the `visibilitychange`-triggered check required overriding it via `Object.defineProperty(document, 'visibilityState', {value: 'visible', configurable: true})` before dispatching the event.
     - Full verify green on all three; each committed and pushed separately (`fcea8a7` icons, `255a1e2` CPU, and this item's deploy-watcher commit).
 
+30. **New law: personal/off-project content excluded from `MEMORY.md`, `RULES_VERSION` → 5** (2026-08-06): HetCreep pointed out that `MEMORY.md` being mandatory reading for every future agent (`agent-memory-law.md` §1) means anything personal or unrelated to this project written into it becomes a standing token cost every session after — the same class of concern as the `.coalmine.json` untracking earlier this session (item 19), just for prose instead of a config file. New [`.agents/rules/personal-scope-law.md`](.agents/rules/personal-scope-law.md): personal/off-project notes go in a new **`MEMORY.local.md`** at the repo root instead — gitignored, never pushed, never part of the mandatory-read protocol, same local-only pattern as `.agents/ring0.local`. Created the file (currently just a header explaining what it's for — empty otherwise). `agent-memory-law.md` §2 amended with an explicit carve-out pointing to the new law; `AGENTS.md` got mandate #9 and `RULES_VERSION` bumped 4 → 5 (this file's `RULES_VERSION last synced:` updated to match in the same edit, per the freshness-check protocol). The bar for what still belongs in `MEMORY.md`: would a future agent working on this project actually need it — not just "was it said during a session about this project."
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
@@ -195,7 +197,7 @@
 - **Remote check**: `git remote -v` on this machine correctly points `origin` at `https://github.com/LegendofSoulTH/LegendOfSoulTH.git` (updated after the rename via `git remote set-url`) — the "remote mismatch" flagged in the prior concurrent session's notes was local to that machine/clone (remote URLs are per-clone git config, never part of repo content) and doesn't apply here; no action needed on this machine.
 - **Player accounts/currency**: functional locally (see Past Summary item 6) but entirely client-side — no real backend, no payment gateway. Do not treat as production-ready for real money or cross-device play.
 - **Open/next work**: no quest system, no real drop table, no shop UI beyond `GemShopModal`, no battle system. Project's own `LICENSE` file still undecided (see item 8).
-- **RULES_VERSION last synced: 4** (`.agents/rules/rules-freshness-check.md`)
+- **RULES_VERSION last synced: 5** (`.agents/rules/rules-freshness-check.md`)
 - **Ring**: this machine is Ring 0 (`.agents/ring0.local` present, gitignored). Any other clone is Ring 1 by default — see `.agents/rules/ring0-authority.md`.
 - **Pre-push sync**: `.agents/rules/pre-push-sync-law.md` — binding on every machine before every push.
 
