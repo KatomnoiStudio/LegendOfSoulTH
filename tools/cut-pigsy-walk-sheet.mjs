@@ -39,6 +39,20 @@ const ROW_DIRECTIONS = [
   'down-right', // เฉียงล่างขวา (Down-Right)
 ]
 
+/**
+ * ทิศฝั่งขวาสร้างจากการพลิกกระจกทิศฝั่งซ้าย ไม่ได้ใช้แถวฝั่งขวาในชีต
+ *
+ * ต้นฉบับวาดแถว "เดินขวา/เฉียงบนขวา/เฉียงล่างขวา" ให้ตัวละครหันไปทางเดียวกับฝั่งซ้าย
+ * (วัดแล้ว: เทียบตรง ๆ ต่างกัน 20-29% แต่เทียบกับภาพพลิกกระจกต่างกัน 57-66% —
+ * แปลว่าไม่ใช่คู่กระจกกัน) ถ้าใช้ตามชีตจะกลายเป็นเดินไปทางขวาแต่หันหน้าไปทางซ้าย
+ * พลิกจากฝั่งซ้ายแทนจึงได้ทิศที่ถูกต้องแน่นอน (คราดจะสลับไปอีกบ่า ซึ่งรับได้)
+ */
+const MIRROR_FROM = {
+  right: 'left',
+  'up-right': 'up-left',
+  'down-right': 'down-left',
+}
+
 const BG = [12, 14, 16]
 /** ต่ำกว่านี้ = พื้นหลังแน่นอน (ใช้ตอน flood fill) */
 const BG_TOLERANCE = 30
@@ -76,6 +90,62 @@ function extractCell(data, W, channels, box) {
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       if (colorDistance(data, at(x, y), channels) > BG_TOLERANCE) seed[y * w + x] = 1
+    }
+  }
+
+  // 1.5) ลบเลขกำกับเฟรมทิ้งตั้งแต่ตอนนี้ — ต้องทำ *ก่อน* closing
+  //      ถ้าปล่อยไว้ closing จะสร้างสะพานเชื่อมเลขเข้ากับคราด กลายเป็นก้อนเดียวกับตัวละคร
+  //      จนคัดออกทีหลังไม่ได้ (แถมได้แท่งดำจากพื้นหลังที่ถูกทำให้ทึบติดมาด้วย)
+  //      เลขเป็นตัวอักษรเดี่ยว ๆ แคบและอยู่ครึ่งบนของช่อง ต่างจากใบคราดที่กว้างกว่ามาก
+  {
+    const labelOf = new Int32Array(w * h).fill(-1)
+    const blobs = []
+    for (let i = 0; i < w * h; i++) {
+      if (labelOf[i] !== -1 || !seed[i]) continue
+      const id = blobs.length
+      const pixels = [i]
+      labelOf[i] = id
+      const queue = [i]
+      let minX = w
+      let minY = h
+      let maxX = -1
+      let maxY = -1
+      while (queue.length > 0) {
+        const current = queue.pop()
+        const x = current % w
+        const y = (current / w) | 0
+        if (x < minX) minX = x
+        if (x > maxX) maxX = x
+        if (y < minY) minY = y
+        if (y > maxY) maxY = y
+        for (const [dx, dy] of [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+          [1, 1],
+          [1, -1],
+          [-1, 1],
+          [-1, -1],
+        ]) {
+          const nx = x + dx
+          const ny = y + dy
+          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
+          const next = ny * w + nx
+          if (labelOf[next] !== -1 || !seed[next]) continue
+          labelOf[next] = id
+          pixels.push(next)
+          queue.push(next)
+        }
+      }
+      blobs.push({ pixels, minX, minY, maxX, maxY })
+    }
+    for (const blob of blobs) {
+      const bw = blob.maxX - blob.minX + 1
+      const bh = blob.maxY - blob.minY + 1
+      const looksLikeDigit =
+        blob.pixels.length < 500 && bw <= 22 && bh <= 26 && blob.maxY < h * 0.45
+      if (looksLikeDigit) for (const p of blob.pixels) seed[p] = 0
     }
   }
 
@@ -205,23 +275,13 @@ function extractCell(data, W, channels, box) {
   // ก้อนใหญ่สุดคือตัวละครเสมอ ใช้เป็นหลักอ้างอิงว่าอะไร "ลอยอยู่เหนือหัว" (= เลขกำกับเฟรม)
   components.sort((a, b) => b.pixels.length - a.pixels.length)
   const body = components[0]
-  const kept = components.filter((component) => {
-    if (component === body) return true
-    if (component.pixels.length < 25) return false
-    const cw = component.maxX - component.minX + 1
-    const ch = component.maxY - component.minY + 1
-    // เลขกำกับเฟรม (1-8) พิมพ์ไว้บนสุดของช่อง ไม่แตะตัวละคร และเล็กกว่าตัวมาก
-    // เช็คทั้งตำแหน่งสัมบูรณ์ (บนสุดของช่อง) และตำแหน่งเทียบตัวละคร เพราะบางทิศคราด
-    // ยื่นสูงกว่าหัว ทำให้กรอบตัวละครสูงจนใช้เกณฑ์เทียบตัวอย่างเดียวไม่พอ
-    if (component.pixels.length < 600 && (component.maxY < h * 0.25 || component.maxY <= body.minY + 3)) {
-      return false
-    }
-    // เศษเส้นกริดที่เล็ดลอดมาติดขอบกรอบ — เส้นบางแนบขอบ ไม่ใช่ส่วนของตัวละคร
-    const touchesEdge =
-      component.minX === 0 || component.minY === 0 || component.maxX === w - 1 || component.maxY === h - 1
-    if (touchesEdge && Math.min(cw, ch) <= 3) return false
-    return true
-  })
+  // เก็บเฉพาะก้อนใหญ่สุดก้อนเดียว = ตัวละคร
+  //
+  // ทำแบบนี้ได้เพราะขั้น closing ด้านบนเชื่อมทุกส่วนของตัวละคร (ขา คราด ที่ถูกเงาดำ
+  // ตัดขาด) กลับเป็นก้อนเดียวแล้ว สิ่งที่ยังแยกอยู่จึงมีแต่ของที่ไม่ใช่ตัวละครจริง ๆ
+  // คือเลขกำกับเฟรมกับเศษเส้นกริด — เกณฑ์แบบ "เล็กกว่า X px" หรือ "ลอยเหนือหัว"
+  // เอาไม่อยู่ เพราะเลขบางตัวอยู่ชิดคราดจนดูเหมือนเป็นส่วนหนึ่งของตัวละคร
+  const kept = [body]
   if (kept.length === 0) return null
 
   // 4) สร้างภาพ RGBA — ทึบเต็มทั้งตัว ปล่อยให้ขั้นตอนขยายภาพ (lanczos) ทำขอบให้เนียนเอง
@@ -387,27 +447,37 @@ async function main() {
   )
   console.log(`ระดับเท้าอ้างอิง y=${idleFeet.y}, กึ่งกลางเท้า x=${idleFeet.centerX}`)
 
+  // สลับให้ทิศฝั่งขวาใช้ภาพพลิกกระจกของฝั่งซ้าย (ดูเหตุผลที่ MIRROR_FROM)
+  const byKey = new Map(frames.map((frame) => [`${frame.direction}-${frame.index}`, frame]))
+  const outputs = frames.map((frame) => {
+    const sourceDirection = MIRROR_FROM[frame.direction]
+    const origin = sourceDirection ? byKey.get(`${sourceDirection}-${frame.index}`) : null
+    if (!origin) return { ...frame, mirror: false }
+    return { direction: frame.direction, index: frame.index, cell: origin.cell, feet: origin.feet, mirror: true }
+  })
+
   await mkdir(OUT_DIR, { recursive: true })
   const written = []
-  for (const { direction, index, cell, feet } of frames) {
+  for (const { direction, index, cell, feet, mirror } of outputs) {
     const { bbox } = cell
     const cropW = bbox.maxX - bbox.minX + 1
     const cropH = bbox.maxY - bbox.minY + 1
     const scaledW = Math.max(1, Math.round(cropW * scale))
     const scaledH = Math.max(1, Math.round(cropH * scale))
 
-    const sprite = await sharp(cell.buffer, {
+    const base = sharp(cell.buffer, {
       raw: { width: cell.width, height: cell.height, channels: 4 },
     })
       .extract({ left: bbox.minX, top: bbox.minY, width: cropW, height: cropH })
       .resize(scaledW, scaledH, { kernel: 'lanczos3' })
-      .png()
-      .toBuffer()
+    const sprite = await (mirror ? base.flop() : base).png().toBuffer()
 
     // ยึดตำแหน่งด้วย "เท้า" ไม่ใช่กรอบภาพ — เท้าต้องอยู่ระดับพื้นเดียวกันทุกเฟรม
     // ไม่งั้นเฟรมที่คราดยื่นต่ำจะดันตัวละครลอยขึ้น กลายเป็นเดินแล้วตัวเด้ง
     const feetInSprite = (feet.y - bbox.minY + 0.5) * scale
-    const feetCenterInSprite = (feet.centerX - bbox.minX) * scale
+    const rawFeetCenter = (feet.centerX - bbox.minX) * scale
+    // ภาพที่พลิกกระจกแล้ว จุดกึ่งกลางเท้าย้ายไปอยู่อีกฝั่งของภาพ ต้องกลับด้านตาม
+    const feetCenterInSprite = mirror ? scaledW - rawFeetCenter : rawFeetCenter
     const left = Math.round(idleFeet.centerX - feetCenterInSprite)
     const top = Math.round(idleFeet.y - feetInSprite)
 
