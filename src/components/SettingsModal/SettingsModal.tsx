@@ -139,7 +139,11 @@ export function SettingsModal({
             key="coupon"
             onRedeem={async (code) => {
               const result = await onRedeemCoupon(code)
-              showToast(result.ok ? `แลกโค้ดสำเร็จ ได้หยก +${result.amount}` : result.error)
+              if (result.ok) {
+                showToast(`แลกโค้ดสำเร็จ ได้หยก +${result.amount}`, 'currency')
+              } else {
+                showToast(result.error, 'error')
+              }
               return result.ok
             }}
           />
@@ -206,7 +210,7 @@ function GameInfoPanel({
         className={styles.exportSave}
         onClick={async () => {
           const error = await onExportSave()
-          if (error) showToast(error)
+          if (error) showToast(error, 'error')
         }}
       >
         ส่งออก save เป็นไฟล์

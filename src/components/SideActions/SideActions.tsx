@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { PlayerBadges } from '../../types/player'
+import { playSfx } from '../../lib/audio/AudioEngine'
 import { formatBadge } from '../../lib/format'
 import { publicUrl } from '../../lib/publicUrl'
 import { useToast } from '../Toast/useToast'
@@ -37,7 +38,10 @@ export function SideActions({ badges, onOpenSettings, onOpenAddFriend }: SideAct
           type="button"
           className={styles.action}
           data-action={action.id}
-          onClick={action.onClick}
+          onClick={() => {
+            void playSfx('buttonClick')
+            action.onClick()
+          }}
           aria-label={action.count ? `${action.label} มี ${action.count} รายการใหม่` : action.label}
         >
           <span className={styles.actionLabel}>{action.label}</span>

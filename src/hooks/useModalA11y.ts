@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { MouseEvent as ReactMouseEvent } from 'react'
+import { playSfx } from '../lib/audio/AudioEngine'
 
 /** เลือก element ที่ tab ไปหาได้จริงในเบราว์เซอร์ — ตัด [tabindex="-1"] ออก (นั่นคือตัว shell เอง) */
 const FOCUSABLE_SELECTOR =
@@ -33,6 +34,7 @@ export function useModalA11y<T extends HTMLElement>(onClose: () => void) {
   useEffect(() => {
     previouslyFocused.current = document.activeElement as HTMLElement | null
     shellRef.current?.focus()
+    void playSfx('modalOpen')
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -68,6 +70,9 @@ export function useModalA11y<T extends HTMLElement>(onClose: () => void) {
       window.removeEventListener('keydown', onKeyDown)
       // คืนโฟกัสให้ element ที่เปิด modal นี้ไว้ (ปุ่มเมนู ฯลฯ) แทนที่จะปล่อยลอย
       previouslyFocused.current?.focus?.()
+      // unmount cleanup รันครั้งเดียวเสมอไม่ว่าจะปิดผ่านทางไหน (Escape/backdrop/ปุ่ม X) —
+      // จุดเดียวที่ครอบคลุมทุกเส้นทางปิดโดยไม่ต้องแก้ทุก modal ที่เรียก onClose ตรง ๆ เอง
+      void playSfx('modalClose')
     }
   }, [])
 
