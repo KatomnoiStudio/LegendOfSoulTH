@@ -1,6 +1,16 @@
+import { ENEMY_ATTACK, isActiveWindow } from './attacks'
 import type { RealtimeBattleState } from './createRealtimeBattle'
+import { applyDamage, type RandomFn } from './DamageSystem'
 import { createEnemyBrain, stepEnemyAI, type EnemyBrain } from './EnemyAISystem'
-import { resolveCircleOverlap, stepMovement } from './MovementSystem'
+import { findHitTargets } from './HitboxSystem'
+import { clampToArena, resolveCircleOverlap, stepMovement } from './MovementSystem'
+import {
+  createPlayerCombatState,
+  isAttacking,
+  startAttack,
+  stepPlayerCombat,
+  type PlayerCombatState,
+} from './PlayerCombatSystem'
 import type {
   BattleEffectEvent,
   DamageEvent,
@@ -49,9 +59,17 @@ export class RealtimeBattleRuntime {
    * และมันถูกคัดลอกลง snapshot ทุกครั้งที่ publish — สถานะ AI ไม่ควรไหลไปถึง React
    */
   private brains = new Map<string, EnemyBrain>()
+  /** สถานะท่าโจมตีของผู้เล่น */
+  private playerCombat: PlayerCombatState = createPlayerCombatState()
+  /** ผู้เล่นสั่งโจมตีค้างไว้ รอให้เฟรมจำลองถัดไปหยิบไปใช้ */
+  private attackRequested = false
+  /** ตัวสุ่มที่ระบบดาเมจใช้ — เทสต์ป้อนค่าคงที่เข้ามาแทนได้ */
+  private random: RandomFn
+  private eventCounter = 0
 
-  constructor(state: RealtimeBattleState) {
+  constructor(state: RealtimeBattleState, random: RandomFn = Math.random) {
     this.state = state
+    this.random = random
     this.snapshot = this.buildSnapshot()
   }
 
@@ -76,10 +94,22 @@ export class RealtimeBattleRuntime {
     this.tickTimers(state.player, deltaMs)
     for (const enemy of state.enemies) this.tickTimers(enemy, deltaMs)
 
-    const moved = stepMovement(state.player, this.moveInput, deltaMs, {
-      stage: state.stage,
-      blockers: state.enemies,
-    })
+    this.stepPlayerAttack(deltaMs)
+
+    /*
+      อยู่ในท่าโจมตี = ขยับไม่ได้
+
+      สเปกข้อ 11 เปิดช่องให้ "ลดความเร็วขณะโจมตี" ก็ได้ แต่ท่าของหงอคงสั้นมาก (380 ms)
+      การให้เลื่อนตัวได้ระหว่างนั้นทำให้ hitbox ลากตามตัวไปด้วยจนระยะโจมตีเพี้ยน
+      จึงเลือกหยุดสนิทระหว่างท่า ซึ่งเป็นแบบที่เกม hack & slash ส่วนใหญ่ใช้
+    */
+    const moved = isAttacking(this.playerCombat)
+      ? false
+      : stepMovement(state.player, this.moveInput, deltaMs, {
+          stage: state.stage,
+          blockers: state.enemies,
+        })
+
     // สถานะเดิน/ยืน คุมจากผลของระบบเดินจุดเดียว ไม่ให้ component เดาเอง
     if (state.player.state === 'idle' && moved) state.player.state = 'walk'
     else if (state.player.state === 'walk' && !moved) state.player.state = 'idle'
@@ -97,6 +127,109 @@ export class RealtimeBattleRuntime {
   }
 
   /**
+   * เดินท่าโจมตีของผู้เล่น แล้วลงดาเมจถ้าอยู่ใน active frame
+   *
+   * คำสั่งโจมตีถูกเก็บเป็นธงไว้ก่อน (`attackRequested`) แล้วค่อยหยิบใช้ในเฟรมจำลอง
+   * ไม่ลงมือทันทีตอนกดปุ่ม — เพราะการกดปุ่มเกิดใน event ของเบราว์เซอร์ซึ่งไม่ตรงกับ
+   * จังหวะ fixed-step ถ้าลงมือทันทีผลจะต่างกันไปตามเฟรมเรตของแต่ละเครื่อง
+   */
+  private stepPlayerAttack(deltaMs: number): void {
+    const state = this.state
+
+    if (this.attackRequested) {
+      this.attackRequested = false
+      startAttack(state.player, this.playerCombat)
+    }
+
+    const tick = stepPlayerCombat(state.player, this.playerCombat, deltaMs)
+    if (!tick.hitboxActive || !tick.attack) return
+
+    const targets = findHitTargets(state.enemies, {
+      attacker: state.player,
+      attack: tick.attack,
+      alreadyHit: this.playerCombat.hitTargets,
+      elapsedMs: state.elapsedMs,
+    })
+
+    for (const target of targets) {
+      this.playerCombat.hitTargets.add(target.id)
+      const outcome = applyDamage({
+        attacker: state.player,
+        target,
+        attack: tick.attack,
+        elapsedMs: state.elapsedMs,
+        random: this.random,
+      })
+
+      state.damageDealt += outcome.amount
+      // การกระเด็นดันเป้าหมายออกไปได้ไกล ต้องดึงกลับเข้าห้องเสมอ
+      target.position = clampToArena(target.position, target.collisionRadius, state.stage)
+
+      if (outcome.defeated && !state.defeatedEnemyIds.includes(target.id)) {
+        state.defeatedEnemyIds.push(target.id)
+      }
+
+      this.pushDamageEvent(target, outcome.amount, outcome.critical)
+      this.publish()
+    }
+  }
+
+  /** ศัตรูลงดาเมจใส่ผู้เล่นเมื่อท่าของมันเข้าสู่ active frame */
+  private resolveEnemyAttack(enemy: RealtimeBattleEntity, brain: EnemyBrain): void {
+    const state = this.state
+
+    if (brain.state !== 'attack') {
+      brain.hitTargets.clear()
+      return
+    }
+
+    if (!isActiveWindow(ENEMY_ATTACK, brain.stateElapsedMs)) return
+
+    const targets = findHitTargets([state.player], {
+      attacker: enemy,
+      attack: ENEMY_ATTACK,
+      alreadyHit: brain.hitTargets,
+      elapsedMs: state.elapsedMs,
+    })
+
+    for (const target of targets) {
+      brain.hitTargets.add(target.id)
+      const outcome = applyDamage({
+        attacker: enemy,
+        target,
+        attack: ENEMY_ATTACK,
+        elapsedMs: state.elapsedMs,
+        random: this.random,
+      })
+
+      state.damageTaken += outcome.amount
+      target.position = clampToArena(target.position, target.collisionRadius, state.stage)
+      this.pushDamageEvent(target, outcome.amount, outcome.critical)
+      this.publish()
+    }
+  }
+
+  private pushDamageEvent(target: RealtimeBattleEntity, amount: number, critical: boolean): void {
+    this.eventCounter += 1
+    this.damageEvents = [
+      ...this.damageEvents,
+      {
+        id: `dmg-${this.eventCounter}`,
+        targetId: target.id,
+        amount,
+        critical,
+        position: { ...target.position },
+        createdAtMs: this.state.elapsedMs,
+      },
+    ]
+  }
+
+  /** สั่งให้ผู้เล่นโจมตีในเฟรมจำลองถัดไป */
+  requestAttack(): void {
+    this.attackRequested = true
+  }
+
+  /**
    * เดินสมองศัตรูทุกตัว แล้วส่งทิศที่มันอยากไปให้ระบบเดินตัวเดียวกับผู้เล่น
    *
    * ศัตรูกันทางกันเองและกันผู้เล่นด้วย จึงใส่ทั้งกองเป็น blockers ยกเว้นตัวที่กำลังเดินอยู่
@@ -108,6 +241,7 @@ export class RealtimeBattleRuntime {
     for (const enemy of state.enemies) {
       const brain = this.brainFor(enemy.id)
       const decision = stepEnemyAI(enemy, brain, state.player, deltaMs)
+      this.resolveEnemyAttack(enemy, brain)
 
       if (decision.move.x === 0 && decision.move.y === 0) {
         enemy.velocity = { x: 0, y: 0 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import WebGL from 'three/addons/capabilities/WebGL.js'
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
@@ -6,6 +6,9 @@ import type { RealtimeBattleSnapshot, Vec2 } from '../../game/realtimeBattle/typ
 import { BattleArena } from './BattleArena'
 import { BattleControls } from './BattleControls'
 import { BattleHud } from './BattleHud'
+import { DamageNumberLayer } from './DamageNumberLayer'
+import { EnemyHealthBar } from './EnemyHealthBar'
+import { ScreenProjector, type ScreenProjection } from './ScreenProjector'
 import styles from './BattleScene.module.css'
 
 /**
@@ -19,15 +22,24 @@ export function RealtimeBattleRoom({
   snapshot,
   onExit,
   onMove,
+  onAttack,
 }: {
   runtime: RealtimeBattleRuntime
   snapshot: RealtimeBattleSnapshot
   onExit: () => void
   onMove: (vector: Vec2) => void
+  onAttack: () => void
 }) {
   const [webglAvailable] = useState(() => WebGL.isWebGL2Available())
   const [contextLost, setContextLost] = useState(false)
   const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null)
+
+  /*
+    ฟังก์ชันฉายพิกัดโลก → ตำแหน่งบนจอ ถูกเขียนโดย ScreenProjector ที่อยู่ข้างใน Canvas
+    แล้วชั้น DOM ข้างนอก (เลขดาเมจ / หลอดเลือด) อ่านผ่าน ref เดียวกันนี้
+    ใช้ ref ไม่ใช่ state เพราะมันถูกเขียนใหม่ทุกเฟรม
+  */
+  const projection = useRef<ScreenProjection>({ project: null })
 
   /*
     ผูก/ถอด listener ของ WebGL context ใน effect ไม่ใช่ผูกทิ้งไว้ตอน onCreated
@@ -88,10 +100,14 @@ export function RealtimeBattleRoom({
         onCreated={({ gl }) => setCanvasElement(gl.domElement)}
       >
         <BattleArena runtime={runtime} />
+        <ScreenProjector stage={runtime.getState().stage} projection={projection} />
       </Canvas>
 
+      <EnemyHealthBar runtime={runtime} projection={projection} />
+      <DamageNumberLayer runtime={runtime} projection={projection} />
+
       <BattleHud snapshot={snapshot} onExit={onExit} />
-      <BattleControls onMove={onMove} />
+      <BattleControls onMove={onMove} onAttack={onAttack} />
 
       {snapshot.status === 'intro' ? (
         <div className={styles.introBanner} aria-live="polite">

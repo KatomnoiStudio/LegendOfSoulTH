@@ -235,3 +235,81 @@
   .joystickBase { width: 104px; height: 104px; }
   .joystickKnob { width: 46px; height: 46px; margin: -23px 0 0 -23px; }
 }
+
+.controlsRight {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-3);
+}
+
+.attackBtn {
+  pointer-events: auto;
+  /* ปุ่มโจมตีต้องใหญ่ที่สุดบนจอ (§12) */
+  width: 116px;
+  height: 116px;
+  border-radius: 50%;
+  border: 2px solid var(--c-ember);
+  background: radial-gradient(circle at 50% 35%, rgb(255 140 90 / 55%), rgb(120 34 20 / 88%));
+  color: var(--c-gold-light);
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  box-shadow: var(--shadow-2);
+  transition: transform 90ms var(--ease-out);
+}
+
+.attackBtn:active {
+  transform: scale(0.94);
+}
+
+@media (max-height: 480px) {
+  .attackBtn { width: 96px; height: 96px; font-size: 0.95rem; }
+}
+
+/* ── ชั้นข้อมูลที่ลอยทับฉาก ─────────────────────────────── */
+
+.damageLayer,
+.enemyBarLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.damageNumber {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: clamp(1rem, 2.2vw, 1.5rem);
+  font-weight: 900;
+  color: var(--c-gold-light);
+  text-shadow: 0 2px 6px rgb(0 0 0 / 85%);
+  font-variant-numeric: tabular-nums;
+  will-change: opacity, transform;
+}
+
+.damageNumber[data-critical='true'] {
+  color: #ff9b7d;
+  font-size: clamp(1.2rem, 2.8vw, 1.9rem);
+}
+
+.enemyBar {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 7px;
+  border-radius: var(--r-pill);
+  border: 1px solid rgb(0 0 0 / 55%);
+  background: rgb(0 0 0 / 55%);
+  overflow: hidden;
+  will-change: opacity, left, top;
+}
+
+.enemyBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6a5c, #ffb073);
+}
