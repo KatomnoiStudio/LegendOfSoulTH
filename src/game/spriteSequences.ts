@@ -24,12 +24,12 @@ export interface SpriteSequence {
 
 /** ช่วยสร้างรายชื่อไฟล์เฟรมที่ตั้งชื่อเรียงเลขต่อกัน (ผ่าน publicUrl เสมอ ดู src/lib/publicUrl.ts) */
 function frames(prefix: string, count: number): string[] {
-  return Array.from({ length: count }, (_, index) => publicUrl(`characters/${prefix}-${index}.png`))
+  return Array.from({ length: count }, (_, index) => publicUrl(`characters/${prefix}-${index}.webp`))
 }
 
 /** ชุดเฟรมหมุน 8 ทิศของตัวละครหนึ่งตัว */
 function turnFrames(prefix: string): string[] {
-  return Array.from({ length: 8 }, (_, index) => publicUrl(`characters/turnaround/${prefix}-${index}.png`))
+  return Array.from({ length: 8 }, (_, index) => publicUrl(`characters/turnaround/${prefix}-${index}.webp`))
 }
 
 /**

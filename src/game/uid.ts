@@ -45,10 +45,25 @@ function randomDigits(count: number): number[] {
   return digits
 }
 
+/**
+ * สุ่มหลักแรกให้เป็น 1–9 แบบ uniform จริง (rejection sampling เหมือน randomDigits
+ * แต่ทิ้งค่า 0 เพิ่มด้วย — การ map 0–9 เป็น 1–9 ด้วย %9+1 ทำให้เลข 1 ออกถี่กว่าตัวอื่น 2 เท่า
+ * เพราะทั้ง 0 และ 9 map ไปที่ 1)
+ */
+function randomFirstDigit(): number {
+  while (true) {
+    const byte = new Uint8Array(1)
+    crypto.getRandomValues(byte)
+    if (byte[0] < 250) {
+      const digit = byte[0] % 10
+      if (digit !== 0) return digit
+    }
+  }
+}
+
 /** สร้าง UID ดิบหนึ่งค่า — หลักแรกเป็น 1–9 เสมอ จึงได้ 10 หลักครบทุกครั้ง */
 function draw(): string {
-  const digits = randomDigits(UID_LENGTH)
-  digits[0] = (digits[0] % 9) + 1
+  const digits = [randomFirstDigit(), ...randomDigits(UID_LENGTH - 1)]
   return digits.join('')
 }
 

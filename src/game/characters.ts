@@ -67,7 +67,7 @@ export const ROSTER: Character[] = [
     stats: { hp: 1180, atk: 92, def: 78, spd: 96 },
     model: {
       kind: 'monkey-king',
-      spriteUrl: publicUrl('characters/monkey-v2-idle-0.png'),
+      spriteUrl: publicUrl('characters/monkey-v2-idle-0.webp'),
       accent: '#ffd765',
     },
   },
@@ -86,7 +86,7 @@ export const ROSTER: Character[] = [
     stats: { hp: 1420, atk: 98, def: 84, spd: 71 },
     model: {
       kind: 'pig-warrior',
-      spriteUrl: publicUrl('characters/pigsy-idle-0.png'),
+      spriteUrl: publicUrl('characters/pigsy-idle-0.webp'),
       accent: '#7ee0ff',
     },
   },
@@ -105,7 +105,7 @@ export const ROSTER: Character[] = [
     stats: { hp: 980, atk: 95, def: 70, spd: 88 },
     model: {
       kind: 'pilgrim-monk',
-      spriteUrl: publicUrl('characters/tripitaka-idle-0.png'),
+      spriteUrl: publicUrl('characters/tripitaka-idle-0.webp'),
       accent: '#fff0a2',
     },
   },

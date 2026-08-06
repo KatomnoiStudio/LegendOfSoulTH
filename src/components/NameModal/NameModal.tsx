@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useModalA11y } from '../../hooks/useModalA11y'
 import styles from './NameModal.module.css'
 
 /** ความยาวชื่อตัวละครที่ยอมรับได้ */
@@ -27,6 +28,8 @@ export function NameModal({ onConfirm }: NameModalProps) {
   const [touched, setTouched] = useState(false)
   const [blocked, setBlocked] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  // focus trap เท่านั้น — ปิดไม่ได้โดยตั้งใจ (ดูคอมเมนต์หัวไฟล์) จึงส่ง onClose เป็น no-op
+  const { shellRef, backdropProps } = useModalA11y<HTMLFormElement>(() => {})
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -55,12 +58,14 @@ export function NameModal({ onConfirm }: NameModalProps) {
       : `${MIN_LENGTH}–${MAX_LENGTH} ตัวอักษร (ห้ามใช้อักขระพิเศษ)`
 
   return (
-    <div className={styles.backdrop}>
+    <div className={styles.backdrop} {...backdropProps}>
       <form
+        ref={shellRef}
         className={styles.dialog}
         role="dialog"
         aria-modal="true"
         aria-labelledby="name-modal-title"
+        tabIndex={-1}
         onSubmit={handleSubmit}
       >
         <h2 id="name-modal-title" className={styles.title}>

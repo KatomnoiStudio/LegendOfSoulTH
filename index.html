@@ -2,11 +2,29 @@
 <html lang="th">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!--
+      CSP ผ่าน meta tag เพราะ GitHub Pages ตั้ง custom HTTP header เองไม่ได้ (ไม่มี server ให้ตั้ง)
+      หมายเหตุ: frame-ancestors/report-uri/sandbox ใช้ผ่าน meta ไม่ได้ (ต้องเป็น HTTP header เท่านั้น
+      ตามสเปก) ป้องกัน clickjacking แบบเต็มรูปแบบต้องมี CDN (เช่น Cloudflare) มาคั่นหน้า GH Pages
+      ก่อน — เป็นข้อจำกัดที่ยอมรับของ deploy target นี้ ไม่ใช่ช่องโหว่ที่มองข้าม
+
+      style-src ต้องมี 'unsafe-inline' เพราะแอปนี้ใช้ inline style prop ของ React ใส่ CSS custom
+      property (พื้นหลังรูปที่ต้องต่อกับ Vite base path แบบไดนามิก — ดู src/lib/publicUrl.ts)
+      ทั่วทั้งแอป ไม่มีทางเลี่ยงโดยไม่เขียนใหม่ทั้งระบบ — ความเสี่ยงของ style injection แคบกว่า
+      script injection มาก จึงเป็นข้อแลกเปลี่ยนที่ยอมรับได้
+    -->
     <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self';"
     />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!--
+      ห้ามใส่ user-scalable=no — บล็อก pinch-zoom ทั้งหมด ผิด WCAG 2.2 AA (SC 1.4.4/1.4.10)
+      ตรง ๆ (gold-standard UX audit, 2026-08-06) เช็คแล้วไม่มีอะไรในแอปพึ่งการล็อกซูมนี้
+      (ทุก layout ใช้ vw/vh/responsive ธรรมดา, canvas 3D วัดขนาดจาก ResizeObserver ไม่ใช่ viewport
+      transform) — เอาออกแล้วไม่กระทบอะไร
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#070911" />
     <meta
       name="description"

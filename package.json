@@ -1,18 +1,21 @@
 {
-  "name": "gameturnbase",
+  "name": "legend-of-soul-th",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "build:models": "node tools/build-models.mjs",
+    "build:images": "node tools/optimize-images.mjs",
     "typecheck": "tsc -b",
     "lint": "oxlint",
     "test": "vitest run",
     "audit": "npm audit --audit-level=high",
     "ci": "npm run typecheck && npm run lint && npm run test && npm run build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepare": "husky"
   },
   "browserslist": [
     "last 2 Chrome versions",
@@ -20,6 +23,9 @@
     "last 2 Safari versions",
     "last 2 Edge versions"
   ],
+  "lint-staged": {
+    "*.{ts,tsx}": "oxlint"
+  },
   "dependencies": {
     "@react-three/fiber": "^9.7.0",
     "react": "^19.2.8",
@@ -32,8 +38,11 @@
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.185.3",
     "@vitejs/plugin-react": "^6.0.4",
+    "husky": "^9.1.7",
     "jsdom": "^30.0.1",
+    "lint-staged": "^17.3.0",
     "oxlint": "^1.75.0",
+    "sharp": "^0.35.3",
     "typescript": "~7.0.2",
     "vite": "^8.2.0",
     "vitest": "^4.1.10"

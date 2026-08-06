@@ -4,7 +4,7 @@ import type { Player } from '../../types/player'
 import { getCombatPower } from '../../game/characters'
 import { clampRatio, formatNumber } from '../../lib/format'
 import { publicUrl } from '../../lib/publicUrl'
-import { GemShopModal } from '../GemShopModal/GemShopModal'
+import { CurrencyShopModal, type ShopCurrency } from '../CurrencyShopModal/CurrencyShopModal'
 import { PlusIcon } from '../icons/GameIcons'
 import { AvatarFrame } from './AvatarFrame'
 import { CommanderAvatar } from './CommanderAvatar'
@@ -13,21 +13,24 @@ import styles from './TopBar.module.css'
 // url('/ui/...') ตรง ๆ ใน CSS ชี้ผิดที่ตอน deploy ขึ้น subpath (ดู src/lib/publicUrl.ts) —
 // ส่งเข้าไปเป็น CSS custom property แทน
 const BG_NAGA_STYLE: CSSProperties = {
-  ['--bg-naga' as string]: `url(${publicUrl('ui/thai/naga-profile-frame.png')})`,
+  ['--bg-naga' as string]: `url(${publicUrl('ui/thai/naga-profile-frame.webp')})`,
 }
 
 interface TopBarProps {
   player: Player
   /** กดที่โปรไฟล์เพื่อเปิดหน้าต่างรายละเอียด */
   onOpenProfile: () => void
+  /** เติมทองด้วยเงินจริง */
+  onTopUpGold: (packageId: string) => Promise<CurrencyResult>
   /** เติมหยกด้วยเงินจริง */
   onTopUpGems: (packageId: string) => Promise<CurrencyResult>
 }
 
-export function TopBar({ player, onOpenProfile, onTopUpGems }: TopBarProps) {
+export function TopBar({ player, onOpenProfile, onTopUpGold, onTopUpGems }: TopBarProps) {
   const expRatio = clampRatio(player.exp, player.expToNext)
   const combatPower = getCombatPower(player.ownedCharacters)
-  const [gemShopOpen, setGemShopOpen] = useState(false)
+  /** currency ที่กำลังเติมอยู่ — null แปลว่าปิด modal */
+  const [shopCurrency, setShopCurrency] = useState<ShopCurrency | null>(null)
 
   // เติมแถบ EXP จาก 0 ตอนเข้าหน้า ให้รู้สึกมีชีวิต
   const [fill, setFill] = useState(0)
@@ -76,30 +79,30 @@ export function TopBar({ player, onOpenProfile, onTopUpGems }: TopBarProps) {
 
       <div className={styles.wallet}>
         <span className={styles.walletLabel}>คลังสมบัติ</span>
-        {/*
-          กด "+" ที่ทองไม่ได้เพิ่มทองตรง ๆ (ทองมาจากเควส/ของดรอปเท่านั้น) แค่พาไปหน้าเติมเงิน
-          เหมือนปุ่ม "+" ของหยก — ใช้ modal เดียวกัน เพราะเป็นทางเข้าซื้อของจริงทางเดียวที่มี
-        */}
         <CurrencyPill
           tone={styles.gold}
-          icon={<img className={styles.currencyIcon} src={publicUrl('ui/thai/gold-ingot.png')} alt="" draggable={false} />}
+          icon={<img className={styles.currencyIcon} src={publicUrl('ui/thai/gold-ingot.webp')} alt="" draggable={false} />}
           label="ทอง"
           value={player.currency.gold}
-          addLabel="ไปหน้าเติมเงิน"
-          onAdd={() => setGemShopOpen(true)}
+          addLabel="เติมทอง"
+          onAdd={() => setShopCurrency('gold')}
         />
         <CurrencyPill
           tone={styles.gem}
-          icon={<img className={styles.currencyIcon} src={publicUrl('ui/thai/jade.png')} alt="" draggable={false} />}
+          icon={<img className={styles.currencyIcon} src={publicUrl('ui/thai/jade.webp')} alt="" draggable={false} />}
           label="หยก"
           value={player.currency.gem}
           addLabel="เติมหยก"
-          onAdd={() => setGemShopOpen(true)}
+          onAdd={() => setShopCurrency('gem')}
         />
       </div>
 
-      {gemShopOpen ? (
-        <GemShopModal onBuy={onTopUpGems} onClose={() => setGemShopOpen(false)} />
+      {shopCurrency ? (
+        <CurrencyShopModal
+          currency={shopCurrency}
+          onBuy={shopCurrency === 'gold' ? onTopUpGold : onTopUpGems}
+          onClose={() => setShopCurrency(null)}
+        />
       ) : null}
     </header>
   )

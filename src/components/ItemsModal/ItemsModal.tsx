@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from 'react'
+import { useModalA11y } from '../../hooks/useModalA11y'
 import {
   ITEM_CATEGORY_LABEL,
   ITEM_RARITY_COLOR,
@@ -41,6 +42,9 @@ const FILTERS: { id: FilterId; label: string }[] = [
 export function ItemsModal({ player, onClose }: ItemsModalProps) {
   const [filter, setFilter] = useState<FilterId>('all')
 
+  // Esc, backdrop-click, focus trap, คืนโฟกัสตอนปิด — รวมไว้ที่ useModalA11y ตัวเดียว
+  const { shellRef, backdropProps } = useModalA11y<HTMLDivElement>(onClose)
+
   // ข้ามช่องที่อ้าง itemId ที่ไม่มีในทะเบียนแล้ว (เช่น ไอเทมถูกถอดออกจากเกม)
   const owned: ResolvedItem[] = (player.inventory ?? []).flatMap((slot) => {
     const definition = getItem(slot.itemId)
@@ -50,13 +54,15 @@ export function ItemsModal({ player, onClose }: ItemsModalProps) {
   const shown = filter === 'all' ? owned : owned.filter((it) => it.definition.category === filter)
 
   return (
-    <div
-      className={styles.backdrop}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose()
-      }}
-    >
-      <div className={styles.dialog} role="dialog" aria-modal="true" aria-label="ไอเทม">
+    <div className={styles.backdrop} {...backdropProps}>
+      <div
+        ref={shellRef}
+        className={styles.dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-label="ไอเทม"
+        tabIndex={-1}
+      >
         <header className={styles.header}>
           <ItemBagIcon className={styles.headerIcon} />
           <h2 className={styles.headerTitle}>ไอเทม</h2>
