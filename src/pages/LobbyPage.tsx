@@ -12,6 +12,7 @@ import {
   SettingsModal,
   type AudioSettings,
 } from '../components/SettingsModal/SettingsModal'
+import { getAudioSettings, setAudioSettings } from '../lib/audio/AudioEngine'
 import { SideActions } from '../components/SideActions/SideActions'
 import { StartAdventure } from '../components/StartAdventure/StartAdventure'
 import { TopBar } from '../components/TopBar/TopBar'
@@ -88,13 +89,12 @@ export function LobbyPage({
   const [explorationOpen, setExplorationOpen] = useState(false)
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [itemsOpen, setItemsOpen] = useState(false)
-  // เก็บค่าเสียงไว้ที่นี่เพื่อให้ค่าคงอยู่หลังปิดหน้าต่างตั้งค่า
-  const [audio, setAudio] = useState<AudioSettings>({
-    master: 70,
-    music: 60,
-    sfx: 80,
-    muted: false,
-  })
+  // ค่าเริ่มต้นอ่านจาก engine (persist ผ่าน localStorage) — เก็บ mirror ไว้ที่นี่แค่ให้ React re-render
+  const [audio, setAudio] = useState<AudioSettings>(getAudioSettings())
+  const handleAudioChange = (next: AudioSettings) => {
+    setAudioSettings(next)
+    setAudio(next)
+  }
 
   return (
     <main className={styles.page}>
@@ -168,7 +168,7 @@ export function LobbyPage({
       {settingsOpen ? (
         <SettingsModal
           audio={audio}
-          onAudioChange={setAudio}
+          onAudioChange={handleAudioChange}
           onLogout={onLogout}
           onRedeemCoupon={onRedeemCoupon}
           ownedCharacterCount={ownedCharacters.length}

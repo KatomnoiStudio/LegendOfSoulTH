@@ -2,6 +2,7 @@ import { useState, type FormEvent, type ReactNode } from 'react'
 import type { CurrencyResult } from '../../data/accountRepository'
 import { useModalA11y } from '../../hooks/useModalA11y'
 import { GAME_INFO } from '../../game/gameInfo'
+import { type AudioChannel, type AudioSettings } from '../../lib/audio/AudioEngine'
 import {
   CouponIcon,
   InfoIcon,
@@ -24,17 +25,7 @@ const COUPON_DISALLOWED = /[^A-Z0-9]/g
 const COUPON_MIN_LENGTH = 4
 const COUPON_MAX_LENGTH = 16
 
-/** ช่องเสียงที่ปรับแยกกันได้ */
-export type AudioChannel = 'master' | 'music' | 'sfx'
-
-export interface AudioSettings {
-  /** ระดับเสียงของแต่ละช่อง 0–100 */
-  master: number
-  music: number
-  sfx: number
-  /** ปิดเสียงทั้งหมด — ทับค่าทั้งสามช่องโดยไม่ลบค่าที่ตั้งไว้ */
-  muted: boolean
-}
+export type { AudioChannel, AudioSettings }
 
 const CHANNELS: { id: AudioChannel; label: string }[] = [
   { id: 'master', label: 'เสียงหลัก' },
