@@ -21,7 +21,7 @@
 
 /* เมนูด่วนลายไทย — ใช้ภาพไอคอนวาดมือแทนสัญลักษณ์เส้น */
 /* ยกแถบเมนูด่วนขึ้นให้พ้นปุ่มราหูและใกล้ระดับคลังสมบัติมากขึ้น */
-.column { --quick-icon-size: 48px; gap: var(--quick-icon-size); translate: 0 -122px; }
+.column { --quick-icon-size: 38px; gap: var(--quick-icon-size); translate: 0 -122px; }
 .column::before {
   right: clamp(2px, 0.55vw, 9px);
   width: 2px;
@@ -35,7 +35,7 @@
   letter-spacing: 0.13em;
   text-shadow: 0 2px 5px #000;
 }
-.action { min-width: 57px; min-height: 57px; }
+.action { min-width: 45px; min-height: 45px; }
 .iconPlate {
   width: var(--quick-icon-size);
   height: var(--quick-icon-size);
