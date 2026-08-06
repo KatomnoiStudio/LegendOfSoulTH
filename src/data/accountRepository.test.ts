@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, test } from 'vitest'
-import { getSessionPlayer, importSave, login, register } from './accountRepository'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { getSessionPlayer, importSave, login, register, savePlayer } from './accountRepository'
 
 /*
   ไฟล์ save ที่นำเข้ามาคือข้อมูลจากภายนอกที่ผู้เล่นแก้เองได้ทั้งก้อน
@@ -84,5 +84,40 @@ describe('accounts — สถานะไม่รั่วข้ามการ
 
     const relogin = await login('ghost@b.co', 'passw0rd!')
     expect(relogin.ok).toBe(false)
+  })
+})
+
+/*
+  ผู้เล่นเปิดเกมพร้อมกันสองแท็บได้ (localStorage ใช้ร่วมกันทั้งเบราว์เซอร์) — saveDb ต้องปฏิเสธ
+  การเขียนทับถ้าอีกแท็บเขียนแซงไปแล้วตั้งแต่ตอนแท็บนี้ loadDb ไม่งั้นข้อมูลของแท็บที่เขียน
+  ก่อนหายไปเงียบ ๆ โดยไม่มีอะไรบอก (resilience-canary, 2026-08-07)
+*/
+describe('saveDb — เขียนชนกันข้ามแท็บต้องไม่ทับข้อมูลกันเงียบ ๆ', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  test('แท็บ A ถือสำเนาเก่าไว้ระหว่างแท็บ B เขียนแซง — แท็บ A save ไม่ผ่าน ข้อมูลแท็บ B ไม่ถูกทับ', async () => {
+    const registered = await register('race@b.co', 'passw0rd!')
+    expect(registered.ok).toBe(true)
+    if (!registered.ok) return
+
+    // แท็บ A "ถือ" สำเนาฐานข้อมูล ณ ตอนสมัครเสร็จไว้ในมือ (rev ก่อนแท็บ B เขียน)
+    const staleRaw = localStorage.getItem('los:db:v1')
+    expect(staleRaw).not.toBeNull()
+
+    // แท็บ B เขียนสำเร็จไปแล้วจริง ๆ ก่อนแท็บ A — rev ขยับขึ้นในสตอเรจจริง
+    const tabB = await savePlayer({ ...registered.player, name: 'จากแท็บ B' })
+    expect(tabB).toBe(true)
+
+    // แท็บ A save ด้วยสำเนาที่ค้างอยู่ในมือ — เลียนแบบ race จริงด้วยการทำให้ getItem
+    // ครั้งแรก (loadDb ภายใน savePlayer ของแท็บ A) เห็นสำเนาเก่าที่ยึดไว้ตอนต้น ส่วน getItem
+    // ครั้งถัดไป (การเช็ค rev ปัจจุบันข้างใน saveDb) อ่านค่าจริงบน localStorage ตามปกติ
+    const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementationOnce(() => staleRaw)
+    const tabA = await savePlayer({ ...registered.player, name: 'จากแท็บ A' })
+    spy.mockRestore()
+
+    expect(tabA).toBe(false)
+    expect((await getSessionPlayer())?.name).toBe('จากแท็บ B')
   })
 })

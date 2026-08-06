@@ -70,6 +70,11 @@ interface StoredAccount {
 
 interface Database {
   version: 1
+  /**
+   * ตัวนับรุ่นการเขียน — ไม่ใช่เลข schema version ด้านบน คนละเรื่องกัน
+   * saveDb ใช้เทียบว่ามีแท็บอื่นเขียนแซงไปตั้งแต่ตอน loadDb หรือยัง (ดู saveDb)
+   */
+  rev: number
   /** คีย์เป็นอีเมลตัวพิมพ์เล็ก — บังคับความไม่ซ้ำของอีเมลโดยตัวโครงสร้างเอง */
   accounts: Record<string, StoredAccount>
 }
@@ -98,29 +103,46 @@ function loadDb(): Database {
   if (!raw) {
     // ไม่มีอะไรเก็บไว้ — เบราว์เซอร์ใหม่ เขียนทับได้ตามปกติ
     unreadableDb = false
-    return { version: 1, accounts: {} }
+    return { version: 1, rev: 0, accounts: {} }
   }
 
   if (raw.version !== 1 || typeof raw.accounts !== 'object') {
     unreadableDb = true
     reportError('DB_VERSION_UNSUPPORTED', 'visible', undefined, { version: raw.version })
-    return { version: 1, accounts: {} }
+    return { version: 1, rev: 0, accounts: {} }
   }
 
   unreadableDb = false
-  return raw
+  // ข้อมูลเก่าก่อนมีฟิลด์นี้ไม่มี rev เลย — ถือเป็น 0 (เข้ากันได้กับของเดิมโดยไม่ต้อง migrate)
+  return { ...raw, rev: raw.rev ?? 0 }
 }
 
+/**
+ * บันทึกทับ localStorage — ปฏิเสธการเขียนถ้าอ่านฐานข้อมูลไม่ออก หรือมีแท็บอื่นเขียนแซงไปแล้ว
+ *
+ * ผู้เล่นเปิดเกมพร้อมกันหลายแท็บได้ (localStorage ใช้ร่วมกันทั้งเบราว์เซอร์) ทุกฟังก์ชัน
+ * ในไฟล์นี้ทำ loadDb → แก้สำเนา → saveDb แบบ synchronous ไม่มีช่องให้แท็บอื่นแทรกระหว่างนั้น
+ * ในแท็บเดียว แต่ "ระหว่างแท็บ" คือคนละ thread ของ JS กันเลย — แท็บ A loadDb ตอน rev=5,
+ * แท็บ B ก็ loadDb ตอน rev=5 เหมือนกัน แก้แล้ว save ก่อน (rev กลายเป็น 6) แท็บ A save ทีหลัง
+ * ด้วยข้อมูลที่คำนวณจาก rev=5 เดิม จะทับการเขียนของแท็บ B ทิ้งเงียบ ๆ ถ้าไม่เช็ค
+ *
+ * เทียบ rev ปัจจุบันในสตอเรจกับ rev ที่ db ก้อนนี้เคย loadDb มา — ตรงกันแปลว่าไม่มีใครแซง
+ * เขียนได้ปกติแล้วขยับ rev ขึ้นหนึ่ง ไม่ตรง = แพ้การแข่ง คืน false เข้าช่องทางเดิมที่ผู้เรียก
+ * ทุกรายเช็คอยู่แล้ว (register/login/importSave/savePlayer/earnGold/... ล้วนแปลง false
+ * เป็นข้อความ "บันทึกข้อมูลไม่สำเร็จ") ผู้เล่นเห็นว่าบันทึกไม่ผ่าน แทนที่จะเห็นว่าสำเร็จ
+ * แล้วข้อมูลของแท็บอื่นหายไปเงียบ ๆ — กด "ลองใหม่" (ซึ่งจะ loadDb รุ่นล่าสุดจริง) แก้ได้เอง
+ */
 function saveDb(db: Database): boolean {
-  /*
-    ปฏิเสธการเขียนทับสิ่งที่เราอ่านไม่ออก
-
-    คืน false เข้าช่องทางเดิมที่ผู้เรียกทุกรายเช็คอยู่แล้ว (register/login/importSave/
-    savePlayer/earnGold/... ล้วนแปลง false เป็นข้อความ "บันทึกข้อมูลไม่สำเร็จ") ผู้เล่นจึง
-    เห็นว่าบันทึกไม่ผ่าน แทนที่จะเห็นว่าสำเร็จแล้วข้อมูลเก่าหายไปเงียบ ๆ
-  */
   if (unreadableDb) return false
-  return writeJson(DB_KEY, db)
+
+  const current = readJson<Database>(DB_KEY)
+  const currentRev = current?.rev ?? 0
+  if (db.rev !== currentRev) {
+    reportError('DB_WRITE_CONFLICT', 'silent', undefined, { expected: db.rev, actual: currentRev })
+    return false
+  }
+
+  return writeJson(DB_KEY, { ...db, rev: db.rev + 1 })
 }
 
 function normalizeEmail(email: string): string {

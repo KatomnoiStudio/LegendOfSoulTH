@@ -482,9 +482,18 @@ export class RealtimeBattleRuntime {
     this.moveInput = vector
   }
 
-  /** ขอออกจากห้องต่อสู้ — หยุดจำลองทันที ไม่ให้ระบบใดเดินต่อ */
+  /**
+   * ขอออกจากห้องต่อสู้ — หยุดจำลองทันที ไม่ให้ระบบใดเดินต่อ
+   *
+   * ถ้าผลการต่อสู้ตัดสินแล้ว ('victory'/'defeat') ห้ามทับด้วย 'exiting' — ปุ่มออกยังกดได้
+   * อยู่ระหว่างเฟรมที่ onComplete (useRealtimeBattle) กำลังจะยิง ถ้าทับสถานะตอนนั้น
+   * โค้ดปลายทางที่อ่าน getState().status ซ้ำ (ไม่ใช่แค่ค่าที่ onComplete ส่งไปตอนแรก)
+   * จะเห็น 'exiting' แทนผลจริง
+   */
   requestExit(): void {
-    if (this.state.status === 'exiting') return
+    if (this.state.status === 'exiting' || this.state.status === 'victory' || this.state.status === 'defeat') {
+      return
+    }
     this.state.status = 'exiting'
     this.publish()
   }
