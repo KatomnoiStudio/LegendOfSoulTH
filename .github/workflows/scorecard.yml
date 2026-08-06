@@ -56,9 +56,11 @@ jobs:
         with:
           results_file: results.sarif
           results_format: sarif
-          # ไม่เผยแพร่ผลขึ้น OpenSSF API สาธารณะ — เก็บไว้ดูใน Security tab พอ
-          # เปิดเป็น true เมื่อไหร่ถึงจะได้ badge บน README (ต้องตัดสินใจว่าอยากเปิดเผยคะแนน)
-          publish_results: false
+          # เผยแพร่ผลขึ้น OpenSSF API — repo นี้เป็น public อยู่แล้ว ทุกอย่างที่ Scorecard
+          # ตรวจ (workflow, permissions, action pin, dependabot, branch protection) เปิดให้
+          # ใครก็อ่านได้จาก repo ตรง ๆ อยู่แล้ว การเผยแพร่จึงไม่ได้เปิดเผยอะไรใหม่ แต่ได้
+          # badge ที่ทำให้คะแนนตกแล้วมีคนเห็น ไม่ใช่ตกเงียบ ๆ ใน Security tab ที่ไม่มีใครเปิด
+          publish_results: true
 
       - name: Upload results to Code scanning
         uses: github/codeql-action/upload-sarif@c4dd10e44af883a891fe31ced449bcb4a6728b9b # v3

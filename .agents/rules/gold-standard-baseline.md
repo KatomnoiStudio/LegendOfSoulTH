@@ -48,10 +48,20 @@ stay closed, not as an open checklist). 6 remains the one open gap.
    and no `@testing-library/*` dependency**, so not one of the ~57 interactive React
    components has a rendering-level test. (Compare: excalidraw ships 50+ `.test.tsx`;
    react-three-fiber tests its canvas/events/hooks the same way.) This remains the single
-   biggest real gap; flag it when doing substantial work on any untested component, but
-   don't unilaterally start a large test-writing sweep without asking — that's real
-   effort/scope, gate it. There is also no coverage tooling at all (`@vitest/coverage-*` is
-   not installed), so those 174 tests run with zero visibility into what they actually reach.
+   biggest real gap.
+
+   **Amended 2026-08-07 — this item no longer says "don't start without asking".** It used
+   to, and `.agents/rules/proven-good-do-it-now.md` now supersedes that: a test that pins a
+   bug this project actually hit is a proven-good change, so **write it, don't ask**. What
+   still gets weighed rather than just done is a *sweep* — sitting down to cover 57
+   components on spec. For that, state the cost and what it buys, recommend, and proceed
+   unless told otherwise.
+
+   Coverage tooling now exists (`npm run test:coverage`, `@vitest/coverage-v8`) and reports
+   **24.42% of statements** as of 2026-08-07 — the realtime battle systems and the
+   account/password modules are covered; no React component is. No threshold is enforced
+   yet, deliberately: with every `.tsx` untested, any threshold low enough to pass would be
+   one that guards nothing. Set one once component tests exist.
 
    > Corrected 2026-08-07: this item previously stated "Current coverage is a single file
    > (`src/lib/format.test.ts`, pure functions only)". The conclusion held but the evidence

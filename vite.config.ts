@@ -58,6 +58,19 @@ export default defineConfig(({ command }) => ({
   },
   test: {
     environment: 'jsdom',
+    /*
+      สามไฟล์นี้เป็นเทสต์ของโหมดสำรวจที่ถูกคอมเมนต์ปิดไว้ทั้งกอง (2026-08-07)
+
+      ตัวไฟล์ยังอยู่แต่ข้างในเป็นคอมเมนต์ล้วน vitest จะฟ้อง "No test suite found"
+      ถ้าปล่อยให้เก็บมารัน — เอาออกจากรายการเมื่อไหร่ที่เปิดโหมดสำรวจกลับ
+    */
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      'src/game/dialogue/conditions.test.ts',
+      'src/game/dialogue/engine.test.ts',
+      'src/hooks/useExploration.test.ts',
+    ],
     coverage: {
       /*
         รายงานเฉย ๆ ยังไม่ตั้งเพดานบังคับ

@@ -65,21 +65,21 @@ exactly one argument per spec — `targetOrigin` belongs to `window.postMessage(
 Scoped to the one file on purpose: a real cross-origin `window.postMessage` elsewhere in
 the codebase must still be caught.
 
-### The exploration subsystem — four rules off, **temporarily**
+### The exploration subsystem — override REMOVED 2026-08-07, expiry condition fired
 
-Scoped to `src/components/{GameExplorationSession,ExplorationScene,DialogueBox}/**` and
-`src/hooks/useDialogue.ts`.
+There used to be an override here turning off four rules for
+`src/components/{GameExplorationSession,ExplorationScene,DialogueBox}/**` and
+`src/hooks/useDialogue.ts`, because that subsystem had no live entry point and changing
+effect dependencies in code nobody can exercise is how a silent bug gets planted.
 
-That subsystem has **no live entry point** — nothing imports `GameExplorationSession`
-(see `MEMORY.md`). Its findings are real (`exhaustive-deps` ×3, a non-interactive click
-handler ×2, a mixed-export file ×1), but changing effect dependencies in code that
-nobody can exercise and no test covers is how a silent bug gets planted. Fixing them
-would also be wasted if the subsystem is deleted.
+It was written with an explicit expiry condition: *"expires with the keep-or-delete
+decision on exploration mode, which is HetCreep's to make."* That decision landed the same
+day — comment the subsystem out rather than delete it — so the rules cannot fire there any
+more and the override is gone.
 
-**This override expires with the keep-or-delete decision on exploration mode, which is
-HetCreep's to make.** Keep it → fix the six findings and delete this override. Delete
-it → the override goes with the code. Either way it does not survive as a permanent
-exemption.
+Recorded because it worked as designed: a scoped exemption with a stated end condition,
+removed when the condition fired rather than quietly becoming permanent. Write the next
+one the same way.
 
 ## What is NOT a reason to turn a rule off
 
