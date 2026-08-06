@@ -18,6 +18,14 @@ import styles from './GlobalErrorBanner.module.css'
  * วางไว้เป็นพี่น้องของ <App /> ใน main.tsx ตั้งใจ: มันต้องทำงานได้แม้ App จะอยู่ในสถานะแปลก ๆ
  * และต้องไม่พึ่ง context ตัวไหนที่อาจยังไม่ mount
  */
+/*
+  รหัสที่มีเจ้าของจอเป็นของตัวเองอยู่แล้ว — แถบนี้ต้องไม่ไปซ้ำ
+
+  ตอนแอปพังระดับเรนเดอร์ ErrorBoundary ยึดทั้งจอและแสดง ErrorCodeTag ของรหัสนี้เด่นชัดอยู่แล้ว
+  ปล่อยให้แถบลอยขึ้นทับอีกใบก็ได้ข้อความเดียวกันสองที่ในจังหวะที่ผู้เล่นสับสนที่สุด
+*/
+const OWNED_BY_ANOTHER_SCREEN: readonly ErrorCode[] = ['BOUNDARY_RENDER_CRASH']
+
 export function GlobalErrorBanner() {
   const [current, setCurrent] = useState<ErrorCode | null>(null)
 
@@ -28,7 +36,10 @@ export function GlobalErrorBanner() {
       error ระดับนี้มักมาเป็นชุดจากต้นเหตุเดียวกัน (context หาย → หลาย system รายงานพร้อมกัน)
       การซ้อนกล่องสิบใบไม่ได้ช่วยให้เข้าใจอะไรเพิ่ม มีแต่ทำให้ปิดไม่ทัน
     */
-    return subscribeToVisibleErrors((code) => setCurrent(code))
+    return subscribeToVisibleErrors((code) => {
+      if (OWNED_BY_ANOTHER_SCREEN.includes(code)) return
+      setCurrent(code)
+    })
   }, [])
 
   if (!current) return null

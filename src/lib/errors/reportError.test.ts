@@ -47,6 +47,22 @@ describe('reportError', () => {
     expect(seen).toEqual([])
   })
 
+  test('รหัสที่จอ crash เป็นเจ้าของ ยังต้องถูกส่งต่อ — ตัวกรองอยู่ฝั่งผู้รับ ไม่ใช่ที่นี่', () => {
+    /*
+      GlobalErrorBanner ข้าม BOUNDARY_RENDER_CRASH เองเพราะ ErrorBoundary แสดงรหัสนั้น
+      เต็มจออยู่แล้ว การกรองต้องอยู่ที่ผู้รับ ไม่ใช่ที่ reportError — ผู้รับรายอื่นในอนาคต
+      (เช่นตัวเก็บ log ลงไฟล์) ต้องยังได้รับครบทุกรหัส
+    */
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const seen: string[] = []
+    const off = subscribeToVisibleErrors((code) => seen.push(code))
+
+    reportError('BOUNDARY_RENDER_CRASH', 'visible')
+
+    expect(seen).toEqual(['BOUNDARY_RENDER_CRASH'])
+    off()
+  })
+
   test('ผู้รับที่พังต้องไม่ลาก reportError ล้มไปด้วย', () => {
     // reportError ถูกเรียกจากใน catch เป็นส่วนใหญ่ ถ้ามันโยนเองจะกลบต้นเหตุจริง
     vi.spyOn(console, 'error').mockImplementation(() => {})
