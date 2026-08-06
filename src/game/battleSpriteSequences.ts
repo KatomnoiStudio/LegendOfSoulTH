@@ -23,6 +23,13 @@ import type { Direction8 } from './realtimeBattle/types'
  *
  * ทุก path ผ่าน publicUrl() เสมอ — เคยพลาดเรื่องนี้มาแล้วสองรอบเพราะ path ซ่อนอยู่ใน
  * object ข้อมูลแบบนี้ ไม่ใช่ JSX ตรง ๆ (ดู MEMORY.md ข้อ 12 และ 15)
+ *
+ * ── นามสกุลไฟล์ ────────────────────────────────────────────
+ * ต้องเป็น .webp เท่านั้น: โปรเจกต์ย้ายไป pipeline ที่แปลงต้นฉบับ PNG ใน `assets/raw/`
+ * ด้วย `npm run build:images` แล้วออกมาเป็น WebP ใน `public/` (README หัวข้อ "ภาพ 2D")
+ * ตอนนี้ไม่มีไฟล์ .png เหลืออยู่ใน `public/` เลยแม้แต่ไฟล์เดียว
+ * เพิ่มเฟรมใหม่ = วางต้นฉบับใน `assets/raw/characters/` แล้วรัน build:images ก่อนอ้างถึง
+ * (เทสต์ `realtimeBattle/battleAssets.test.ts` จะจับให้ถ้าอ้างพาธที่ไม่มีไฟล์จริง)
  */
 
 export type BattleAnimationId =
@@ -53,13 +60,13 @@ export type BattleSpriteSet = Record<BattleAnimationId, BattleAnimation>
 
 function frames(prefix: string, count: number, start = 0): string[] {
   return Array.from({ length: count }, (_, index) =>
-    publicUrl(`characters/${prefix}-${index + start}.png`),
+    publicUrl(`characters/${prefix}-${index + start}.webp`),
   )
 }
 
 function walkFrames(dir: 'up' | 'down' | 'left' | 'right'): string[] {
   return Array.from({ length: 8 }, (_, index) =>
-    publicUrl(`characters/walk/monkey-walk-${dir}-${index}.png`),
+    publicUrl(`characters/walk/monkey-walk-${dir}-${index}.webp`),
   )
 }
 
@@ -72,7 +79,7 @@ const MONKEY_IDLE = frames('monkey-v2-idle', 24)
 const MONKEY_ATTACK = frames('monkey-attack-new', 6, 12)
 const MONKEY_ACTION = frames('monkey-v2', 10)
 const MONKEY_VICTORY = Array.from({ length: 4 }, (_, index) =>
-  publicUrl(`characters/monkey-pose-${index}-alpha.png`),
+  publicUrl(`characters/monkey-pose-${index}-alpha.webp`),
 )
 const PIGSY_IDLE = frames('pigsy-idle', 24)
 const PIGSY_ACTION = frames('pigsy-team', 8)
