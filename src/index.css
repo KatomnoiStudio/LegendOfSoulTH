@@ -125,7 +125,7 @@ button:focus-visible,
   outline-offset: 3px;
 }
 
-/* ปิด animation ทั้งหมดเมื่อผู้ใช้ขอลดการเคลื่อนไหว */
+/* ปิด animation ทั้งหมดเมื่อผู้ใช้ขอลดการเคลื่อนไหว (OS-level prefers-reduced-motion) */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -134,4 +134,14 @@ button:focus-visible,
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* เหมือนด้านบนทุกอย่าง แต่มาจากสวิตช์ในเกมเอง (SettingsModal → การเข้าถึง) แทน OS
+   ดู src/lib/a11ySettings.ts — เผื่อ OS ไม่ให้ตั้งค่านี้ได้ (เช่นเบราว์เซอร์บางตัวบนบางอุปกรณ์) */
+:root[data-reduce-motion='true'] *,
+:root[data-reduce-motion='true'] *::before,
+:root[data-reduce-motion='true'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }

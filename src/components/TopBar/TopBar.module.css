@@ -57,8 +57,10 @@
 .gold .currencyIcon { filter: drop-shadow(0 0 7px rgb(242 181 44 / 70%)); }
 .gem .currencyIcon { filter: drop-shadow(0 0 7px rgb(98 210 255 / 65%)); }
 .amount { color: #f4e8cb; font-family: var(--font-display); font-size: 0.82rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: 0.06em; text-shadow: 0 2px 4px #000; }
-.addButton { display: grid; place-items: center; width: 20px; height: 20px; border: 1px solid #ebc46d; rotate: 45deg; background: linear-gradient(145deg, #f2c968, #8e5c18); color: #261805; box-shadow: 0 3px 8px rgb(0 0 0 / 55%), inset 0 1px #fff0ba; transition: transform 180ms ease, filter 180ms ease; }
-/* % ของ .addButton เอง (25px→20px @760px) แทน rem ตายตัว จะได้ย่อตามปุ่มพ่อจริง ๆ */
+/* 24px = floor ล่างสุดของ WCAG 2.2 AA (SC 2.5.8 Target Size Minimum) — เดิม 20px ต่ำกว่านั้น
+   (gold-standard UX audit, 2026-08-06) */
+.addButton { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid #ebc46d; rotate: 45deg; background: linear-gradient(145deg, #f2c968, #8e5c18); color: #261805; box-shadow: 0 3px 8px rgb(0 0 0 / 55%), inset 0 1px #fff0ba; transition: transform 180ms ease, filter 180ms ease; }
+/* % ของ .addButton เอง แทน rem ตายตัว จะได้ย่อตามปุ่มพ่อจริง ๆ */
 .addButton svg { width: 52%; height: 52%; rotate: -45deg; }
 .addButton:hover:not(:disabled) { transform: scale(1.14) rotate(90deg); filter: brightness(1.18); }
 .addButton:active:not(:disabled) { transform: scale(0.9) rotate(90deg); }
@@ -78,7 +80,6 @@
   .currency { grid-template-columns: 20px 45px 22px; min-height: 32px; padding: 3px 4px 3px 8px; }
   .currencyIcon { width: 1rem; height: 1rem; }
   .amount { font-size: 0.67rem; }
-  .addButton { width: 20px; height: 20px; }
 }
 
 /* Thai fantasy skin — ภาพวาดพญานาคและคลังสมบัติ */

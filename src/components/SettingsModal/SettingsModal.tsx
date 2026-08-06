@@ -2,8 +2,10 @@ import { useState, type FormEvent, type ReactNode } from 'react'
 import type { CurrencyResult } from '../../data/accountRepository'
 import { useModalA11y } from '../../hooks/useModalA11y'
 import { GAME_INFO } from '../../game/gameInfo'
+import { getA11ySettings, setA11ySettings, type A11ySettings } from '../../lib/a11ySettings'
 import { type AudioChannel, type AudioSettings } from '../../lib/audio/AudioEngine'
 import {
+  AccessibilityIcon,
   CouponIcon,
   InfoIcon,
   MinusIcon,
@@ -15,7 +17,7 @@ import {
 import { useToast } from '../Toast/useToast'
 import styles from './SettingsModal.module.css'
 
-type TabId = 'info' | 'audio' | 'coupon'
+type TabId = 'info' | 'audio' | 'accessibility' | 'coupon'
 
 /** ปรับเสียงทีละ 2% */
 const VOLUME_STEP = 2
@@ -69,6 +71,14 @@ export function SettingsModal({
   const [tab, setTab] = useState<TabId>('info')
   // Esc, backdrop-click, focus trap, คืนโฟกัสตอนปิด — รวมไว้ที่ useModalA11y ตัวเดียว
   const { shellRef: dialogRef, backdropProps } = useModalA11y<HTMLDivElement>(onClose)
+  // ค่าตั้งค่าการเข้าถึง — เก็บ local ในนี้พอ เพราะ source of truth จริงคือ data attribute
+  // บน <html> ที่ setA11ySettings อัปเดตให้เองอยู่แล้ว (ดู src/lib/a11ySettings.ts)
+  // ไม่ต้องส่งผ่าน prop จาก LobbyPage เหมือน AudioSettings เพราะไม่มีที่อื่นต้องอ่านค่านี้
+  const [a11y, setA11y] = useState<A11ySettings>(() => getA11ySettings())
+  const handleA11yChange = (next: A11ySettings) => {
+    setA11ySettings(next)
+    setA11y(next)
+  }
 
   const setChannel = (channel: AudioChannel, value: number) => {
     const clamped = Math.min(100, Math.max(0, value))
@@ -80,6 +90,7 @@ export function SettingsModal({
   const tabs: { id: TabId; label: string; icon: ReactNode }[] = [
     { id: 'info', label: 'ข้อมูลเกม', icon: <InfoIcon /> },
     { id: 'audio', label: 'เสียง', icon: <VolumeIcon /> },
+    { id: 'accessibility', label: 'การเข้าถึง', icon: <AccessibilityIcon /> },
     { id: 'coupon', label: 'คูปอง', icon: <CouponIcon /> },
   ]
 
@@ -133,6 +144,9 @@ export function SettingsModal({
             onChannelChange={setChannel}
             onToggleMute={() => onAudioChange({ ...audio, muted: !audio.muted })}
           />
+        ) : null}
+        {tab === 'accessibility' ? (
+          <AccessibilityPanel key="accessibility" settings={a11y} onChange={handleA11yChange} />
         ) : null}
         {tab === 'coupon' ? (
           <CouponPanel
@@ -328,7 +342,48 @@ function ChannelRow({
   )
 }
 
-/** หน้าที่ 3 — คูปอง */
+/**
+ * หน้าที่ 3 — การเข้าถึง (accessibility)
+ *
+ * ตอนนี้มีสวิตช์เดียว (ลดการเคลื่อนไหว) — เพิ่มค่าอื่นทีหลังได้ (ขนาดตัวอักษร/contrast/
+ * colorblind mode) แค่ขยาย A11ySettings ใน src/lib/a11ySettings.ts + เพิ่ม control ที่นี่
+ * (gold-standard UX audit, 2026-08-06: WCAG 2.2 AA ไม่มีสวิตช์นี้ในแอปมาก่อนเลย พึ่ง
+ * OS-level prefers-reduced-motion อย่างเดียว — เกม HoYoverse ที่เทียบ genre กัน
+ * (Genshin/HSR) มีแท็บนี้ในเมนูตั้งค่าเสมอ)
+ */
+function AccessibilityPanel({
+  settings,
+  onChange,
+}: {
+  settings: A11ySettings
+  onChange: (next: A11ySettings) => void
+}) {
+  return (
+    <section className={styles.panel} role="tabpanel" aria-label="การเข้าถึง">
+      <button
+        type="button"
+        className={styles.muteButton}
+        data-muted={settings.reduceMotion}
+        aria-pressed={settings.reduceMotion}
+        onClick={() => onChange({ ...settings, reduceMotion: !settings.reduceMotion })}
+      >
+        <AccessibilityIcon />
+        {settings.reduceMotion ? 'เปิดการเคลื่อนไหวอีกครั้ง' : 'ลดการเคลื่อนไหวในเกม'}
+      </button>
+
+      <p className={styles.panelNote}>
+        มีผลทันทีทั่วทั้งเกม ไม่ต้องพึ่งการตั้งค่าของระบบปฏิบัติการ/เบราว์เซอร์
+        (ถ้าระบบตั้งค่าลดการเคลื่อนไหวไว้อยู่แล้ว เกมจะลดให้เองโดยอัตโนมัติเช่นกัน)
+      </p>
+
+      <p className={styles.panelNote}>
+        กำลังทยอยเพิ่มตัวเลือกอื่น ๆ (ขนาดตัวอักษร, ความคมชัดของสี, โหมดสำหรับตาบอดสี)
+      </p>
+    </section>
+  )
+}
+
+/** หน้าที่ 4 — คูปอง */
 function CouponPanel({ onRedeem }: { onRedeem: (code: string) => Promise<boolean> }) {
   const [code, setCode] = useState('')
   const [submitting, setSubmitting] = useState(false)

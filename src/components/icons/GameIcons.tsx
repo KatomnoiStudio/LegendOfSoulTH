@@ -291,6 +291,17 @@ export function VolumeMuteIcon(props: IconProps) {
   )
 }
 
+/** คนในวงกลม แขนกางออก — การเข้าถึง (accessibility) */
+export function AccessibilityIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="7.6" r="1.4" fill="currentColor" stroke="none" />
+      <path d="M6.5 10.5c3.6 1.4 7.4 1.4 11 0M12 11v4.4M9.8 20l2.2-4.6 2.2 4.6" />
+    </Svg>
+  )
+}
+
 /** พระจันทร์เสี้ยวกับดาว — เดินชมจันทร์ */
 export function MoonWalkIcon(props: IconProps) {
   return (
