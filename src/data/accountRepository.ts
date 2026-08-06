@@ -74,6 +74,17 @@ interface Database {
   accounts: Record<string, StoredAccount>
 }
 
+/*
+  มีข้อมูลเก็บอยู่จริงแต่อ่านไม่ออก (เช่น version เป็นเลขอื่น หรือไฟล์เสีย)
+
+  ต่างจาก "ยังไม่มีอะไรเลย" คนละเรื่องกันโดยสิ้นเชิง และการแยกสองอย่างนี้เป็นเรื่องเป็นตาย:
+  ถ้าไม่แยก loadDb จะคืนฐานข้อมูลเปล่าให้ แล้วการเขียนครั้งถัดไป — savePlayer ที่ยิงทุกครั้ง
+  ที่ผู้เล่นทำอะไรก็ตาม — จะทับข้อมูลจริงทิ้งทั้งหมดโดยไม่มีอะไรบอก บัญชีทุกบัญชีในเบราว์เซอร์
+  นั้นหายถาวรเพราะเลข version ตัวเดียวไม่ตรง ซึ่งเป็นสิ่งที่จะเกิดวันที่มีคนขึ้น version เป็น 2
+  พอดี — คือวันที่ฟิลด์นี้ถูกใช้งานตามที่มันมีไว้
+*/
+let unreadableDb = false
+
 /**
  * ต้องคืนอ็อบเจ็กต์ใหม่ทุกครั้ง ห้ามคืนค่าคงที่ตัวเดียวร่วมกัน
  *
@@ -82,12 +93,33 @@ interface Database {
  * อยู่ในตัวคงที่แล้ว — login ครั้งถัดไปในแท็บเดิมจึงผ่านได้ทั้งที่ไม่มีอะไรถูกบันทึกจริง
  */
 function loadDb(): Database {
-  const db = readJson<Database>(DB_KEY)
-  if (!db || db.version !== 1 || typeof db.accounts !== 'object') return { version: 1, accounts: {} }
-  return db
+  const raw = readJson<Database>(DB_KEY)
+
+  if (!raw) {
+    // ไม่มีอะไรเก็บไว้ — เบราว์เซอร์ใหม่ เขียนทับได้ตามปกติ
+    unreadableDb = false
+    return { version: 1, accounts: {} }
+  }
+
+  if (raw.version !== 1 || typeof raw.accounts !== 'object') {
+    unreadableDb = true
+    reportError('DB_VERSION_UNSUPPORTED', 'visible', undefined, { version: raw.version })
+    return { version: 1, accounts: {} }
+  }
+
+  unreadableDb = false
+  return raw
 }
 
 function saveDb(db: Database): boolean {
+  /*
+    ปฏิเสธการเขียนทับสิ่งที่เราอ่านไม่ออก
+
+    คืน false เข้าช่องทางเดิมที่ผู้เรียกทุกรายเช็คอยู่แล้ว (register/login/importSave/
+    savePlayer/earnGold/... ล้วนแปลง false เป็นข้อความ "บันทึกข้อมูลไม่สำเร็จ") ผู้เล่นจึง
+    เห็นว่าบันทึกไม่ผ่าน แทนที่จะเห็นว่าสำเร็จแล้วข้อมูลเก่าหายไปเงียบ ๆ
+  */
+  if (unreadableDb) return false
   return writeJson(DB_KEY, db)
 }
 
@@ -211,11 +243,40 @@ export function validatePassword(password: string): string | null {
  * ทุกทางที่อ่านผู้เล่นออกจากฐานข้อมูลต้องผ่านฟังก์ชันนี้เสมอ
  */
 function normalizePlayer(player: Player): Player {
+  /*
+    ต้องเติมทุกฟิลด์ที่หน้าจอ deref ตรง ๆ ไม่ใช่แค่ฟิลด์ที่เพิ่มมาทีหลัง
+
+    LobbyPage อ่าน `player.ownedCharacters.flatMap(...)` และ `player.teamSlots` ส่วน TopBar
+    อ่าน `player.currency.gold` โดยไม่มี guard สักตัว ข้อมูลที่ขาดฟิลด์พวกนี้ (ไฟล์ save
+    ที่ถูกแก้มา หรือข้อมูลใน localStorage ที่เสีย) จึงทำให้จอพังทันทีที่เรนเดอร์ และพังซ้ำ
+    ทุกครั้งที่โหลดหน้าใหม่ เพราะ getSessionPlayer อ่านผ่านฟังก์ชันนี้เหมือนกัน — วนไม่จบ
+    จนกว่าผู้เล่นจะล้าง localStorage เอง ซึ่งเป็นอาการเดียวกับบั๊กที่เพิ่งแก้ไปเรื่อง `player`
+    หายทั้งก้อน แค่คนละระดับของโครงสร้าง
+
+    เติมค่าว่างแล้วรายงาน ไม่ใช่เติมเงียบ ๆ — ผู้เล่นที่ตัวละครหายควรได้รู้ว่าเกิดอะไรขึ้น
+    และยังเข้าเกมได้เพื่อกดนำเข้าไฟล์สำรอง ดีกว่าเจอจอพังที่ทำอะไรต่อไม่ได้เลย
+  */
+  const missing: string[] = []
+  if (!Array.isArray(player.ownedCharacters)) missing.push('ownedCharacters')
+  if (!Array.isArray(player.teamSlots)) missing.push('teamSlots')
+  if (!player.currency || typeof player.currency !== 'object') missing.push('currency')
+  if (missing.length > 0) {
+    reportError('PLAYER_DATA_INCOMPLETE', 'visible', undefined, { missing })
+  }
+
   return {
     ...player,
     progress: player.progress ?? EMPTY_PROGRESS,
     inventory: player.inventory ?? [],
     friends: player.friends ?? [],
+    ownedCharacters: Array.isArray(player.ownedCharacters) ? player.ownedCharacters : [],
+    teamSlots: Array.isArray(player.teamSlots)
+      ? player.teamSlots
+      : Array.from({ length: TEAM_SIZE }, () => null),
+    currency:
+      player.currency && typeof player.currency === 'object'
+        ? player.currency
+        : { gold: 0, gem: 0 },
   }
 }
 
