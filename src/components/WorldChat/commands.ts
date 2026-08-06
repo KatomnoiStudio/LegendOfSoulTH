@@ -50,6 +50,15 @@ export const COMMAND_HELP = [
  * ไม่เหมือนเวอร์ชันคอนโซลเดิมที่แจ้ง error เมื่อไม่ขึ้นต้นด้วย / เพราะตอนนี้ข้อความ
  * ที่ไม่ใช่คำสั่งต้องถูกส่งเป็นแชทปกติ ไม่ใช่ถูกปฏิเสธ (ดู WorldChat.tsx ผู้เรียก)
  */
+/**
+ * ตัดสินว่าข้อความที่พิมพ์มาควรถูกตีความเป็นคำสั่งหรือไม่ — จุดเดียวที่คุมเส้นแบ่งความปลอดภัย
+ * นี้ (บัญชีไม่ใช่ผู้ดูแล หรือผู้ดูแลพลาดสลับไปบัญชีอื่น = ข้อความขึ้นต้น / ก็ยังต้องถูกส่ง
+ * เป็นแชทธรรมดา ไม่ใช่คำสั่ง) แยกออกมาจาก WorldChat.tsx ให้เทสต์ได้ตรง ๆ โดยไม่ต้อง render
+ */
+export function resolveCommandForSender(isAdmin: boolean, raw: string): ParsedCommand | null {
+  return isAdmin ? parseCommand(raw) : null
+}
+
 export function parseCommand(raw: string): ParsedCommand | null {
   const text = raw.trim()
   if (!text.startsWith('/')) return null

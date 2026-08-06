@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseCommand } from './commands'
+import { parseCommand, resolveCommandForSender } from './commands'
 
 describe('parseCommand', () => {
   it('ข้อความว่างไม่ถือเป็นคำสั่ง', () => {
@@ -56,5 +56,24 @@ describe('parseCommand', () => {
 
   it('/help ใช้ได้', () => {
     expect(parseCommand('/help')).toEqual({ kind: 'help' })
+  })
+})
+
+describe('resolveCommandForSender', () => {
+  it('บัญชีที่ไม่ใช่ผู้ดูแลพิมพ์ /givecharacter ต้องไม่ถูกตีความเป็นคำสั่งเลย (ต้องส่งเป็นแชทปกติ)', () => {
+    expect(resolveCommandForSender(false, '/givecharacter pig')).toBeNull()
+    expect(resolveCommandForSender(false, '/help')).toBeNull()
+    expect(resolveCommandForSender(false, '/deleteeverything')).toBeNull()
+  })
+
+  it('บัญชีผู้ดูแลพิมพ์ /givecharacter ต้องถูกตีความเป็นคำสั่งตามปกติ', () => {
+    expect(resolveCommandForSender(true, '/givecharacter pig')).toEqual({
+      kind: 'give-character',
+      characterId: 'pig-warrior',
+    })
+  })
+
+  it('บัญชีผู้ดูแลพิมพ์ข้อความแชทธรรมดา (ไม่ขึ้นต้นด้วย /) ยังคงเป็นแชทปกติเหมือนบัญชีทั่วไป', () => {
+    expect(resolveCommandForSender(true, 'สวัสดีครับ')).toBeNull()
   })
 })

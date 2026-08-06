@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getCharacter } from '../../game/characters'
 import type { CharacterGrantResult } from '../../data/accountRepository'
-import { COMMAND_HELP, parseCommand } from './commands'
-import { loadWorldChat, postWorldChatMessage, WORLD_CHAT_STORAGE_KEY } from './chatStorage'
+import { COMMAND_HELP, resolveCommandForSender } from './commands'
+import { loadWorldChat, postWorldChatMessage, subscribeToWorldChat } from './chatStorage'
 import type { ChatMessage } from './chatStorage'
 import styles from './WorldChat.module.css'
 
@@ -10,14 +10,25 @@ import styles from './WorldChat.module.css'
  * ช่องแชทมุมซ้ายล่างของลอบบี้ — ผู้เล่นทุกคนเห็นและใช้ได้ ไม่จำกัดเฉพาะผู้ดูแล
  *
  * "แชทโลก" ทำงานจริง (เก็บ/อ่านผ่าน localStorage — ดูข้อจำกัดเรื่องไม่มี backend ใน
- * chatStorage.ts) ส่วน "แชทส่วนตัว"/"แชทกิลด์" ยังเป็นแค่แท็บที่บอกว่าเร็ว ๆ นี้
- * เพราะเกมยังไม่มีระบบเพื่อน-แบบเรียลไทม์/กิลด์รองรับ
+ * chatStorage.ts) ⚠️ scope จริงคือ "เห็นเฉพาะบัญชีที่เคย login เบราว์เซอร์เครื่องนี้เครื่องเดียว"
+ * ไม่ใช่แชทข้ามเครื่องจริง — ตั้งใจบอกผู้เล่นตรง ๆ ผ่าน SCOPE_NOTE ด้านล่าง ไม่ใช่แค่ซ่อนไว้
+ * ในคอมเมนต์เหมือนก่อนหน้านี้ (CoalBoard ask-CB retroactive pass, 2026-08-06: ป้าย
+ * "แชทโลก" เดิมตั้งความหวังผิดว่าเป็นแชทจริงข้ามเครื่อง ผู้เล่นคนเดียวที่ login สองบัญชีบน
+ * เครื่องเดียวกันจะเห็นข้อความเก่าของตัวเองโผล่มาเหมือนคนอื่นทัก — SCOPE_NOTE แก้ตรงนี้)
+ * ส่วน "แชทส่วนตัว"/"แชทกิลด์" ยังเป็นแค่แท็บที่บอกว่าเร็ว ๆ นี้ เพราะเกมยังไม่มีระบบ
+ * เพื่อน-แบบเรียลไทม์/กิลด์รองรับ
  *
  * คำสั่งผู้ดูแล (เช่น /givecharacter) ยังทำงานอยู่เบื้องหลังสำหรับบัญชีที่เป็นผู้ดูแล
  * เท่านั้น (ดู src/data/admins.ts) แต่ตั้งใจไม่ใบ้อะไรใน UI เลย — ผู้เล่นทั่วไปเห็น
  * เป็นช่องแชทธรรมดา 100% ผลลัพธ์ของคำสั่งก็แสดงเฉพาะฝั่งผู้พิมพ์เอง ไม่ถูกโพสต์เข้า
- * แชทโลกให้คนอื่นเห็น
+ * แชทโลกให้คนอื่นเห็น — ถ้าบัญชีที่พิมพ์ "ดูเหมือน" คำสั่ง (ขึ้นต้น /) แต่ไม่ใช่ผู้ดูแล
+ * (หรือเป็นผู้ดูแลแต่สลับไปอยู่บัญชีอื่นโดยไม่ทันสังเกต) ข้อความจะถูกส่งเป็นแชทธรรมดา
+ * ตามปกติ — เพิ่มการแจ้งเตือนส่วนตัว (เห็นเฉพาะฝั่งผู้พิมพ์) กันเคสนี้ไว้ ไม่เปลี่ยน
+ * พฤติกรรมที่คนอื่นเห็น
  */
+
+/** ผู้เล่นเห็นบรรทัดนี้ตรง ๆ ทุกครั้งที่เปิดแท็บโลก — ไม่ใช่แค่ตอน feed ว่าง */
+const SCOPE_NOTE = 'แชทนี้เห็นเฉพาะบัญชีที่เคย login เบราว์เซอร์เครื่องนี้เครื่องเดียวเท่านั้น'
 
 type Tab = 'world' | 'private' | 'guild'
 
@@ -59,16 +70,10 @@ export function WorldChat({ playerName, isAdmin, onGiveCharacter }: WorldChatPro
   const inputRef = useRef<HTMLInputElement>(null)
   const feedEndRef = useRef<HTMLDivElement>(null)
 
-  // รับข้อความจากแท็บ/บัญชีอื่นบนเครื่องเดียวกันแบบเรียลไทม์ (ดูข้อจำกัดใน chatStorage.ts —
-  // 'storage' event ยิงเฉพาะข้ามแท็บ ไม่ยิงในแท็บที่เขียนเอง จึงต้องอัปเดต state ตรง ๆ
-  // ตอนโพสต์ข้อความของตัวเองด้วย ไม่ได้พึ่ง event นี้อย่างเดียว)
-  useEffect(() => {
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === WORLD_CHAT_STORAGE_KEY) setMessages(loadWorldChat())
-    }
-    window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
-  }, [])
+  // รับข้อความจากแท็บ/บัญชีอื่นบนเครื่องเดียวกันแบบเรียลไทม์ผ่าน BroadcastChannel (ดู
+  // chatStorage.ts) — ไม่ยิงในแท็บที่โพสต์เอง จึงต้องอัปเดต state ตรง ๆ ตอนโพสต์ข้อความ
+  // ของตัวเองด้วย ไม่ได้พึ่ง channel นี้อย่างเดียว
+  useEffect(() => subscribeToWorldChat(() => setMessages(loadWorldChat())), [])
 
   useEffect(() => {
     if (open) inputRef.current?.focus()
@@ -101,7 +106,7 @@ export function WorldChat({ playerName, isAdmin, onGiveCharacter }: WorldChatPro
 
     // คำสั่งลับใช้ได้เฉพาะบัญชีผู้ดูแล — ผู้เล่นทั่วไปพิมพ์ "/อะไรก็ตาม" แล้วมันจะถูกส่ง
     // เป็นข้อความแชทปกติเสมอ ไม่มีการแจ้งว่ามันคือคำสั่งที่รู้จักไม่รู้จัก (ตั้งใจไม่ใบ้)
-    const parsed = isAdmin ? parseCommand(text) : null
+    const parsed = resolveCommandForSender(isAdmin, text)
     if (parsed) {
       if (parsed.kind === 'help') {
         for (const line of COMMAND_HELP) pushSystemEntry(line, 'ok')
@@ -126,7 +131,15 @@ export function WorldChat({ playerName, isAdmin, onGiveCharacter }: WorldChatPro
       return
     }
 
-    setMessages(postWorldChatMessage(playerName, text))
+    // ขึ้นต้นด้วย / แต่ไม่ถูกตีความเป็นคำสั่ง (ไม่ใช่ผู้ดูแล หรือผู้ดูแลพลาดสลับบัญชี) —
+    // ข้อความยังถูกส่งเป็นแชทปกติเหมือนเดิมทุกอย่าง (คนอื่นเห็นข้อความเฉย ๆ ไม่รู้ว่ามันคือ
+    // คำสั่งที่พลาด) แค่แจ้งเตือนส่วนตัวให้ผู้พิมพ์เองรู้ตัว กันเคสผู้ดูแลพิมพ์คำสั่งลับ
+    // ผิดบัญชีแล้วข้อความหลุดไปเป็นแชทถาวรโดยไม่รู้ตัว
+    if (text.startsWith('/')) {
+      pushSystemEntry('ข้อความขึ้นต้นด้วย / ถูกส่งเป็นแชทปกติแล้ว (ไม่ถูกตีความเป็นคำสั่ง)', 'error')
+    }
+
+    setMessages(await postWorldChatMessage(playerName, text))
   }, [isAdmin, onGiveCharacter, playerName, pushSystemEntry, value])
 
   if (!open) {
@@ -168,7 +181,8 @@ export function WorldChat({ playerName, isAdmin, onGiveCharacter }: WorldChatPro
 
       {tab === 'world' ? (
         <>
-          <ol className={styles.feed}>
+          <p className={styles.scopeNote}>{SCOPE_NOTE}</p>
+          <ol className={styles.feed} role="log" aria-live="polite">
             {feed.length === 0 ? <li className={styles.hint}>ยังไม่มีข้อความ — ทักทายกันก่อนเลย</li> : null}
             {feed.map((entry) =>
               entry.kind === 'message' ? (
