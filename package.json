@@ -12,7 +12,7 @@
     "build:models": "node tools/build-models.mjs",
     "build:images": "node tools/optimize-images.mjs",
     "typecheck": "tsc -b",
-    "lint": "oxlint",
+    "lint": "oxlint --deny-warnings",
     "test": "vitest run",
     "audit": "npm audit --audit-level=high",
     "ci": "npm run typecheck && npm run lint && npm run test && npm run build",

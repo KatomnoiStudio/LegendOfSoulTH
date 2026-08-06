@@ -38,6 +38,9 @@ async function walk(dir, out = []) {
   return out
 }
 
+/** ไบต์ -> เมกะไบต์ทศนิยมหนึ่งตำแหน่ง สำหรับบรรทัดสรุปท้ายการแปลง */
+const mb = (bytes) => (bytes / 1024 / 1024).toFixed(1)
+
 async function main() {
   const files = await walk(RAW_DIR)
   let converted = 0
@@ -77,7 +80,6 @@ async function main() {
     converted++
   }
 
-  const mb = (bytes) => (bytes / 1024 / 1024).toFixed(1)
   console.log(`แปลงแล้ว ${converted} ไฟล์, ข้าม ${skipped} ไฟล์ (ไม่เปลี่ยนตั้งแต่รันล่าสุด)`)
   if (converted > 0) {
     const saved = bytesIn > 0 ? (100 * (1 - bytesOut / bytesIn)).toFixed(0) : 0

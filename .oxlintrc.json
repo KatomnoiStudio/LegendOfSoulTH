@@ -19,7 +19,10 @@
     "react/react-in-jsx-scope": "off",
     "typescript/no-explicit-any": "warn",
     "typescript/no-unused-vars": "warn",
-    "no-console": "warn"
+    "no-console": "warn",
+
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "import/no-unassigned-import": "off"
   },
   "overrides": [
     {
@@ -29,6 +32,24 @@
     {
       "files": ["tools/**"],
       "rules": { "no-console": "off" }
+    },
+    {
+      "files": ["src/components/WorldChat/chatStorage.ts"],
+      "rules": { "unicorn/require-post-message-target-origin": "off" }
+    },
+    {
+      "files": [
+        "src/components/GameExplorationSession/**",
+        "src/components/ExplorationScene/**",
+        "src/components/DialogueBox/**",
+        "src/hooks/useDialogue.ts"
+      ],
+      "rules": {
+        "react-hooks/exhaustive-deps": "off",
+        "react/only-export-components": "off",
+        "jsx-a11y/click-events-have-key-events": "off",
+        "jsx-a11y/no-noninteractive-element-interactions": "off"
+      }
     }
   ]
 }

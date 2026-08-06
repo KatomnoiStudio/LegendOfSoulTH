@@ -106,8 +106,23 @@ export function CharacterPreview({ character }: CharacterPreviewProps) {
         className={styles.figure}
         data-swapping={swapping}
         data-dragging={dragging}
-        role="group"
-        aria-label={`โมเดล${shown.name} ลากซ้ายหรือขวาเพื่อหมุน 360 องศา`}
+        /*
+          role="slider" ไม่ใช่ "group"
+
+          ของชิ้นนี้คือค่าต่อเนื่องหนึ่งแกนที่ผู้ใช้ปรับเองได้ (มุมหมุน 0–360) มี tabIndex
+          และรับลูกศรซ้าย/ขวากับ Home อยู่แล้ว — ตรงกับนิยาม slider ของ WAI-ARIA พอดี
+          ส่วน role="group" เป็น role ที่ไม่โต้ตอบ การแขวน tabIndex กับตัวจัดการ pointer/keyboard
+          ไว้บนนั้นจึงขัดกันเอง และทำให้โปรแกรมอ่านหน้าจอไม่บอกผู้ใช้ว่ากดลูกศรได้
+
+          เพิ่ม aria-valuenow/min/max ด้วย ไม่งั้น slider ที่ไม่มีค่าก็ไร้ความหมาย
+        */
+        role="slider"
+        aria-label={`หมุนโมเดล${shown.name} ลากซ้ายขวา หรือกดลูกศรซ้ายขวา (Home = กลับท่าตั้งต้น)`}
+        aria-orientation="horizontal"
+        aria-valuemin={0}
+        aria-valuemax={360}
+        aria-valuenow={Math.round(normalizedTurn)}
+        aria-valuetext={`${Math.round(normalizedTurn)} องศา`}
         tabIndex={0}
         onDoubleClick={() => setTurn(0)}
         onKeyDown={(event) => {

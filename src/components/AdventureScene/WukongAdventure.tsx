@@ -425,8 +425,9 @@ export function WukongAdventure({
     setDestination(target)
   }, [courtyardScale, courtyardOffsetX, courtyardOffsetY])
 
-  const setVirtualDirection = (key: string, active: boolean) => {
-    if (active) {
+  // ชื่อ `pressed` ไม่ใช่ `active` — `active` ด้านบนคือตัวละครที่กำลังแสดงอยู่ คนละเรื่องกัน
+  const setVirtualDirection = (key: string, pressed: boolean) => {
+    if (pressed) {
       virtualRef.current.add(key)
       targetRef.current = null
       setDestination(null)
