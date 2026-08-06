@@ -17,8 +17,11 @@
   display: flex;
   flex-direction: column;
   width: min(100%, 34rem);
-  /* % ของเวที ไม่ใช่ dvh — เวทีถูกย่อด้วย transform หน่วย viewport จึงไม่ตรง */
-  max-height: min(86%, 44rem);
+  /* dvh ไม่ใช่ % — % ของ .backdrop (grid place-items:center) ไม่ resolve จริง (auto row
+     วัดไม่ได้ กลายเป็น none) วัดสดยืนยันแล้วที่ 844x390: max-height เดิมคำนวณเป็น box สูงเกิน
+     cap ที่ตั้งใจ ล้นจอ เวทีไม่ได้ถูก transform-scale อีกต่อไป (ดู GameViewport.tsx) dvh
+     จึงปลอดภัย */
+  max-height: min(86dvh, 44rem);
   /* แผ่นป้ายทองมุมตัดเฉียง ชุดเดียวกับ CharacterRosterModal/AuthModal/NameModal */
   border: 1px solid rgb(226 183 88 / 52%);
   clip-path: polygon(20px 0, calc(100% - 20px) 0, 100% 20px, 100% calc(100% - 20px), calc(100% - 20px) 100%, 20px 100%, 0 calc(100% - 20px), 0 20px);
