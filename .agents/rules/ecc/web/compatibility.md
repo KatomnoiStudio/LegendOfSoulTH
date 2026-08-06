@@ -4,14 +4,14 @@ paths:
   - "**/*.jsx"
   - "index.html"
 ---
-<!-- coalmine: verified 2026-08-05 · exemplar caniuse.com WebGL2 support matrix + Three.js WebGL.isWebGL2Available() pattern + MDN "Detect WebGL" · revalidate 90d -->
+<!-- coalmine: verified 2026-08-06 · exemplar caniuse.com WebGL2 support matrix + Three.js WebGL.isWebGL2Available() pattern + MDN "Detect WebGL" · revalidate 90d -->
 # Browser / WebGL Compatibility
 
 > Project-authored — no `compatibility.md` exists in the upstream [affaan-m/ECC](https://github.com/affaan-m/ECC) import; `web/coding-style.md` and `web/design-quality.md` cover CSS/typography/motion only, nothing about WebGL/device support.
 
 ## WebGL availability check (MUST-HAVE)
 
-Mount the R3F `<Canvas>` only after confirming WebGL2 is available; show a fallback message otherwise. Today `LobbyScene`/`WukongAdventure` mount unconditionally — on a browser/GPU without WebGL2, the game is blank with no explanation.
+Mount the R3F `<Canvas>` only after confirming WebGL2 is available; show a fallback message otherwise. `LobbyScene` (the only component that mounts a `<Canvas>` — `WukongAdventure` is 2D/DOM, no WebGL) already does this: `WebGL.isWebGL2Available()` gates the mount, with a fallback message shown otherwise.
 
 ```ts
 import { WebGL } from 'three/examples/jsm/capabilities/WebGL.js';
@@ -23,7 +23,7 @@ if (!WebGL.isWebGL2Available()) {
 
 ## Minimum support floor
 
-State it explicitly somewhere (README or here) instead of leaving it implicit in `tsconfig.app.json`'s `target: "es2023"`. Add a `browserslist` field to `package.json` once a floor is decided — this also lets Vite/esbuild target builds correctly instead of defaulting.
+CLOSED — `package.json` already carries a `browserslist` field, so Vite/esbuild target the declared floor instead of defaulting.
 
 ## Mobile / touch
 
@@ -31,4 +31,4 @@ State it explicitly somewhere (README or here) instead of leaving it implicit in
 
 ## GPU tiering (nice-to-have)
 
-`dpr={[1, 2]}` is a flat cap regardless of device. `@react-three/drei`'s `PerformanceMonitor` or `pmndrs/detect-gpu` are the standard way to step quality down further on low-end hardware if reports of poor mobile performance come in — not needed pre-emptively.
+`dpr` is no longer a flat cap — `LobbyScene` already scales its max dpr down (2 → 1.5) on ≥120Hz displays via `useDeviceRefreshRate()`, since render cost scales with dpr² × refresh rate. `@react-three/drei`'s `PerformanceMonitor` or `pmndrs/detect-gpu` remain the standard way to step quality down further on low-end hardware if reports of poor mobile performance come in — still not needed pre-emptively.

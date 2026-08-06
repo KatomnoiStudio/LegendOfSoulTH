@@ -1,12 +1,16 @@
 import { Suspense, useRef, useState, type CSSProperties } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import type { PerspectiveCamera } from 'three'
+import { WebGLRenderer, type PerspectiveCamera } from 'three'
 import WebGL from 'three/addons/capabilities/WebGL.js'
 import { getCharacter } from '../../game/characters'
+import { useDeviceRefreshRate } from '../../hooks/useDeviceRefreshRate'
+import { reportError } from '../../lib/errors/reportError'
+import type { ErrorCode } from '../../lib/errors/codes'
 import { publicUrl } from '../../lib/publicUrl'
 import { SLOT_INDEXES, SLOT_TRANSFORM, normalizeTeam, type TeamSlots } from '../../game/team'
 import { ArenaSlotRing } from './ArenaSlotRing'
 import { CharacterModel } from './CharacterModel'
+import { ErrorCodeTag } from '../ErrorCodeTag/ErrorCodeTag'
 import styles from './LobbyScene.module.css'
 
 /**
@@ -38,13 +42,20 @@ const CAM_BASE: [number, number, number] = [0, 3.75, 8.4]
  * ตอนนี้ปิดไว้ตามที่ตกลง — ลอบบี้เหลือแต่ฉากวัดเปล่า ๆ
  * ไฟล์ ArenaSlotRing.tsx และ CharacterModel.tsx ยังอยู่ครบ ไม่ได้ลบ
  * เปลี่ยนเป็น true เมื่อไหร่ ทุกอย่างกลับมาเหมือนเดิมทันที
+ *
+ * ⚠️ ช่องว่างที่ยังไม่แก้ (gold-standard UX audit, 2026-08-06): CharacterModel.tsx's
+ * onClick เลือกตัวละครเป็น react-three-fiber <group onClick> — mesh ใน canvas ไม่ใช่
+ * DOM node จริง กดคีย์บอร์ดเลือกไม่ได้เลย ไม่มีทางเลือกสำรอง (list/roster UI) ให้เรียก
+ * onSelect(character.id) แบบเดียวกัน ตอนนี้ปลอดภัยเพราะฟีเจอร์ปิดอยู่ (ไม่มีผู้เล่นจริงไปถึง
+ * path นี้) — ถ้าจะเปิด SHOW_ARENA_SLOTS = true ต้องแก้จุดนี้ก่อน ไม่งั้น WCAG 2.2 AA
+ * (SC 2.1.1 Keyboard) จะพังจริงทันที ดู .agents/ux-audit-backlog.md
  */
 const SHOW_ARENA_SLOTS = false
 
 // url('/ui/...') ตรง ๆ ใน CSS ชี้ผิดที่ตอน deploy ขึ้น subpath (ดู src/lib/publicUrl.ts) —
 // ส่งเข้าไปเป็น CSS custom property แทน
 const BG_TEMPLE_STYLE: CSSProperties = {
-  ['--bg-temple' as string]: `url(${publicUrl('ui/thai/thai-temple-lobby.png')})`,
+  ['--bg-temple' as string]: `url(${publicUrl('ui/thai/thai-temple-lobby.webp')})`,
 }
 
 const EMBERS = [
@@ -58,6 +69,16 @@ export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps)
   const team = normalizeTeam(teamSlots)
   const [webglAvailable] = useState(() => WebGL.isWebGL2Available())
   const [contextLost, setContextLost] = useState(false)
+  const [contextLostCode, setContextLostCode] = useState<ErrorCode | null>(null)
+  const refreshRate = useDeviceRefreshRate()
+
+  /**
+   * ต้นทุนเรนเดอร์จริง ๆ ของ Three.js/WebGL แปรผันตาม (ความกว้าง × ความสูง × dpr²) × refresh rate
+   * จอ 120Hz+ ต้องวาดถี่เป็น 2 เท่าของจอ 60Hz ปกติเพื่อความลื่นเท่ากัน งบเวลาต่อเฟรมจึงเหลือครึ่งเดียว
+   * — ลด dpr สูงสุดลงเฉพาะจอ high-refresh (มักเป็นมือถือ/แท็บเล็ตเรือธงที่ dpr สูงอยู่แล้วด้วย)
+   *   กันเฟรมดรอป โดยยังคง dpr เต็ม 2 (ตามคำแนะนำมาตรฐานของ Three.js) ไว้ให้จอ 60Hz ทั่วไป
+   */
+  const dprMax = refreshRate >= 120 ? 1.5 : 2
 
   if (!webglAvailable) {
     return (
@@ -70,30 +91,64 @@ export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps)
   return (
     <div className={styles.scene} style={BG_TEMPLE_STYLE}>
       {contextLost ? (
-        <div className={styles.fallback}>การ์ดจอขาดการเชื่อมต่อ — กำลังลองใหม่ ลองรีเฟรชหน้าถ้ายังไม่กลับมา</div>
+        <div className={styles.fallback}>
+          การ์ดจอขาดการเชื่อมต่อ — กำลังลองใหม่ ลองรีเฟรชหน้าถ้ายังไม่กลับมา
+          {contextLostCode ? <ErrorCodeTag code={contextLostCode} /> : null}
+        </div>
       ) : null}
       <Canvas
         className={styles.canvas}
         shadows
-        dpr={[1, 2]}
-        /*
-          วัดขนาดผืนผ้าใบจาก offsetWidth/offsetHeight ไม่ใช่ getBoundingClientRect()
-
-          GameViewport ย่อเวทีทั้งก้อนด้วย transform: scale() ซึ่ง getBoundingClientRect()
-          จะคืนขนาด "หลังย่อ" ทำให้ three.js ตั้งกล้องและ renderer ตามขนาดที่เล็กกว่าจริง
-          ผลคือภาพถูกวาดเล็กลงและเลื่อนไปมุมซ้ายบน ตัวละครจึงลอยเหนือพื้นฉาก
-          ส่วน offsetWidth/offsetHeight ไม่ถูก transform กระทบ จึงตรงกับที่ CSS วาดจริง
-        */
+        dpr={[1, dprMax]}
+        // วัดขนาดผืนผ้าใบจาก offsetWidth/offsetHeight — เสถียรกว่า getBoundingClientRect() เมื่อ layout อยู่ระหว่าง reflow
         resize={{ offsetSize: true }}
-        gl={{ antialias: true, powerPreference: 'high-performance' }}
+        /*
+          WebGPU ก่อน (renderer ที่ three.js แนะนำเป็นค่าเริ่มต้นตั้งแต่ r182 — เร็วกว่า WebGL2
+          จริงบนเบราว์เซอร์ที่รองรับ) ล้มกลับไป WebGL2 อัตโนมัติถ้า navigator.gpu ไม่มี หรือ
+          init() ล้มเหลว (เช่น driver ไม่รองรับจริงแม้ browser ประกาศรองรับ) — ดูสถานะรองรับ
+          ตามเบราว์เซอร์ล่าสุดที่ .agents/rules/ecc/web/compatibility.md หรือ caniuse ก่อนไว้ใจ
+        */
+        gl={async (defaultProps) => {
+          // canvas ในเกมนี้เป็น HTMLCanvasElement จริงเสมอ (ไม่มี worker-based OffscreenCanvas
+          // rendering) — cast ตรงนี้จุดเดียวเพื่อเลี่ยง type ของ R3F เอง (OffscreenCanvas แบบย่อ)
+          // ชนกับ type ของ three/webgpu (OffscreenCanvas เต็มจาก DOM lib) ซึ่งเข้มกว่า
+          const canvas = defaultProps.canvas as HTMLCanvasElement
+          const rendererProps = { ...defaultProps, canvas, antialias: true, powerPreference: 'high-performance' as const }
+          if (typeof navigator !== 'undefined' && 'gpu' in navigator) {
+            let renderer: InstanceType<Awaited<typeof import('three/webgpu')>['WebGPURenderer']> | undefined
+            try {
+              const { WebGPURenderer } = await import('three/webgpu')
+              renderer = new WebGPURenderer(rendererProps)
+              await renderer.init()
+              // WebGPU ไม่ยิง DOM event 'webglcontextlost' (นั่นเป็นกลไกเฉพาะ WebGL) —
+              // ต้องผูก onDeviceLost ของตัว renderer เองแทน ไม่งั้นการ์ดจอหลุดแล้วเงียบ
+              // ไม่มี fallback UI ให้เห็นเลย (ต่างจากฝั่ง WebGL2 ด้านล่างที่ยังใช้ DOM event เดิม)
+              renderer.onDeviceLost = (info) => {
+                reportError('LOBBY_SCENE_DEVICE_LOST', 'visible', info)
+                setContextLost(true)
+                setContextLostCode('LOBBY_SCENE_DEVICE_LOST')
+              }
+              return renderer
+            } catch (error) {
+              reportError('LOBBY_SCENE_WEBGPU_INIT_FAIL', 'silent', error)
+              // init() ล้มเหลวหลังจาก renderer จอง GPU adapter/device ไปแล้วบางส่วน —
+              // dispose ทิ้งก่อนตกไปสร้าง WebGLRenderer ตัวใหม่ กัน GPU resource ค้าง
+              renderer?.dispose()
+            }
+          }
+          return new WebGLRenderer(rendererProps)
+        }}
         camera={{ position: CAM_BASE, fov: 32, near: 0.1, far: 60 }}
         // คลิกพื้นที่ว่าง = ยกเลิกการเลือก
         onPointerMissed={() => onSelect(null)}
         onCreated={({ gl }) => {
+          // เส้นทาง WebGL2 (fallback) เท่านั้น — WebGPU ผูก onDeviceLost ไว้ในฟังก์ชัน gl ด้านบนแล้ว
+          // เรียก addEventListener ซ้ำที่นี่กับ WebGPURenderer ไม่พังอะไร แค่ไม่มี event ให้ยิงเฉย ๆ
           gl.domElement.addEventListener('webglcontextlost', (e) => {
             e.preventDefault()
-            console.error('[LobbyScene] WebGL context lost')
+            reportError('LOBBY_SCENE_WEBGL_CONTEXT_LOST', 'visible')
             setContextLost(true)
+            setContextLostCode('LOBBY_SCENE_WEBGL_CONTEXT_LOST')
           })
           gl.domElement.addEventListener('webglcontextrestored', () => {
             setContextLost(false)

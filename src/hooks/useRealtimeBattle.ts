@@ -6,6 +6,7 @@ import {
 import type { CharacterModelKind } from '../game/characters'
 import { getCharacter } from '../game/characters'
 import { preloadBattleTextures } from '../game/realtimeBattle/battleAssets'
+import { reportError } from '../lib/errors/reportError'
 import { toRealtimeBattleResult } from '../game/realtimeBattle/BattleResultAdapter'
 import { createRealtimeBattle } from '../game/realtimeBattle/createRealtimeBattle'
 import { InputSystem } from '../game/realtimeBattle/InputSystem'
@@ -142,7 +143,7 @@ export function useRealtimeBattle({
           จึงไม่มีทางเห็นตัวละครหายไปเป็นช่องว่าง
         */
         preloadBattleTextures(collectDeferredTextureUrls(kinds)).catch((cause: unknown) => {
-          console.warn('[useRealtimeBattle] โหลดชุดเฟรมส่วนที่เหลือไม่ครบ', cause)
+          reportError('BATTLE_DEFERRED_ASSET_FAIL', 'silent', cause)
         })
       } catch (cause: unknown) {
         if (cancelled) return

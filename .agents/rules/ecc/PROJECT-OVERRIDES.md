@@ -1,4 +1,4 @@
-<!-- coalmine: verified 2026-08-05 · exemplar package.json (this repo, ground truth) · revalidate 30d -->
+<!-- coalmine: verified 2026-08-06 · exemplar package.json (this repo, ground truth) · revalidate 30d -->
 # Project overrides — where imported ECC rules don't match this repo
 
 The `common/`, `typescript/`, `react/`, `web/` files under `.agents/rules/ecc/` were copied verbatim from [affaan-m/ECC](https://github.com/affaan-m/ECC) (see [README.md](README.md), [LICENSE](LICENSE)). Several of their examples assume a toolchain this repo doesn't have. This file is the single source of truth when they conflict — per [README.md](README.md) precedence rule 3.
@@ -36,10 +36,18 @@ Anything without the `VITE_` prefix in `.env` stays server/build-time only and i
 
 `common/agents.md` lists `planner`, `architect`, `tdd-guide`, `code-reviewer`, `security-reviewer`, `build-error-resolver`, `e2e-runner`, `refactor-cleaner`, `doc-updater`, `rust-reviewer`, `harmonyos-app-resolver` as available under `~/.claude/agents/`. As of this audit, only `memory-keeper` exists as an actual configured subagent in this environment. Treat every other name in that file (and the `security-reviewer`/`react-reviewer`/`tdd-guide`/`e2e-runner`/`build-error-resolver` mentions scattered through `security.md`/`testing.md` files) as **aspirational, not actionable** — check what's actually available (the harness surfaces a live agent-type list each session) before invoking one by name.
 
-## Testing stack: prescribed, not installed
+## Testing stack: partially installed, coverage not measured
 
-`common/testing.md` mandates 80% coverage + TDD; `typescript/testing.md` and `web/testing.md` prescribe Playwright; `react/testing.md` (if present) assumes Vitest/RTL. **None of these are in `package.json`** — this repo has zero test framework and zero test files today. Treat the testing rule files as the target state, not current practice, until a framework is actually installed (tracked as a gap in the 2026-08-05 gold-standard audit, not auto-fixed by that audit — installing a test framework is a CONFORM-track code change requiring separate approval).
+`vitest` + `jsdom` are real devDependencies (`package.json`) with a working `"test": "vitest run"` script, but coverage is limited: as of this audit, only `src/lib/format.test.ts` (pure functions) exists — zero component/hook/integration tests across `src/components`, `src/hooks`, `src/game`. `common/testing.md`'s 80% coverage bar has no coverage-measuring tool configured (`vite.config.ts`'s `test` block sets no `coverage` provider), so it cannot currently be checked mechanically. `typescript/testing.md`/`web/testing.md`'s Playwright prescription is **not installed** — no E2E framework exists in this repo. Treat the coverage/E2E bar as target state, not current practice; expanding test coverage is a CONFORM-track change requiring separate approval (see `MEMORY.md`).
 
 ## `common/performance.md` is about LLM agent cost, not app runtime performance
 
-Despite the filename, that file's content (model tier selection, context window budgeting) is agent-orchestration guidance, not web/game performance guidance. For actual app performance (React Three Fiber, Phaser, bundle size, GLB assets) see `react/performance.md` and `web/performance.md` — the latter is itself DOM/CSS-page-shaped (Core Web Vitals, image `loading` attrs) and only partially applies to a full-canvas WebGL game; `react/performance.md` covers the R3F/Phaser-specific surface it doesn't.
+Despite the filename, that file's content (model tier selection, context window budgeting) is agent-orchestration guidance, not web/game performance guidance. For actual app performance (React Three Fiber, bundle size, sprite assets) see `react/performance.md` and `web/performance.md` — the latter is itself DOM/CSS-page-shaped (Core Web Vitals, image `loading` attrs) and only partially applies to a full-canvas WebGL game; `react/performance.md` covers the R3F-specific surface it doesn't. (This repo has no Phaser dependency — characters render via 2D sprite sheets through React Three Fiber, not a separate Phaser scene loop.)
+
+## Validation/logging libraries prescribed, not installed
+
+`typescript/coding-style.md` prescribes Zod for schema validation and "proper logging libraries instead of console" — neither is a dependency here. This repo's actual pattern: no runtime schema validation library (TypeScript's static types cover the trust boundaries that exist; there's no server accepting untrusted payloads to validate), and `web/observability.md`'s own explicit rule for this repo is `console.error` before every swallowed catch, not a logging library (no backend to ship structured logs to). Follow `web/observability.md` over `typescript/coding-style.md` on logging where they conflict, per this file's own precedence rule.
+
+## Browser-support baseline: see `web/compatibility.md`, not this file
+
+The compatibility/WebGPU-fallback baseline lives in `.agents/rules/ecc/web/compatibility.md` — this file (`PROJECT-OVERRIDES.md`) covers toolchain/package-manager/env-var overrides only, not runtime browser-support policy.

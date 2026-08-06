@@ -1,6 +1,6 @@
 # Security Policy
 
-GameTurnBase is a client-side hobby game (React + Vite, deployed to GitHub Pages). There is
+Legend of Soul-TH is a client-side hobby game (React + Vite, deployed to GitHub Pages). There is
 no backend server — "the database" is the player's own browser `localStorage`. Read
 [`src/data/accountRepository.ts`](src/data/accountRepository.ts)'s header comment for exactly
 what that does and does not protect before filing a report; a lot of "issues" that would be
@@ -10,13 +10,13 @@ real bugs on a real backend are expected, documented limitations here (see **Out
 
 Use GitHub private vulnerability reporting — it goes straight to the maintainer, not a public issue:
 
-- <https://github.com/LegendofSoulTH/GameTurnBase/security/advisories/new>
+- <https://github.com/LegendofSoulTH/LegendOfSoulTH/security/advisories/new>
 
 **Do not** open a public GitHub issue for a security report.
 
 Include:
 
-- affected file/commit and the URL or build you tested (production `https://legendofsoulth.github.io/GameTurnBase/` vs. a local dev build)
+- affected file/commit and the URL or build you tested (production `https://legendofsoulth.github.io/LegendOfSoulTH/` vs. a local dev build)
 - steps to reproduce from a clean browser profile
 - what trust boundary is actually crossed (see Scope below — this app has very few)
 - any logs/screenshots with tokens, emails, or other real data redacted
@@ -30,8 +30,8 @@ Expected response:
 
 In scope:
 
-- the `LegendofSoulTH/GameTurnBase` repository and its GitHub Actions workflows (`.github/workflows/`)
-- the deployed site at `https://legendofsoulth.github.io/GameTurnBase/`
+- the `LegendofSoulTH/LegendOfSoulTH` repository and its GitHub Actions workflows (`.github/workflows/`)
+- the deployed site at `https://legendofsoulth.github.io/LegendOfSoulTH/`
 - anything that lets one player's browser affect **another** player's account/data, or that
   exfiltrates data the app didn't already hand to the page itself (real XSS, real CSRF-equivalent,
   supply-chain compromise of a dependency actually shipped in the built bundle)
@@ -47,8 +47,8 @@ By design, not bugs — don't file these:
   see [`src/lib/password.ts`](src/lib/password.ts)'s header comment. This is a local-only demo
   auth layer (PBKDF2 + salt, constant-time compare) so passwords aren't stored in the clear
   even locally; it is explicitly **not** a substitute for real server-side authentication.
-- **"GemShopModal payments aren't real / always succeed."** Intentional — no payment gateway is
-  wired up yet (see `accountRepository.ts` `topUpGems`). Not a payment-bypass vulnerability;
+- **"CurrencyShopModal payments (gold or gems) aren't real / always succeed."** Intentional — no
+  payment gateway is wired up yet (see `accountRepository.ts` `topUpGold`/`topUpGems`). Not a payment-bypass vulnerability;
   there is no real payment to bypass.
 - Vulnerabilities in a dependency that this project doesn't actually reach at runtime
   (see `npm audit` in CI first — if it's already flagged/tracked there, no need to duplicate).

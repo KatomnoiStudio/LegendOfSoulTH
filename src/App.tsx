@@ -3,6 +3,7 @@ import { AuthModal } from './components/AuthModal/AuthModal'
 import { GameViewport } from './components/GameViewport/GameViewport'
 import { NameModal } from './components/NameModal/NameModal'
 import { ToastProvider } from './components/Toast/ToastProvider'
+import { UpdateBanner } from './components/UpdateBanner/UpdateBanner'
 import { useAuth } from './hooks/useAuth'
 import { LobbyPage } from './pages/LobbyPage'
 import { TitlePage } from './pages/TitlePage'
@@ -20,22 +21,41 @@ import { TitlePage } from './pages/TitlePage'
 export default function App() {
   // earnGold ยังไม่มีหน้าจอไหนเรียกใช้ตอนนี้ (ตั้งใจ — ทองต้องมาจากเควส/ดรอปของจริงเท่านั้น
   // ไม่ใช่ปุ่มกดเพิ่มเอง) เก็บ hook ไว้ให้ระบบเควส/ต่อสู้ในอนาคตเรียกใช้ตรง ๆ เมื่อสร้างเสร็จ
-  const { status, player, register, login, logout, updatePlayer, topUpGems, redeemCoupon, findFriendByUid } =
-    useAuth()
+  const {
+    status,
+    player,
+    register,
+    login,
+    logout,
+    updatePlayer,
+    topUpGold,
+    topUpGems,
+    redeemCoupon,
+    findFriendByUid,
+    isAdmin,
+    grantCharacter,
+    exportSave,
+    importSave,
+  } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
 
   // ล็อกอินแล้วและตั้งชื่อแล้ว → เข้าลอบบี้
   if (status === 'signed-in' && player && player.name.length > 0) {
     return (
       <GameViewport>
+        <UpdateBanner />
         <ToastProvider>
           <LobbyPage
             player={player}
             onPlayerChange={updatePlayer}
             onLogout={logout}
+            onTopUpGold={topUpGold}
             onTopUpGems={topUpGems}
             onRedeemCoupon={redeemCoupon}
             onFindFriend={findFriendByUid}
+            isAdmin={isAdmin}
+            onGiveCharacter={grantCharacter}
+            onExportSave={exportSave}
           />
         </ToastProvider>
       </GameViewport>
@@ -46,12 +66,13 @@ export default function App() {
 
   return (
     <GameViewport>
+      <UpdateBanner />
       <ToastProvider>
         {/* หน้าเริ่มเกมเป็นฉากหลังตลอดช่วงก่อนเข้าลอบบี้ */}
         <TitlePage onStart={() => setAuthOpen(true)} />
 
         {status === 'guest' && authOpen ? (
-          <AuthModal onRegister={register} onLogin={login} />
+          <AuthModal onRegister={register} onLogin={login} onImportSave={importSave} />
         ) : null}
 
         {needsName && player ? (

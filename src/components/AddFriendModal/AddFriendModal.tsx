@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FriendCandidate } from '../../data/accountRepository'
+import { useModalA11y } from '../../hooks/useModalA11y'
 import { AddFriendIcon, BlockIcon, HeroesIcon } from '../icons/GameIcons'
 import { AddFriendPanel } from './AddFriendPanel'
 import styles from './AddFriendModal.module.css'
@@ -18,6 +19,9 @@ type TabId = 'friend' | 'list' | 'block'
  */
 export function AddFriendModal({ onSearch, onClose }: AddFriendModalProps) {
   const [tab, setTab] = useState<TabId>('friend')
+
+  // Esc, backdrop-click, focus trap, คืนโฟกัสตอนปิด — รวมไว้ที่ useModalA11y ตัวเดียว
+  const { shellRef, backdropProps } = useModalA11y<HTMLDivElement>(onClose)
   // ยังไม่มีระบบรายชื่อเพื่อน/บล็อคผู้เล่นจริง (ไม่มีที่เก็บถาวรเลย) จึงว่างเสมอตอนนี้
   // เมื่อมีระบบแล้วให้เติมรายชื่อจริงตรงนี้ — มีแล้วค่อยแสดงรายการ ไม่มีก็ปล่อยว่างไว้
   const friendsList: FriendCandidate[] = []
@@ -30,13 +34,15 @@ export function AddFriendModal({ onSearch, onClose }: AddFriendModalProps) {
   ]
 
   return (
-    <div
-      className={styles.backdrop}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose()
-      }}
-    >
-      <div className={styles.dialog} role="dialog" aria-modal="true" aria-label="เพิ่มเพื่อน">
+    <div className={styles.backdrop} {...backdropProps}>
+      <div
+        ref={shellRef}
+        className={styles.dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-label="เพิ่มเพื่อน"
+        tabIndex={-1}
+      >
         <header className={styles.header}>
           <AddFriendIcon className={styles.headerIcon} />
           <h2 className={styles.headerTitle}>เพิ่มเพื่อน</h2>

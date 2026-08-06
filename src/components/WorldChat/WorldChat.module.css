@@ -1,0 +1,187 @@
+/*
+   ช่องแชท — มุมซ้ายล่างของลอบบี้ เห็นได้ทุกบัญชี (ดูคอมเมนต์หัว WorldChat.tsx)
+
+   วางเหนือเมนูหลัก (--z-nav) เพราะเป็นเครื่องมือที่ต้องกดได้เสมอ แต่ยังต่ำกว่า
+   --z-panel เพื่อไม่ให้บังหน้าต่างที่ผู้เล่นเปิดอยู่
+   inset-block-end เผื่อความสูงของเมนูหลักไว้ จะได้ไม่ทับปุ่มเมนูล่าง
+*/
+.launcher,
+.panel {
+  position: absolute;
+  z-index: calc(var(--z-nav) + 1);
+  inset-inline-start: clamp(14px, 2.4vw, 40px);
+  inset-block-end: calc(max(18px, env(safe-area-inset-bottom)) + 128px);
+}
+
+.launcher {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid rgb(229 184 75 / 45%);
+  clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%);
+  background: linear-gradient(150deg, rgb(28 11 25 / 88%), rgb(7 28 32 / 92%));
+  color: rgb(242 217 142 / 78%);
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-shadow: 0 2px 4px #000;
+  transition: color 180ms ease, border-color 180ms ease;
+}
+.launcher:hover,
+.launcher:focus-visible {
+  outline: none;
+  border-color: #f1ce83;
+  color: #ffeab4;
+}
+/* ลูกโป่งแชทเรียบ ๆ วาดด้วย border-radius ล้วน ไม่ต้องพึ่งไอคอนไฟล์ภาพ */
+.launcherIcon {
+  position: relative;
+  width: 12px;
+  height: 9px;
+  border: 1.4px solid currentColor;
+  border-radius: 3px 3px 3px 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: min(320px, 42vw);
+  height: 260px;
+  border: 1px solid rgb(229 184 75 / 52%);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  background: linear-gradient(155deg, rgb(28 11 25 / 94%), rgb(7 24 32 / 96%));
+  box-shadow: 0 10px 26px rgb(0 0 0 / 62%), inset 0 0 0 3px rgb(4 8 20 / 55%);
+  backdrop-filter: blur(8px);
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  flex: none;
+  border-bottom: 1px solid rgb(229 184 75 / 24%);
+}
+.tab,
+.tabActive {
+  flex: 1;
+  padding: 7px 4px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: rgb(226 198 148 / 55%);
+  font-family: var(--font-display);
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-shadow: 0 2px 4px #000;
+  transition: color 160ms ease, border-color 160ms ease;
+}
+.tab:hover,
+.tab:focus-visible { outline: none; color: rgb(242 217 142 / 78%); }
+.tabActive { color: #ffeab4; border-bottom-color: #e5bd68; }
+.close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  background: transparent;
+  color: rgb(226 198 148 / 62%);
+  font-size: 0.9rem;
+  line-height: 1;
+  transition: color 160ms ease;
+}
+.close:hover,
+.close:focus-visible { outline: none; color: #ffeab4; }
+
+.scopeNote {
+  flex: none;
+  margin: 0;
+  padding: 4px 10px;
+  border-bottom: 1px solid rgb(229 184 75 / 18%);
+  color: rgb(196 214 216 / 50%);
+  font-size: 0.54rem;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.feed {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 8px 10px;
+  list-style: none;
+  overflow-y: auto;
+  font-size: 0.62rem;
+  line-height: 1.4;
+}
+.message { word-break: break-word; }
+.author { color: #e5bd68; font-weight: 700; }
+.author::after { content: ': '; color: rgb(226 198 148 / 55%); }
+.text { color: #e4e9e6; }
+.systemOk,
+.systemError {
+  padding: 2px 6px;
+  border-inline-start: 2px solid;
+  font-size: 0.58rem;
+  font-style: italic;
+}
+.systemOk { border-color: #7fdcae; color: #7fdcae; }
+.systemError { border-color: #ef8f7f; color: #ef8f7f; }
+.hint {
+  margin: auto;
+  padding: 12px;
+  color: rgb(196 214 216 / 45%);
+  font-size: 0.6rem;
+  text-align: center;
+}
+
+.form {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 7px;
+  border-top: 1px solid rgb(229 184 75 / 24%);
+}
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid rgb(229 184 75 / 30%);
+  background: rgb(3 10 16 / 72%);
+  color: #f0e5cb;
+  font-family: inherit;
+  font-size: 0.64rem;
+  letter-spacing: 0.02em;
+}
+.input:focus { outline: none; border-color: rgb(229 184 75 / 55%); }
+.input::placeholder { color: rgb(196 214 216 / 32%); }
+.input:disabled { opacity: 0.5; }
+.send {
+  flex: none;
+  padding: 5px 12px;
+  border: 1px solid #ebc46d;
+  background: linear-gradient(145deg, #f2c968, #8e5c18);
+  color: #261805;
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  font-weight: 800;
+  transition: filter 180ms ease;
+}
+.send:hover:not(:disabled) { filter: brightness(1.12); }
+.send:disabled { cursor: not-allowed; filter: saturate(0.3) brightness(0.7); opacity: 0.6; }
+
+/* จอแคบ: เมนูหลักย้ายไปกลางจอและเตี้ยลง ช่องแชทจึงขยับลงมาใกล้ขอบได้ */
+@media (max-width: 860px) {
+  .launcher,
+  .panel {
+    inset-inline-start: 10px;
+    inset-block-end: calc(max(8px, env(safe-area-inset-bottom)) + 96px);
+  }
+  .panel { width: min(280px, 78vw); height: 220px; }
+}

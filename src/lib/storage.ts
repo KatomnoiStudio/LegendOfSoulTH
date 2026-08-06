@@ -1,3 +1,5 @@
+import { reportError } from './errors/reportError'
+
 /**
  * ตัวห่อ localStorage ที่ไม่โยน exception
  *
@@ -5,7 +7,6 @@
  * โหมดส่วนตัวของ Safari, พื้นที่เต็ม, ผู้ใช้ปิดคุกกี้, หรือข้อมูลเก่าที่ parse ไม่ผ่าน
  * ทุกกรณีต้องไม่ทำให้เกมล่ม — คืน null แล้วให้ผู้เรียกตัดสินใจแทน
  */
-
 export function readJson<T>(key: string): T | null {
   try {
     const raw = window.localStorage.getItem(key)
@@ -13,7 +14,7 @@ export function readJson<T>(key: string): T | null {
     return JSON.parse(raw) as T
   } catch (err) {
     // ข้อมูลเสียหรืออ่านไม่ได้ — ถือว่ายังไม่มีข้อมูล
-    console.error(`[storage] readJson("${key}") failed`, err)
+    reportError('STORAGE_READ_FAIL', 'silent', err)
     return null
   }
 }
@@ -24,7 +25,7 @@ export function writeJson(key: string, value: unknown): boolean {
     window.localStorage.setItem(key, JSON.stringify(value))
     return true
   } catch (err) {
-    console.error(`[storage] writeJson("${key}") failed`, err)
+    reportError('STORAGE_WRITE_FAIL', 'silent', err)
     return false
   }
 }
@@ -34,7 +35,7 @@ export function removeKey(key: string): void {
     window.localStorage.removeItem(key)
   } catch (err) {
     // ลบไม่ได้ก็ปล่อยผ่าน ไม่มีอะไรให้กู้
-    console.error(`[storage] removeKey("${key}") failed`, err)
+    reportError('STORAGE_REMOVE_FAIL', 'silent', err)
   }
 }
 
