@@ -5,7 +5,6 @@ import { AddFriendModal } from '../components/AddFriendModal/AddFriendModal'
 import { WukongAdventure } from '../components/AdventureScene/WukongAdventure'
 import { LoadingScreen } from '../components/LoadingScreen/LoadingScreen'
 import { WorldChat } from '../components/WorldChat/WorldChat'
-import { GameExplorationSession } from '../components/GameExplorationSession/GameExplorationSession'
 import { LobbyBattleSession } from '../components/LobbyBattleSession/LobbyBattleSession'
 import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRosterModal'
 import { ItemsModal } from '../components/ItemsModal/ItemsModal'
@@ -103,13 +102,6 @@ export function LobbyPage({
   const [profileOpen, setProfileOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [rosterOpen, setRosterOpen] = useState(false)
-  /**
-   * สองทางเข้าแยกกันตามป้ายปุ่ม (เคยผูกทั้งคู่เข้าห้องต่อสู้ตรง ๆ ทำให้ "เริ่มการผจญภัย"
-   * ไม่มีทางเดินสำรวจ/คุย NPC/เจอด่าน — ต่อกลับ 2026-08-06 ตามคำสั่ง HetCreep)
-   * - เริ่มการผจญภัย → โหมดสำรวจ (เดิน → คุย → ต่อสู้)
-   * - ต่อสู้ → ห้องต่อสู้ trial-01 ตรง ๆ (ทางลัด)
-   */
-  const [explorationOpen, setExplorationOpen] = useState(false)
   const [battleOpen, setBattleOpen] = useState(false)
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [itemsOpen, setItemsOpen] = useState(false)
@@ -166,7 +158,7 @@ export function LobbyPage({
       </div>
 
       <div className={styles.startRow}>
-        <StartAdventure onStart={() => setExplorationOpen(true)} />
+        <StartAdventure onStart={() => setBattleOpen(true)} />
       </div>
 
       <MainNavigation
@@ -182,14 +174,6 @@ export function LobbyPage({
         component เปลี่ยนชื่อ/พฤติกรรมไปคนละแบบ ไม่ใช่คอนโซลลับอีกต่อไป)
       */}
       <WorldChat playerName={player.name} isAdmin={isAdmin} onGiveCharacter={onGiveCharacter} />
-
-      {explorationOpen ? (
-        <GameExplorationSession
-          player={player}
-          onPlayerChange={onPlayerChange}
-          onExit={() => setExplorationOpen(false)}
-        />
-      ) : null}
 
       {battleOpen ? (
         <LobbyBattleSession
