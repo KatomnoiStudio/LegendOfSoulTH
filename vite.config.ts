@@ -55,6 +55,21 @@ export default defineConfig(({ command }) => ({
     // ฉาก 3D (three.js) ถูกแยกเป็น chunk แยกและโหลดแบบ lazy อยู่แล้ว
     // จึงยกเพดานเตือนขึ้นเพื่อไม่ให้ warning รบกวนทุกครั้งที่ build
     chunkSizeWarningLimit: 1000,
+
+    rollupOptions: {
+      output: {
+        /*
+          แยก react/react-dom ออกเป็น chunk ของตัวเอง — โค้ดแอปเปลี่ยนแทบทุก deploy
+          แต่ react เปลี่ยนนาน ๆ ครั้ง ถ้ารวมกันไว้ ทุก deploy จะทำให้ hash ของ chunk
+          เดียวที่มี react เปลี่ยนไปด้วย ผู้เล่นกลับมาเล่นต้องโหลด react ใหม่ทุกครั้งทั้งที่
+          ไม่ได้เปลี่ยน แยกออกมาแล้ว browser cache ยังใช้ chunk นี้ต่อได้ข้าม deploy ที่ไม่ได้
+          แตะ react (three.js ไม่ต้องแยกเพิ่ม — ถูก lazy() แยก chunk เป็นของตัวเองอยู่แล้ว
+          ที่ LobbyScene/BattleScene โหลดเฉพาะตอนเข้าฉากนั้นจริง ๆ)
+        */
+        manualChunks: (id: string) =>
+          id.includes('node_modules/react') ? 'vendor-react' : undefined,
+      },
+    },
   },
   test: {
     environment: 'jsdom',

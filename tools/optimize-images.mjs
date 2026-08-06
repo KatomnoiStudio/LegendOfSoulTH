@@ -29,6 +29,19 @@ const QUALITY_BY_DIR = {
   backgrounds: 85,
 }
 
+/*
+  เพดานความกว้างก่อนแปลง WebP — ต้นฉบับจากโปรแกรมวาดภาพมักใหญ่กว่าที่จอเกมแสดงจริงมาก
+  (ยืนยันแล้ว: ตัวละครแสดงกว้างสุด 540px ใน CharacterPreview.module.css, พื้นหลังออกแบบที่
+  1600x900 คงที่ — src/game/sceneDimensions.ts) เพดานตั้งไว้ที่ ~2x จอ retina ของจุดที่แสดง
+  ใหญ่สุดในหมวดนั้น กันภาพเบลอตอนซูมด้วย ไม่ใช่ค่าที่บีบให้พอดีเป๊ะ — ไฟล์ที่เล็กกว่าเพดาน
+  อยู่แล้วจะไม่ถูกแตะ (withoutEnlargement)
+*/
+const MAX_WIDTH_BY_DIR = {
+  characters: 1200, // แสดงจริงสูงสุด 540px (CharacterPreview) + ใช้เป็น 3D texture บางไฟล์ด้วย
+  ui: 2400, // ปนกันทั้งเฟรม/ปุ่มเล็ก (~510px) และพื้นหลังเต็มจอ (thai-temple-lobby ~1600-1920px)
+  backgrounds: 2400, // ออกแบบที่ 1600x900 — เพดานนี้คือ ceiling กันของในอนาคตเกิน ไม่ใช่บีบของเดิม
+}
+
 async function walk(dir, out = []) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name)
@@ -71,8 +84,12 @@ async function main() {
       }
     }
 
+    const maxWidth = MAX_WIDTH_BY_DIR[topDir]
+    let pipeline = sharp(src)
+    if (maxWidth) pipeline = pipeline.resize({ width: maxWidth, withoutEnlargement: true })
+
     await mkdir(dirname(dest), { recursive: true })
-    await sharp(src).webp({ quality }).toFile(dest)
+    await pipeline.webp({ quality }).toFile(dest)
 
     const [srcStat, destStat] = await Promise.all([stat(src), stat(dest)])
     bytesIn += srcStat.size
