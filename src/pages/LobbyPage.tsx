@@ -47,6 +47,8 @@ interface LobbyPageProps {
   isAdmin: boolean
   /** มอบตัวละครให้บัญชีนี้ — ใช้จากช่องคำสั่งผู้ดูแลเท่านั้นในตอนนี้ */
   onGiveCharacter: (characterId: string) => Promise<CharacterGrantResult>
+  /** ส่งออก save เป็นไฟล์ JSON — คืน null เมื่อสำเร็จ (ดาวน์โหลดแล้ว) คืนข้อความเมื่อผิดพลาด */
+  onExportSave: () => Promise<string | null>
 }
 
 export function LobbyPage({
@@ -59,6 +61,7 @@ export function LobbyPage({
   onFindFriend,
   isAdmin,
   onGiveCharacter,
+  onExportSave,
 }: LobbyPageProps) {
   // แจ้งเตือนจดหมาย/ภารกิจยังเป็น mock เพราะยังไม่มีระบบทั้งสองอย่าง
   const badges = MOCK_BADGES
@@ -128,8 +131,13 @@ export function LobbyPage({
         onOpenItems={() => setItemsOpen(true)}
       />
 
-      {/* ช่องคำสั่งผู้ดูแล — ผู้เล่นทั่วไปไม่เห็นเลย (ดูคำเตือนใน src/data/admins.ts) */}
-      {isAdmin ? <CommandConsole onGiveCharacter={onGiveCharacter} /> : null}
+      {/*
+        ช่องคำสั่งผู้ดูแล — เช็ค isAdmin เป็น UI gate เท่านั้น ไม่ใช่ security boundary
+        (ดูคำเตือนใน src/data/admins.ts — เช็คฝั่ง client ล้วน ๆ ข้ามได้ด้วย DevTools)
+        import.meta.env.DEV กันไว้อีกชั้นให้ component ไม่ถูก build เข้า production bundle เลย
+        ผู้เล่นทั่วไปในเกมจริงจึงไม่มีทางเห็น แม้จะพยายามปลอมอีเมลผ่าน localStorage ก็ตาม
+      */}
+      {import.meta.env.DEV && isAdmin ? <CommandConsole onGiveCharacter={onGiveCharacter} /> : null}
 
       {explorationOpen ? (
         <GameExplorationSession
@@ -165,6 +173,7 @@ export function LobbyPage({
           onRedeemCoupon={onRedeemCoupon}
           ownedCharacterCount={ownedCharacters.length}
           onClose={() => setSettingsOpen(false)}
+          onExportSave={onExportSave}
         />
       ) : null}
     </main>

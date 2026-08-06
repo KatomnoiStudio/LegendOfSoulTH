@@ -206,8 +206,29 @@
   color: var(--c-bone);
 }
 
-.logout {
+.exportSave {
   margin-block-start: auto;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid color-mix(in srgb, var(--c-arcane) 58%, transparent);
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--c-arcane) 12%, transparent);
+  color: var(--c-arcane);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-bounce);
+}
+
+.exportSave:hover {
+  background: color-mix(in srgb, var(--c-arcane) 24%, transparent);
+}
+
+.exportSave:active {
+  transform: scale(0.97);
+}
+
+.logout {
   padding: var(--sp-3) var(--sp-4);
   border: 1px solid color-mix(in srgb, var(--c-danger) 58%, transparent);
   border-radius: var(--r-pill);
