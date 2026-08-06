@@ -30,7 +30,14 @@ export interface RealtimeEnemyTemplate {
   speed: number
   collisionRadius: number
   hurtboxRadius: number
-  /** ระยะที่เริ่มไล่ผู้เล่น */
+  /**
+   * ระยะที่เริ่มไล่ผู้เล่น
+   *
+   * ต้องกว้างพอครอบระยะจากจุดเกิดศัตรูถึงจุดเกิดผู้เล่น ไม่งั้นศัตรูจะยืนนิ่งตั้งแต่ต้น
+   * และการต่อสู้จะไม่มีวันเริ่ม — ในลานฝึกหน้าวิหารระยะนั้นคือ ~784 หน่วย
+   * (เจอตอนเขียนเทสต์: ค่าเดิม 520 ทำให้ศัตรูไม่ขยับเลยแม้แต่ก้าวเดียว)
+   * ค่าที่ใช้จึงเผื่อไว้ให้ครอบเกือบทั้งห้อง แต่ยังเป็นขอบเขตจริงสำหรับด่านที่ใหญ่กว่านี้
+   */
   detectRange: number
   /** ระยะที่เข้าโจมตีได้ */
   attackRange: number
@@ -71,7 +78,7 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     speed: 132,
     collisionRadius: 34,
     hurtboxRadius: 40,
-    detectRange: 520,
+    detectRange: 1600,
     attackRange: 74,
     attackCooldownMs: 1500,
   },
@@ -86,7 +93,7 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     speed: 118,
     collisionRadius: 40,
     hurtboxRadius: 48,
-    detectRange: 620,
+    detectRange: 1700,
     attackRange: 86,
     attackCooldownMs: 1700,
   },
@@ -101,7 +108,7 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     speed: 148,
     collisionRadius: 34,
     hurtboxRadius: 40,
-    detectRange: 560,
+    detectRange: 1600,
     attackRange: 78,
     attackCooldownMs: 1300,
   },
