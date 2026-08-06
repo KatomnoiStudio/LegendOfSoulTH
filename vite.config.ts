@@ -67,7 +67,9 @@ export default defineConfig(({ command }) => ({
           ที่ LobbyScene/BattleScene โหลดเฉพาะตอนเข้าฉากนั้นจริง ๆ)
         */
         manualChunks: (id: string) =>
-          id.includes('node_modules/react') ? 'vendor-react' : undefined,
+          id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')
+            ? 'vendor-react'
+            : undefined,
       },
     },
   },
