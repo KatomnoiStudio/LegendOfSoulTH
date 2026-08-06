@@ -73,7 +73,7 @@
 .railTitle { font-size: 0.64rem; }
 
 @media (max-width: 720px) {
-  .column { --quick-icon-size: 32px; gap: var(--quick-icon-size); translate: 0 -78px; }
+  .column { --quick-icon-size: 40px; gap: var(--quick-icon-size); translate: 0 -78px; }
   .iconPlate, .action img { width: var(--quick-icon-size); height: var(--quick-icon-size); }
-  .action { min-width: 38px; min-height: 38px; }
+  .action { min-width: 46px; min-height: 46px; }
 }

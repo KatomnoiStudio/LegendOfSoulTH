@@ -140,7 +140,7 @@
 
 /* จอแคบ: ปุ่มราหูย้ายไปอยู่คนละแถวอยู่แล้ว เมนูจึงกลับมาวางกึ่งกลางได้ */
 @media (max-width: 860px) {
-  .nav { --menu-icon-size: clamp(30px, 5.8vw, 50px); inset-inline-start: 50%; translate: -50% 0; inset-block-end: max(8px, env(safe-area-inset-bottom)); }
+  .nav { --menu-icon-size: clamp(36px, 7vw, 60px); inset-inline-start: 50%; translate: -50% 0; inset-block-end: max(8px, env(safe-area-inset-bottom)); }
   .rail { justify-content: center; width: calc(100vw - 20px); gap: clamp(10px, 2.6vw, 26px); }
   .item { width: var(--menu-icon-size); }
   .art { width: var(--menu-icon-size); }

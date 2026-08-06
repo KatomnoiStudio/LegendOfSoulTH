@@ -35,7 +35,7 @@
 
 .profileTag { position: absolute; top: -7px; left: 90px; padding: 1px 10px; border-inline: 1px solid rgb(103 203 168 / 35%); background: #0b1922; color: rgb(130 213 184 / 70%); font: 700 0.43rem/1.5 var(--font-display); letter-spacing: 0.2em; }
 .avatarWrap { position: relative; flex: none; }
-.avatarFrame { --frame-size: 4rem; }
+.avatarFrame { --frame-size: 2.8rem; } /* ลด 30% คู่กับกรอบพญานาค (desktop) — mobile @media ด้านล่างตั้ง 3rem แยกไว้แล้ว ไม่ถูกแตะ */
 .levelBadge { position: absolute; inset-block-end: -0.34rem; inset-inline-start: 50%; transform: translateX(-50%); min-width: 2.2rem; padding: 0.14rem 0.45rem 0.08rem; border: 1px solid #3e2707; clip-path: polygon(12% 0, 88% 0, 100% 36%, 91% 100%, 9% 100%, 0 36%); background: linear-gradient(180deg, #ffe49b, #d69d3b 58%, #8e5a14); color: #231603; font-family: var(--font-display); font-size: 0.64rem; font-weight: 900; line-height: 1.3; text-align: center; box-shadow: 0 3px 6px rgb(0 0 0 / 65%), inset 0 1px #fff2c3; }
 
 .identity { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -78,7 +78,7 @@
   .currency { grid-template-columns: 20px 45px 22px; min-height: 32px; padding: 3px 4px 3px 8px; }
   .currencyIcon { width: 1rem; height: 1rem; }
   .amount { font-size: 0.67rem; }
-  .addButton { width: 16px; height: 16px; }
+  .addButton { width: 20px; height: 20px; }
 }
 
 /* Thai fantasy skin — ภาพวาดพญานาคและคลังสมบัติ */
@@ -86,10 +86,11 @@
   /* กว้างคงที่ตามสัดส่วนจริงของภาพเฟรม (2243x701) กันไม่ให้ชื่อยาวดันกล่องจนภาพยืดเพี้ยน
      สูงคงที่แยกจากความกว้าง (ไม่ผูก aspect-ratio) เพื่อเหลือพื้นที่แนวตั้งพอให้ชื่อ+พลังรบ
      ไม่ล้นออกนอกลายกรอบพญานาคที่ช่วงล่าง — ความเพี้ยนของภาพที่กว้างช่วง 430–510px นั้นเล็กน้อยมาก */
-  width: clamp(430px, 36vw, 510px);
-  height: 158px;
+  /* ลดขนาดกรอบพญานาคลง 30% ตามคำขอ (เฉพาะ desktop — มือถือใช้ค่าตายตัวแยกใน @media ด้านล่าง ไม่ถูกแตะ) */
+  width: clamp(301px, 25.2vw, 357px);
+  height: 111px;
   min-height: 0;
-  padding: 50px 52px 16px 68px;
+  padding: 35px 36px 11px 48px;
   overflow: hidden;
   border: 0;
   clip-path: none;
@@ -107,9 +108,9 @@
   filter: brightness(1.08) drop-shadow(0 16px 15px rgb(0 0 0 / 70%)) drop-shadow(0 0 8px rgb(240 187 59 / 35%));
 }
 .profileTag {
-  top: 27px;
+  top: 19px;
   left: 62%;
-  padding: 2px 16px 1px;
+  padding: 1px 11px 1px;
   translate: -50% 0;
   border: 1px solid rgb(231 184 69 / 46%);
   clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0 50%);
@@ -130,10 +131,10 @@
   gap: 2px;
   min-width: 0;
   max-width: 100%;
-  margin-block-end: -2px;
-  padding: 5px 12px 4px 14px;
+  margin-block-end: -1px;
+  padding: 4px 8px 3px 10px;
 }
-.name { max-width: 100%; overflow: hidden; color: #f6d885; font-size: 1.15rem; text-overflow: ellipsis; text-shadow: 0 2px 4px #000, 0 0 8px rgb(222 163 48 / 22%); }
+.name { max-width: 100%; overflow: hidden; color: #f6d885; font-size: 0.8rem; text-overflow: ellipsis; text-shadow: 0 2px 4px #000, 0 0 8px rgb(222 163 48 / 22%); }
 .power { color: #a8e0c8; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-shadow: 0 2px 4px #000; }
 .expRow { margin-top: 3px; }
 .expText { font-size: 0.7rem; }
@@ -141,7 +142,7 @@
 .expFill { background: linear-gradient(90deg, #8d2631, #d79834 58%, #ffe392); box-shadow: 0 0 9px rgb(224 161 48 / 42%); }
 .avatarWrap::before {
   position: absolute;
-  inset: -9px;
+  inset: -6px;
   z-index: -1;
   border: 1px solid rgb(232 186 75 / 34%);
   rotate: 45deg;
@@ -160,11 +161,12 @@
   text-shadow: 0 2px 5px #000;
 }
 .currency {
-  /* คลังสมบัติ: ป้ายยาวขึ้นและเตี้ยลง ให้ดูเป็นแผ่นป้ายแนวนอนมากกว่าปุ่มก้อน */
-  grid-template-columns: 24px minmax(96px, auto) 20px;
-  gap: 9px;
-  min-height: 38px;
-  padding: 3px 9px 3px 10px;
+  /* คลังสมบัติ: ความสูงลด 30% (38px→27px), ความกว้างเพิ่ม 20% (พื้นที่ตัวเลข 96px→115px, gap/padding แนวนอนขยายตาม)
+     เฉพาะ desktop — ไอคอนในนี้ต้องเล็กลงเป็น 20px คู่กันเพื่อให้พอดีกับความสูงใหม่ (ดู .currencyIcon ด้านล่าง) */
+  grid-template-columns: 20px minmax(115px, auto) 20px;
+  gap: 11px;
+  min-height: 27px;
+  padding: 2px 11px 2px 12px;
   border: 1px solid rgb(240 191 72 / 72%);
   clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0 50%);
   background:
@@ -181,8 +183,8 @@
   pointer-events: none;
 }
 .currencyIcon {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
@@ -205,6 +207,8 @@
   */
   .name { font-size: 0.86rem; }
   .power { font-size: 0.6rem; }
-  .currency { grid-template-columns: 18px minmax(66px, auto) 16px; gap: 6px; min-height: 29px; padding: 2px 6px 2px 7px; }
-  .currencyIcon { width: 18px; height: 18px; }
+  .currency { grid-template-columns: 22px minmax(66px, auto) 19px; gap: 6px; min-height: 29px; padding: 2px 6px 2px 7px; }
+  .currencyIcon { width: 23px; height: 23px; }
+  /* กันไม่ให้การลดกรอบพญานาค/avatarFrame ฝั่ง desktop (30%) ไปกระทบวงแหวนตกแต่งหลังรูปบนมือถือ — ค่าเดิมก่อนแก้รอบนี้ */
+  .avatarWrap::before { inset: -9px; }
 }
