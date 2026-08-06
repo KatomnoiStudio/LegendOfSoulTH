@@ -1,4 +1,5 @@
 import { SRGBColorSpace, TextureLoader, type Texture } from 'three'
+import { reportError } from '../../lib/errors/reportError'
 
 /**
  * ตัวโหลด/แคชภาพของห้องต่อสู้
@@ -39,7 +40,7 @@ async function loadOne(url: string): Promise<Texture> {
     cache.set(url, texture)
     return texture
   } catch (cause) {
-    console.error(`[battleAssets] โหลดไม่สำเร็จ: ${url}`, cause)
+    reportError('BATTLE_ASSET_LOAD_FAIL', 'visible', cause, { url })
     throw new BattleAssetError(url)
   }
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import WebGL from 'three/addons/capabilities/WebGL.js'
+import { reportError } from '../../lib/errors/reportError'
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
 import type { RealtimeBattleSnapshot, Vec2 } from '../../game/realtimeBattle/types'
 import { BattleArena } from './BattleArena'
@@ -56,7 +57,7 @@ export function RealtimeBattleRoom({
 
     const onLost = (event: Event) => {
       event.preventDefault()
-      console.error('[RealtimeBattleRoom] WebGL context lost')
+      reportError('BATTLE_WEBGL_CONTEXT_LOST', 'visible')
       setContextLost(true)
     }
     const onRestored = () => setContextLost(false)
