@@ -1,0 +1,150 @@
+import { describe, expect, it } from 'vitest'
+import { createRealtimeBattle, createWaveEnemies } from './createRealtimeBattle'
+import { RealtimeBattleRuntime } from './RealtimeBattleRuntime'
+import { getRealtimeStage } from './stageConfig'
+import type { Player } from '../../types/player'
+import { EMPTY_PROGRESS } from '../../types/player'
+
+/**
+ * เทสต์ระดับ runtime ล้วน ๆ — ไม่มี React, ไม่มี DOM, ไม่มี requestAnimationFrame
+ *
+ * นี่คือเหตุผลที่ RealtimeBattleRuntime ไม่ถือ rAF ไว้เอง: เทสต์เรียก step() ตรง ๆ
+ * ด้วยเวลาที่กำหนดเองได้ ทำให้ผลลัพธ์คงที่ทุกครั้ง (deterministic)
+ */
+
+function makePlayer(): Player {
+  return {
+    id: 'acc-1',
+    uid: '1234567890',
+    name: 'ผู้ทดสอบ',
+    title: 'นักเดินทาง',
+    level: 10,
+    exp: 0,
+    expToNext: 100,
+    currency: { gold: 0, gem: 0 },
+    ownedCharacters: [
+      { characterId: 'monkey-king', level: 12, exp: 0, expToNext: 100, obtainedAt: '2026-01-01T00:00:00.000Z' },
+    ],
+    inventory: [],
+    teamSlots: ['monkey-king', null, null, null],
+    frameId: 'default',
+    progress: EMPTY_PROGRESS,
+  }
+}
+
+describe('createRealtimeBattle', () => {
+  it('สร้างผู้เล่นที่จุดเกิดของด่าน พร้อมศัตรูคลื่นแรกครบตามข้อมูลด่าน', () => {
+    const state = createRealtimeBattle('trial-01', makePlayer())
+    const stage = getRealtimeStage('trial-01')
+
+    expect(state).not.toBeNull()
+    expect(stage).not.toBeNull()
+    if (!state || !stage) return
+
+    expect(state.player.position).toEqual(stage.playerSpawn)
+    expect(state.player.hp).toBe(state.player.maxHp)
+    expect(state.enemies).toHaveLength(3)
+    expect(state.status).toBe('intro')
+    expect(state.currentWaveIndex).toBe(0)
+  })
+
+  it('คืน null เมื่อไม่รู้จักด่าน', () => {
+    expect(createRealtimeBattle('ด่านที่ไม่มีจริง', makePlayer())).toBeNull()
+  })
+
+  it('คืน null เมื่อผู้เล่นไม่มีตัวละครในทีม', () => {
+    const player = makePlayer()
+    player.teamSlots = [null, null, null, null]
+    expect(createRealtimeBattle('trial-01', player)).toBeNull()
+  })
+
+  it('ศัตรูของแต่ละคลื่นมี id ไม่ซ้ำกันข้ามคลื่น', () => {
+    const stage = getRealtimeStage('trial-02')
+    expect(stage).not.toBeNull()
+    if (!stage) return
+
+    const ids = [...createWaveEnemies(stage, 0), ...createWaveEnemies(stage, 1)].map((e) => e.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+})
+
+describe('RealtimeBattleRuntime', () => {
+  function makeRuntime() {
+    const state = createRealtimeBattle('trial-01', makePlayer())
+    if (!state) throw new Error('สร้างสถานะตั้งต้นไม่สำเร็จ')
+    return new RealtimeBattleRuntime(state)
+  }
+
+  it('เดินจาก intro ไป running เมื่อเวลาฉากเปิดผ่านไปแล้ว', () => {
+    const runtime = makeRuntime()
+    expect(runtime.getSnapshot().status).toBe('intro')
+
+    runtime.step(500)
+    expect(runtime.getSnapshot().status).toBe('intro')
+
+    runtime.step(500)
+    expect(runtime.getSnapshot().status).toBe('running')
+  })
+
+  it('นับคูลดาวน์ถอยหลังแต่ไม่ต่ำกว่าศูนย์', () => {
+    const runtime = makeRuntime()
+    const state = runtime.getState()
+    runtime.step(1000) // ผ่านฉากเปิด
+
+    state.player.attackCooldownRemainingMs = 300
+    runtime.step(100)
+    expect(state.player.attackCooldownRemainingMs).toBeCloseTo(200)
+
+    runtime.step(1000)
+    expect(state.player.attackCooldownRemainingMs).toBe(0)
+  })
+
+  it('แจ้ง subscriber เมื่อ publish และหยุดแจ้งหลัง unsubscribe', () => {
+    const runtime = makeRuntime()
+    let calls = 0
+    const unsubscribe = runtime.subscribe(() => {
+      calls += 1
+    })
+
+    runtime.publish()
+    expect(calls).toBe(1)
+
+    unsubscribe()
+    runtime.publish()
+    expect(calls).toBe(1)
+  })
+
+  it('snapshot เป็นสำเนา ไม่ใช่การอ้างถึงสถานะภายใน', () => {
+    const runtime = makeRuntime()
+    const snapshot = runtime.getSnapshot()
+    const state = runtime.getState()
+
+    expect(snapshot.player).not.toBe(state.player)
+    expect(snapshot.player.position).not.toBe(state.player.position)
+    expect(snapshot.player.position).toEqual(state.player.position)
+  })
+
+  it('requestExit หยุดการจำลอง — step หลังจากนั้นไม่ทำให้เวลาเดินต่อ', () => {
+    const runtime = makeRuntime()
+    runtime.step(1000)
+    const elapsedBefore = runtime.getState().elapsedMs
+
+    runtime.requestExit()
+    runtime.step(500)
+
+    expect(runtime.getSnapshot().status).toBe('exiting')
+    expect(runtime.getState().elapsedMs).toBe(elapsedBefore)
+  })
+
+  it('dispose แล้วไม่แจ้ง subscriber อีก', () => {
+    const runtime = makeRuntime()
+    let calls = 0
+    runtime.subscribe(() => {
+      calls += 1
+    })
+
+    runtime.dispose()
+    runtime.publish()
+    expect(calls).toBe(0)
+  })
+})

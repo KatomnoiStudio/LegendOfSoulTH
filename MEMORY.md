@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-07T01:15:00+07:00 by `Claude Code (memory-keeper)`  
+> **Last Updated**: 2026-08-07T02:15:00+07:00 by `Claude Code (memory-keeper)`  
 > **RULES_VERSION: 10** (see `.agents/rules/rules-freshness-check.md` — the freshness check itself compares `AGENTS.md`'s header against the `RULES_VERSION last synced:` line in "Current Status" below, not this line; keep this line in sync as a courtesy so a skim doesn't see a stale number)
 
 ---
@@ -154,7 +154,7 @@
 20. **GameViewport letterbox removed — fluid stage** (2026-08-06): HetCreep reversed the earlier "keep letterbox" decision — the fixed 1600×900 + `transform:scale()` letterbox shrank the whole UI uniformly on any non-16:9 screen (a real phone in portrait would render at ~24% scale, text/buttons too small to read/tap). `src/components/GameViewport/GameViewport.tsx`+`.module.css` rewritten: stage is now `position:absolute;inset:0` (real viewport size, no JS scale calc, `BASE_WIDTH`/`BASE_HEIGHT` deleted — nothing else imported them). Grepped 24 CSS-module files with `position:absolute` / 244 `px` position declarations before starting — most turned out to be icon/button sizes and edge-anchored HUD offsets that don't depend on the old fixed canvas, so this did **not** need a 24-file rewrite. Two real breakages found and fixed:
     - **`LobbyPage`'s CSS Grid** (`.page { display:grid; grid-template-rows: auto 1fr auto auto }`): grid items default to `min-width:auto`, which resolves to the item's max-content size — under the old letterbox this was masked because the stage was always laid out at literal 1600px width regardless of screen. With a fluid stage, `TopBar`'s `.bar` (row 1) and `LobbyPage`'s `.stage` (row 2, wraps `SideActions`) could grow past the real viewport width and get silently clipped by `.page`'s `overflow:hidden` (no scrollbar, just invisible cutoff). Fixed with `min-width: 0` on `.bar` (`TopBar.module.css`) and `.stage` (`LobbyPage.module.css`) — the standard fix for this well-known CSS Grid gotcha.
     - **`WukongAdventure`'s walk scene** (moonlit courtyard / trial ground): character position, click-to-walk target, and the destination-ring marker were computed in a `WORLD_WIDTH/HEIGHT = 1600×900` coordinate space and written straight into CSS px (`--actor-x`, `--actor-y`, `left`/`top`) — correct only because the old GameViewport stage was *always* exactly 1600×900px in layout terms. Fixed by measuring the real `.scene` container size (`ResizeObserver`, with a synchronous `useLayoutEffect` initial read so there's no one-frame flash at the old raw-world position) and mapping world→screen coordinates with the same "uniform scale + centered crop" math CSS `background-size:cover` uses for the scene's background art (`Math.max(scaleX, scaleY)` + centering offset) — keeps the walk position visually aligned with the courtyard art at any aspect ratio. Game logic itself (walkable-area polygon, physics, depth sorting) stays untouched in world-space; only the render-time world→screen mapping changed. New helper `worldToScreen()` in `src/components/AdventureScene/WukongAdventure.tsx`.
-    - **Testing caveat**: browser-verified via `mcp__Claude_Browser__*` at 1280×720/768×1024/390×844 using layout-level checks (`getBoundingClientRect` overflow scan) rather than screenshots — the Browser pane was not displayed on HetCreep's end this session, so the tab's compositor was suspended (`screenshot` tool errored "page is not compositing frames"). Confirmed real: the TopBar/SideActions `min-width:0` fix (plain grid/flex layout, verified reproducibly across two reloads). **Not independently visually confirmed**: the WukongAdventure fix and a possible pre-existing `MainNavigation` bottom-nav label/icon width squeeze at ≤390px screens (labels are `white-space:nowrap` with no max-width, several run 40–50px wide against a 36–40px icon column at the narrowest breakpoint) — CSS `vw`-unit recalculation was observed returning stale values in this suspended-compositor state (`calc(100vw - 20px)` resolved against a previous viewport size, not the current one), so numbers from that probe aren't trustworthy. Worth a follow-up visual pass with the Browser pane actually open, or in a real device/browser.
+    - **Testing caveat** ([[browser-pane-not-compositing]] — recurred again in item 59): browser-verified via `mcp__Claude_Browser__*` at 1280×720/768×1024/390×844 using layout-level checks (`getBoundingClientRect` overflow scan) rather than screenshots — the Browser pane was not displayed on HetCreep's end this session, so the tab's compositor was suspended (`screenshot` tool errored "page is not compositing frames"). Confirmed real: the TopBar/SideActions `min-width:0` fix (plain grid/flex layout, verified reproducibly across two reloads). **Not independently visually confirmed**: the WukongAdventure fix and a possible pre-existing `MainNavigation` bottom-nav label/icon width squeeze at ≤390px screens (labels are `white-space:nowrap` with no max-width, several run 40–50px wide against a 36–40px icon column at the narrowest breakpoint) — CSS `vw`-unit recalculation was observed returning stale values in this suspended-compositor state (`calc(100vw - 20px)` resolved against a previous viewport size, not the current one), so numbers from that probe aren't trustworthy. Worth a follow-up visual pass with the Browser pane actually open, or in a real device/browser.
     - Full verify green: `npm run typecheck && npm run lint && npm run test && npm run build`.
 
 21. **rot-canary follow-up fix on the letterbox commit** (2026-08-06): auto QUICK scan on the touched files caught a real bug in the item-20 `WukongAdventure` fix — the `useLayoutEffect` measuring `.scene` size had `deps=[]` (mount-only). The "no walkable character yet" fallback branch renders a `<section>` with no `ref` at all; if that's the state on first mount, the effect returns early and never re-runs once a walkable character shows up later in the same session (component doesn't unmount), leaving `sceneSize` stuck at the `1600×900` default forever and reproducing the exact off-screen-character bug item 20 fixed. Fixed by keying the effect on `active?.id` so it re-attaches when the ref-bearing branch mounts. HetCreep approved via the "apply safe fix" menu.
@@ -423,17 +423,159 @@
     - **2. `npc-shadow-guard` stood inside a wall.** Its position `(620, 360)` sits inside the map obstacle at `(480, 280)` sized `240×120`, i.e. spanning x 480–720 / y 280–400 (`src/game/exploration/maps.ts`). `findNearbyNpc` calls `hasLineOfSight`, which probes points along the line to the NPC and checks `isWalkable` on each — the endpoint is inside the obstacle, so it always returned false, the "คุย" button never appeared, and `trial-01` was unreachable. Moved to **`y = 448`**, clear of the obstacle's bottom edge (400), still standing in front of the temple, and genuinely walkable up to ~61 units away, inside its `interactionRadius` of 72.
     - **Verified in a real browser** (Playwright + Chromium) after the fix: walk to the NPC → "คุย" appears and responds → dialogue → battle starts. Neither bug is visible from source alone, and no existing test covered either one.
 
+22. **ห้องต่อสู้ real-time — วางฐาน runtime + เปลี่ยนทางเข้า** (2026-08-06T03:10+07:00, `Claude Code (cloud session, Ring 1)`, สาย fork `nustanakritwithai/GameTurnBase`, Migration Step 2–3):
+    - **ทางเข้าห้องต่อสู้เปลี่ยนเป็นระบบใหม่แล้ว**: `BattleScene` รับแค่ `player / stageId /
+      onComplete / onExit` — ไม่มี `snapshot`, `activeUnit`, `pendingKind`, `validTargetIds`,
+      `onAttack/onDefend/onSkill/onSelectTarget/onCancelTarget` อีกต่อไป
+      `BattleLayer` ใน `GameExplorationSession` เหลือแค่ส่งต่อ 4 ค่านั้น (เดิม 11 props)
+      **เงื่อนไขเปิดห้อง (`flow.mode === 'battle'`) ไม่ถูกแตะ** ตามข้อห้ามของสเปก
+    - **ระบบเทิร์นเดิมยังอยู่ครบทุกไฟล์ ยังไม่ลบ** (`useBattle.ts`, `game/battle/*`) — จะลบใน
+      Step 9 หลังผ่าน Acceptance Criteria ตอนนี้แค่ไม่มีใครเรียกใช้ใน production flow แล้ว
+    - **สถาปัตยกรรมใหม่** (`src/game/realtimeBattle/`): `types.ts` (snapshot/entity/event ของ
+      ระบบเรียลไทม์ ไม่ยืม `BattleSnapshot` แบบเทิร์นมาใช้), `stageConfig.ts` (ข้อมูลด่าน+
+      แม่แบบศัตรู ไม่ hard-code ใน component), `createRealtimeBattle.ts` (pure — เทสต์ตรงได้),
+      `RealtimeBattleRuntime.ts` (สถานะ mutable **นอก React state**, publish snapshot ~10 Hz
+      ให้ HUD เท่านั้น), `RealtimeBattleLoop.ts` (fixed-step 60 Hz บน rAF + accumulator,
+      หยุดเองเมื่อแท็บอยู่ background, ไม่มี `setInterval` เลย), `battleAssets.ts`,
+      `BattleResultAdapter.ts`, `useRealtimeBattle.ts`, `battleSpriteSequences.ts`
+    - **บทเรียนที่เจอระหว่างทำ (วัดจริง ไม่ได้เดา)**:
+      - **bundle โตจาก 318 kB เป็น 1,205 kB** เพราะ `BattleScene` ดึง three.js เข้า chunk หลัก
+        แก้ด้วยการ `lazy()` ห้องต่อสู้แบบเดียวกับที่ `LobbyPage` ทำกับ `LobbyScene`
+        ผลลัพธ์: chunk หลักเหลือ **305 kB** (เล็กกว่าเดิมด้วยซ้ำ เพราะ UI เทิร์นถูกถอดออก),
+        three อยู่ใน chunk แยก 881 kB ที่โหลดเมื่อเข้าฉาก 3D เท่านั้น
+      - **ชุดเฟรมทั้งหมดของหนึ่งการต่อสู้ราว 16 MB** ถ้ารอโหลดครบก่อนเปิดห้องจะค้างที่หน้า
+        "กำลังเตรียมห้องต่อสู้…" นานมาก (เจอจริงบนจอมือถือแนวนอน 844×390) จึงแบ่งเป็น
+        critical (`idle` + ฉากหลัง) ที่กั้นการเปิดห้อง กับส่วนที่เหลือโหลดเบื้องหลัง
+      - **ภาพฉากใช้เป็นลายพื้นไม่ได้** — วิหารจะถูกกดให้นอนราบ ศัตรูแถวบนดูเหมือนลอย
+        เปลี่ยนเป็นตั้งเป็นฉากหลัง (crop ครึ่งบนด้วย texture clone) + พื้นเป็นลานหินเรียบ+วงมณฑล
+      - **`console.error` หลอกตอนออกจากห้อง** — เบราว์เซอร์ยิง `webglcontextlost` ตอนทำลาย
+        canvas ด้วย ต้องถอด listener ใน cleanup ของ effect ไม่ใช่ผูกทิ้งไว้ใน `onCreated`
+    - **เทสต์**: `RealtimeBattleRuntime.test.ts` 10 เทสต์ (สร้างสถานะจากด่าน/ทีมจริง, id ศัตรู
+      ไม่ซ้ำข้ามคลื่น, intro→running, คูลดาวน์ไม่ติดลบ, subscribe/unsubscribe, snapshot เป็น
+      สำเนาไม่ใช่ reference, requestExit หยุดเวลา, dispose) — ทั้งหมดเรียก `step()` ตรง ๆ
+      ไม่ผ่าน React/rAF จึง deterministic
+    - **ยืนยันในเบราว์เซอร์จริง**: เดสก์ท็อป 1280×720 และมือถือแนวนอน 844×390 —
+      เข้าห้องได้ ห้องเรนเดอร์ครบ (พื้น/ฉากหลัง/ผู้เล่น/ศัตรู 3 ตัว/HUD) กดออกกลับไปสำรวจได้
+      ไม่มี console error และไม่มี response ≥ 400
+    - **ยังไม่มีในรอบนี้ (ตามแผน)**: การเดิน, joystick, กล้องตามตัว, AI ศัตรู, hitbox/ดาเมจ,
+      คอมโบ, dash, สกิล, victory/defeat, รางวัล — เข้ามาทีละใบตามลำดับ PR ที่วางไว้
+
+23. **ห้องต่อสู้ real-time — การเดิน กล้อง และจอยสติก** (2026-08-06T03:35+07:00, `Claude Code (cloud session, Ring 1)`, Migration Step 4):
+    - `InputSystem.ts` — รวมอินพุตทุกทางให้เหลือเวกเตอร์เดียว: WASD + ปุ่มลูกศร + จอยสติก
+      จอยชนะคีย์บอร์ดเมื่อถูกดันจริง (ถ้าบวกกันจะได้ทิศเพี้ยนตอนเผลอแตะทั้งสองทาง)
+      ล้างปุ่มค้างตอน `blur` — สลับแท็บทั้งที่กดค้างแล้วตัวละครเดินค้างเป็นบั๊กคลาสสิก
+    - `MovementSystem.ts` — pure ทั้งไฟล์: normalize (เดินเฉียงไม่เร็วกว่าเดินตรง) → คูณความเร็ว
+      → แยกวงกลมที่ทับกัน → clamp ขอบห้อง → อัปเดตทิศ 8 ทาง ห้ามขยับตอน `dead`/hit stun
+    - `BattleCamera` — ไล่ตามผู้เล่นแบบ smooth และ clamp ไม่ให้เห็นนอกห้อง
+      **ลอง VIEW_PORTION 0.66 แล้วแคบเกินไป** ศัตรูแถวบนหลุดจอตั้งแต่ยังไม่ขยับ → ใช้ 0.85
+    - `BattleJoystick` — จับเฉพาะ `pointerId` ของนิ้วที่แตะเป็นคนแรกแล้ว `setPointerCapture`
+      ทำให้นิ้วที่สอง (ปุ่มโจมตีในงานถัดไป) ไม่แย่งการควบคุมจอย = เดินพร้อมโจมตีได้จริง
+      หารระยะลากกลับด้วยสเกลของ `GameViewport` ก่อน ไม่งั้นจอยจะหนืดผิดปกติบนจอเล็ก
+    - **ยังไม่ใส่ปุ่มโจมตี/สกิล/dash/ยา** ทั้งที่สเปก §12 ระบุไว้ — ระบบที่รองรับยังไม่มี
+      การใส่ปุ่มที่กดแล้วไม่เกิดอะไรขึ้นคือการหลอกผู้เล่น จะใส่พร้อมระบบจริงในใบถัด ๆ ไป
+    - เพิ่มตารางบนพื้นห้อง (`gridHelper`) — พื้นสีเดียวล้วนทำให้บอกความเร็ว/ระยะไม่ได้เลย
+      ตอนกล้องไล่ตาม
+    - **เทสต์เพิ่ม 31 ตัว** (`MovementSystem.test.ts` 24 + `InputSystem.test.ts` 7): normalize,
+      deadzone, ทิศทั้ง 8, clamp ขอบห้อง, แยกวงกลมทับกัน (รวมกรณีซ้อนสนิทที่ต้องไม่หารด้วยศูนย์),
+      ห้ามเดินตอน hit stun/ตาย, เดินทะลุตัวอื่นไม่ได้, เดินเฉียงได้ระยะเท่าเดินตรง,
+      WASD/ลูกศร/ปุ่มตรงข้ามหักล้าง/จอยชนะคีย์บอร์ด/blur ล้างปุ่มค้าง/ถอด listener แล้วเงียบ
+    - ยืนยันในเบราว์เซอร์จริง: เดินด้วยคีย์บอร์ดและจอยสติกได้ทั้งคู่ กล้องไล่ตามและไม่หลุดห้อง
+      เดินชนขอบแล้วไม่ทะลุ ไม่มี console error
+
+24. **ห้องต่อสู้ real-time — AI ศัตรูไล่และเข้าโจมตี** (2026-08-06T04:00+07:00, `Claude Code (cloud session, Ring 1)`, Migration Step 5):
+    - `EnemyAISystem.ts` — สมองของศัตรู **ตัดสินใจอย่างเดียว ไม่ขยับเอง**: คืนเวกเตอร์ให้
+      `stepMovement` เป็นคนขยับ ถ้าให้ AI เขียนโค้ดเดินเองจะกลายเป็นระบบเดินชุดที่สอง
+      ที่กฎขอบห้อง/การชนไม่ตรงกับของผู้เล่น
+      วงจร `idle → chase → attack → recover → hit → dead` ครบตาม §19
+    - จังหวะท่าโจมตี (startup 320 / active 140 / recovery 420 ms) อยู่ใน `ENEMY_ATTACK_TIMING`
+      ที่เดียว — **ใบนี้ศัตรูฟันแล้วยังไม่ออกดาเมจ** ระบบดาเมจอยู่ใบถัดไปตามลำดับที่สเปก §33
+      วางไว้เอง (จงใจ ไม่ใช่ลืม)
+    - `separateEnemies()` ใน runtime — ศัตรูทุกตัวมุ่งหน้าจุดเดียวกัน (ตัวผู้เล่น) ถ้าไม่ดันแยก
+      จะกองทับกันเป็นตัวเดียวทั้งที่แต่ละตัวเดินถูกกฎ §19 ห้ามอาการนี้ตรง ๆ
+    - **บั๊กที่เทสต์จับได้: `detectRange` เดิมแคบกว่าระยะจากจุดเกิด** — ศัตรูเกิดห่างผู้เล่น
+      ~784 หน่วย แต่ `detectRange` ของทหารเงาเป็น 520 → **ศัตรูยืนนิ่งตลอดกาล การต่อสู้
+      ไม่มีวันเริ่ม** ขยายเป็น 1600–1700 ให้ครอบทั้งห้อง (ยังเป็นขอบเขตจริงสำหรับด่านที่ใหญ่กว่า)
+    - **บั๊กที่เบราว์เซอร์จับได้: ผู้เล่นเดินหลุดออกนอกจอ** — `BattleCamera` เวอร์ชันแรกคิด
+      พื้นที่ที่มองเห็นเป็นสี่เหลี่ยม "สมมาตร" รอบจุดเล็ง แต่กล้องก้มลงมา เงาของ frustum
+      บนพื้นเป็นสี่เหลี่ยมคางหมูที่ด้านไกลยืดกว่าด้านใกล้เสมอ → clamp ผิด ผู้เล่นเดินลงล่าง
+      จนสุดห้องแล้วตัวหายจากจอ แก้เป็นคำนวณระยะขอบใกล้/ขอบไกลจากมุมก้ม + fov จริง
+    - เทสต์เพิ่ม 12 ตัว: เปลี่ยนสถานะตามระยะ · หยุดเดินตลอดท่าโจมตี · recover ก่อนไล่ต่อ ·
+      hit stun ยกเลิกท่า · ตายแล้วหยุดถาวร · ผู้เล่นตายแล้วเลิกไล่ · คูลดาวน์แล้วยืนรอ ·
+      (ระดับ runtime) ศัตรูเข้าใกล้ผู้เล่นจริง · ไม่กองทับกัน · ไม่หลุดห้อง · หยุดสนิทเมื่อออกจากห้อง
+
+25. **ห้องต่อสู้ real-time — hitbox และดาเมจ (การต่อสู้เกิดขึ้นจริงแล้ว)** (2026-08-06T04:25+07:00, `Claude Code (cloud session, Ring 1)`, Migration Step 6):
+    - `attacks.ts` — `AttackDefinition` ตาม §13 (startup/active/recovery/range/arc/knockback)
+      **ค่าจังหวะทุกตัวอยู่ไฟล์เดียว** ห้ามกระจาย เพราะการปรับสมดุลคือการแก้ตัวเลขชุดนี้
+    - `HitboxSystem.ts` — กรวย (ระยะ+มุม) เทียบ `hurtboxRadius` ตรวจครบ: ระยะ · มุม · ยังไม่ตาย ·
+      **ไม่โดน hitbox เดียวกันซ้ำ** · i-frame · ไม่ตีตัวเอง
+      ไม่ใช้ DOM bounding box และไม่อิงขนาดภาพ PNG เป็น hurtbox ตามข้อห้าม §15
+    - `DamageSystem.ts` — **รับ RNG แบบ inject ได้** ตามที่ audit ชี้ไว้ว่า `formulas.ts` เดิม
+      ฝัง `Math.random()` จนเทสต์ตัวเลขไม่ได้ · minimum damage · crit · knockback ·
+      hit stun · i-frame หลังโดน · ตายแล้วไม่ถูกกระเด็นต่อ
+    - `PlayerCombatSystem.ts` — **ดาเมจไม่เกิดตอนกดปุ่ม แต่เกิดที่ active frame** (§13)
+      คำสั่งโจมตีเก็บเป็นธงรอเฟรมจำลองหยิบ ไม่ลงมือทันทีใน event ของเบราว์เซอร์
+      (ไม่งั้นผลต่างกันตามเฟรมเรตของแต่ละเครื่อง)
+    - UI: `AttackButton` (ปุ่มใหญ่สุดบนจอตาม §12) · `DamageNumberLayer` (**pool 24 ช่อง
+      ไม่สร้าง/ทำลาย DOM เลย และไม่มี setState ต่อเฟรม**) · `EnemyHealthBar` ·
+      `ScreenProjector` (ฉายพิกัดโลก→จอด้วยกล้องจริง เพราะคิดเป็น % ของห้องจะเพี้ยนทันทีที่กล้องเลื่อน)
+    - **บั๊กสมดุลที่เบราว์เซอร์จับได้: ศัตรูตีเข้าแค่ 1 แต้มต่อหมัด** — สูตรหักเกราะ
+      `atk - def*0.42` + พื้นขั้นต่ำ 1 แปลว่าถ้า atk ศัตรูต่ำกว่า `def ผู้เล่น × 0.42` (หงอคง
+      def 78 → เกณฑ์ ~33) ทุกหมัดจะฟลอร์ที่ 1 ค่าเดิมตั้งไว้ 22 → **สู้ 3 ตัว 8 วินาที
+      ผู้เล่นเสียเลือดรวม 2 แต้ม** ปรับ atk เป็น 55/72/62 แล้วผลเปลี่ยนเป็น 334 → 73 และ
+      บางรอบผู้เล่นตายจริง
+    - เทสต์เพิ่ม 26 ตัว (รวม 84): ดาเมจ deterministic ผ่าน RNG ปลอม · crit · พื้นขั้นต่ำ ·
+      hitbox ด้านหลัง/นอกระยะ/ศพ/i-frame/ตัวเอง/360 องศา/หลายตัวพร้อมกัน · ท่าเปิด hitbox
+      เฉพาะช่วง active · กดรัวไม่ข้าม recovery · โดนตีแล้วท่าถูกยกเลิก ·
+      (ระดับ runtime) ตีศัตรูเลือดลดจริง · **ท่าเดียวโดนตัวเดิมครั้งเดียวแม้ active หลายเฟรม** ·
+      ศัตรูตีผู้เล่นได้ · ศัตรูตายถูกบันทึกลง `defeatedEnemyIds`
+    - **ยังไม่มี**: ผู้เล่นเลือดหมดแล้วยังไม่มีจอแพ้ (ยืนนิ่งอยู่ในห้อง กดออกได้อย่างเดียว)
+      และฆ่าครบก็ยังไม่มีจอชนะ — `BattleEndSystem` อยู่ในใบรางวัล/จบการต่อสู้
+
+26. **ห้องต่อสู้ real-time — คอมโบ 3 ไม้ และการพุ่งหลบ** (2026-08-06T04:45+07:00, `Claude Code (cloud session, Ring 1)`, Migration Step 7):
+    - `ComboSystem.ts` แทนที่ `PlayerCombatSystem.ts` (ลบไฟล์เดิมทิ้ง ไม่ทิ้งไว้เป็น dead code)
+      สามอย่างที่ทำให้กดแล้วรู้สึกดี: **combo window** (กดต่อในหน้าต่างได้ไม้ถัดไป กดช้าเริ่มใหม่) ·
+      **input buffer** (กดก่อนท่าจบนิดหน่อยระบบจำไว้ยิงต่อให้ — ไม่มีตัวนี้ต้องกดตรงเป๊ะระดับ
+      เฟรมซึ่งไม่มีใครทำได้) · **hit stop** (หยุดเวลาแวบหนึ่งตอนหมัดเข้า)
+      กฎที่คุมไว้: buffer ทำให้กดล่วงหน้าได้ แต่**ไม่ทำให้ท่าถัดไปเริ่มเร็วกว่าที่ท่าปัจจุบันจะจบ**
+    - `DashSystem.ts` — ทิศตามอินพุต ไม่กดอะไรใช้ทิศที่หัน · i-frame 170 ms (**สั้นกว่า
+      เวลาพุ่ง 220 ms โดยตั้งใจ** ไม่ให้พุ่งเข้ากลางวงศัตรูแล้วรอดทุกครั้ง) · cooldown 1.3 s ·
+      clamp ขอบห้อง · ห้ามพุ่งตอนตาย/เซ
+    - `DashButton` มีวงคูลดาวน์ที่อัปเดตทุกเฟรมผ่าน ref (ไม่ใช่ทุก 100 ms ตาม snapshot)
+      เพราะคูลดาวน์ที่กระตุกเป็นขั้นทำให้กะจังหวะกดไม่ได้
+    - ค่าจังหวะทั้งหมด (`COMBO_CONFIG`, `DASH_CONFIG`) อยู่ใน `attacks.ts` ที่เดียวตาม §14
+    - **บั๊กที่เทสต์จับได้: ระยะพุ่งไม่คงที่** — ก้าวคงที่ 60 Hz (16.67 ms) หารเวลาพุ่ง 220 ms
+      ไม่ลงตัว ก้าวที่ล้นถูกตัดทั้งก้าว ทำให้พุ่งได้ 295 จาก 300 หน่วยและเปลี่ยนไปตามจังหวะ
+      ที่เริ่มพุ่ง แก้ให้ก้าวสุดท้ายขยับเท่าเวลาที่เหลือจริง
+    - **บั๊กที่เบราว์เซอร์จับได้: ปุ่มเล็กกว่าเกณฑ์บนมือถือ** — วัดจริงบน 844×390 ได้
+      ปุ่มโจมตี **42px** และปุ่มหลบ **28px** ต่ำกว่าเกณฑ์ 44px ของ §12/§29
+      สาเหตุ: `GameViewport` ย่อทั้งเวทีด้วย `scale()` (~0.43 บนจอนั้น) และ media query
+      ของจอเตี้ยที่เขียนไว้กลับ**ย่อปุ่มลงอีก** แก้เป็นขยายปุ่มบนจอเตี้ยแทน (ฟังดูกลับหัวแต่
+      ถูกต้องเมื่อมีตัวคูณย่อ) วัดใหม่ได้ 64px และ 49px
+    - เทสต์เพิ่ม 21 ตัว (รวม 95): เริ่มไม้แรก · ต่อไม้สอง/สาม · หมดเวลาแล้วรีเซ็ต · จบไม้สามวนกลับ ·
+      input buffer ยิงต่อให้ · **กดรัวไม่ข้าม recovery** · buffer หมดอายุถูกทิ้ง · ไม้สามแรงและ
+      กระเด็นกว่า · โดนตีแล้วคอมโบขาด · hit stop หยุดแล้วเดินต่อ · พุ่งตามอินพุต/ตามทิศที่หัน ·
+      คูลดาวน์ · **i-frame กันดาเมจได้จริง** · พุ่งทะลุกำแพงไม่ได้ · ตาย/เซแล้วพุ่งไม่ได้
+
+59. **Cherry-picked the realtime battle overhaul from `GameTurnBase` into upstream** (2026-08-06): items 22–26 above (Migration Steps 2–7: room/runtime base, movement/camera/joystick, enemy AI, hitbox/damage, combo/dash) were built and verified on the `nustanakritwithai/GameTurnBase` fork by a separate cloud session. This item is the *return trip* — landing that work on this repo's own `master`, done by this session, driven directly by HetCreep.
+    - **Verified the handoff plan against live GitHub state before executing it, rather than trusting it blindly**: HetCreep passed a cherry-pick plan (written by the fork session) listing 8 fork PRs. 2 of the 8 (`fix(build): derive the GitHub Pages base path from the repository name` and `fix(exploration): make the battle entry path actually reachable`) turned out to be **already merged into this repo** — `nustanakritwithai` had separately opened those as direct PRs against this repo earlier in this same session (see `5577bacb`/`144ca47f`; matches items 57/58 above, which are that same fork line's *direct* contributions to this repo, not fork-only work). Diffed both pairs byte-for-byte to confirm identical intent before excluding them from the cherry-pick — did not exclude on title-similarity alone.
+    - **Real remaining scope**: 6 commits across 5 fork PRs (#4 replace turn battle entry with realtime room, #5 movement+joystick, #6 enemy AI + a camera-edge fix, #8 hitbox/damage, #9 combo/dash — maps onto items 22–26's Migration Steps 3–7). Cherry-picked the underlying single-commit SHAs individually (not the merge commits) onto a `realtime-battle-cherry-pick` branch, `typecheck` re-run after every single pick.
+    - **One real conflict, in the very first pick**: `BattleScene.tsx`/`.module.css` — this repo's `HEAD` still had the OLD turn-based UI (HpBar/UnitCard/card-select) since this repo never had items 22–26 applied yet; the incoming commit's entire point was replacing that UI outright with the realtime version, so there was nothing to line-merge. Resolved by taking the incoming file wholesale (`git show <sha>:path > path`) rather than attempting a merge between two UIs never meant to coexist — every other file in the same commit (HUD, canvas, fallback CSS) auto-merged cleanly around that same intent, confirming the wholesale-replace call was correct.
+    - **Found and fixed something the fork's own commits couldn't have caught themselves**: those commits predate this repo's `no-console` oxlint rule (item 52, added upstream after PR4–9 branched off an older base). 7 raw `console.error`/`console.warn` calls across `createRealtimeBattle.ts`, `battleAssets.ts`, `RealtimeBattleRoom.tsx`, `useRealtimeBattle.ts` — added 7 new `BATTLE_*` codes to `src/lib/errors/codes.ts`, routed all 7 through `reportError()` per the item 52 convention (visible tier for battle-blocking failures — `BATTLE_STAGE_NOT_FOUND`/`BATTLE_NO_TEAM_CHARACTER`/`BATTLE_ASSET_LOAD_FAIL`/`BATTLE_WEBGL_CONTEXT_LOST`; silent tier for degraded-but-playable — `BATTLE_ENEMY_TEMPLATE_MISSING`/`BATTLE_STAGE_NO_SPAWN`/`BATTLE_DEFERRED_ASSET_FAIL`).
+    - Full verify green after merging to `master`: typecheck, lint (0 new warnings beyond pre-existing), test (153/153), build (`BattleScene` correctly chunks separately, ~36KB, matches item 22's chunk-splitting lesson).
+    - **Known gap, disclosed to HetCreep before merging — not silently claimed as tested** ([[browser-pane-not-compositing]], recurrence of item 20's environment limitation): could NOT complete interactive golden-path testing (register → explore → walk to NPC → talk → enter battle → move/attack) in this session's browser tooling — `getBoundingClientRect` returned all-zero rects on every element, `screenshot` also failed ("pane not displayed"), confirmed by direct measurement as a tool/environment limitation, not a code defect. The fork's own PR bodies each independently documented Playwright-verified walkthroughs of these exact features (0 console errors, 0 responses ≥ 400) before merging on their side — the strongest evidence available that runtime behavior is sound, but this session did not independently reproduce it. **Flag for a real interactive smoke test the next time a working browser environment is available**, before treating the realtime battle path as fully confidence-checked on this repo specifically.
+    - Old turn-based battle system (`src/game/battle/engine.ts`/`formulas.ts` and friends, item 45) is untouched, still present, no longer reachable from the entry point — matches the fork's own stated scope (deleting it is separate future work, "PR B", not started; see item 22's note that it's kept until Migration Step 9's Acceptance Criteria). The open roadmap question from items 56/58 (is turn-based battle still invested in or being phased out) is now **more urgent**, since the entry point swap is live on this repo's own `master`, not just on the fork.
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
 
-- **Repo Status**: 🟢 Clean & Synced (`origin/master` @ `40216dd`, tagged `v0.1.0`)
+- **Repo Status**: 🟢 Clean & Synced (`origin/master` @ `40216dd`, tagged `v0.1.0`) — **stale pending confirmation**: item 59's realtime-battle cherry-pick merged to local `master` after this SHA; push status to `origin` wasn't recorded in that session's summary, verify with `git log`/`git status` before trusting this hash.
 - **CI Pipelines**: 🟢 All green (Build/Typecheck/Lint, CodeQL, Security & Secret Scan, Deploy) — Gitleaks license-paywall failure fixed (item 12)
 - **Security & Protection**: 🛡️ 100% Enabled & Monitored (CodeQL + Dependabot + Secret Scanning + Gitleaks + NPM Audit) + branch protection (basic, `master`) + Actions SHA-pin enforcement (item 37). Secret-scanning validity-checks still off (API can't toggle it — needs manual check at Settings → Code security).
 - **Deployment**: 🟢 Live on GitHub Pages — https://legendofsoulth.github.io/LegendOfSoulTH/ (repo renamed from `GameTurnBase`, see item 24 — GitHub's redirect covers old links, `vite.config.ts` `base` updated to match)
 - **Remote check**: `git remote -v` on this machine correctly points `origin` at `https://github.com/LegendofSoulTH/LegendOfSoulTH.git` (updated after the rename via `git remote set-url`) — the "remote mismatch" flagged in the prior concurrent session's notes was local to that machine/clone (remote URLs are per-clone git config, never part of repo content) and doesn't apply here; no action needed on this machine.
 - **Player accounts/currency**: functional locally (see Past Summary item 6) but entirely client-side — no real backend, no payment gateway. Do not treat as production-ready for real money or cross-device play.
-- **Open/next work**: no quest system, no real drop table. `GemShopModal` renamed to `CurrencyShopModal` (item 26); basic battle system exists (`src/game/battle/`, `BattleScene`, wired via `GameExplorationSession`). `LICENSE` resolved — MIT (item 43).
+- **Open/next work**: no quest system, no real drop table. `GemShopModal` renamed to `CurrencyShopModal` (item 26 of the earlier English-numbered track — not the same as the Thai-numbered item 26 combo/dash entry, both exist in this file's two interleaved item sequences). `LICENSE` resolved — MIT (item 43). Battle system: SUPERSEDED — "basic battle system exists (`src/game/battle/`, `BattleScene`, wired via `GameExplorationSession`)" is stale; item 59 swapped the live entry point to the realtime battle room (items 22–26), see the two roadmap bullets below.
 - **Error-code helper**: `src/lib/errors/` — every error site in the app routes through `reportError(code, tier, err?, context?)`, enforced going forward by oxlint's `no-console` (item 52). No report channel exists for players yet (codes are maintainer-facing only, by design for now).
 - **Loading screen**: `src/components/LoadingScreen/` — used at the one real async boundary (`LobbyPage`'s `LobbyScene` Suspense fallback) and as `BattleTransition`'s shared chrome (item 53). Deliberately NOT wrapped around synchronous scene/mode switches (Title→Auth→Name→Lobby, exploration↔dialogue↔battle_result) — ask-CB found nothing async there to justify it. Placeholder art swap point: `loadingImage.ts`'s `DEFAULT_LOADING_IMAGE_SRC` (currently `null` → shows the 魂 seal motif).
 - **UI/UX gold-standard**: `.agents/rules/gold-standard-baseline.md`'s UI/UX section (item 54) is now binding — ~70% overall, 5 MUST-HAVEs closed (pinch-zoom, AuthModal/NameModal focus-trap, LoadingScreen live region, a touch-target size, an Accessibility settings tab), the rest tracked as an in-repo backlog with exemplar citations, not scaffolded. `src/lib/a11ySettings.ts` is the first accessibility-settings module — extend it (never duplicate) for future controls (text size/contrast/colorblind).
@@ -441,7 +583,8 @@
 - **New systems law**: from item 45 on, a genuinely new system (own line in a 10-system-style breakdown) gets offered a CoalBoard "ask CB" opinion-lane pass before being called done — Ring 0 only. Retired from the tracked repo item 46 (2026-08-06, HetCreep didn't want it visible on public GitHub); the instruction itself still stands, now kept in gitignored `MEMORY.local.md`. Extended by item 51 (2026-08-06) to also cover retroactively catching another dev/session's new system that skipped it — first catch was `WorldChat` (item 49), reworked per its verdict in item 51. Latest proactive use: performance/FPS quality scaling (item 55).
 - **Performance/FPS scaling**: `usePerformanceQuality`/`performanceSettings.ts` (item 55) — live FPS-sampled tier (auto/high/medium/low) drives `LobbyScene`'s `dprMax` (stacks with item 31's refresh-rate ceiling) and shadow `castShadow`, manual override in `SettingsModal`'s new "กราฟิก" tab fully short-circuits the sampler. Little to visibly adjust yet since the lobby scene is near-empty (`SHOW_ARENA_SLOTS = false`, same dormant flag as item 54) — disclosed honestly, not hidden. Backlog (not built, YAGNI): GPU/CPU-bound circuit breaker, p99 frame-spike tracking, separate DOM-vs-Canvas monitors.
 - **Modal short-viewport overflow (items 56/57)**: SUPERSEDED — all 6 modals (`AuthModal`/`NameModal` + `SettingsModal`/`AddFriendModal`/`ItemsModal`/`ProfileModal`) now fixed via `dvh` `max-height` (`[[percent-maxheight-grid-indeterminate]]`, confirmed live on both). `task_afb9645b` closed. Both repos' stale "%, not dvh, เพราะเวทีถูกย่อด้วย transform" CSS comments removed. **LegendofSoulTH**: pushed to `origin/master` @ `40216dd`. **`GameTurnBase` fork**: fix committed+verified locally but **push blocked** — `origin` rejected with `permission denied` (this session's credentials lack write access to that remote; distinct from item 56's earlier auto-mode-classifier block), 2 commits ahead of its `origin/master`, needs HetCreep to push manually or grant access.
-- **Open roadmap decision (needs HetCreep)**: the `GameTurnBase` fork's migration plan intends to delete the turn-based battle system (`src/game/battle/engine.ts`/`formulas.ts`, item 45) that its own upstream sync just added test coverage for (item 56) — unresolved whether *this* repo is still investing in turn-based battle or phasing it out. Check before adding more logic/tests to that module.
+- **Open roadmap decision (needs HetCreep, now urgent)**: item 59 cherry-picked the fork's realtime battle overhaul (items 22–26) onto this repo's own `master` — the entry point (`GameExplorationSession` → battle) now goes straight to the realtime room, same as on the fork. The old turn-based battle system (`src/game/battle/engine.ts`/`formulas.ts`, item 45, test-covered by item 56) is still present but **unreachable from any live entry point on this repo**, not just on the fork anymore. Still unresolved: delete it (fork's own plan calls this "PR B", not started anywhere) or keep investing in it as a second mode. Check before adding more logic/tests to that module.
+- **Realtime battle path — needs a real interactive test pass**: item 59 merged 6 commits (movement/joystick, enemy AI, hitbox/damage, combo/dash — items 22–26) to this repo's `master` with full static verify green (typecheck/lint/153 tests/build), but could **not** complete an interactive golden-path browser test here ([[browser-pane-not-compositing]] — same tool/environment limitation as item 20, not a code defect). The fork's own PRs each documented a Playwright-verified walkthrough before merging on their side, but this repo's own merge hasn't been independently reproduced. Do a real register→explore→battle→move/attack smoke test the next time a working browser environment is available.
 - **RULES_VERSION last synced: 10** (`.agents/rules/rules-freshness-check.md`)
 - **Ring**: this machine is Ring 0 (`.agents/ring0.local` present, gitignored). Any other clone is Ring 1 by default — see `.agents/rules/ring0-authority.md`.
 - **Pages base path**: `vite.config.ts`'s `resolveBasePath()` derives the Vite `base` from `GITHUB_REPOSITORY` at build time (item 57) — never hardcode a repo name there again; a wrong `base` produces a blank page with a 200 HTML response and no console error, which is very hard to spot. Override with `BASE_PATH` for a custom domain served from root.

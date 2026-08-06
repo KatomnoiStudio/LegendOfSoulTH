@@ -1,186 +1,367 @@
+/*
+  ห้องต่อสู้แบบ top-down real-time
+
+  หลักการวางเลย์เอาต์: ห้องกินพื้นที่เต็มพ่อแม่ ไม่ผูกกับเวที 1600x900 แบบตายตัว
+  เพราะ GameViewport กำลังจะถูกถอดออกในงานแยก (ดู MEMORY.md ข้อ 16) —
+  ถ้าผูกขนาดไว้ที่นี่จะต้องรื้อซ้ำ ระยะขอบจึงเป็น % / clamp() / safe-area ไม่ใช่ px คงที่
+
+  หมายเหตุ: ไฟล์เดิมของหน้านี้ใช้ url('/ui/thai/...') ตรง ๆ ซึ่ง 404 บน GitHub Pages
+  (base เป็น /GameTurnBase/) — เวอร์ชันนี้ไม่มีภาพใน CSS เลย ภาพพื้นห้องไปอยู่ในฉาก
+  three.js ซึ่งโหลดผ่าน publicUrl() แทน
+*/
+
 .scene {
   position: absolute;
   inset: 0;
   z-index: 600;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  padding: var(--sp-4);
-  color: var(--c-text);
-  background:
-    linear-gradient(180deg, rgb(6 10 22 / 92%), rgb(10 16 32 / 96%)),
-    var(--bg-temple) center / cover no-repeat;
+  background: var(--c-void);
+  overflow: hidden;
+  /* กันเบราว์เซอร์ตีความการลากนิ้วเป็นการเลื่อนหน้า/ซูมระหว่างเล่น (§12) */
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
 }
 
-.header {
+.canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+  color: var(--c-text);
+  text-align: center;
+  background: rgb(6 7 13 / 92%);
+}
+
+/* ── HUD ────────────────────────────────────────────────── */
+
+.hud {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  /* ให้คลิกทะลุไปที่ฉากได้ ยกเว้นตัวปุ่มเอง */
+  pointer-events: none;
+  padding:
+    max(var(--sp-3), env(safe-area-inset-top))
+    max(var(--sp-3), env(safe-area-inset-right))
+    max(var(--sp-3), env(safe-area-inset-bottom))
+    max(var(--sp-3), env(safe-area-inset-left));
+}
+
+.hudTop {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.playerVitals {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  padding: var(--sp-2) var(--sp-4);
-  border: 1px solid var(--c-border);
+  gap: var(--sp-2);
+  min-width: min(46%, 320px);
+  padding: var(--sp-2) var(--sp-3);
   border-radius: var(--r-md);
   background: var(--c-panel);
+  border: 1px solid var(--c-border);
 }
 
-.stageName {
-  font-family: var(--font-display);
-  color: var(--c-gold);
-}
-
-.round {
-  color: var(--c-text-dim);
-  font-size: 0.9rem;
-}
-
-.field {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--sp-4);
-}
-
-.rowTitle {
-  margin: 0 0 var(--sp-2);
-  font-size: 0.85rem;
-  color: var(--c-text-dim);
-}
-
-.unitRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-3);
-}
-
-.unitCard {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--sp-1);
-  min-width: 96px;
-  padding: var(--sp-2);
-  border: 1px solid rgb(255 255 255 / 12%);
-  border-radius: var(--r-md);
-  background: rgb(0 0 0 / 28%);
-  color: inherit;
-  transition: transform var(--dur-fast) var(--ease-out), border-color var(--dur-fast);
-}
-
-.unitCard[data-active='true'] {
-  border-color: var(--c-gold);
-  box-shadow: var(--glow-gold);
-}
-
-.unitCard[data-selectable='true']:not(:disabled):hover {
-  transform: translateY(-3px);
-  border-color: var(--c-arcane);
-}
-
-.unitCard[data-defeated='true'] {
-  opacity: 0.35;
-  filter: grayscale(0.8);
-}
-
-.unitSprite {
-  width: 64px;
-  height: 64px;
-  object-fit: contain;
-}
-
-.unitName {
-  font-size: 0.78rem;
+.playerName {
+  font-size: 0.8rem;
   font-weight: 700;
-}
-
-.hpWrap {
-  width: 100%;
+  color: var(--c-gold);
+  white-space: nowrap;
 }
 
 .hpTrack {
-  height: 8px;
+  position: relative;
+  height: 12px;
   border-radius: var(--r-pill);
-  background: rgb(0 0 0 / 45%);
+  background: rgb(255 255 255 / 12%);
   overflow: hidden;
 }
 
 .hpFill {
   height: 100%;
-  transition: width var(--dur-mid) var(--ease-out);
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--c-ember), var(--c-gold));
+  transition: width 120ms linear;
 }
 
 .hpText {
-  font-size: 0.68rem;
-  color: var(--c-text-dim);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text);
+  white-space: nowrap;
 }
 
-.defendTag {
-  font-size: 0.65rem;
-  color: var(--c-arcane-light);
-}
-
-.vs {
-  align-self: center;
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  color: var(--c-ember);
-}
-
-.log {
-  min-height: 4.5rem;
+.stageInfo {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
   padding: var(--sp-2) var(--sp-3);
   border-radius: var(--r-md);
-  background: rgb(0 0 0 / 35%);
-  font-size: 0.82rem;
-}
-
-.log p {
-  margin: 0.15rem 0;
-}
-
-.log p[data-tone='damage'] { color: #ff9b7d; }
-.log p[data-tone='heal'] { color: #7dffb0; }
-.log p[data-tone='buff'] { color: var(--c-arcane-light); }
-
-.actions,
-.result {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--sp-3);
-  padding: var(--sp-3);
-  border-radius: var(--r-md);
   background: var(--c-panel);
+  border: 1px solid var(--c-border-arcane);
+  text-align: center;
 }
 
-.actionBtn,
-.exitBtn,
-.cancelBtn {
-  min-width: 88px;
-  min-height: 44px;
-  padding: var(--sp-2) var(--sp-4);
-  border: 1px solid var(--c-border);
-  border-radius: var(--r-pill);
-  background: linear-gradient(180deg, rgb(240 200 90 / 18%), rgb(20 24 40 / 90%));
-  color: var(--c-gold-light);
+.stageName {
+  font-size: 0.875rem;
   font-weight: 700;
+  color: var(--c-text);
 }
 
-.actionBtn:disabled {
-  opacity: 0.45;
-}
-
-.waiting,
-.prompt {
+.waveText {
+  font-size: 0.75rem;
   color: var(--c-text-dim);
 }
 
-.result strong {
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  color: var(--c-gold);
+.exitBtn {
+  pointer-events: auto;
+  /* เป้าแตะบนมือถือต้องไม่เล็กกว่า 44px (§12, §29) */
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--sp-4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--c-border);
+  background: var(--c-panel-solid);
+  color: var(--c-text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
 }
 
-@media (max-width: 720px) {
-  .unitSprite { width: 52px; height: 52px; }
-  .actions { flex-wrap: wrap; }
+.exitBtn:hover {
+  border-color: var(--c-gold);
+  box-shadow: var(--glow-gold);
+}
+
+.introBanner {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  padding: var(--sp-3) var(--sp-6);
+  border-radius: var(--r-lg);
+  background: rgb(6 7 13 / 72%);
+  border: 1px solid var(--c-border);
+  color: var(--c-gold);
+  font-size: clamp(1.125rem, 3.4vw, 1.875rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  animation: introFade 700ms var(--ease-out) forwards;
+  pointer-events: none;
+}
+
+@keyframes introFade {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+  30% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .introBanner { animation-duration: 1ms; }
+  .hpFill { transition: none; }
+}
+
+/* ── ปุ่มควบคุมบนจอ ─────────────────────────────────────── */
+
+.controls {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  /* ให้เห็นฉากได้เต็ม ๆ — เฉพาะตัวควบคุมเท่านั้นที่รับการแตะ */
+  pointer-events: none;
+  padding:
+    max(var(--sp-4), env(safe-area-inset-top))
+    max(var(--sp-4), env(safe-area-inset-right))
+    max(var(--sp-4), env(safe-area-inset-bottom))
+    max(var(--sp-4), env(safe-area-inset-left));
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.controlsLeft {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-4);
+}
+
+.joystickBase {
+  pointer-events: auto;
+  position: relative;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  border: 2px solid var(--c-border);
+  background: radial-gradient(circle, rgb(24 18 42 / 55%), rgb(10 8 20 / 78%));
+  box-shadow: var(--shadow-2);
+  touch-action: none;
+  /* กันเบราว์เซอร์เด้งเมนูค้างเมื่อกดแช่บนมือถือ */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.joystickKnob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  border-radius: 50%;
+  border: 1px solid var(--c-gold);
+  background: linear-gradient(180deg, rgb(240 200 90 / 55%), rgb(120 92 24 / 75%));
+  box-shadow: var(--glow-gold);
+  pointer-events: none;
+}
+
+/*
+  จอเตี้ยแบบมือถือแนวนอน — ปุ่มต้อง "ใหญ่ขึ้น" ไม่ใช่เล็กลง
+
+  ฟังดูกลับหัว แต่ GameViewport ย่อทั้งเวทีด้วย transform: scale() ตามด้านที่คับที่สุด
+  บนจอ 844x390 ตัวคูณคือ ~0.43 แปลว่าปุ่มขนาด 96px ในโค้ดจะกลายเป็น 42px จริงบนจอ
+  ซึ่งต่ำกว่าเกณฑ์เป้าแตะ 44px ของสเปกข้อ 12/29
+
+  เคยตั้งค่าชุดนี้ให้เล็กลงเพื่อประหยัดพื้นที่ แล้ววัดจริงในเบราว์เซอร์ได้
+  ปุ่มโจมตี 42px และปุ่มหลบ 28px — ผิดเกณฑ์ทั้งคู่
+  ค่าปัจจุบันเผื่อไว้ให้หลังคูณย่อแล้วยังเกิน 44px บนจอมือถือแนวนอนที่เล็กที่สุดที่รองรับ
+*/
+@media (max-height: 480px) {
+  .joystickBase { width: 132px; height: 132px; }
+  .joystickKnob { width: 58px; height: 58px; margin: -29px 0 0 -29px; }
+}
+
+.controlsRight {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-3);
+}
+
+.attackBtn {
+  pointer-events: auto;
+  /* ปุ่มโจมตีต้องใหญ่ที่สุดบนจอ (§12) */
+  width: 116px;
+  height: 116px;
+  border-radius: 50%;
+  border: 2px solid var(--c-ember);
+  background: radial-gradient(circle at 50% 35%, rgb(255 140 90 / 55%), rgb(120 34 20 / 88%));
+  color: var(--c-gold-light);
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  box-shadow: var(--shadow-2);
+  transition: transform 90ms var(--ease-out);
+}
+
+.attackBtn:active {
+  transform: scale(0.94);
+}
+
+@media (max-height: 480px) {
+  .attackBtn { width: 148px; height: 148px; font-size: 1.15rem; }
+}
+
+/* ── ชั้นข้อมูลที่ลอยทับฉาก ─────────────────────────────── */
+
+.damageLayer,
+.enemyBarLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.damageNumber {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: clamp(1rem, 2.2vw, 1.5rem);
+  font-weight: 900;
+  color: var(--c-gold-light);
+  text-shadow: 0 2px 6px rgb(0 0 0 / 85%);
+  font-variant-numeric: tabular-nums;
+  will-change: opacity, transform;
+}
+
+.damageNumber[data-critical='true'] {
+  color: #ff9b7d;
+  font-size: clamp(1.2rem, 2.8vw, 1.9rem);
+}
+
+.enemyBar {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 7px;
+  border-radius: var(--r-pill);
+  border: 1px solid rgb(0 0 0 / 55%);
+  background: rgb(0 0 0 / 55%);
+  overflow: hidden;
+  will-change: opacity, left, top;
+}
+
+.enemyBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6a5c, #ffb073);
+}
+
+.dashBtn {
+  pointer-events: auto;
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 2px solid var(--c-arcane);
+  background: rgb(20 26 52 / 82%);
+  color: var(--c-arcane-light);
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  box-shadow: var(--shadow-1);
+  transition: transform 90ms var(--ease-out);
+}
+
+.dashBtn:active { transform: scale(0.94); }
+
+/* วงคูลดาวน์ไล่จากล่างขึ้นบน — เต็ม = เพิ่งกด, ว่าง = พร้อมใช้ */
+.dashCooldown {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 0;
+  background: rgb(0 0 0 / 62%);
+  pointer-events: none;
+}
+
+.dashLabel {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-height: 480px) {
+  .dashBtn { width: 112px; height: 112px; font-size: 1rem; }
 }
