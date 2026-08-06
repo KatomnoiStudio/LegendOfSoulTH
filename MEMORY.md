@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T09:40:00+07:00 by `Claude Code (kaoshock123, Ring 1)`  
+> **Last Updated**: 2026-08-06T09:44:00+07:00 by `Claude Code (kaoshock123, Ring 1)`  
 > **RULES_VERSION: 4** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
@@ -259,6 +259,8 @@
     - **Structural change worth knowing about**: all desktop-only naga/treasury values moved out of the no-media Thai-skin block into a new **`@media (min-width: 761px)`** block at the end of `TopBar.module.css`, and the Thai-skin block was reverted to its original pre-session values. Reason: that block sits *after* the `@media (max-width: 760px)` block, so anything written there wins on mobile too — items 38/39 had been compensating with hand-written "mobile guard" re-declarations that had already grown to four and would have kept growing (exactly the kind of accumulating trap `[[css-fix-overcorrection]]` warns about). Mobile now cannot match the desktop block at all, structurally. **Future desktop-only TopBar tweaks belong in that block** — don't add them to the Thai-skin section. Verified against the built CSS that the whole block lands inside the media query (the bundler minifies it to modern range syntax `@media (width>=761px)`), and `git diff` against the pre-session commit confirms the only rule changed outside a media query is `.addButton` (25px→20px desktop; mobile re-declares 20px itself, so unaffected).
     - Full verify green; lint warning count unchanged at 43 (all pre-existing).
     - **Still not visually confirmed** (`[[no-browser-automation]]`) — but unlike items 37–39 this one is grounded in measured pixel data rather than eyeballed proportions, so the failure mode should be much narrower.
+
+41. **EXP bar hidden on desktop to free room for name/power** (2026-08-06): follow-up to item 40 — HetCreep asked to drop the bar under พลังรบ to get more space. `.expRow` in `TopBar.tsx` wraps **both** the progress bar and the `x / y` label, so one `display: none` in the `@media (min-width: 761px)` block clears the whole row (and drops it from the accessibility tree too, leaving no invisible `role="progressbar"` behind). Done in CSS rather than removing the JSX **because mobile still shows it** — the standing "desktop only, don't touch mobile" constraint from items 38–40 applies, and deleting the markup would have hit both. The reclaimed row went straight into legibility: `.name` `0.52rem`→`0.75rem`, `.power` `0.64rem`→`0.9rem`, `.identity` gap `1px`→`2px` (still name-smaller-than-power per HetCreep's earlier instruction; ~29.7px of a 34.7px budget, so ~2.5px breathing room top and bottom). The now-dead `.expTrack`/`.expText` desktop overrides were deleted rather than left behind. Full verify green, lint warnings unchanged at 43.
 
 ---
 

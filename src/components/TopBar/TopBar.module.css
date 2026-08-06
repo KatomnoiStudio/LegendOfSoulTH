@@ -258,19 +258,22 @@
     inset-block: 47.7% 15.8%;
     inset-inline: 30% 8.4%;
     justify-content: center;
-    gap: 1px;
+    gap: 2px;
     margin-block-end: 0;
     padding: 0 4px 0 2px;
   }
 
-  /* พื้นที่แนวตั้งที่ใช้ได้จริงคือ ~34.7px — line-height ระบุชัดเพื่อให้คำนวณได้แน่นอน
-     ไม่ต้องลุ้นค่า normal ของแต่ละฟอนต์ (ชื่อ+พลังรบ+หลอด EXP รวมกัน ~29.5px พอดี)
+  /* ซ่อนแถบ EXP (ทั้งหลอดและตัวเลข x/y ที่อยู่แถวเดียวกัน) เฉพาะ desktop ตามที่สั่ง
+     เพื่อคืนพื้นที่แนวตั้งให้ชื่อ/พลังรบ — บนมือถือยังแสดงตามเดิม ไม่ถูกแตะ
+     display:none ตัดออกจาก accessibility tree ไปด้วย จึงไม่เหลือ progressbar ที่มองไม่เห็นค้างไว้ */
+  .expRow { display: none; }
+
+  /* พื้นที่แนวตั้งที่ใช้ได้จริง ~34.7px และตอนนี้เหลือแค่ 2 บรรทัด จึงขยายฟอนต์ได้
+     line-height ระบุชัดเพื่อให้คำนวณได้แน่นอน ไม่ต้องลุ้นค่า normal ของแต่ละฟอนต์
+     (12px×1.05 + gap 2px + 14.4px×1.05 ≈ 29.7px เหลือขอบบน/ล่างอย่างละ ~2.5px)
      ตามที่สั่ง: ตัวอักษรชื่อเล็กกว่าพลังรบ */
-  .name { font-size: 0.52rem; line-height: 1.05; }
-  .power { font-size: 0.64rem; line-height: 1.05; }
-  .expRow { margin-top: 2px; }
-  .expText { font-size: 0.4rem; line-height: 1; }
-  .expTrack { width: clamp(63px, 5.4vw, 87px); }
+  .name { font-size: 0.75rem; line-height: 1.05; }
+  .power { font-size: 0.9rem; line-height: 1.05; }
 
   /* คลังสมบัติ: สูงลด 30% (38px→27px), กว้างขึ้น 20% (ช่องตัวเลข 96px→115px)
      ไอคอนต้องลงมาที่ 20px คู่กัน ไม่งั้นความสูงจริงจะถูกไอคอนดันไว้ ไม่ลดจริงตามที่ตั้งใจ */
