@@ -26,6 +26,7 @@ function makePlayer(): Player {
       { characterId: 'monkey-king', level: 12, exp: 0, expToNext: 100, obtainedAt: '2026-01-01T00:00:00.000Z' },
     ],
     inventory: [],
+    friends: [],
     teamSlots: ['monkey-king', null, null, null],
     frameId: 'default',
     progress: EMPTY_PROGRESS,
