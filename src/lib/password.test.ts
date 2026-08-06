@@ -34,12 +34,21 @@ describe('verifyPassword', () => {
     }
   })
 
-  test('ยังรองรับแฮชรุ่นแรกที่ไม่มีจำนวนรอบนำหน้า', async () => {
-    // รูปแบบเดิมคือไดเจสต์ล้วนไม่มี ":" — ต้องถือว่าใช้ 120,000 รอบ
+  test('แฮชรุ่นแรกที่ไม่มีจำนวนรอบนำหน้าถูกตีความว่า 120,000 รอบ ไม่ใช่ค่าที่ใช้ไม่ได้', async () => {
+    /*
+      รูปแบบเดิมคือไดเจสต์ล้วนไม่มี ":" ตัวแยกจึงต้องคืน 120,000 ไม่ใช่ null
+
+      ยืนยันทางอ้อมผ่าน needsRehash: ถ้าตีความเป็นค่าที่ใช้ไม่ได้จะได้ false เหมือนแฮชพัง
+      แต่ถ้าตีความเป็น 120,000 ซึ่งน้อยกว่าค่าปัจจุบันจะได้ true (สั่งรีแฮชอัปเกรด)
+      ยืนยันตรง ๆ ด้วย verifyPassword ไม่ได้ เพราะ hashPassword สร้างได้แต่แฮชรอบปัจจุบัน
+      ไม่มีทางสร้างไดเจสต์ 120,000 รอบจริงจากสิ่งที่โมดูลนี้ export ออกมา
+    */
     const digestOnly = (await hashPassword('legacy-pass', SALT)).split(':')[1]
     expect(digestOnly).toBeTruthy()
-    expect(await verifyPassword('legacy-pass', SALT, digestOnly)).toBe(false)
-    // (false เพราะไดเจสต์ถูกสร้างด้วยรอบปัจจุบัน ไม่ใช่ 120,000 — ที่สำคัญคือไม่โยนข้อผิดพลาด)
+    expect(needsRehash(digestOnly)).toBe(true)
+
+    // และต้องไม่โยนข้อผิดพลาดออกมา แม้ไดเจสต์จะไม่ตรง (สร้างด้วยรอบปัจจุบัน ไม่ใช่ 120,000)
+    await expect(verifyPassword('legacy-pass', SALT, digestOnly)).resolves.toBe(false)
   })
 })
 
