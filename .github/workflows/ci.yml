@@ -7,12 +7,20 @@ on:
       - '**/*.md'
       - '.agents/**'
       - '.coalmine.json'
+      - '.github/upstream-watch/**'
   pull_request:
     branches: [ master ]
     paths-ignore:
       - '**/*.md'
       - '.agents/**'
       - '.coalmine.json'
+      - '.github/upstream-watch/**'
+
+# push ถี่มาก (หลาย dev, หลาย commit ต่อนาที) — push ใหม่ยกเลิกรันเก่าที่ยังไม่จบ
+# แทนที่จะปล่อยให้ build+test+lint เต็มรอบทุก push ที่มีอันใหม่กว่ามาแซงอยู่แล้ว
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

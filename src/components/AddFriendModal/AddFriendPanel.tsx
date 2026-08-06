@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import type { FriendCandidate } from '../../data/accountRepository'
+import type { FriendCandidate } from '../../types/player'
 import { formatUid, isValidUid, UID_LENGTH } from '../../game/uid'
 import { AddFriendIcon } from '../icons/GameIcons'
 import { useToast } from '../Toast/useToast'
@@ -8,6 +8,10 @@ import styles from './AddFriendModal.module.css'
 interface AddFriendPanelProps {
   /** ค้นหาผู้เล่นจาก UID — คืน null ถ้าไม่พบ */
   onSearch: (uid: string) => Promise<FriendCandidate | null>
+  /** true ถ้า uid นี้อยู่ในรายชื่อเพื่อนอยู่แล้ว — กันเพิ่มซ้ำ */
+  isFriend: (uid: string) => boolean
+  /** เพิ่มเข้ารายชื่อเพื่อนจริง (บันทึกลง player.friends) */
+  onAddFriend: (candidate: FriendCandidate) => void
 }
 
 type SearchState =
@@ -23,7 +27,7 @@ type SearchState =
  * ค้นหาด้วย UID เท่านั้น (ไม่ใช้ชื่อ/อีเมล กันเดาชื่อคนอื่นมั่ว ๆ)
  * ยังไม่มีระบบ "รายชื่อเพื่อน" จริง เพราะยังไม่มีการร้องขอมา — กด "เพิ่มเพื่อน" แล้วแจ้งผลผ่าน toast เท่านั้น
  */
-export function AddFriendPanel({ onSearch }: AddFriendPanelProps) {
+export function AddFriendPanel({ onSearch, isFriend, onAddFriend }: AddFriendPanelProps) {
   const { showToast } = useToast()
   const [uidInput, setUidInput] = useState('')
   const [search, setSearch] = useState<SearchState>({ status: 'idle' })
@@ -40,6 +44,11 @@ export function AddFriendPanel({ onSearch }: AddFriendPanelProps) {
   }
 
   const handleAdd = (player: FriendCandidate) => {
+    if (isFriend(player.uid)) {
+      showToast(`${player.name}อยู่ในรายชื่อเพื่อนอยู่แล้ว`)
+      return
+    }
+    onAddFriend(player)
     showToast(`เพิ่ม${player.name}เป็นเพื่อนแล้ว`)
     setUidInput('')
     setSearch({ status: 'idle' })

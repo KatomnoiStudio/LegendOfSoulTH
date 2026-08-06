@@ -6,11 +6,12 @@ import type { CharacterModelKind } from './characters'
  *
  * ─── สถานะทรัพยากรตอนนี้ ──────────────────────────────────
  * ซุนหงอคง      มีเฟรมเดินครบ 8 ทิศ ทิศละ 8 เฟรม (64 ไฟล์)
- * ตือโป๊ยก่าย    ไม่มีชุดเฟรมเดิน/หันทิศ/ยืนเฉยแล้ว — ถอดออกทั้งหมดเพื่อรออาร์ตชุดใหม่
- *                ตัวละครยังอยู่ในเกม (ROSTER, กาชา, จัดทีม) แต่เดินชมจันทร์ไม่ได้
- *                เหลือใช้ชุดท่าประจำทีม characters/pigsy-team-* ซึ่งเป็นอาร์ตคนละชุด
- *                ชีตเก่าเก็บไว้ใน assets/archive/characters/ (v1/v2/v3) พร้อมสคริปต์ตัด
- *                tools/cut-pigsy-v3-sheet.mjs ถ้าจะเอากลับมาใช้
+ * ตือโป๊ยก่าย    มีเฟรมเดินครบ 8 ทิศ ทิศละ 8 เฟรม ตัดจากชีต v4 ด้วย
+ *                tools/cut-pigsy-v4-sheet.mjs (ชีตอยู่ที่
+ *                assets/archive/characters/pigsy-v4-walk-sheet.png) รันใหม่ได้ตลอด
+ *                ชีตวาดมาครบทุกทิศจริงรวมด้านข้างแท้ ไม่ต้องพลิกกระจกสร้างทิศไหนเอง
+ *                ยังไม่มีแถวท่าหายใจ เฟรมยืนเฉยจึงเป็นท่าหันหน้าท่าเดียวซ้ำ 24 เฟรม
+ *                ถ้าได้แถวท่าหายใจมาเพิ่ม ให้แก้ส่วน idle ในสคริปต์ให้ไล่เฟรมจริงแทน
  * พระถังซัมจั๋ง  ยังไม่มีเฟรมเดิน มีแต่เฟรมหันทิศ 8 ทิศ
  *
  * ตัวที่ยังไม่มีเฟรมเดินจะเลือกมาเดินได้ แต่ใช้ภาพหันทิศแทน
@@ -25,10 +26,10 @@ export interface WalkKit {
    * ทุกพาธในไฟล์นี้ผ่าน publicUrl() แล้ว (ดู src/lib/publicUrl.ts) ผู้เรียกจึงต่อท้ายได้เลย
    */
   walkPrefix: string | null
-  /** พาธนำหน้าไฟล์หันทิศ 8 ทิศ — null คือยังไม่มีชุดอาร์ต */
-  turnPrefix: string | null
-  /** พาธนำหน้าไฟล์ยืนเฉย ๆ — null คือยังไม่มีชุดอาร์ต */
-  idlePrefix: string | null
+  /** พาธนำหน้าไฟล์หันทิศ 8 ทิศ (มีครบทุกตัว) */
+  turnPrefix: string
+  /** พาธนำหน้าไฟล์ยืนเฉย ๆ */
+  idlePrefix: string
   idleCount: number
 }
 
@@ -39,14 +40,11 @@ const WALK_KITS: Record<CharacterModelKind, WalkKit> = {
     idlePrefix: publicUrl('characters/monkey-v2-idle'),
     idleCount: 24,
   },
-  // ถอดชุดเฟรมเดิน/หันทิศ/ยืนเฉยออกหมดแล้ว รออาร์ตชุดใหม่ — ตัวละครยังอยู่ในเกม
-  // แต่จะไม่ถูกเสนอในตัวเลือก "เดินชมจันทร์" เพราะ hasWalkFrames() คืน false
-  // เหลือใช้ได้แค่ชุดท่าประจำทีม (characters/pigsy-team-*) ที่เป็นอาร์ตคนละชุดกัน
   'pig-warrior': {
-    walkPrefix: null,
-    turnPrefix: null,
-    idlePrefix: null,
-    idleCount: 0,
+    walkPrefix: publicUrl('characters/walk/pigsy-walk'),
+    turnPrefix: publicUrl('characters/turnaround/pigsy-turn'),
+    idlePrefix: publicUrl('characters/pigsy-idle'),
+    idleCount: 24,
   },
   'pilgrim-monk': {
     walkPrefix: null,

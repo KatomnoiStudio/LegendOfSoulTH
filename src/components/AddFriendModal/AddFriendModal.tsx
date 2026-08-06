@@ -1,11 +1,14 @@
 import { useState } from 'react'
-import type { FriendCandidate } from '../../data/accountRepository'
+import type { FriendCandidate, Player } from '../../types/player'
 import { useModalA11y } from '../../hooks/useModalA11y'
 import { AddFriendIcon, BlockIcon, HeroesIcon } from '../icons/GameIcons'
 import { AddFriendPanel } from './AddFriendPanel'
 import styles from './AddFriendModal.module.css'
 
 interface AddFriendModalProps {
+  player: Player
+  /** บันทึกรายชื่อเพื่อนกลับลงฐานข้อมูล */
+  onPlayerChange: (next: Player) => Promise<void>
   /** ค้นหาผู้เล่นจาก UID — คืน null ถ้าไม่พบ */
   onSearch: (uid: string) => Promise<FriendCandidate | null>
   onClose: () => void
@@ -17,15 +20,19 @@ type TabId = 'friend' | 'list' | 'block'
  * หน้าต่างเพิ่มเพื่อน — เปิดจากไอคอนแถบข้าง โครงหน้าต่างเหมือน SettingsModal
  * (header + แถบแท็บ + block เนื้อหา) มีสามแท็บ: "เพิ่มเพื่อน" / "รายชื่อเพื่อน" / "บล็อค"
  */
-export function AddFriendModal({ onSearch, onClose }: AddFriendModalProps) {
+export function AddFriendModal({ player, onPlayerChange, onSearch, onClose }: AddFriendModalProps) {
   const [tab, setTab] = useState<TabId>('friend')
 
   // Esc, backdrop-click, focus trap, คืนโฟกัสตอนปิด — รวมไว้ที่ useModalA11y ตัวเดียว
   const { shellRef, backdropProps } = useModalA11y<HTMLDivElement>(onClose)
-  // ยังไม่มีระบบรายชื่อเพื่อน/บล็อคผู้เล่นจริง (ไม่มีที่เก็บถาวรเลย) จึงว่างเสมอตอนนี้
-  // เมื่อมีระบบแล้วให้เติมรายชื่อจริงตรงนี้ — มีแล้วค่อยแสดงรายการ ไม่มีก็ปล่อยว่างไว้
-  const friendsList: FriendCandidate[] = []
+  const friendsList = player.friends ?? []
+  // ยังไม่มีระบบบล็อคผู้เล่นจริง (ไม่มีปุ่ม/action ให้เรียกเลย) จึงว่างเสมอตอนนี้ —
+  // เมื่อมีระบบแล้วให้เก็บ blockedUids บน Player แบบเดียวกับ friends แล้วเติมรายชื่อจริงตรงนี้
   const blockedPlayers: FriendCandidate[] = []
+
+  const handleAddFriend = (candidate: FriendCandidate) => {
+    void onPlayerChange({ ...player, friends: [...friendsList, candidate] })
+  }
 
   const tabs: { id: TabId; label: string; icon: typeof AddFriendIcon }[] = [
     { id: 'friend', label: 'เพิ่มเพื่อน', icon: AddFriendIcon },
@@ -73,7 +80,11 @@ export function AddFriendModal({ onSearch, onClose }: AddFriendModalProps) {
         {tab === 'friend' ? (
           <section className={styles.panel} role="tabpanel" aria-label="เพิ่มเพื่อน" key="friend">
             <div className={styles.block}>
-              <AddFriendPanel onSearch={onSearch} />
+              <AddFriendPanel
+                onSearch={onSearch}
+                isFriend={(uid) => friendsList.some((friend) => friend.uid === uid)}
+                onAddFriend={handleAddFriend}
+              />
             </div>
           </section>
         ) : null}

@@ -22,6 +22,10 @@ public/models/
 .coalmine.json
 .coalboard/
 
+# Per-machine/per-editor local tool config — not project config, each dev's own setup
+.claude/launch.json
+.cursor/environment.json
+
 # Personal/off-project notes — see .agents/rules/personal-scope-law.md
 # (never goes in the shared, mandatory-read MEMORY.md)
 MEMORY.local.md

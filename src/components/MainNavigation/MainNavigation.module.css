@@ -138,8 +138,13 @@
 .item:focus-visible .label { color: #fff1c8; }
 .item:active { transform: translateY(-2px) scale(0.91); }
 
-/* จอแคบ: ปุ่มราหูย้ายไปอยู่คนละแถวอยู่แล้ว เมนูจึงกลับมาวางกึ่งกลางได้ */
-@media (max-width: 860px) {
+/*
+  จอแคบ: ปุ่มราหูย้ายไปอยู่คนละแถวอยู่แล้ว เมนูจึงกลับมาวางกึ่งกลางได้
+  รวม (max-height: 480px) เข้าเงื่อนไขด้วย (คอมมา = OR) — จอมือถือแนวนอน (กว้าง >
+  860px แต่เตี้ย) ไม่เคยเข้า max-width มาก่อน แถบเมนูค้างขนาด desktop ชนปุ่มราหู
+  ข้าง ๆ (ดูคอมเมนต์เดียวกันใน StartAdventure.module.css)
+*/
+@media (max-width: 860px), (max-height: 480px) {
   .nav { --menu-icon-size: clamp(36px, 7vw, 60px); inset-inline-start: 50%; translate: -50% 0; inset-block-end: max(8px, env(safe-area-inset-bottom)); }
   .rail { justify-content: center; width: calc(100vw - 20px); gap: clamp(10px, 2.6vw, 26px); }
   .item { width: var(--menu-icon-size); }

@@ -49,16 +49,10 @@ const SEQUENCES: Record<CharacterModelKind, SpriteSequence> = {
     actionRate: 8,
     autoPeriod: 11.4,
   },
-  /*
-     ชุดเฟรมยืนเฉย (pigsy-idle-*) กับหมุนทิศ (pigsy-turn-*) ถูกถอดออกไปแล้ว รออาร์ตชุดใหม่
-     ที่นี่จึงใช้ชุดท่าประจำทีม (pigsy-team-*) ซึ่งยังเหลืออยู่ ทำหน้าที่แทนทั้งสามอย่าง
-     ตัวละครเลยยังแสดงผลได้ครบทุกที่ ไม่มีภาพเสีย แค่ไม่มีท่าหมุนทิศจริงเท่านั้น
-     (เฟรมหมุนทั้ง 8 ทิศชี้ไปที่ภาพเดียวกัน ตัวจะไม่หันตามทิศจนกว่าจะได้อาร์ตใหม่)
-  */
   'pig-warrior': {
-    idleUrls: frames('pigsy-team', 8),
+    idleUrls: frames('pigsy-idle', 24),
     actionUrls: frames('pigsy-team', 8),
-    turnUrls: Array.from({ length: 8 }, () => publicUrl('characters/pigsy-team-0.webp')),
+    turnUrls: turnFrames('pigsy-turn'),
     actionOrder: [0, 1, 2, 3, 4, 5, 6, 7, 7, 7, 6, 5, 4, 3, 2, 1, 0],
     idleRate: 8,
     actionRate: 5.5,
