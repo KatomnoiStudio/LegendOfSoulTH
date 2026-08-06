@@ -1,0 +1,95 @@
+.opaqueScreen,
+.overlayScreen {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-scene);
+  display: grid;
+  place-items: center;
+  gap: var(--sp-3);
+}
+
+/* ใช้ตอนยังไม่มีอะไรอยู่ข้างหลังเลย (Suspense fallback) — พื้นหลังทึบธีมเข้ม
+   เหมือนที่ LobbyPage เคยใช้เฉพาะจุดตัวเองมาก่อน (กันไม่ให้กระพริบตอน chunk โหลดเสร็จ) */
+.opaqueScreen {
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 78%, rgb(109 140 255 / 22%) 0%, transparent 62%),
+    linear-gradient(180deg, #05060f 0%, #0d1226 45%, #161c33 100%);
+}
+
+/* ใช้ตอนซ้อนทับฉากที่ยังแสดงอยู่จริง (เช่น BattleTransition) — โปร่งดำ ไม่ปิดฉากด้านหลังสนิท */
+.overlayScreen {
+  z-index: 650;
+  background: rgb(0 0 0 / 72%);
+  animation: fadeIn 400ms var(--ease-out);
+}
+
+.visual {
+  display: grid;
+  place-items: center;
+}
+
+.visual img {
+  max-width: 96px;
+  max-height: 96px;
+}
+
+/* ลาย 魂 (สูญ) — คัดลอกมาจาก TitlePage.module.css's .seal/.sealOrbit/.sealCore
+   (โปรเจกต์นี้เลี่ยง CSS composes: ตั้งใจ ดู MEMORY.md item เกี่ยวกับ WalkPicker CSS) */
+.seal {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border: 1px solid rgb(208 167 82 / 38%);
+  rotate: 45deg;
+  background: rgb(7 12 23 / 60%);
+  box-shadow: inset 0 0 22px rgb(194 145 55 / 12%), 0 0 34px rgb(72 166 156 / 9%);
+}
+
+.sealOrbit {
+  position: absolute;
+  inset: 8px;
+  border: 1px dashed rgb(101 190 163 / 38%);
+  border-radius: 50%;
+  animation: sealSpin 24s linear infinite;
+}
+
+.sealCore {
+  rotate: -45deg;
+  font-family: serif;
+  font-size: 1.45rem;
+  color: #e4bd6b;
+  text-shadow: 0 0 15px rgb(228 189 107 / 38%);
+}
+
+.label {
+  margin: 0;
+  color: var(--c-text-dim);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  animation: hint-pulse 2s ease-in-out infinite;
+}
+
+@keyframes sealSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes hint-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sealOrbit,
+  .label {
+    animation: none;
+  }
+}

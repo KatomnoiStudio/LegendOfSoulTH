@@ -3,6 +3,7 @@ import { getCharacter } from '../game/characters'
 import { hasWalkFrames } from '../game/walkKits'
 import { AddFriendModal } from '../components/AddFriendModal/AddFriendModal'
 import { WukongAdventure } from '../components/AdventureScene/WukongAdventure'
+import { LoadingScreen } from '../components/LoadingScreen/LoadingScreen'
 import { WorldChat } from '../components/WorldChat/WorldChat'
 import { GameExplorationSession } from '../components/GameExplorationSession/GameExplorationSession'
 import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRosterModal'
@@ -122,7 +123,7 @@ export function LobbyPage({
 
   return (
     <main className={styles.page}>
-      <Suspense fallback={<div className={styles.sceneFallback}>กำลังเข้าสู่ลานประลอง…</div>}>
+      <Suspense fallback={<LoadingScreen label="กำลังเข้าสู่ลานประลอง…" />}>
         <LobbyScene
           teamSlots={player.teamSlots}
           selectedId={selectedId}
