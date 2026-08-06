@@ -684,6 +684,34 @@
     - เทสต์เพิ่ม 4 ตัว (`vite.config.test.ts`, รวม 158): ชื่อ repo ต้นทาง · ชื่อ repo ของ fork ·
       `BASE_PATH` เขียนทับ · build นอก CI ได้ค่าเดิม
 
+66. **ปุ่ม "ต่อสู้" พาเข้าห้องต่อสู้ตรง ๆ — ตัดโหมดสำรวจออกจากทางเดินหลัก** (2026-08-06T18:10+07:00, `Claude Code (cloud session, Ring 1)`, ผู้ใช้สั่งตรง):
+    - **ปัญหาที่ผู้ใช้เจอ**: กดปุ่ม "ต่อสู้" ในล็อบบี้แล้วได้หน้าหมู่บ้านแห่งเงา ไม่ใช่ห้องต่อสู้
+      ต้องเดินไปหา NPC แล้วกด "คุย" แล้วกด "ต่อสู้" ในกล่องบทสนทนาอีกทีถึงจะได้สู้จริง
+      เป็นทางอ้อมที่ยาวเกินไปสำหรับปุ่มที่เขียนว่า "ต่อสู้" — ผู้ใช้เข้าใจว่าเว็บยังไม่อัปเดต
+      ทั้งที่ deploy ถูกแล้ว (ยืนยันด้วยการแกะ `BattleScene` chunk จากเว็บจริง: มี `พุ่งหลบ`/
+      `เหลือศัตรู`/`ลานฝึกหน้าวิหาร` ครบ และไม่มี `เทิร์น`/`ป้องกัน`/`เลือกเป้าหมาย` เลย)
+    - **สาเหตุ**: `LobbyPage.tsx` ผูกทั้ง `onOpenBattle` ของเมนูหลัก และ `onStart` ของ
+      `StartAdventure` เข้ากับ `setExplorationOpen(true)` ทั้งคู่
+    - **การตัดสินใจของผู้ใช้ (ถามก่อนทำ เพราะเปลี่ยนขอบเขตฟีเจอร์)**: ปุ่มพาเข้า `trial-01`
+      ตรง ๆ จบแล้วกลับล็อบบี้ · **ตัดโหมดสำรวจออกไปเลย** (โค้ดยังอยู่ครบ แต่ไม่มีทางเข้า)
+    - **`LobbyBattleSession.tsx`** ไฟล์ใหม่ บางที่สุดเท่าที่จะทำได้: เตรียมด่าน → เปิดห้อง →
+      บันทึกผล → ปิด ไม่มีสถานะของโหมดสำรวจ (แผนที่/ตำแหน่ง/NPC/บทสนทนา) เข้ามาเกี่ยว ·
+      lazy-load `BattleScene` เหมือนเดิมเพื่อไม่ให้ three.js เข้า chunk หลัก
+    - **ไม่เขียนตัวบันทึกซ้ำ**: ใช้ `appendBattleHistory()` ตัวเดียวกับที่ `useGameFlow` ใช้
+      และแปลงผลผ่าน `toLegacyBattleResult()` ตัวเดิม (เป็นที่เดียวที่รู้ว่า `BattleRecord`
+      ยังต้องการ `turns` — §25 จะเปลี่ยนเป็น `durationMs` ทีหลัง ถ้าแปลงเองตรงนี้จะมีจุดที่ลืมแก้)
+      พร้อมตั้ง flag `trial_cleared_<stageId>` แบบเดียวกับทางเข้าผ่าน NPC เดิม เพื่อให้
+      ความคืบหน้าด่านนับตรงกัน · มี `savedRef` กันบันทึกประวัติซ้ำอีกชั้น
+    - **ผลข้างเคียงที่ดี**: main chunk ลดจาก **330 kB → 314 kB** เพราะโค้ดโหมดสำรวจทั้งสาย
+      (`ExplorationScene`/`ExplorationControls`/`DialogueBox`/`useExploration`/`useGameFlow`)
+      ถูก tree-shake ออกไปเมื่อไม่มีใคร import แล้ว
+    - **ตรวจในเบราว์เซอร์จริงทั้ง 1280×720 และ 844×390**: กดปุ่มแล้วเข้าห้องได้ใน 2.3 s / 1.0 s ·
+      **ไม่แวะหน้าสำรวจระหว่างทาง** (ยืนยันด้วยการเช็ค `_explore_` และข้อความ "หมู่บ้านแห่งเงา"
+      ตอนอยู่ในห้อง = false) · HUD ขึ้น "ลานฝึกหน้าวิหาร คลื่น 1/1 · เหลือศัตรู 3" · ตีแล้วมี
+      เลขดาเมจ · **กดออกแล้วกลับล็อบบี้ได้จริง** · ปุ่ม 116/76 px และ 148/112 px ·
+      console error = 0 และ response ≥ 400 = 0 ทั้งสองขนาด
+    - `npm run ci` เขียว 158 เทสต์ / 17 ไฟล์
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
@@ -706,6 +734,7 @@
   ที่ `dc07289` แล้ว (ข้อ 62) รวมท่อ asset WebP ใหม่และกฎ `no-console`/`reportError`
 - **RULES_VERSION last synced: 10** (`.agents/rules/rules-freshness-check.md`)
 - **Ring**: this machine is Ring 0 (`.agents/ring0.local` present, gitignored). Any other clone is Ring 1 by default — see `.agents/rules/ring0-authority.md`.
+- **ทางเข้าห้องต่อสู้**: ปุ่ม "ต่อสู้" และ "เริ่มการผจญภัย" ในล็อบบี้เปิด `LobbyBattleSession` (`trial-01`) ตรง ๆ ตามคำสั่งผู้ใช้ (ข้อ 66) — **โหมดสำรวจถูกตัดออกจากทางเดินหลักแล้ว** ไฟล์ยังอยู่ครบ (`GameExplorationSession`, `ExplorationScene`, `useGameFlow`, ระบบ NPC/บทสนทนา) แต่ไม่มีอะไร import จึงถูก tree-shake ออกจาก bundle ถ้าจะเปิดกลับมาให้ต่อ entry point ใหม่ อย่าเขียนซ้ำ
 - **Pages base path**: `vite.config.ts`'s `resolveBasePath()` derives the Vite `base` from `GITHUB_REPOSITORY` at build time (item 65) — never hardcode a repo name there again; a wrong `base` produces a blank page with a 200 HTML response and no console error, which is very hard to spot. Override with `BASE_PATH` for a custom domain served from root.
 - **Pre-push sync**: `.agents/rules/pre-push-sync-law.md` — binding on every machine before every push.
 - **Cloud Agent env**: `.cursor/environment.json` present (item 63) — committed file is the highest-precedence environment source for Cursor Cloud Agents (`install: npm ci`, dev server via `terminals`).

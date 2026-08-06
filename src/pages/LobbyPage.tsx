@@ -5,7 +5,7 @@ import { AddFriendModal } from '../components/AddFriendModal/AddFriendModal'
 import { WukongAdventure } from '../components/AdventureScene/WukongAdventure'
 import { LoadingScreen } from '../components/LoadingScreen/LoadingScreen'
 import { WorldChat } from '../components/WorldChat/WorldChat'
-import { GameExplorationSession } from '../components/GameExplorationSession/GameExplorationSession'
+import { LobbyBattleSession } from '../components/LobbyBattleSession/LobbyBattleSession'
 import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRosterModal'
 import { ItemsModal } from '../components/ItemsModal/ItemsModal'
 import { MainNavigation } from '../components/MainNavigation/MainNavigation'
@@ -101,7 +101,7 @@ export function LobbyPage({
   const [profileOpen, setProfileOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [rosterOpen, setRosterOpen] = useState(false)
-  const [explorationOpen, setExplorationOpen] = useState(false)
+  const [battleOpen, setBattleOpen] = useState(false)
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [itemsOpen, setItemsOpen] = useState(false)
   // ค่าเริ่มต้นอ่านจาก engine (persist ผ่าน localStorage) — เก็บ mirror ไว้ที่นี่แค่ให้ React re-render
@@ -147,12 +147,12 @@ export function LobbyPage({
       </div>
 
       <div className={styles.startRow}>
-        <StartAdventure onStart={() => setExplorationOpen(true)} />
+        <StartAdventure onStart={() => setBattleOpen(true)} />
       </div>
 
       <MainNavigation
         onOpenHeroes={() => setRosterOpen(true)}
-        onOpenBattle={() => setExplorationOpen(true)}
+        onOpenBattle={() => setBattleOpen(true)}
         onOpenItems={() => setItemsOpen(true)}
       />
 
@@ -164,11 +164,11 @@ export function LobbyPage({
       */}
       <WorldChat playerName={player.name} isAdmin={isAdmin} onGiveCharacter={onGiveCharacter} />
 
-      {explorationOpen ? (
-        <GameExplorationSession
+      {battleOpen ? (
+        <LobbyBattleSession
           player={player}
           onPlayerChange={onPlayerChange}
-          onExit={() => setExplorationOpen(false)}
+          onExit={() => setBattleOpen(false)}
         />
       ) : null}
 
