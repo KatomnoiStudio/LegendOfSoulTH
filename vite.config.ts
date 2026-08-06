@@ -58,6 +58,7 @@ export default defineConfig(({ command }) => ({
   },
   test: {
     environment: 'jsdom',
+    setupFiles: ['src/test/setup.ts'],
     /*
       สามไฟล์นี้เป็นเทสต์ของโหมดสำรวจที่ถูกคอมเมนต์ปิดไว้ทั้งกอง (2026-08-07)
 
@@ -86,6 +87,7 @@ export default defineConfig(({ command }) => ({
       exclude: [
         'src/**/*.test.ts',
         'src/**/*.d.ts',
+        'src/test/**',
         // ทะเบียนข้อมูลล้วน ไม่มีตรรกะให้คลุม นับรวมแล้วทำให้ตัวเลขหลอกตา
         'src/game/{characters,items,frames,collection,gameInfo,backgroundAssets,sceneDimensions}.ts',
         'src/game/{spriteSequences,battleSpriteSequences,walkKits}.ts',
