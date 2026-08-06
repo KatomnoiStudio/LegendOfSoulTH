@@ -1,6 +1,7 @@
 import type { AttackDefinition } from './attacks'
 import { directionVector } from './HitboxSystem'
 import type { RealtimeBattleEntity } from './types'
+import { ARMOR_MITIGATION, DAMAGE_VARIANCE, MINIMUM_DAMAGE } from '../battle/formulas'
 
 /**
  * สูตรดาเมจของระบบเรียลไทม์ — แยกขาดจาก Turn Engine เดิม (§16)
@@ -15,15 +16,9 @@ import type { RealtimeBattleEntity } from './types'
 
 export type RandomFn = () => number
 
-/** ความแปรปรวนของดาเมจ ±12% เท่าระบบเดิม เพื่อให้ความรู้สึกไม่เปลี่ยนไปจากที่ผู้เล่นคุ้น */
-const VARIANCE = 0.12
-
 /** โอกาสคริติคอลและตัวคูณ */
 const CRITICAL_CHANCE = 0.12
 const CRITICAL_MULTIPLIER = 1.6
-
-/** ดาเมจขั้นต่ำ — ต่อให้เกราะหนากว่าพลังโจมตีมาก ก็ต้องเข้าอย่างน้อย 1 (§16) */
-const MINIMUM_DAMAGE = 1
 
 /** เวลาที่เป้าหมายขยับไม่ได้หลังโดนตี */
 const HIT_STUN_MS = 180
@@ -48,11 +43,11 @@ export interface DamageContext {
 
 /** คำนวณดาเมจอย่างเดียว ไม่แก้ค่าใน entity — แยกไว้เพื่อให้เทสต์ตรวจตัวเลขได้ */
 export function calcDamage({ attacker, target, attack, random }: DamageContext): DamageOutcome {
-  const variance = 1 - VARIANCE + random() * (VARIANCE * 2)
+  const variance = 1 - DAMAGE_VARIANCE + random() * (DAMAGE_VARIANCE * 2)
   const critical = random() < CRITICAL_CHANCE
 
   const base = attacker.atk * attack.damageMultiplier * variance
-  const mitigated = base - target.def * 0.42
+  const mitigated = base - target.def * ARMOR_MITIGATION
   const withCritical = critical ? mitigated * CRITICAL_MULTIPLIER : mitigated
 
   return {

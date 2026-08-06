@@ -72,7 +72,7 @@ export function GameExplorationSession({
   const mapId = gameFlow.flow.mapId ?? 'village-01'
   const movementLocked = gameFlow.flow.mode !== 'exploration'
 
-  const { map, npcs, state, setMovementVector } = useExploration({
+  const { map, npcs, state, pressDirection, releaseDirection } = useExploration({
     mapId,
     initialPosition: gameFlow.flow.explorationPosition ?? undefined,
     movementLocked,
@@ -172,7 +172,8 @@ export function GameExplorationSession({
       <ExplorationControls
         nearbyNpcId={state.nearbyNpcId}
         disabled={movementLocked}
-        onMove={setMovementVector}
+        onPressDirection={pressDirection}
+        onReleaseDirection={releaseDirection}
         onTalk={onTalk}
       />
 

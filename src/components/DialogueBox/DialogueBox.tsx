@@ -1,7 +1,7 @@
+import { MONKEY_SPRITE_URL } from '../../game/characters'
 import type { DialogueChoice } from '../../game/dialogue/types'
 import type { NpcDefinition } from '../../game/npc/types'
 import { playSfx } from '../../lib/audio/AudioEngine'
-import { publicUrl } from '../../lib/publicUrl'
 import styles from './DialogueBox.module.css'
 
 interface DialogueBoxProps {
@@ -27,7 +27,7 @@ export function DialogueBox({ speaker, text, choices, onAdvance, onChoice }: Dia
       <div className={styles.panel}>
         <img
           className={styles.portrait}
-          src={speaker?.spriteUrl ?? publicUrl('characters/monkey-v2-idle-0.webp')}
+          src={speaker?.spriteUrl ?? MONKEY_SPRITE_URL}
           alt=""
           draggable={false}
         />

@@ -3,13 +3,13 @@ import { BattleIcon } from '../components/icons/GameIcons'
 import { GAME_INFO } from '../game/gameInfo'
 import { getSynthDestination, initAudioEngine } from '../lib/audio/AudioEngine'
 import { reportError } from '../lib/errors/reportError'
-import { publicUrl } from '../lib/publicUrl'
+import { BATTLE_ART_BG } from '../game/backgroundAssets'
 import styles from './TitlePage.module.css'
 
 // url('/backgrounds/...') ตรง ๆ ใน CSS ชี้ผิดที่ตอน deploy ขึ้น subpath (ดู src/lib/publicUrl.ts) —
 // ส่งเข้าไปเป็น CSS custom property แทน
 const BG_BATTLE_ART_STYLE: CSSProperties = {
-  ['--bg-battle-art' as string]: `url(${publicUrl('backgrounds/wukong-vs-bull-demon-v2-game-art.webp')})`,
+  ['--bg-battle-art' as string]: `url(${BATTLE_ART_BG})`,
 }
 
 interface TitlePageProps {
@@ -111,7 +111,7 @@ export function TitlePage({ onStart }: TitlePageProps) {
       <header className={styles.topBar}>
         <span className={styles.chapter}>บทที่ ๑ · การตื่นของตำนาน</span>
         <span className={styles.topMark} aria-hidden="true">✦</span>
-        <span className={styles.genre}>MYTHIC TURN-BASED RPG</span>
+        <span className={styles.genre}>MYTHIC REAL-TIME RPG</span>
       </header>
 
       <section className={styles.brand} aria-labelledby="game-title">

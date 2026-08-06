@@ -1,4 +1,4 @@
-import { publicUrl } from '../../lib/publicUrl'
+import { TEMPLE_LOBBY_BG } from '../backgroundAssets'
 import type { MapDefinition } from './types'
 
 export const MAPS: Record<string, MapDefinition> = {
@@ -7,7 +7,7 @@ export const MAPS: Record<string, MapDefinition> = {
     name: 'หมู่บ้านแห่งเงา',
     width: 1200,
     height: 800,
-    background: publicUrl('ui/thai/thai-temple-lobby.webp'),
+    background: TEMPLE_LOBBY_BG,
     walkBounds: { x: 80, y: 120, width: 1040, height: 560 },
     obstacles: [
       { x: 480, y: 280, width: 240, height: 120 },

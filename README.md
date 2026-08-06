@@ -7,7 +7,7 @@
 
 **เล่นได้ที่**: https://legendofsoulth.github.io/LegendOfSoulTH/
 
-หน้า Lobby ของเกม Turn-based **2.5D** แนว *"รวมเหล่านักรบจากตำนานและประวัติศาสตร์"*
+หน้า Lobby ของเกม Real-time Action **2.5D** แนว *"รวมเหล่านักรบจากตำนานและประวัติศาสตร์"*
 สร้างด้วย **React 19 + TypeScript + Vite**, ฉาก 3D ด้วย **three.js + React Three Fiber**, สไตล์ด้วย **CSS Modules**
 
 > ขอบเขตปัจจุบัน: หน้า Lobby + สมัคร/ล็อกอิน + ระบบทอง/หยกพื้นฐาน + ฉากเดิน/สำรวจ + ระบบต่อสู้พื้นฐาน

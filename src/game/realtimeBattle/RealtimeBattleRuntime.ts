@@ -1,5 +1,5 @@
 import { ENEMY_ATTACK, isActiveWindow } from './attacks'
-import type { RealtimeBattleState } from './createRealtimeBattle'
+import { createWaveEnemies, type RealtimeBattleState } from './createRealtimeBattle'
 import { applyDamage, type RandomFn } from './DamageSystem'
 import { createEnemyBrain, stepEnemyAI, type EnemyBrain } from './EnemyAISystem'
 import { findHitTargets } from './HitboxSystem'
@@ -150,6 +150,7 @@ export class RealtimeBattleRuntime {
 
     this.stepEnemies(deltaMs)
     this.separateEnemies()
+    this.checkBattleEnd()
 
     this.pruneEvents()
 
@@ -395,6 +396,44 @@ export class RealtimeBattleRuntime {
         b.position = resolveCircleOverlap(b.position, b.collisionRadius, a.position, a.collisionRadius)
       }
     }
+  }
+
+  /**
+   * เช็คว่าจบการต่อสู้หรือยัง — ต้องเรียกทุกเฟรมหลังลงดาเมจ ไม่ใช่แค่ตอน publish
+   *
+   * ผู้เล่นตาย = แพ้ทันที ไม่ต้องรอศัตรู
+   * ศัตรูตายหมดในคลื่นปัจจุบัน + มีคลื่นถัดไป = สร้างศัตรูคลื่นใหม่ต่อ (ask-CB retroactive
+   * audit, 2026-08-06: เจอว่า currentWaveIndex ไม่เคยขยับเลย ตอนแรก merge มามีแต่คลื่นเดียว
+   * ใช้งานจริง แต่ trial-02 นิยามไว้ 2 คลื่นแล้วไม่มีทางไปถึงคลื่นที่สอง)
+   * ศัตรูตายหมด + ไม่มีคลื่นถัดไปแล้ว = ชนะ
+   *
+   * ก่อนแก้ไฟล์นี้ status ไม่เคยกลายเป็น 'victory'/'defeat' เลยสักที่ในทั้งระบบ —
+   * การต่อสู้จบเองไม่ได้ ค้างวนไปเรื่อย ๆ (เจอจาก ask-CB retroactive audit ของระบบทั้งชุด
+   * ที่ cherry-pick มาจาก fork โดยไม่ผ่าน ask-CB ก่อน)
+   */
+  private checkBattleEnd(): void {
+    const state = this.state
+    if (state.status !== 'running') return
+
+    if (state.player.state === 'dead') {
+      state.status = 'defeat'
+      this.publish()
+      return
+    }
+
+    if (state.enemies.length === 0 || !state.enemies.every((enemy) => enemy.state === 'dead')) return
+
+    const nextWaveIndex = state.currentWaveIndex + 1
+    const nextWaveEnemies = createWaveEnemies(state.stage, nextWaveIndex)
+    if (nextWaveEnemies.length > 0) {
+      state.currentWaveIndex = nextWaveIndex
+      state.enemies = [...state.enemies, ...nextWaveEnemies]
+      this.publish()
+      return
+    }
+
+    state.status = 'victory'
+    this.publish()
   }
 
   private brainFor(enemyId: string): EnemyBrain {

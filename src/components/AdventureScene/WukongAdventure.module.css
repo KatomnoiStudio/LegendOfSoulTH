@@ -1,7 +1,7 @@
 .scene {
   position: absolute;
   inset: 0;
-  z-index: 500;
+  z-index: var(--z-scene-explore); /* เดียวกับ ExplorationScene.module.css .explore */
   overflow: hidden;
   color: #f8e4a7;
   user-select: none;
@@ -10,67 +10,6 @@
   background:
     linear-gradient(180deg, rgba(3, 9, 24, 0.08) 28%, rgba(5, 10, 20, 0.24) 58%, rgba(3, 6, 14, 0.54) 100%),
     var(--bg-temple) center / cover no-repeat;
-}
-
-/* ---------- แถบเลือกขุนพล (โหมดเดินชมจันทร์) ---------- */
-.castBar {
-  position: absolute;
-  z-index: 620;
-  inset-block-end: 104px;
-  inset-inline-start: 50%;
-  translate: -50% 0;
-  display: flex;
-  gap: 10px;
-  padding: 9px 12px;
-  border: 1px solid rgb(226 183 88 / 42%);
-  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0 50%);
-  background: linear-gradient(180deg, rgb(10 24 40 / 92%), rgb(4 12 24 / 95%));
-  box-shadow: 0 10px 26px rgb(0 0 0 / 55%);
-}
-
-.castButton {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  width: 74px;
-  padding: 5px 4px 4px;
-  border: 1px solid rgb(255 255 255 / 12%);
-  border-radius: 8px;
-  background: rgb(255 255 255 / 5%);
-  color: rgb(226 214 180 / 76%);
-  font-size: 0.62rem;
-  transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
-}
-
-.castButton:hover,
-.castButton:focus-visible {
-  outline: none;
-  transform: translateY(-3px);
-  border-color: rgb(243 205 122 / 70%);
-  background: rgb(255 255 255 / 10%);
-}
-
-.castButton[aria-pressed='true'] {
-  border-color: #f3ce7c;
-  background: linear-gradient(180deg, rgb(240 200 90 / 22%), rgb(140 96 30 / 16%));
-  color: #f7dc93;
-  box-shadow: 0 0 16px rgb(240 190 78 / 30%);
-}
-
-.castButton img {
-  width: clamp(32px, 2.7vw, 42px);
-  height: clamp(32px, 2.7vw, 42px);
-  object-fit: contain;
-  object-position: 50% 18%;
-  filter: drop-shadow(0 3px 4px rgb(0 0 0 / 65%));
-  pointer-events: none;
-}
-
-.castName {
-  font-weight: 700;
-  white-space: nowrap;
 }
 
 /* ไม่มีขุนพลตัวไหนที่มีชุดท่าเดินเลย */
@@ -193,7 +132,7 @@
 
 .hud {
   position: absolute;
-  z-index: 1600;
+  z-index: var(--z-adventure-hud);
   top: 28px;
   left: clamp(12px, 3vw, 36px);
   right: clamp(12px, 3vw, 36px);
@@ -522,7 +461,7 @@
 
 .helpBar {
   position: absolute;
-  z-index: 1600;
+  z-index: var(--z-adventure-hud);
   left: 50%;
   bottom: 24px;
   height: 52px;
@@ -577,7 +516,7 @@
   --pad-cell: clamp(38px, 11vw, 50px);
   --pad-gap: 3px;
   position: absolute;
-  z-index: 1700;
+  z-index: var(--z-adventure-pad);
   left: 34px;
   bottom: 28px;
   width: calc(var(--pad-cell) * 3 + var(--pad-gap) * 2);

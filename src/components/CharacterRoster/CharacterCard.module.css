@@ -37,7 +37,7 @@
 
 /* ตัวที่ถูกเลือก — กรอบทองและแสงเรือง */
 .card[aria-pressed='true'] {
-  border-color: #f3ce7c;
+  border-color: var(--c-gold-focus);
   background:
     linear-gradient(103deg, color-mix(in srgb, var(--card-accent) 26%, transparent), transparent 56%),
     linear-gradient(160deg, rgb(101 45 34 / 97%), rgb(11 32 39 / 97%));

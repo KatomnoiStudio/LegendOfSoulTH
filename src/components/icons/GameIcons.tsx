@@ -302,6 +302,18 @@ export function AccessibilityIcon(props: IconProps) {
   )
 }
 
+/** มาตรวัด (gauge) — คุณภาพเรนเดอร์/กราฟิก */
+export function GraphicsIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 16a8 8 0 1 1 16 0" />
+      <path d="M12 16 15.2 9.8" />
+      <circle cx="12" cy="16" r="1.3" fill="currentColor" stroke="none" />
+      <path d="M4 16h2M18 16h2M6.3 10.3l1.4 1.4M17.7 10.3l-1.4 1.4" />
+    </Svg>
+  )
+}
+
 /** พระจันทร์เสี้ยวกับดาว — เดินชมจันทร์ */
 export function MoonWalkIcon(props: IconProps) {
   return (

@@ -1,16 +1,17 @@
 /*
-  ต้องอยู่เหนือ ExplorationScene (z-index: 500) เสมอ
+  ต้องอยู่เหนือ ExplorationScene (--z-scene-explore) เสมอ
 
   ของเดิมเป็น 30 ซึ่งต่ำกว่าฉาก ทำให้ปุ่มบังคับทิศและปุ่ม "คุย" ถูก .world ของฉากบังไว้
   ทั้งใบ — เห็นปุ่มอยู่แต่กดไม่ได้เลย (ยืนยันด้วย document.elementFromPoint ที่จุดกึ่งกลาง
   ปุ่ม ▲ แล้วได้ div ของฉากกลับมาแทนที่จะเป็นตัวปุ่ม)
 
-  ค่าที่เลือกต้องอยู่ระหว่างฉาก (500) กับชั้นที่ต้องบังปุ่มได้จริงเวลาเปิดขึ้นมา คือ
-  BattleScene (600), BattleTransition (650) และ DialogueBox (700) — 510 จึงถูกทั้งสองด้าน
+  ค่า --z-scene-controls ต้องอยู่ระหว่างฉาก (--z-scene-explore) กับชั้นที่ต้องบังปุ่มได้จริง
+  เวลาเปิดขึ้นมา คือ --z-scene-battle, --z-scene-battle-transition และ --z-scene-dialogue
+  (ดู src/index.css สำหรับค่าตัวเลขจริงของ token ทั้งหมด)
 */
 .controls {
   position: absolute;
-  z-index: 510;
+  z-index: var(--z-scene-controls);
   inset: 0;
   pointer-events: none;
 }

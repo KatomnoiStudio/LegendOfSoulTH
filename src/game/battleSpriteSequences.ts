@@ -81,8 +81,10 @@ const MONKEY_ACTION = frames('monkey-v2', 10)
 const MONKEY_VICTORY = Array.from({ length: 4 }, (_, index) =>
   publicUrl(`characters/monkey-pose-${index}-alpha.webp`),
 )
-const PIGSY_IDLE = frames('pigsy-idle', 24)
+// ชุดเฟรมยืนเฉย (pigsy-idle-*) ถูกถอดออกไปแล้ว รออาร์ตชุดใหม่ (ดู src/game/walkKits.ts)
+// จึงใช้ชุดท่าประจำทีมที่ยังเหลืออยู่แทน ตัวละครยังลงสนามรบได้ครบทุกท่า ไม่มีภาพเสีย
 const PIGSY_ACTION = frames('pigsy-team', 8)
+const PIGSY_IDLE = PIGSY_ACTION
 const TRIPITAKA_IDLE = frames('tripitaka-idle', 24)
 
 const MONKEY_KING_SET: BattleSpriteSet = {

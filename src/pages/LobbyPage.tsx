@@ -5,7 +5,7 @@ import { AddFriendModal } from '../components/AddFriendModal/AddFriendModal'
 import { WukongAdventure } from '../components/AdventureScene/WukongAdventure'
 import { LoadingScreen } from '../components/LoadingScreen/LoadingScreen'
 import { WorldChat } from '../components/WorldChat/WorldChat'
-import { GameExplorationSession } from '../components/GameExplorationSession/GameExplorationSession'
+import { LobbyBattleSession } from '../components/LobbyBattleSession/LobbyBattleSession'
 import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRosterModal'
 import { ItemsModal } from '../components/ItemsModal/ItemsModal'
 import { MainNavigation } from '../components/MainNavigation/MainNavigation'
@@ -15,6 +15,8 @@ import {
   type AudioSettings,
 } from '../components/SettingsModal/SettingsModal'
 import { getAudioSettings, initAudioEngine, setAudioSettings } from '../lib/audio/AudioEngine'
+import { getPerformanceSettings, setPerformanceSettings } from '../lib/performanceSettings'
+import type { QualityOverride } from '../hooks/usePerformanceQuality'
 import { SideActions } from '../components/SideActions/SideActions'
 import { StartAdventure } from '../components/StartAdventure/StartAdventure'
 import { TopBar } from '../components/TopBar/TopBar'
@@ -90,8 +92,7 @@ export function LobbyPage({
     [ownedCharacters],
   )
   /** ตัวที่กำลังเดินอยู่ในฉากเดินชมจันทร์ — null คือยังไม่เคยเลือก ใช้ตัวแรกที่เดินได้เป็นค่าเริ่มต้น
-   * (ควบคุมจาก castBar ในฉากเองได้ หรือจากปุ่ม "เดินชมจันทร์" ใน ProfileModal ก็ได้ ทั้งสองจุด
-   * sync กันผ่าน state ตัวนี้ — ดู activeCharacterId/onActiveCharacterChange ของ WukongAdventure) */
+   * เปลี่ยนได้จากปุ่ม "เดินชมจันทร์" ในโปรไฟล์ทางเดียว (แถบเลือกที่เคยลอยอยู่กลางฉากถูกถอดออกแล้ว) */
   const [walkingCharacterId, setWalkingCharacterId] = useState<string | null>(null)
   /**
    * ตัวละครที่ถูกแตะในฉาก — ตอนนี้ใช้แค่แสดงวงแหวนใต้เท้าและกระตุ้นท่าประจำตัว
@@ -101,7 +102,7 @@ export function LobbyPage({
   const [profileOpen, setProfileOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [rosterOpen, setRosterOpen] = useState(false)
-  const [explorationOpen, setExplorationOpen] = useState(false)
+  const [battleOpen, setBattleOpen] = useState(false)
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [itemsOpen, setItemsOpen] = useState(false)
   // ค่าเริ่มต้นอ่านจาก engine (persist ผ่าน localStorage) — เก็บ mirror ไว้ที่นี่แค่ให้ React re-render
@@ -109,6 +110,15 @@ export function LobbyPage({
   const handleAudioChange = (next: AudioSettings) => {
     setAudioSettings(next)
     setAudio(next)
+  }
+  // ยกมาไว้ที่นี่แบบเดียวกับ audio — LobbyScene (ฉาก 3D) ต้องอ่านค่านี้แบบเรียลไทม์
+  // ตอนผู้เล่นเปลี่ยนจาก SettingsModal โดยไม่ต้องปิดแล้วเปิดฉากใหม่
+  const [performanceOverride, setPerformanceOverride] = useState<QualityOverride>(
+    () => getPerformanceSettings().qualityOverride,
+  )
+  const handlePerformanceOverrideChange = (next: QualityOverride) => {
+    setPerformanceSettings({ qualityOverride: next })
+    setPerformanceOverride(next)
   }
   /**
    * ผู้เล่นที่เคย login ไว้แล้วเข้าตรงมาที่ลอบบี้เลย ไม่ผ่าน TitlePage (ดู App.tsx)
@@ -128,6 +138,7 @@ export function LobbyPage({
           teamSlots={player.teamSlots}
           selectedId={selectedId}
           onSelect={setSelectedId}
+          qualityOverride={performanceOverride}
         />
       </Suspense>
 
@@ -147,12 +158,12 @@ export function LobbyPage({
       </div>
 
       <div className={styles.startRow}>
-        <StartAdventure onStart={() => setExplorationOpen(true)} />
+        <StartAdventure onStart={() => setBattleOpen(true)} />
       </div>
 
       <MainNavigation
         onOpenHeroes={() => setRosterOpen(true)}
-        onOpenBattle={() => setExplorationOpen(true)}
+        onOpenBattle={() => setBattleOpen(true)}
         onOpenItems={() => setItemsOpen(true)}
       />
 
@@ -164,11 +175,11 @@ export function LobbyPage({
       */}
       <WorldChat playerName={player.name} isAdmin={isAdmin} onGiveCharacter={onGiveCharacter} />
 
-      {explorationOpen ? (
-        <GameExplorationSession
+      {battleOpen ? (
+        <LobbyBattleSession
           player={player}
           onPlayerChange={onPlayerChange}
-          onExit={() => setExplorationOpen(false)}
+          onExit={() => setBattleOpen(false)}
         />
       ) : null}
 
@@ -181,7 +192,6 @@ export function LobbyPage({
         mode="moonlight"
         characters={ownedCharacters}
         activeCharacterId={walkingCharacterId}
-        onActiveCharacterChange={setWalkingCharacterId}
       />
 
       {/* หน้า Lobby ยังคง mount อยู่ข้างหลัง ฉาก 3D และแอนิเมชันตัวละครจึงไม่รีเซ็ต */}
@@ -210,6 +220,8 @@ export function LobbyPage({
         <SettingsModal
           audio={audio}
           onAudioChange={handleAudioChange}
+          performanceOverride={performanceOverride}
+          onPerformanceOverrideChange={handlePerformanceOverrideChange}
           onLogout={onLogout}
           onRedeemCoupon={onRedeemCoupon}
           ownedCharacterCount={ownedCharacters.length}

@@ -1,12 +1,9 @@
 import { useMemo } from 'react'
-import { getCharacter } from '../../game/characters'
+import { getCharacter, MONKEY_SPRITE_URL } from '../../game/characters'
 import type { NpcDefinition } from '../../game/npc/types'
 import type { ExplorationState, MapDefinition } from '../../game/exploration/types'
-import { publicUrl } from '../../lib/publicUrl'
+import { SCENE_WIDTH, SCENE_HEIGHT } from '../../game/sceneDimensions'
 import styles from './ExplorationScene.module.css'
-
-const VIEW_WIDTH = 1600
-const VIEW_HEIGHT = 900
 
 interface ExplorationSceneProps {
   map: MapDefinition
@@ -25,12 +22,12 @@ export function ExplorationScene({
 }: ExplorationSceneProps) {
   const camera = useMemo(() => {
     const x = Math.min(
-      Math.max(state.playerPosition.x - VIEW_WIDTH / 2, 0),
-      Math.max(0, map.width - VIEW_WIDTH),
+      Math.max(state.playerPosition.x - SCENE_WIDTH / 2, 0),
+      Math.max(0, map.width - SCENE_WIDTH),
     )
     const y = Math.min(
-      Math.max(state.playerPosition.y - VIEW_HEIGHT / 2, 0),
-      Math.max(0, map.height - VIEW_HEIGHT),
+      Math.max(state.playerPosition.y - SCENE_HEIGHT / 2, 0),
+      Math.max(0, map.height - SCENE_HEIGHT),
     )
     return { x, y }
   }, [map.height, map.width, state.playerPosition.x, state.playerPosition.y])
@@ -83,5 +80,5 @@ export function ExplorationScene({
 
 export function getPlayerSpriteUrl(teamSlots: (string | null)[]): string {
   const leadId = teamSlots.find((id) => id !== null) ?? 'monkey-king'
-  return getCharacter(leadId)?.model.spriteUrl ?? publicUrl('characters/monkey-v2-idle-0.webp')
+  return getCharacter(leadId)?.model.spriteUrl ?? MONKEY_SPRITE_URL
 }

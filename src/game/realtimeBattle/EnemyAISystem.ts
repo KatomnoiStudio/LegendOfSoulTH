@@ -1,3 +1,4 @@
+import { ENEMY_ATTACK } from './attacks'
 import { getEnemyTemplate, type RealtimeEnemyTemplate } from './stageConfig'
 import type { RealtimeBattleEntity, Vec2 } from './types'
 
@@ -15,20 +16,18 @@ import type { RealtimeBattleEntity, Vec2 } from './types'
 export type EnemyAIState = 'idle' | 'chase' | 'attack' | 'recover' | 'hit' | 'dead'
 
 /**
- * จังหวะของท่าโจมตีศัตรู (มิลลิวินาที)
+ * จังหวะของท่าโจมตีศัตรู (มิลลิวินาที) — ยึด ENEMY_ATTACK จาก attacks.ts เป็นแหล่งความจริงจุดเดียว
  *
- * ค่าอยู่ที่เดียวทั้งหมด — ระบบดาเมจในงานถัดไปจะอ่านจากตรงนี้เพื่อรู้ว่า "ช่วงไหนคือ
- * active frame ที่ทำอันตรายได้จริง" ตามข้อห้ามของสเปกข้อ 13 ที่ว่าดาเมจต้องไม่เกิดทันที
- * ตอนเริ่มท่า
+ * export นี้คงไว้เพื่อความเข้ากันได้กับโค้ด/เทสต์เดิมที่ import ชื่อนี้ แต่ตัวเลขไม่ได้ hard-code
+ * ซ้ำที่นี่อีกแล้ว — มาจาก ENEMY_ATTACK โดยตรง
  */
 export const ENEMY_ATTACK_TIMING = {
-  startupMs: 320,
-  activeMs: 140,
-  recoveryMs: 420,
+  startupMs: ENEMY_ATTACK.startupMs,
+  activeMs: ENEMY_ATTACK.activeMs,
+  recoveryMs: ENEMY_ATTACK.recoveryMs,
 } as const
 
-const ATTACK_TOTAL_MS =
-  ENEMY_ATTACK_TIMING.startupMs + ENEMY_ATTACK_TIMING.activeMs + ENEMY_ATTACK_TIMING.recoveryMs
+const ATTACK_TOTAL_MS = ENEMY_ATTACK.startupMs + ENEMY_ATTACK.activeMs + ENEMY_ATTACK.recoveryMs
 
 /** สถานะเฉพาะของศัตรูที่ไม่ได้อยู่ใน RealtimeBattleEntity (entity เป็นข้อมูลกลางของทุกฝ่าย) */
 export interface EnemyBrain {
