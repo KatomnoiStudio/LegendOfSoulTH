@@ -1,5 +1,6 @@
 import type { RealtimeBattleState } from './createRealtimeBattle'
-import { stepMovement } from './MovementSystem'
+import { createEnemyBrain, stepEnemyAI, type EnemyBrain } from './EnemyAISystem'
+import { resolveCircleOverlap, stepMovement } from './MovementSystem'
 import type {
   BattleEffectEvent,
   DamageEvent,
@@ -41,6 +42,13 @@ export class RealtimeBattleRuntime {
   private disposed = false
   /** เวกเตอร์เดินล่าสุดจากผู้เล่น — ป้อนเข้ามาจากชั้น React ทุกเฟรม */
   private moveInput: Vec2 = { x: 0, y: 0 }
+  /**
+   * สมองของศัตรูแยกตาม id
+   *
+   * ไม่เก็บไว้ใน entity เพราะ entity เป็นข้อมูลกลางที่ทั้งผู้เล่นและศัตรูใช้ร่วมกัน
+   * และมันถูกคัดลอกลง snapshot ทุกครั้งที่ publish — สถานะ AI ไม่ควรไหลไปถึง React
+   */
+  private brains = new Map<string, EnemyBrain>()
 
   constructor(state: RealtimeBattleState) {
     this.state = state
@@ -76,6 +84,9 @@ export class RealtimeBattleRuntime {
     if (state.player.state === 'idle' && moved) state.player.state = 'walk'
     else if (state.player.state === 'walk' && !moved) state.player.state = 'idle'
 
+    this.stepEnemies(deltaMs)
+    this.separateEnemies()
+
     this.pruneEvents()
 
     this.publishTimerMs += deltaMs
@@ -83,6 +94,60 @@ export class RealtimeBattleRuntime {
       this.publishTimerMs = 0
       this.publish()
     }
+  }
+
+  /**
+   * เดินสมองศัตรูทุกตัว แล้วส่งทิศที่มันอยากไปให้ระบบเดินตัวเดียวกับผู้เล่น
+   *
+   * ศัตรูกันทางกันเองและกันผู้เล่นด้วย จึงใส่ทั้งกองเป็น blockers ยกเว้นตัวที่กำลังเดินอยู่
+   * (stepMovement ข้ามตัวเองให้อยู่แล้วจาก id)
+   */
+  private stepEnemies(deltaMs: number): void {
+    const state = this.state
+
+    for (const enemy of state.enemies) {
+      const brain = this.brainFor(enemy.id)
+      const decision = stepEnemyAI(enemy, brain, state.player, deltaMs)
+
+      if (decision.move.x === 0 && decision.move.y === 0) {
+        enemy.velocity = { x: 0, y: 0 }
+        continue
+      }
+
+      stepMovement(enemy, decision.move, deltaMs, {
+        stage: state.stage,
+        blockers: [state.player, ...state.enemies],
+      })
+    }
+  }
+
+  /**
+   * ดันศัตรูที่ซ้อนกันให้แยกออก
+   *
+   * ทำแยกจากตอนเดิน เพราะศัตรูหลายตัวมุ่งหน้าจุดเดียวกัน (ตัวผู้เล่น) ทำให้ทุกตัวไปกอง
+   * ทับกันเป็นตัวเดียวได้ ทั้งที่แต่ละตัวเดินถูกกฎ — สเปกข้อ 19 ห้ามอาการนี้ตรง ๆ
+   */
+  private separateEnemies(): void {
+    const state = this.state
+    const alive = state.enemies.filter((enemy) => enemy.state !== 'dead')
+
+    for (let i = 0; i < alive.length; i += 1) {
+      for (let j = i + 1; j < alive.length; j += 1) {
+        const a = alive[i]
+        const b = alive[j]
+        // ดันเฉพาะตัวหลังออกจากตัวหน้า ทำให้ผลลัพธ์ไม่ขึ้นกับลำดับที่วนเจอ
+        b.position = resolveCircleOverlap(b.position, b.collisionRadius, a.position, a.collisionRadius)
+      }
+    }
+  }
+
+  private brainFor(enemyId: string): EnemyBrain {
+    let brain = this.brains.get(enemyId)
+    if (!brain) {
+      brain = createEnemyBrain()
+      this.brains.set(enemyId, brain)
+    }
+    return brain
   }
 
   /** นับถอยหลังคูลดาวน์และสถานะที่อิงเวลาของหน่วยหนึ่งตัว */
@@ -165,6 +230,7 @@ export class RealtimeBattleRuntime {
   dispose(): void {
     this.disposed = true
     this.listeners.clear()
+    this.brains.clear()
     this.damageEvents = []
     this.effectEvents = []
   }
