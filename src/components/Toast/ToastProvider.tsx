@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { playSfx } from '../../lib/audio/AudioEngine'
 import { ToastContext, type ToastApi } from './ToastContext'
 import styles from './Toast.module.css'
 
@@ -29,25 +30,31 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const showToast = useCallback((message: string) => {
-    if (activeMessages.current.has(message)) return
-    activeMessages.current.add(message)
+  const showToast = useCallback(
+    (message: string, variant: 'success' | 'error' | 'currency' = 'success') => {
+      if (activeMessages.current.has(message)) return
+      activeMessages.current.add(message)
+      void playSfx(
+        variant === 'error' ? 'error' : variant === 'currency' ? 'currencyGain' : 'notification',
+      )
 
-    const id = nextId.current++
-    setToasts((prev) => [...prev, { id, message, leaving: false }].slice(-MAX_VISIBLE))
+      const id = nextId.current++
+      setToasts((prev) => [...prev, { id, message, leaving: false }].slice(-MAX_VISIBLE))
 
-    const fade = setTimeout(() => {
-      setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, leaving: true } : t)))
-      const drop = setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id))
-        activeMessages.current.delete(message)
-        timers.current.delete(drop)
-      }, LEAVE_MS)
-      timers.current.add(drop)
-      timers.current.delete(fade)
-    }, VISIBLE_MS)
-    timers.current.add(fade)
-  }, [])
+      const fade = setTimeout(() => {
+        setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, leaving: true } : t)))
+        const drop = setTimeout(() => {
+          setToasts((prev) => prev.filter((t) => t.id !== id))
+          activeMessages.current.delete(message)
+          timers.current.delete(drop)
+        }, LEAVE_MS)
+        timers.current.add(drop)
+        timers.current.delete(fade)
+      }, VISIBLE_MS)
+      timers.current.add(fade)
+    },
+    [],
+  )
 
   const api = useMemo<ToastApi>(
     () => ({

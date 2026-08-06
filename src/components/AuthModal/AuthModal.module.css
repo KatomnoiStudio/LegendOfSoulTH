@@ -189,6 +189,40 @@
   text-align: center;
 }
 
+.hiddenFileInput {
+  /* input จริงซ่อนไว้ — คลิกผ่านปุ่ม .importSave แทนเพื่อคุมสไตล์เองได้ */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.importSave {
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px dashed rgb(226 214 180 / 30%);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--c-text-dim);
+  font-size: 0.74rem;
+  font-weight: 600;
+  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+
+.importSave:hover:not(:disabled) {
+  color: var(--c-bone);
+  border-color: rgb(226 214 180 / 55%);
+}
+
+.importSave:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }

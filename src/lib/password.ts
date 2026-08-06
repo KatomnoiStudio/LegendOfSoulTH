@@ -10,7 +10,9 @@
  * ───────────────────────────────────────────────────────────
  */
 
-const ITERATIONS = 120_000
+// OWASP Password Storage Cheat Sheet ปัจจุบันแนะนำ 600,000 รอบสำหรับ PBKDF2-HMAC-SHA256
+// (ยืนยันสดจาก cheatsheetseries.owasp.org 2026-08-06 — ไม่ใช้เลขจากความจำ)
+const ITERATIONS = 600_000
 const KEY_BITS = 256
 const SALT_BYTES = 16
 
@@ -37,7 +39,12 @@ export function createSalt(): string {
   return toBase64(salt)
 }
 
-export async function hashPassword(password: string, salt: string): Promise<string> {
+/**
+ * แฮชค่าเก็บเป็น "<รอบ>:<แฮช base64>" — ฝังจำนวนรอบไว้ในสตริงเดียวกับแฮชเอง
+ * แทนที่จะเพิ่มคอลัมน์ใหม่ในบัญชี เพื่อให้ verifyPassword ยืนยันแฮชเก่า (รอบน้อยกว่า)
+ * ได้ต่อไปแม้ ITERATIONS ด้านบนถูกปรับขึ้นในอนาคต โดยไม่ล็อกผู้เล่นเดิมออก
+ */
+async function derive(password: string, salt: string, iterations: number): Promise<string> {
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(password),
@@ -50,7 +57,7 @@ export async function hashPassword(password: string, salt: string): Promise<stri
     {
       name: 'PBKDF2',
       salt: fromBase64(salt),
-      iterations: ITERATIONS,
+      iterations,
       hash: 'SHA-256',
     },
     key,
@@ -58,6 +65,10 @@ export async function hashPassword(password: string, salt: string): Promise<stri
   )
 
   return toBase64(new Uint8Array(bits))
+}
+
+export async function hashPassword(password: string, salt: string): Promise<string> {
+  return `${ITERATIONS}:${await derive(password, salt, ITERATIONS)}`
 }
 
 /**
@@ -69,12 +80,23 @@ export async function verifyPassword(
   salt: string,
   expectedHash: string,
 ): Promise<boolean> {
-  const actual = await hashPassword(password, salt)
-  if (actual.length !== expectedHash.length) return false
+  const separator = expectedHash.indexOf(':')
+  const iterations = separator === -1 ? 120_000 : Number(expectedHash.slice(0, separator))
+  const expectedDigest = separator === -1 ? expectedHash : expectedHash.slice(separator + 1)
+
+  const actual = await derive(password, salt, iterations)
+  if (actual.length !== expectedDigest.length) return false
 
   let diff = 0
   for (let i = 0; i < actual.length; i++) {
-    diff |= actual.charCodeAt(i) ^ expectedHash.charCodeAt(i)
+    diff |= actual.charCodeAt(i) ^ expectedDigest.charCodeAt(i)
   }
   return diff === 0
+}
+
+/** true เมื่อแฮชที่เก็บไว้ใช้รอบน้อยกว่าค่าปัจจุบัน — เรียกหลัง verifyPassword ผ่านเพื่อรีแฮชอัปเกรด */
+export function needsRehash(storedHash: string): boolean {
+  const separator = storedHash.indexOf(':')
+  const iterations = separator === -1 ? 120_000 : Number(storedHash.slice(0, separator))
+  return iterations < ITERATIONS
 }

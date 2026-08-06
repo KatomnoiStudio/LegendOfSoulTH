@@ -154,7 +154,7 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
         ],
       },
     ],
-    backgroundAsset: publicUrl('ui/thai/thai-temple-lobby.png'),
+    backgroundAsset: publicUrl('ui/thai/thai-temple-lobby.webp'),
   },
   'trial-02': {
     id: 'trial-02',
@@ -180,7 +180,7 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
         ],
       },
     ],
-    backgroundAsset: publicUrl('backgrounds/wukong-vs-bull-demon-v2-game-art.png'),
+    backgroundAsset: publicUrl('backgrounds/wukong-vs-bull-demon-v2-game-art.webp'),
   },
 }
 

@@ -115,7 +115,7 @@
 .frame::before, .frame::after { content: ''; position: absolute; top: 50%; width: 1px; height: 23%; translate: 0 -50%; background: linear-gradient(transparent, rgb(207 170 94 / 55%), transparent); }
 .frame::before { left: -1px; }
 .frame::after { right: -1px; }
-.corner { position: absolute; width: 34px; height: 34px; border-color: rgb(221 180 92 / 65%); }
+.corner { position: absolute; width: clamp(22px, 2.1vw, 34px); height: clamp(22px, 2.1vw, 34px); border-color: rgb(221 180 92 / 65%); }
 .cornerTl { top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }
 .cornerTr { top: -1px; right: -1px; border-top: 2px solid; border-right: 2px solid; }
 .cornerBl { bottom: -1px; left: -1px; border-bottom: 2px solid; border-left: 2px solid; }
@@ -238,7 +238,7 @@
 }
 .frameCrown b { rotate: -45deg; color: #77d0b1; font: 400 0.72rem/1 serif; text-shadow: 0 0 10px #66cba9; }
 
-.frameCorner { position: absolute; z-index: 4; width: 18px; height: 18px; border-color: #e3b963; pointer-events: none; }
+.frameCorner { position: absolute; z-index: 4; width: clamp(13px, 1.3vw, 18px); height: clamp(13px, 1.3vw, 18px); border-color: #e3b963; pointer-events: none; }
 .frameCornerTl { top: 4px; left: 5px; border-top: 2px solid; border-left: 2px solid; }
 .frameCornerTr { top: 4px; right: 5px; border-top: 2px solid; border-right: 2px solid; }
 .frameCornerBl { bottom: 4px; left: 5px; border-bottom: 2px solid; border-left: 2px solid; }
@@ -254,7 +254,7 @@
 .buttonCopy strong { font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.08em; }
 .buttonCopy small { font: 600 0.45rem/1.2 var(--font-display); letter-spacing: 0.25em; color: rgb(137 195 175 / 70%); }
 .buttonRune { color: var(--jade); font-size: 0.7rem; animation: runePulse 2.4s ease-in-out infinite; }
-.startIcon { width: 22px; height: 22px; color: #d7ad57; }
+.startIcon { width: clamp(17px, 1.6vw, 22px); height: clamp(17px, 1.6vw, 22px); color: #d7ad57; }
 .buttonWing { width: clamp(35px, 5vw, 76px); height: 13px; margin-right: -1px; border-top: 1px solid rgb(211 168 80 / 58%); border-bottom: 1px solid rgb(211 168 80 / 18%); transform: skewX(-38deg); }
 .buttonWingRight { margin-right: 0; margin-left: -1px; transform: skewX(38deg); }
 .keyHint { position: absolute; top: 88px; left: 50%; translate: -50%; white-space: nowrap; font-size: 0.55rem; letter-spacing: 0.14em; color: rgb(185 197 190 / 42%); }

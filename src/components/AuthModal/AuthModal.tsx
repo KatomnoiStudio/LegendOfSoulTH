@@ -9,6 +9,8 @@ interface AuthModalProps {
   /** คืน null เมื่อสำเร็จ คืนข้อความเมื่อผิดพลาด */
   onRegister: (email: string, password: string) => Promise<string | null>
   onLogin: (email: string, password: string) => Promise<string | null>
+  /** นำเข้าไฟล์ save ที่ export มาจากเครื่องอื่น — คืน null เมื่อสำเร็จ คืนข้อความเมื่อผิดพลาด */
+  onImportSave: (json: string) => Promise<string | null>
 }
 
 /**
@@ -18,7 +20,7 @@ interface AuthModalProps {
  * ตัวฟอร์มไม่รู้จัก localStorage เลย คุยผ่าน callback เท่านั้น
  * เปลี่ยนหลังบ้านเป็นเซิร์ฟเวอร์จริงเมื่อไหร่ ไฟล์นี้ไม่ต้องแก้
  */
-export function AuthModal({ onRegister, onLogin }: AuthModalProps) {
+export function AuthModal({ onRegister, onLogin, onImportSave }: AuthModalProps) {
   const [lastEmail] = useState(() => getLastEmail())
   // เคยล็อกอินเครื่องนี้มาก่อน (มีอีเมลจำไว้) → เปิดแท็บเข้าสู่ระบบให้เลย ไม่ต้องเดา
   const [mode, setMode] = useState<Mode>(() => (lastEmail ? 'login' : 'register'))
@@ -28,6 +30,19 @@ export function AuthModal({ onRegister, onLogin }: AuthModalProps) {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const emailRef = useRef<HTMLInputElement>(null)
+  const importRef = useRef<HTMLInputElement>(null)
+
+  const handleImportFile = async (file: File) => {
+    setBusy(true)
+    setError(null)
+    const text = await file.text()
+    const message = await onImportSave(text)
+    // สำเร็จแล้ว component จะถูกถอดออกโดยหน้าแม่ จึงตั้ง busy กลับเฉพาะตอนพลาด
+    if (message) {
+      setError(message)
+      setBusy(false)
+    }
+  }
 
   useEffect(() => {
     emailRef.current?.focus()
@@ -171,7 +186,33 @@ export function AuthModal({ onRegister, onLogin }: AuthModalProps) {
           <p className={styles.note}>
             ข้อมูลบัญชีถูกเก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น
             ยังไม่ได้ซิงก์ขึ้นเซิร์ฟเวอร์ ล้างข้อมูลเบราว์เซอร์แล้วบัญชีจะหายไป
+            ย้ายเครื่อง/เบราว์เซอร์ได้ด้วยการส่งออกไฟล์ save (ในเมนูตั้งค่าหลังล็อกอิน)
+            แล้วนำเข้าที่นี่
           </p>
+
+          {!isRegister ? (
+            <>
+              <input
+                ref={importRef}
+                type="file"
+                accept="application/json"
+                className={styles.hiddenFileInput}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ''
+                  if (file) void handleImportFile(file)
+                }}
+              />
+              <button
+                type="button"
+                className={styles.importSave}
+                disabled={busy}
+                onClick={() => importRef.current?.click()}
+              >
+                หรือนำเข้าไฟล์ save จากเครื่องอื่น
+              </button>
+            </>
+          ) : null}
         </form>
       </div>
     </div>

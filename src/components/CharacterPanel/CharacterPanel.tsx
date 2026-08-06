@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { useEffect, type CSSProperties } from 'react'
 import type { Character } from '../../game/characters'
 import { ORIGIN_LABEL, RARITY_COLOR, RARITY_LABEL } from '../../game/characters'
 import { useToast } from '../Toast/useToast'
@@ -15,6 +15,18 @@ interface CharacterPanelProps {
 /** กรอบข้อมูลตัวละครที่โผล่ขึ้นเมื่อกดโมเดลในฉาก (ข้อมูลยังเป็น placeholder) */
 export function CharacterPanel({ character, onClose }: CharacterPanelProps) {
   const { comingSoon } = useToast()
+
+  // ปิดด้วยปุ่ม Esc เหมือน modal อื่น ๆ ในเกม — ต้องอยู่ก่อน early return
+  // เพื่อไม่ให้ hook ถูกเรียกไม่ครบทุก render (Rules of Hooks)
+  useEffect(() => {
+    if (!character) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [character, onClose])
+
   if (!character) return null
 
   const rarityStyle = { '--rarity': RARITY_COLOR[character.rarity] } as CSSProperties

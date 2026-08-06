@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import * as accounts from '../data/accountRepository'
-import type { CurrencyResult, FriendCandidate, GoldSource } from '../data/accountRepository'
+import type {
+  CharacterGrantResult,
+  CurrencyResult,
+  FriendCandidate,
+  GoldSource,
+} from '../data/accountRepository'
+import { isAdminEmail } from '../data/admins'
 import type { Player } from '../types/player'
 
 /**
@@ -23,17 +29,32 @@ export interface AuthState {
   updatePlayer: (next: Player) => Promise<void>
   /** ให้ทองจากการเล่นเท่านั้น — ทำเควสสำเร็จหรือของดรอป (ดู accountRepository.earnGold) */
   earnGold: (source: GoldSource, amount: number, refId?: string) => Promise<CurrencyResult>
+  /** เติมทองด้วยเงินจริง (ดู accountRepository.topUpGold) */
+  topUpGold: (packageId: string) => Promise<CurrencyResult>
   /** เติมหยกด้วยเงินจริง (ดู accountRepository.topUpGems) */
   topUpGems: (packageId: string) => Promise<CurrencyResult>
   /** แลกโค้ดคูปองเป็นหยก (ดู accountRepository.redeemCoupon) */
   redeemCoupon: (code: string) => Promise<CurrencyResult>
   /** ค้นหาผู้เล่นจาก UID เพื่อเพิ่มเพื่อน — คืน null ถ้าไม่พบ (ดู accountRepository.findPlayerByUid) */
   findFriendByUid: (uid: string) => Promise<FriendCandidate | null>
+  /**
+   * บัญชีนี้ใช้คำสั่งผู้ดูแลได้ไหม (ดู src/data/admins.ts)
+   * ⚠️ ไม่ใช่ขอบเขตความปลอดภัย — เช็คฝั่ง client กับข้อมูลที่ผู้เล่นแก้เองได้
+   */
+  isAdmin: boolean
+  /** มอบตัวละครให้บัญชีนี้ — ตอนนี้เรียกจากช่องคำสั่งผู้ดูแลเท่านั้น */
+  grantCharacter: (characterId: string) => Promise<CharacterGrantResult>
+  /** ส่งออก save เป็นไฟล์ JSON ไว้สำรอง/ย้ายเครื่อง — คืน null เมื่อสำเร็จ (ไฟล์ถูกดาวน์โหลดแล้ว) */
+  exportSave: () => Promise<string | null>
+  /** นำเข้าไฟล์ save ที่ export ไว้ — คืน null เมื่อสำเร็จ คืนข้อความเมื่อผิดพลาด */
+  importSave: (json: string) => Promise<string | null>
 }
 
 export function useAuth(): AuthState {
   const [status, setStatus] = useState<AuthStatus>('loading')
   const [player, setPlayer] = useState<Player | null>(null)
+  // อีเมลไม่ได้อยู่ใน Player (เป็นข้อมูลบัญชี ไม่ใช่ของตัวละคร) จึงเก็บแยกไว้ตรวจสิทธิ์ผู้ดูแล
+  const [email, setEmail] = useState<string | null>(null)
 
   // กู้ session ตอนเปิดเกม เพื่อไม่ต้องล็อกอินซ้ำทุกครั้ง
   useEffect(() => {
@@ -42,7 +63,9 @@ export function useAuth(): AuthState {
     accounts.getSessionPlayer().then((restored) => {
       if (cancelled) return
       setPlayer(restored)
+      setEmail(restored ? accounts.getSessionEmail() : null)
       setStatus(restored ? 'signed-in' : 'guest')
+      return undefined
     })
 
     return () => {
@@ -51,18 +74,20 @@ export function useAuth(): AuthState {
   }, [])
 
   /** คืน null เมื่อสำเร็จ คืนข้อความเมื่อผิดพลาด */
-  const register = useCallback(async (email: string, password: string) => {
-    const result = await accounts.register(email, password)
+  const register = useCallback(async (nextEmail: string, password: string) => {
+    const result = await accounts.register(nextEmail, password)
     if (!result.ok) return result.error
     setPlayer(result.player)
+    setEmail(accounts.getSessionEmail())
     setStatus('signed-in')
     return null
   }, [])
 
-  const login = useCallback(async (email: string, password: string) => {
-    const result = await accounts.login(email, password)
+  const login = useCallback(async (nextEmail: string, password: string) => {
+    const result = await accounts.login(nextEmail, password)
     if (!result.ok) return result.error
     setPlayer(result.player)
+    setEmail(accounts.getSessionEmail())
     setStatus('signed-in')
     return null
   }, [])
@@ -70,6 +95,7 @@ export function useAuth(): AuthState {
   const logout = useCallback(async () => {
     await accounts.logout()
     setPlayer(null)
+    setEmail(null)
     setStatus('guest')
   }, [])
 
@@ -79,13 +105,23 @@ export function useAuth(): AuthState {
     await accounts.savePlayer(next)
   }, [])
 
-  // สามฟังก์ชันด้านล่างคุยกับ accountRepository ที่บังคับระบุแหล่งที่มาของทอง/หยกเสมอ
+  // สี่ฟังก์ชันด้านล่างคุยกับ accountRepository ที่บังคับระบุแหล่งที่มาของทอง/หยกเสมอ
   // (ดูคอมเมนต์หัวไฟล์ accountRepository.ts) จึงไม่มี setGold/setGem ตรง ๆ ให้เรียกจากที่อื่น
 
   const earnGold = useCallback(
     async (source: GoldSource, amount: number, refId?: string) => {
       if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
       const result = await accounts.earnGold(player.uid, source, amount, refId)
+      if (result.ok) setPlayer(result.player)
+      return result
+    },
+    [player],
+  )
+
+  const topUpGold = useCallback(
+    async (packageId: string) => {
+      if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
+      const result = await accounts.topUpGold(player.uid, packageId)
       if (result.ok) setPlayer(result.player)
       return result
     },
@@ -115,6 +151,40 @@ export function useAuth(): AuthState {
   /** ค้นหาไม่ต้องล็อกอินก็เรียกได้จริง แต่ล็อกไว้เผื่อผู้เล่นเรียกจากหน้าที่ต้องล็อกอินก่อนเสมออยู่แล้ว */
   const findFriendByUid = useCallback(async (uid: string) => accounts.findPlayerByUid(uid), [])
 
+  const grantCharacter = useCallback(
+    async (characterId: string) => {
+      if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
+      const result = await accounts.grantCharacter(player.uid, characterId)
+      if (result.ok) setPlayer(result.player)
+      return result
+    },
+    [player],
+  )
+
+  const exportSave = useCallback(async () => {
+    const result = await accounts.exportSave()
+    if (!result.ok) return result.error
+
+    // ดาวน์โหลดเป็นไฟล์ .json — ไม่มี backend ให้ส่งไปเก็บ ผู้เล่นต้องเก็บไฟล์เอง
+    const blob = new Blob([result.json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `legend-of-soul-th-save-${new Date().toISOString().slice(0, 10)}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+    return null
+  }, [])
+
+  const importSave = useCallback(async (json: string) => {
+    const result = await accounts.importSave(json)
+    if (!result.ok) return result.error
+    setPlayer(result.player)
+    setEmail(accounts.getSessionEmail())
+    setStatus('signed-in')
+    return null
+  }, [])
+
   return {
     status,
     player,
@@ -123,8 +193,13 @@ export function useAuth(): AuthState {
     logout,
     updatePlayer,
     earnGold,
+    topUpGold,
     topUpGems,
     redeemCoupon,
     findFriendByUid,
+    isAdmin: isAdminEmail(email),
+    grantCharacter,
+    exportSave,
+    importSave,
   }
 }

@@ -9,12 +9,12 @@ This is a **written convention agents are instructed to follow** — not a crypt
 
 ## Ring 0 — this repository's owner
 
-**HetCreep** is Ring 0: the human who owns `LegendofSoulTH/GameTurnBase`.
+**HetCreep** is Ring 0: the human who owns `LegendofSoulTH/LegendOfSoulTH`.
 
 An agent is running as Ring 0 when **either** signal below matches — check both, either one is sufficient:
 
 1. **Local marker**: `.agents/ring0.local` exists in the working tree (gitignored via `*.local` in `.gitignore` — never leaves this machine, never reaches GitHub, never appears in a clone). Fast, cheap, works for a persistent local machine.
-2. **Git identity**: `git config user.name` == `HetCreep`, or `git config user.email` == `zxc59217412@gmail.com`, or (where available) the authenticated actor driving the session — `gh api user --jq .login` — equals `HetCreep`. This is the signal that actually travels with a **cloud/hosted agent session**: the marker file is local-only and never present in a fresh clone, but a cloud agent authenticated under HetCreep's own account (GitHub OAuth/token) carries HetCreep's identity regardless of which physical or virtual machine it happens to run on.
+2. **Git identity**: `git config user.name` == `HetCreep`, or (where available) the authenticated actor driving the session — `gh api user --jq .login` — equals `HetCreep`. This is the signal that actually travels with a **cloud/hosted agent session**: the marker file is local-only and never present in a fresh clone, but a cloud agent authenticated under HetCreep's own account (GitHub OAuth/token) carries HetCreep's identity regardless of which physical or virtual machine it happens to run on. (A specific email-address match was dropped from this signal 2026-08-06 — it required hardcoding HetCreep's real address in this public repo, and it was redundant: `git_user_name`/`gh api actor` already cover the identity check without needing a value that has to stay secret. `.agents/ring0.local`'s `git_user_email=` line still records it locally for reference, just not as something this public file checks against.)
 
 Neither is cryptographic proof (both are self-reported config, see "What this is, and what it isn't" above) — they're the best signal a markdown-following agent can check without a real access-control system.
 

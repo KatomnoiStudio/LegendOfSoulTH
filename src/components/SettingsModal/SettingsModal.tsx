@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import type { CurrencyResult } from '../../data/accountRepository'
-import { ROSTER } from '../../game/characters'
+import { useModalA11y } from '../../hooks/useModalA11y'
 import { GAME_INFO } from '../../game/gameInfo'
+import { type AudioChannel, type AudioSettings } from '../../lib/audio/AudioEngine'
 import {
   CouponIcon,
   InfoIcon,
@@ -24,17 +25,7 @@ const COUPON_DISALLOWED = /[^A-Z0-9]/g
 const COUPON_MIN_LENGTH = 4
 const COUPON_MAX_LENGTH = 16
 
-/** ช่องเสียงที่ปรับแยกกันได้ */
-export type AudioChannel = 'master' | 'music' | 'sfx'
-
-export interface AudioSettings {
-  /** ระดับเสียงของแต่ละช่อง 0–100 */
-  master: number
-  music: number
-  sfx: number
-  /** ปิดเสียงทั้งหมด — ทับค่าทั้งสามช่องโดยไม่ลบค่าที่ตั้งไว้ */
-  muted: boolean
-}
+export type { AudioChannel, AudioSettings }
 
 const CHANNELS: { id: AudioChannel; label: string }[] = [
   { id: 'master', label: 'เสียงหลัก' },
@@ -49,7 +40,11 @@ interface SettingsModalProps {
   onLogout: () => Promise<void>
   /** แลกโค้ดคูปองเป็นหยก */
   onRedeemCoupon: (code: string) => Promise<CurrencyResult>
+  /** จำนวนตัวละครที่ผู้เล่นครอบครองแล้ว — ให้ตรงกับตัวเลขใน CharacterRosterModal */
+  ownedCharacterCount: number
   onClose: () => void
+  /** ส่งออก save เป็นไฟล์ JSON — คืน null เมื่อสำเร็จ (ดาวน์โหลดแล้ว) คืนข้อความเมื่อผิดพลาด */
+  onExportSave: () => Promise<string | null>
 }
 
 /**
@@ -58,29 +53,22 @@ interface SettingsModalProps {
  * หน้า "เสียง"  : เพิ่ม/ลด/ปิดเสียง
  * หน้า "คูปอง" : กรอกโค้ดแลกของรางวัล
  *
- * ค่าเสียงถูกยกไปเก็บที่ LobbyPage เพื่อให้ค่าคงอยู่เมื่อปิดแล้วเปิดใหม่
- * และพร้อมส่งต่อให้ระบบเสียงจริงเมื่อมีการเชื่อมต่อ
+ * ค่าเสียงถูกยกไปเก็บที่ LobbyPage ซึ่งอ่าน/บันทึกผ่าน AudioEngine จริง
+ * (src/lib/audio/AudioEngine.ts, persist ผ่าน localStorage) เพื่อให้ค่าคงอยู่ข้ามการปิดเปิดหน้าต่างและรีโหลดหน้า
  */
 export function SettingsModal({
   audio,
   onAudioChange,
   onLogout,
   onRedeemCoupon,
+  ownedCharacterCount,
   onClose,
+  onExportSave,
 }: SettingsModalProps) {
   const { showToast } = useToast()
   const [tab, setTab] = useState<TabId>('info')
-  const dialogRef = useRef<HTMLDivElement>(null)
-
-  // ปิดด้วยปุ่ม Esc และย้ายโฟกัสเข้ามาในหน้าต่างเมื่อเปิด
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    dialogRef.current?.focus()
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
+  // Esc, backdrop-click, focus trap, คืนโฟกัสตอนปิด — รวมไว้ที่ useModalA11y ตัวเดียว
+  const { shellRef: dialogRef, backdropProps } = useModalA11y<HTMLDivElement>(onClose)
 
   const setChannel = (channel: AudioChannel, value: number) => {
     const clamped = Math.min(100, Math.max(0, value))
@@ -96,12 +84,7 @@ export function SettingsModal({
   ]
 
   return (
-    <div
-      className={styles.backdrop}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
-      }}
-    >
+    <div className={styles.backdrop} {...backdropProps}>
       <div
         ref={dialogRef}
         className={styles.dialog}
@@ -135,7 +118,14 @@ export function SettingsModal({
         </div>
 
         {/* key บังคับให้ animation เล่นใหม่ทุกครั้งที่สลับหมวด */}
-        {tab === 'info' ? <GameInfoPanel key="info" onLogout={onLogout} /> : null}
+        {tab === 'info' ? (
+          <GameInfoPanel
+            key="info"
+            onLogout={onLogout}
+            ownedCharacterCount={ownedCharacterCount}
+            onExportSave={onExportSave}
+          />
+        ) : null}
         {tab === 'audio' ? (
           <AudioPanel
             key="audio"
@@ -149,7 +139,11 @@ export function SettingsModal({
             key="coupon"
             onRedeem={async (code) => {
               const result = await onRedeemCoupon(code)
-              showToast(result.ok ? `แลกโค้ดสำเร็จ ได้หยก +${result.amount}` : result.error)
+              if (result.ok) {
+                showToast(`แลกโค้ดสำเร็จ ได้หยก +${result.amount}`, 'currency')
+              } else {
+                showToast(result.error, 'error')
+              }
               return result.ok
             }}
           />
@@ -162,16 +156,25 @@ export function SettingsModal({
 /**
  * หน้าที่ 1 — ข้อมูลเกม
  *
- * ทุกค่าอ่านจากแหล่งจริง (src/game/gameInfo.ts และ ROSTER)
+ * ทุกค่าอ่านจากแหล่งจริง (src/game/gameInfo.ts และ player.ownedCharacters)
  * ไม่มีตัวเลขที่เขียนตายไว้ในหน้านี้ เพื่อไม่ให้ข้อมูลเพี้ยนเมื่อเกมโตขึ้น
  */
-function GameInfoPanel({ onLogout }: { onLogout: () => Promise<void> }) {
+function GameInfoPanel({
+  onLogout,
+  ownedCharacterCount,
+  onExportSave,
+}: {
+  onLogout: () => Promise<void>
+  ownedCharacterCount: number
+  onExportSave: () => Promise<string | null>
+}) {
+  const { showToast } = useToast()
   const rows: { label: string; value: string }[] = [
     { label: 'ชื่อเกม', value: GAME_INFO.name },
     { label: 'ประเภท', value: GAME_INFO.genre },
     { label: 'เวอร์ชัน', value: `v${GAME_INFO.version}` },
     { label: 'สถานะ', value: GAME_INFO.stage },
-    { label: 'ตัวละครในเกม', value: `${ROSTER.length} ตัว` },
+    { label: 'ตัวละครที่ครอบครอง', value: `${ownedCharacterCount} ตัว` },
   ]
 
   return (
@@ -196,6 +199,22 @@ function GameInfoPanel({ onLogout }: { onLogout: () => Promise<void> }) {
         ตัวละคร ไอคอน และโมเดลทั้งหมดในเกมนี้ออกแบบขึ้นเองใหม่ทั้งหมด
         ตัวละครที่อ้างอิงวรรณกรรมใช้เฉพาะเรื่องที่เป็นสมบัติสาธารณะเท่านั้น
       </p>
+
+      <p className={styles.panelNote}>
+        เกมนี้ไม่มีเซิร์ฟเวอร์ — ข้อมูลอยู่ในเบราว์เซอร์เครื่องนี้เท่านั้น เปลี่ยนเครื่อง/เบราว์เซอร์
+        ต้องส่งออกไฟล์ save ไปนำเข้าเองที่ปลายทาง (ไม่มีการ sync อัตโนมัติ)
+      </p>
+
+      <button
+        type="button"
+        className={styles.exportSave}
+        onClick={async () => {
+          const error = await onExportSave()
+          if (error) showToast(error, 'error')
+        }}
+      >
+        ส่งออก save เป็นไฟล์
+      </button>
 
       <button type="button" className={styles.logout} onClick={() => void onLogout()}>
         ออกจากบัญชี
@@ -241,7 +260,7 @@ function AudioPanel({
       <p className={styles.panelNote}>
         {audio.muted
           ? 'ปิดเสียงอยู่ ทั้งสามช่องถูกปิดชั่วคราว ค่าที่ตั้งไว้ยังถูกจำไว้ให้'
-          : 'ระบบเสียงยังไม่เชื่อมต่อ ค่าที่ตั้งไว้จะถูกนำไปใช้ทันทีเมื่อระบบเสียงเปิดให้บริการ'}
+          : 'ค่าที่ตั้งไว้มีผลทันทีและถูกบันทึกไว้ในเครื่องนี้'}
       </p>
     </section>
   )

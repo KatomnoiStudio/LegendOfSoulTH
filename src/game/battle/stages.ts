@@ -22,7 +22,7 @@ const ENEMY_TEMPLATES: Record<string, EnemyTemplate> = {
   'shadow-soldier': {
     id: 'shadow-soldier',
     name: 'ทหารเงา',
-    spriteUrl: publicUrl('characters/monkey-v2-idle-0.png'),
+    spriteUrl: publicUrl('characters/monkey-v2-idle-0.webp'),
     accent: '#8b7cff',
     atk: 58,
     def: 42,
@@ -32,7 +32,7 @@ const ENEMY_TEMPLATES: Record<string, EnemyTemplate> = {
   'demon-captain': {
     id: 'demon-captain',
     name: 'แม่ทัพปีศาจ',
-    spriteUrl: publicUrl('characters/pigsy-idle-0.png'),
+    spriteUrl: publicUrl('characters/pigsy-idle-0.webp'),
     accent: '#ff6a5c',
     atk: 78,
     def: 55,
@@ -42,7 +42,7 @@ const ENEMY_TEMPLATES: Record<string, EnemyTemplate> = {
   'spirit-guardian': {
     id: 'spirit-guardian',
     name: 'ผู้พิทักษ์วิญญาณ',
-    spriteUrl: publicUrl('characters/tripitaka-idle-0.png'),
+    spriteUrl: publicUrl('characters/tripitaka-idle-0.webp'),
     accent: '#6dffb8',
     atk: 66,
     def: 48,

@@ -174,7 +174,7 @@ function TripitakaEffects({ actionKey }: { actionKey: number }) {
   const aura = useRef<Mesh>(null)
   const palm = useRef<Mesh>(null)
   const waves = useRef<Mesh[]>([])
-  const auraTexture = useLoader(TextureLoader, publicUrl('characters/tripitaka-buddha-aura.png'))
+  const auraTexture = useLoader(TextureLoader, publicUrl('characters/tripitaka-buddha-aura.webp'))
 
   useEffect(() => {
     auraTexture.colorSpace = SRGBColorSpace

@@ -13,13 +13,15 @@
 .action:hover .iconPlate, .action:focus-visible .iconPlate { border-color: #f1ce83; filter: brightness(1.13); }
 .action:hover .actionLabel, .action:focus-visible .actionLabel { opacity: 1; translate: 0; }
 .action:active { transform: translateX(-2px) scale(0.93); }
-.badge { position: absolute; z-index: 4; top: -4px; right: -5px; min-width: 18px; padding: 1px 5px; border: 1px solid #ffd1b9; border-radius: 9px; background: linear-gradient(180deg, #ff765f, #b72d28); color: #fff; font-size: 0.61rem; font-weight: 900; line-height: 16px; text-align: center; box-shadow: 0 0 10px rgb(230 75 55 / 65%); animation: pulse 2.4s ease-in-out infinite; }
+/* min-width ผูกกับ --quick-icon-size (ตัวเดียวกับที่ iconPlate ใช้) จะได้ย่อตามไอคอนพ่อจริง ๆ
+   ไม่ใช่เลขตายตัวที่เหลือค้างเมื่อไอคอนเล็กลงที่จอแคบ */
+.badge { position: absolute; z-index: 4; top: -4px; right: -5px; min-width: clamp(14px, calc(var(--quick-icon-size, 47px) * 0.38), 20px); padding: 1px 5px; border: 1px solid #ffd1b9; border-radius: 9px; background: linear-gradient(180deg, #ff765f, #b72d28); color: #fff; font-size: 0.61rem; font-weight: 900; line-height: 16px; text-align: center; box-shadow: 0 0 10px rgb(230 75 55 / 65%); animation: pulse 2.4s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { scale: 1; } 50% { scale: 1.12; } }
 @media (max-width: 720px) { .column { padding-inline-end: 12px; gap: 6px; } .railTitle, .actionLabel { display: none; } .iconPlate { width: 40px; height: 40px; } .action { min-width: 40px; min-height: 40px; } .action svg { width: 1.12rem; height: 1.12rem; } }
 
 /* เมนูด่วนลายไทย — ใช้ภาพไอคอนวาดมือแทนสัญลักษณ์เส้น */
 /* ยกแถบเมนูด่วนขึ้นให้พ้นปุ่มราหูและใกล้ระดับคลังสมบัติมากขึ้น */
-.column { --quick-icon-size: 48px; gap: var(--quick-icon-size); translate: 0 -122px; }
+.column { --quick-icon-size: 38px; gap: var(--quick-icon-size); translate: 0 -122px; }
 .column::before {
   right: clamp(2px, 0.55vw, 9px);
   width: 2px;
@@ -33,7 +35,7 @@
   letter-spacing: 0.13em;
   text-shadow: 0 2px 5px #000;
 }
-.action { min-width: 57px; min-height: 57px; }
+.action { min-width: 45px; min-height: 45px; }
 .iconPlate {
   width: var(--quick-icon-size);
   height: var(--quick-icon-size);
