@@ -605,7 +605,7 @@
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
 
-- **Fork sync (Phase 2)**: 🟡 In progress this session — merging `upstream/master` (`LegendofSoulTH/LegendOfSoulTH`) into fork `origin/master` (`nustanakritwithai/GameTurnBase`). See item 63. Fork-only features preserved: `LobbyBattleSession`, `docs/battle-integration-contract-readiness.md`, `resolveBasePath()` in `vite.config.ts`.
+- **Fork sync (Phase 2)**: 🟢 Complete — `origin/master` (`nustanakritwithai/GameTurnBase`) merged `upstream/master` @ merge commit `4c615f0` (2026-08-06). `behind 0` / `ahead 31` vs upstream (expected). Fork-only: `LobbyBattleSession`, `docs/battle-integration-contract-readiness.md`, `resolveBasePath()`. **Next**: rebase P1 skill branch `cursor/battle-monkey-skill-e117` (PR #12) onto new `master`.
 - **Repo Status**: 🟢 Clean & Synced (`origin/master` @ `d3fc90e`, tagged `v0.1.0`) — item 62's centralization push confirms the SHA chain (`c11eeb6` → merge `d3fc90e`), full verify green before push. **SUPERSEDES item 59's stale-SHA caveat** (`40216dd`) — no longer needs re-verification.
 - **CI Pipelines**: 🟢 All green (Build/Typecheck/Lint, CodeQL, Security & Secret Scan, Deploy) — Gitleaks license-paywall failure fixed (item 12)
 - **Security & Protection**: 🛡️ 100% Enabled & Monitored (CodeQL + Dependabot + Secret Scanning + Gitleaks + NPM Audit) + branch protection (basic, `master`) + Actions SHA-pin enforcement (item 37). Secret-scanning validity-checks still off (API can't toggle it — needs manual check at Settings → Code security).
