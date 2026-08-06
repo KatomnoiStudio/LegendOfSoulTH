@@ -92,7 +92,7 @@ export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps)
           WebGPU ก่อน (renderer ที่ three.js แนะนำเป็นค่าเริ่มต้นตั้งแต่ r182 — เร็วกว่า WebGL2
           จริงบนเบราว์เซอร์ที่รองรับ) ล้มกลับไป WebGL2 อัตโนมัติถ้า navigator.gpu ไม่มี หรือ
           init() ล้มเหลว (เช่น driver ไม่รองรับจริงแม้ browser ประกาศรองรับ) — ดูสถานะรองรับ
-          ตามเบราว์เซอร์ล่าสุดที่ .agents/rules/ecc/PROJECT-OVERRIDES.md หรือ caniuse ก่อนไว้ใจ
+          ตามเบราว์เซอร์ล่าสุดที่ .agents/rules/ecc/web/compatibility.md หรือ caniuse ก่อนไว้ใจ
         */
         gl={async (defaultProps) => {
           // canvas ในเกมนี้เป็น HTMLCanvasElement จริงเสมอ (ไม่มี worker-based OffscreenCanvas

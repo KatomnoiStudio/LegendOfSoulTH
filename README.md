@@ -10,9 +10,9 @@
 หน้า Lobby ของเกม Turn-based **2.5D** แนว *"รวมเหล่านักรบจากตำนานและประวัติศาสตร์"*
 สร้างด้วย **React 19 + TypeScript + Vite**, ฉาก 3D ด้วย **three.js + React Three Fiber**, สไตล์ด้วย **CSS Modules**
 
-> ขอบเขตปัจจุบัน: หน้า Lobby + สมัคร/ล็อกอิน + ระบบทอง/หยกพื้นฐาน
+> ขอบเขตปัจจุบัน: หน้า Lobby + สมัคร/ล็อกอิน + ระบบทอง/หยกพื้นฐาน + ฉากเดิน/สำรวจ + ระบบต่อสู้พื้นฐาน
 > ปุ่มเมนูส่วนใหญ่ยังเป็น placeholder — กดได้แต่แสดง toast `Coming soon`
-> ยังไม่มีหน้าต่อสู้จริง / เควส / ระบบดรอปจริง / backend server (ดูหัวข้อ "บัญชีผู้เล่นและทอง/หยก" ด้านล่าง)
+> ยังไม่มีเควส / ระบบดรอปจริง / backend server (ดูหัวข้อ "บัญชีผู้เล่นและทอง/หยก" ด้านล่าง)
 
 ## คำสั่ง
 
@@ -24,7 +24,8 @@ npm run lint      # oxlint
 npm run test      # Vitest
 npm run build     # typecheck + build production ลง dist/
 npm run preview   # ดู production build
-npm run ci        # typecheck + lint + test + build ครบ (เหมือนที่ CI รัน)
+npm run ci        # typecheck + lint + test + build ครบ (CI จริงมีขั้น build:models เพิ่มก่อนหน้านี้ด้วย
+                  # — ปกติไม่กระทบ typecheck/lint/test/build เพราะแตะแค่ไฟล์ .glb ที่ TS ไม่เช็ค)
                   # pre-commit hook (husky + lint-staged) รัน oxlint บนไฟล์ที่ staged อัตโนมัติแล้ว
 
 npm run build:models   # สร้างไฟล์ GLB ของตัวละครลง public/models/
@@ -41,11 +42,13 @@ npm run build:images   # แปลงภาพต้นฉบับ assets/raw/ 
 
 - **กล้อง 2.5D มุมเฉียงคงที่** — ผู้เล่นหมุนกล้องเองไม่ได้ มีเพียงการโยกตามเมาส์เล็กน้อย
   และกล้องถอยออกอัตโนมัติเมื่อจอแคบ (ดู `CameraRig` ใน `LobbyScene.tsx`)
-- **ช่องยืนของตัวละคร 3 จุด**: `left` / `center` / `right`
-  ตำแหน่งกำหนดที่ `SLOT_TRANSFORM` ใน [`src/game/characters.ts`](src/game/characters.ts)
-- **Idle animation** ต่อโมเดล: หายใจ (ลำตัวยืด-หด), ไหล่และแขนขยับ, ศีรษะมองรอบ ๆ,
-  ผ้าคลุมพลิ้ว, หางสะบัด, ลูกแก้วพลังงานโคจร — แต่ละตัวมี phase ต่างกันจึงไม่ขยับพร้อมกัน
-- **กดที่โมเดล** → วงแหวนใต้เท้าสว่างขึ้น ตัวขยายเล็กน้อย และเปิดกรอบข้อมูลตัวละคร
+- **ช่องยืนของตัวละคร 4 จุด** ตำแหน่งกำหนดที่ `SLOT_TRANSFORM` ใน [`src/game/team.ts`](src/game/team.ts)
+  — **ปิดการแสดงผลอยู่ตอนนี้** (`SHOW_ARENA_SLOTS = false` ใน `LobbyScene.tsx`, ตัดสินใจตกลงไว้แล้ว
+  ไม่ใช่บั๊ก) ลอบบี้ตอนนี้เหลือแต่ฉากวัดเปล่า ๆ ไฟล์ `ArenaSlotRing.tsx`/`CharacterModel.tsx`
+  ยังอยู่ครบ พร้อมเปิดกลับทันทีเมื่อสลับสวิตช์
+- **Idle animation** ต่อโมเดล (เมื่อเปิด `SHOW_ARENA_SLOTS`): หายใจ (ลำตัวยืด-หด), ไหล่และแขนขยับ,
+  ศีรษะมองรอบ ๆ, ผ้าคลุมพลิ้ว, หางสะบัด, ลูกแก้วพลังงานโคจร — แต่ละตัวมี phase ต่างกันจึงไม่ขยับพร้อมกัน
+- **กดที่โมเดล** (เมื่อเปิด `SHOW_ARENA_SLOTS`) → วงแหวนใต้เท้าสว่างขึ้น ตัวขยายเล็กน้อย และเปิดกรอบข้อมูลตัวละคร
   (กดพื้นที่ว่างเพื่อยกเลิกการเลือก)
 - **dpr ปรับตาม refresh rate จริงของจอ** (`useDeviceRefreshRate`) — จอ ≥120Hz ลด dpr สูงสุดจาก 2
   เหลือ 1.5 (ต้นทุนเรนเดอร์ ∝ ความกว้าง×สูง×dpr²×refresh rate, จอ high-refresh ต้องวาดถี่กว่า
@@ -136,6 +139,17 @@ npm run build:images   # แปลง assets/raw/**/*.png -> public/**/*.webp �
 (WebP คุณภาพสูง ลด ~77%) และเจอไฟล์ต้นฉบับ 88MB ที่ไม่มีโค้ดอ้างถึงเลยแต่ถูก deploy ไปด้วยทุกครั้ง
 (ย้ายไป `assets/archive/` แล้ว) — ขนาด `dist/` รวมลดจาก 100MB+ เหลือ ~8MB
 
+## สคริปต์เตรียม asset (Python, one-off)
+
+`scripts/*.py` (9 ไฟล์) เป็นสคริปต์ one-off สำหรับเตรียม/จัดวาง sprite sheet ต้นฉบับ
+ก่อนเข้า pipeline ด้านบน — ไม่ได้รันใน CI หรือ `npm run build*` ใด ๆ (Node-only)
+ต้องมี Python 3 + ติดตั้ง dependency ก่อนรันเอง:
+
+```bash
+pip install -r scripts/requirements.txt   # Pillow, numpy, scipy
+python scripts/<ชื่อสคริปต์>.py
+```
+
 ## โครงสร้าง
 
 ```
@@ -165,12 +179,12 @@ src/
 │  ├─ publicUrl.ts                ต่อ asset path ใน public/ กับ Vite base — จำเป็นเพราะ deploy จริง
 │  │                               ขึ้น subpath (`/LegendOfSoulTH/`) ไม่ใช่ root
 │  └─ globalErrorHandlers.ts      window 'error'/'unhandledrejection' — ดัก error นอก React render
-│                                  (Phaser/R3F loop ไม่ผ่าน ErrorBoundary)
+│                                  (R3F useFrame loop ไม่ผ่าน ErrorBoundary)
 ├─ components/
 │  ├─ ErrorBoundary/              จับ crash ระดับ render ทั้งแอป, แสดงปุ่ม "โหลดใหม่"
 │  ├─ LobbyScene/
 │  │  ├─ LobbyScene.tsx           <Canvas>, กล้อง, แสง, หมอก, เช็ค WebGL2 ก่อน mount + จับ context-lost
-│  │  ├─ ArenaStage.tsx           ลานหิน เสา ธง กระถางไฟ
+│  │  ├─ ArenaSlotRing.tsx        วงแหวนประจำช่องในลานประลอง (ขึ้นครบ 4 ช่องเสมอ)
 │  │  └─ CharacterModel.tsx       ⭐ โมเดล low-poly + idle animation + วงเลือก
 │  ├─ AuthModal/                  ฟอร์มสมัคร/เข้าสู่ระบบ
 │  ├─ NameModal/                  ตั้งชื่อตัวละครครั้งแรกหลังสมัคร (2–10 ตัวอักษร)
@@ -206,9 +220,13 @@ src/
 เก็บที่คีย์ `los:db:v1` (ทั้งฐานข้อมูล) และ `los:session:v1` (session ที่ล็อกอินค้างอยู่)
 ดูได้จริงผ่าน DevTools → Application/Storage → Local Storage
 
-ทุกหน้าจอคุยกับสถานะผู้เล่นผ่าน [`src/hooks/useAuth.ts`](src/hooks/useAuth.ts) เท่านั้น
-ไม่มีหน้าไหนเรียก localStorage หรือ `accountRepository` ตรง ๆ — `App.tsx` ถือ `useAuth()`
-แล้วส่ง `player` + callback ต่าง ๆ ลงไปเป็น props (`LobbyPage` → `TopBar` / `SettingsModal` ฯลฯ)
+ทุกหน้าจอ**อ่าน/แก้สถานะผู้เล่น** (`player`, ทอง/หยก, session) ผ่าน [`src/hooks/useAuth.ts`](src/hooks/useAuth.ts)
+เท่านั้น — `App.tsx` ถือ `useAuth()` แล้วส่ง `player` + callback ต่าง ๆ ลงไปเป็น props
+(`LobbyPage` → `TopBar` / `SettingsModal` ฯลฯ) ไม่มีหน้าไหนเขียนสถานะผู้เล่นผ่าน `accountRepository`
+หรือ localStorage ตรง ๆ นอกเหนือจากทางนี้ — แต่คอมโปเนนต์บางตัว *import ค่า config คงที่*
+(`PASSWORD_MIN_LENGTH` ใน `AuthModal`, `GOLD_PACKAGES`/`GEM_PACKAGES` ใน `CurrencyShopModal`)
+จาก `accountRepository.ts` ตรง ๆ ได้ — ไม่ใช่ player state จึงไม่ต้องผ่าน `useAuth`
+(`src/lib/authUi.ts`'s last-email UI convenience ก็เช่นกัน ไม่ใช่ player state)
 
 **กติกาทอง/หยก (บังคับที่ชั้น API ใน [`accountRepository.ts`](src/data/accountRepository.ts)):**
 - ทองเพิ่มได้ทาง `earnGold(uid, 'quest' | 'drop', amount)` (ยังไม่มีระบบเควส/ดรอปจริง จึงยังไม่มีปุ่มไหนเรียก

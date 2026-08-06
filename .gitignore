@@ -16,6 +16,7 @@ dist-ssr
 .claude/coalhearth/
 .claude/coalwash/
 .coalmine.json
+.coalboard/
 
 # Personal/off-project notes — see .agents/rules/personal-scope-law.md
 # (never goes in the shared, mandatory-read MEMORY.md)

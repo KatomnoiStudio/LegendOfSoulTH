@@ -4,7 +4,7 @@
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
 > **Default Branch**: `master`  
 > **Last Updated**: 2026-08-06T09:50:00+07:00 by `Claude Code (HetCreep Agent)`  
-> **RULES_VERSION: 4** (see `.agents/rules/rules-freshness-check.md`)
+> **RULES_VERSION: 6** (see `.agents/rules/rules-freshness-check.md` — the freshness check itself compares `AGENTS.md`'s header against the `RULES_VERSION last synced:` line in "Current Status" below, not this line; keep this line in sync as a courtesy so a skim doesn't see a stale number)
 
 ---
 
@@ -280,7 +280,7 @@
 - **Deployment**: 🟢 Live on GitHub Pages — https://legendofsoulth.github.io/LegendOfSoulTH/ (repo renamed from `GameTurnBase`, see item 24 — GitHub's redirect covers old links, `vite.config.ts` `base` updated to match)
 - **Remote check**: `git remote -v` on this machine correctly points `origin` at `https://github.com/LegendofSoulTH/LegendOfSoulTH.git` (updated after the rename via `git remote set-url`) — the "remote mismatch" flagged in the prior concurrent session's notes was local to that machine/clone (remote URLs are per-clone git config, never part of repo content) and doesn't apply here; no action needed on this machine.
 - **Player accounts/currency**: functional locally (see Past Summary item 6) but entirely client-side — no real backend, no payment gateway. Do not treat as production-ready for real money or cross-device play.
-- **Open/next work**: no quest system, no real drop table, no shop UI beyond `GemShopModal`, no battle system. `LICENSE` resolved — MIT (item 43).
+- **Open/next work**: no quest system, no real drop table. `GemShopModal` renamed to `CurrencyShopModal` (item 26); basic battle system exists (`src/game/battle/`, `BattleScene`, wired via `GameExplorationSession`). `LICENSE` resolved — MIT (item 43).
 - **RULES_VERSION last synced: 6** (`.agents/rules/rules-freshness-check.md`)
 - **Ring**: this machine is Ring 0 (`.agents/ring0.local` present, gitignored). Any other clone is Ring 1 by default — see `.agents/rules/ring0-authority.md`.
 - **Pre-push sync**: `.agents/rules/pre-push-sync-law.md` — binding on every machine before every push.
