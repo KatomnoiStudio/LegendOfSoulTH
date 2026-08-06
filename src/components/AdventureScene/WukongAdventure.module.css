@@ -195,18 +195,23 @@
   position: absolute;
   z-index: 1600;
   top: 28px;
-  left: 36px;
-  right: 36px;
+  left: clamp(12px, 3vw, 36px);
+  right: clamp(12px, 3vw, 36px);
   height: 92px;
   display: flex;
   align-items: center;
+  gap: 10px;
   pointer-events: none;
 }
 
 .chapter {
   position: relative;
-  min-width: 390px;
-  padding: 13px 28px 13px 31px;
+  /* ไม่มี min-width บังคับอีกแล้ว — บนจอแคบ (มือถือ) แบนเนอร์นี้บีบตามพื้นที่จริงแทนที่จะดันล้นขอบจอ
+     (เดิม min-width: 390px ตายตัว บวก .status ที่มี min-width: 265px รวมกันเกินความกว้างจอมือถือทั่วไป) */
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  padding: clamp(8px, 2.5vw, 13px) clamp(14px, 4vw, 28px) clamp(8px, 2.5vw, 13px) clamp(16px, 4.5vw, 31px);
   display: grid;
   gap: 1px;
   background:
@@ -227,34 +232,44 @@
 }
 
 .eyebrow {
+  overflow: hidden;
   color: #dbc277;
-  font-size: 12px;
+  font-size: clamp(10px, 2.4vw, 12px);
   letter-spacing: 0.2em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chapter strong {
+  overflow: hidden;
   color: #fff1bd;
   font-family: 'Noto Serif Thai', serif;
-  font-size: 28px;
+  font-size: clamp(18px, 5vw, 28px);
   font-weight: 700;
   line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   text-shadow: 0 2px 12px rgba(226, 171, 56, 0.35);
 }
 
 .chapter > span:last-child {
+  overflow: hidden;
   color: #a8b6b8;
-  font-size: 12px;
+  font-size: clamp(10px, 2.4vw, 12px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .status {
   margin-left: auto;
-  margin-right: 22px;
-  min-width: 265px;
-  height: 58px;
-  padding: 0 22px;
+  /* ไม่มี min-width บังคับอีกแล้ว — เหตุผลเดียวกับ .chapter ด้านบน */
+  min-width: 0;
+  flex: 0 1 auto;
+  height: clamp(42px, 10vw, 58px);
+  padding: 0 clamp(10px, 3vw, 22px);
   display: flex;
   align-items: center;
-  gap: 13px;
+  gap: clamp(6px, 2vw, 13px);
   background: linear-gradient(180deg, rgba(15, 42, 53, 0.92), rgba(7, 23, 34, 0.96));
   border: 1px solid rgba(213, 173, 80, 0.58);
   border-radius: 5px;
@@ -262,7 +277,7 @@
 }
 
 .status div {
-  min-width: 75px;
+  min-width: 0;
   display: grid;
 }
 
@@ -335,7 +350,8 @@
   z-index: 20;
   top: 148px;
   left: 50%;
-  width: 310px;
+  /* min(...) กันจอแคบกว่า 310px (ต่ำกว่านี้แทบไม่มีจริงในมือถือทั่วไป แต่กันไว้เผื่อ) ล้นขอบ */
+  width: min(310px, 88vw);
   display: grid;
   justify-items: center;
   color: rgba(255, 239, 184, 0.88);
