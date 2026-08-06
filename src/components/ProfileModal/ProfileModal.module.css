@@ -227,7 +227,7 @@
    ในฉากเดินเอง (WukongAdventure.module.css) ให้รู้สึกเป็นกลไกเดียวกัน
    ใช้ attribute selector เดียวกับ castButton แทน composes (ยังไม่มีที่อื่นในโปรเจกต์ใช้ composes) */
 .editButton[aria-expanded='true'] {
-  border-color: #f3ce7c;
+  border-color: var(--c-gold-focus);
   background: linear-gradient(180deg, rgb(240 200 90 / 22%), rgb(140 96 30 / 16%));
   color: #f7dc93;
   box-shadow: var(--glow-arcane);
@@ -268,7 +268,7 @@
   background: rgb(255 255 255 / 10%);
 }
 .walkPickerItem[aria-pressed='true'] {
-  border-color: #f3ce7c;
+  border-color: var(--c-gold-focus);
   background: linear-gradient(180deg, rgb(240 200 90 / 22%), rgb(140 96 30 / 16%));
   color: #f7dc93;
   box-shadow: var(--glow-arcane);

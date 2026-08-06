@@ -17,13 +17,13 @@ import {
 import { ROSTER, type Character } from '../../game/characters'
 import { SCENE_WIDTH, SCENE_HEIGHT } from '../../game/sceneDimensions'
 import { getWalkKit } from '../../game/walkKits'
-import { publicUrl } from '../../lib/publicUrl'
+import { TEMPLE_LOBBY_BG } from '../../game/backgroundAssets'
 import styles from './WukongAdventure.module.css'
 
 // url('/ui/...') ตรง ๆ ใน CSS ชี้ผิดที่ตอน deploy ขึ้น subpath (ดู src/lib/publicUrl.ts) —
 // ส่งเข้าไปเป็น CSS custom property แทน
 const BG_TEMPLE_STYLE: CSSProperties = {
-  ['--bg-temple' as string]: `url(${publicUrl('ui/thai/thai-temple-lobby.webp')})`,
+  ['--bg-temple' as string]: `url(${TEMPLE_LOBBY_BG})`,
 }
 
 const FRAME_COUNT = 8

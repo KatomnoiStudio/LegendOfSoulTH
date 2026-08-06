@@ -1,9 +1,8 @@
 import { useMemo } from 'react'
-import { getCharacter } from '../../game/characters'
+import { getCharacter, MONKEY_SPRITE_URL } from '../../game/characters'
 import type { NpcDefinition } from '../../game/npc/types'
 import type { ExplorationState, MapDefinition } from '../../game/exploration/types'
 import { SCENE_WIDTH, SCENE_HEIGHT } from '../../game/sceneDimensions'
-import { publicUrl } from '../../lib/publicUrl'
 import styles from './ExplorationScene.module.css'
 
 interface ExplorationSceneProps {
@@ -81,5 +80,5 @@ export function ExplorationScene({
 
 export function getPlayerSpriteUrl(teamSlots: (string | null)[]): string {
   const leadId = teamSlots.find((id) => id !== null) ?? 'monkey-king'
-  return getCharacter(leadId)?.model.spriteUrl ?? publicUrl('characters/monkey-v2-idle-0.webp')
+  return getCharacter(leadId)?.model.spriteUrl ?? MONKEY_SPRITE_URL
 }

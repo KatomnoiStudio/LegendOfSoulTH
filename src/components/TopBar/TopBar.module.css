@@ -43,7 +43,7 @@
 .power { max-width: 100%; overflow: hidden; font-size: 0.63rem; color: rgb(158 198 186 / 62%); letter-spacing: 0.07em; white-space: nowrap; text-overflow: ellipsis; }
 .expRow { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
 .expTrack { position: relative; width: clamp(105px, 9vw, 145px); height: 7px; border: 1px solid rgb(223 181 89 / 28%); clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%); background: rgb(2 8 14 / 88%); overflow: hidden; }
-.expFill { position: relative; height: 100%; overflow: hidden; background: linear-gradient(90deg, #3da889, #81dfbf 65%, #f2cf78); box-shadow: 0 0 9px rgb(92 211 170 / 48%); transition: width 900ms ease-out; }
+.expFill { position: relative; height: 100%; overflow: hidden; background: linear-gradient(90deg, #3da889, #81dfbf 65%, #f2cf78); box-shadow: 0 0 9px rgb(92 211 170 / 48%); transition: width var(--dur-xslow) ease-out; }
 .expFill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 35%, rgb(255 255 255 / 50%) 50%, transparent 65%); animation: sheen 3.6s ease-in-out infinite; }
 .expText { font-size: 0.58rem; font-variant-numeric: tabular-nums; color: rgb(202 211 200 / 52%); white-space: nowrap; }
 
@@ -53,7 +53,7 @@
 .currencyGlow { position: absolute; z-index: -1; inset: 0; opacity: 0.13; background: radial-gradient(circle at 17% 50%, currentColor, transparent 48%); }
 .currencyIcon { width: 1.35rem; height: 1.35rem; }
 .gold { color: #e8b94e; }
-.gem { color: #66d6e9; }
+.gem { color: var(--c-gem); }
 .gold .currencyIcon { filter: drop-shadow(0 0 7px rgb(242 181 44 / 70%)); }
 .gem .currencyIcon { filter: drop-shadow(0 0 7px rgb(98 210 255 / 65%)); }
 .amount { color: #f4e8cb; font-family: var(--font-display); font-size: 0.82rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: 0.06em; text-shadow: 0 2px 4px #000; }
@@ -194,7 +194,7 @@
 }
 .gold .currencyIcon,
 .gem .currencyIcon { filter: drop-shadow(0 3px 4px rgb(0 0 0 / 65%)); }
-.gem { color: #4bd29e; }
+.gem { color: var(--c-gem); }
 .amount { font-size: 1.08rem; }
 
 .levelBadge { font-size: 0.77rem; }

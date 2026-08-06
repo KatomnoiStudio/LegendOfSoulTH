@@ -173,7 +173,7 @@
   width: min(760px, 88vw);
   padding-top: 3vh;
   text-align: center;
-  animation: arrive 900ms cubic-bezier(.2,.8,.2,1) both;
+  animation: arrive var(--dur-xslow) cubic-bezier(.2,.8,.2,1) both;
 }
 .seal { position: relative; display: grid; place-items: center; width: 72px; height: 72px; margin-bottom: 13px; border: 1px solid rgb(208 167 82 / 38%); rotate: 45deg; background: rgb(7 12 23 / 60%); box-shadow: inset 0 0 22px rgb(194 145 55 / 12%), 0 0 34px rgb(72 166 156 / 9%); }
 .sealOrbit { position: absolute; inset: 8px; border: 1px dashed rgb(101 190 163 / 38%); border-radius: 50%; animation: sealSpin 24s linear infinite; }
@@ -191,7 +191,7 @@
 .subtitle { margin: 8px 0 0; font-family: var(--font-display); font-size: clamp(0.84rem, 1.35vw, 1.08rem); font-weight: 500; letter-spacing: 0.08em; color: rgb(239 226 193 / 88%); }
 .description { margin: 5px 0 0; font-size: 0.62rem; letter-spacing: 0.16em; color: rgb(173 192 191 / 50%); }
 
-.startZone { z-index: 5; position: relative; align-self: start; justify-self: center; display: flex; align-items: center; justify-content: center; margin-top: 28px; padding-bottom: 66px; animation: arrive 900ms 180ms cubic-bezier(.2,.8,.2,1) both; }
+.startZone { z-index: 5; position: relative; align-self: start; justify-self: center; display: flex; align-items: center; justify-content: center; margin-top: 28px; padding-bottom: 66px; animation: arrive var(--dur-xslow) 180ms cubic-bezier(.2,.8,.2,1) both; }
 
 .buttonFrame {
   position: relative;

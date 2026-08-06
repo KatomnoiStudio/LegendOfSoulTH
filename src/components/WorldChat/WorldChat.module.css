@@ -32,7 +32,7 @@
 .launcher:hover,
 .launcher:focus-visible {
   outline: none;
-  border-color: #f1ce83;
+  border-color: var(--c-gold-focus);
   color: #ffeab4;
 }
 /* ลูกโป่งแชทเรียบ ๆ วาดด้วย border-radius ล้วน ไม่ต้องพึ่งไอคอนไฟล์ภาพ */
@@ -131,7 +131,7 @@
   font-style: italic;
 }
 .systemOk { border-color: #7fdcae; color: #7fdcae; }
-.systemError { border-color: #ef8f7f; color: #ef8f7f; }
+.systemError { border-color: var(--c-danger-text); color: var(--c-danger-text); }
 .hint {
   margin: auto;
   padding: 12px;

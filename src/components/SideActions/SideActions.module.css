@@ -10,7 +10,7 @@
 .action svg { width: 1.35rem; height: 1.35rem; filter: drop-shadow(0 0 5px color-mix(in srgb, var(--action-accent) 55%, transparent)); }
 .actionLabel { position: absolute; right: 42px; z-index: -1; min-width: 86px; padding: 7px 15px 7px 10px; border-block: 1px solid rgb(219 178 89 / 28%); opacity: 0; color: #efe2c4; background: linear-gradient(90deg, transparent, rgb(7 22 31 / 94%) 25%); font: 700 0.61rem/1 var(--font-display); letter-spacing: 0.06em; text-align: right; translate: 14px 0; transition: opacity 180ms ease, translate 220ms ease; pointer-events: none; }
 .action:hover, .action:focus-visible { outline: none; transform: translateX(-5px) scale(1.05); filter: drop-shadow(0 9px 8px rgb(0 0 0 / 65%)); }
-.action:hover .iconPlate, .action:focus-visible .iconPlate { border-color: #f1ce83; filter: brightness(1.13); }
+.action:hover .iconPlate, .action:focus-visible .iconPlate { border-color: var(--c-gold-focus); filter: brightness(1.13); }
 .action:hover .actionLabel, .action:focus-visible .actionLabel { opacity: 1; translate: 0; }
 .action:active { transform: translateX(-2px) scale(0.93); }
 /* min-width ผูกกับ --quick-icon-size (ตัวเดียวกับที่ iconPlate ใช้) จะได้ย่อตามไอคอนพ่อจริง ๆ

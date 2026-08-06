@@ -7,7 +7,7 @@ import { useDeviceRefreshRate } from '../../hooks/useDeviceRefreshRate'
 import { usePerformanceQuality, type QualityOverride, type QualityTier } from '../../hooks/usePerformanceQuality'
 import { reportError } from '../../lib/errors/reportError'
 import type { ErrorCode } from '../../lib/errors/codes'
-import { publicUrl } from '../../lib/publicUrl'
+import { TEMPLE_LOBBY_BG } from '../../game/backgroundAssets'
 import { SLOT_INDEXES, SLOT_TRANSFORM, normalizeTeam, type TeamSlots } from '../../game/team'
 import { ArenaSlotRing } from './ArenaSlotRing'
 import { CharacterModel } from './CharacterModel'
@@ -62,7 +62,7 @@ const SHOW_ARENA_SLOTS = false
 // url('/ui/...') ตรง ๆ ใน CSS ชี้ผิดที่ตอน deploy ขึ้น subpath (ดู src/lib/publicUrl.ts) —
 // ส่งเข้าไปเป็น CSS custom property แทน
 const BG_TEMPLE_STYLE: CSSProperties = {
-  ['--bg-temple' as string]: `url(${publicUrl('ui/thai/thai-temple-lobby.webp')})`,
+  ['--bg-temple' as string]: `url(${TEMPLE_LOBBY_BG})`,
 }
 
 const EMBERS = [

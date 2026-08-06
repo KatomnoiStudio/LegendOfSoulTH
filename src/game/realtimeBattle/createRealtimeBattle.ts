@@ -3,6 +3,7 @@ import { reportError } from '../../lib/errors/reportError'
 import type { Player } from '../../types/player'
 import { getEnemyTemplate, getRealtimeStage, type RealtimeBattleStage } from './stageConfig'
 import type { RealtimeBattleEntity } from './types'
+import { calcMaxHp } from '../battle/formulas'
 
 /**
  * สร้างสถานะตั้งต้นของห้องต่อสู้ real-time จากข้อมูลผู้เล่นจริง
@@ -24,17 +25,6 @@ export interface RealtimeBattleState {
   damageTaken: number
 }
 
-/**
- * HP สูงสุดของผู้เล่นในห้องต่อสู้
- *
- * สูตรเดียวกับ calcMaxHp ของระบบเทิร์นเดิม (src/game/battle/formulas.ts) โดยตั้งใจ —
- * ผู้เล่นจะได้ไม่รู้สึกว่าตัวละครอ่อนลงเพราะเปลี่ยนระบบต่อสู้
- * (ไฟล์เดิมจะถูกลบตอน Step 9 จึงคัดสูตรมาไว้ที่นี่แทนการ import ข้ามระบบ)
- */
-export function calcBattleMaxHp(level: number, def: number): number {
-  return Math.floor(180 + level * 14 + def * 1.8)
-}
-
 /** ความเร็วเดินของผู้เล่นในห้องต่อสู้ (หน่วย runtime ต่อวินาที) */
 const PLAYER_BASE_SPEED = 275
 
@@ -45,7 +35,7 @@ export function createPlayerEntity(player: Player): RealtimeBattleEntity | null 
 
   const owned = player.ownedCharacters.find((entry) => entry.characterId === character.id)
   const level = owned?.level ?? character.level
-  const maxHp = calcBattleMaxHp(level, character.stats.def)
+  const maxHp = calcMaxHp(level, character.stats.def)
 
   return {
     id: 'player',
