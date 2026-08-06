@@ -16,8 +16,12 @@
  * เจตนาปล่อยว่างไว้ให้คนที่ฟังเลือกเองทีหลัง (Freesound หรือแหล่งอื่นที่ license เคลียร์)
  *
  * Safari ต้องเป็น 18.4+ ถึงจะ decode Ogg Vorbis ผ่าน decodeAudioData() ได้ (verified สด
- * 2026-08-06) — browserslist ของโปรเจกต์นี้คือ "last 2 Safari versions" ซึ่งครอบคลุมอยู่แล้ว
- * (Safari ปัจจุบันคือรุ่น 26) ไม่ต้องแปลงเป็น mp3
+ * 2026-08-06 กับ MDN) — Safari ปัจจุบันคือรุ่น 26 จึงยังไม่ต้องแปลงเป็น mp3
+ *
+ * ไม่มีอะไรใน build บังคับ floor นี้ให้ (ฟิลด์ browserslist ใน package.json ไม่มีเครื่องมือไหน
+ * อ่านเลย ดู .agents/rules/ecc/web/compatibility.md) ตัวเลขข้างบนจึงเป็นข้อมูลอ้างอิง
+ * ไม่ใช่หลักประกัน — Safari ที่เก่ากว่านั้นจะ decode ไม่ผ่านแล้วเกมเล่นต่อแบบไม่มีเสียง
+ * (AudioEngine จับ error ไว้แล้ว) ถ้าเจอรายงานจริงว่าเงียบ ค่อยเพิ่ม mp3 เป็นทางสำรอง
  */
 export const SFX = {
   buttonClick: 'audio/sfx/button-click.ogg',

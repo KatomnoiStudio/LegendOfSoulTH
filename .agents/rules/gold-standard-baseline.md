@@ -1,4 +1,4 @@
-<!-- coalmine: verified 2026-08-06 · exemplar OWASP ASVS 5.0.0 / GitHub Community Standards / Keep a Changelog 2.0.0 / pmndrs/react-three-fiber · revalidate 90d -->
+<!-- coalmine: verified 2026-08-07 · exemplar OpenSSF Scorecard (18 checks) / OWASP ASVS 5.0.0 / excalidraw / Keep a Changelog 2.0.0 / pmndrs/react-three-fiber · revalidate 90d -->
 # Project Law: Gold-Standard Baseline (from the 2026-08-06 gold-standard AUDIT)
 
 > **Target Workspace**: `LegendOfSoulTH` (LegendofSoulTH)
@@ -42,12 +42,22 @@ stay closed, not as an open checklist). 6 remains the one open gap.
    `npx lint-staged` → `oxlint` on staged files), catching lint failures before commit,
    not just in CI.
 
-6. **Component/integration test coverage** — OPEN, the one remaining gap. Current coverage
-   is a single file (`src/lib/format.test.ts`, pure functions only) — zero coverage on the
-   dozens of interactive React components. This is the single biggest real gap found in the
-   audit; flag it when doing substantial work on any untested component, but don't
-   unilaterally start a large test-writing sweep without asking — that's real effort/scope,
-   gate it.
+6. **Component/integration test coverage** — OPEN, the one remaining gap. As of 2026-08-07
+   there are **20 `*.test.ts` files / 174 tests** covering the realtime-battle systems, the
+   dialogue engine, the account/password modules, and pure helpers — but **zero `*.test.tsx`
+   and no `@testing-library/*` dependency**, so not one of the ~57 interactive React
+   components has a rendering-level test. (Compare: excalidraw ships 50+ `.test.tsx`;
+   react-three-fiber tests its canvas/events/hooks the same way.) This remains the single
+   biggest real gap; flag it when doing substantial work on any untested component, but
+   don't unilaterally start a large test-writing sweep without asking — that's real
+   effort/scope, gate it. There is also no coverage tooling at all (`@vitest/coverage-*` is
+   not installed), so those 174 tests run with zero visibility into what they actually reach.
+
+   > Corrected 2026-08-07: this item previously stated "Current coverage is a single file
+   > (`src/lib/format.test.ts`, pure functions only)". The conclusion held but the evidence
+   > had gone stale — four independent scouts in the 2026-08-07 audit flagged it. A binding
+   > rule citing a fact anyone can disprove in one command costs the whole ruleset its
+   > credibility, which is why the correction is recorded rather than silently overwritten.
 
 ## What NOT to do with this file
 

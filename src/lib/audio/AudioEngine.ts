@@ -8,9 +8,12 @@ import { MUSIC, SFX, type MusicId, type SfxId } from './sounds'
  *
  * ตัดสินใจจาก CoalBoard "ask CB" opinion-lane pass (2026-08-06, 4 seat เห็นตรงกันหมด
  * รวม blind seat): Howler.js ไม่ได้ maintain จริงตั้งแต่ 2023-09 (415 issue ค้าง, commit
- * หลังจากนั้นมีแค่ readme/backers) ส่วน Web Audio API รองรับเต็มไม่มี prefix ทุกเบราว์เซอร์ที่
- * browserslist ของโปรเจกต์ target อยู่แล้ว (Chrome 34+/Firefox 25+/Safari 14.1+ ต่ำกว่า floor
- * ของโปรเจกต์มาก) — ไม่มีเหตุผลต้องพึ่ง library เพื่อแก้ปัญหาที่ไม่มีอยู่จริงสำหรับ browser ชุดนี้
+ * หลังจากนั้นมีแค่ readme/backers) ส่วน Web Audio API รองรับเต็มไม่มี prefix มาตั้งแต่
+ * Chrome 34 / Firefox 25 / Safari 14.1 ซึ่งเก่ากว่าเบราว์เซอร์ที่ยังใช้งานกันจริงมาก
+ * — ไม่มีเหตุผลต้องพึ่ง library เพื่อแก้ปัญหาที่ไม่มีอยู่จริงสำหรับ browser ชุดนี้
+ * (ตัวเลขชุดนี้อ้างจาก caniuse/MDN ตรง ๆ ไม่ใช่จาก browserslist ใน package.json —
+ * ฟิลด์นั้นไม่มีอะไรใน build อ่านเลย จึงไม่ใช่หลักประกัน ดู .agents/rules/ecc/web/compatibility.md)
+ * ถึงอย่างนั้นโค้ดด้านล่างก็ยัง feature-detect + try/catch อยู่ดี ไม่ได้เชื่อตารางรองรับอย่างเดียว
  *
  * AudioContext ตัวเดียวทั้งแอป สร้างครั้งแรกตอน initAudioEngine() ถูกเรียก — ต้องเรียกจาก
  * ภายใน user-gesture handler จริง (คลิก/แตะ) เบราว์เซอร์บล็อก autoplay ก่อนมีการโต้ตอบเสมอ

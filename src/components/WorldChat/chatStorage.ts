@@ -58,8 +58,10 @@ export function postWorldChatMessage(authorName: string, text: string): Promise<
 
 /**
  * แจ้งแท็บอื่นบนเครื่องเดียวกันว่ามีข้อความใหม่ — ใช้ BroadcastChannel (native API,
- * รองรับในเบราว์เซอร์ที่ target ของโปรเจกต์นี้ทุกตัวอยู่แล้ว ดู package.json's
- * browserslist) แทน window 'storage' event เดิม เพราะเป็นกลไก pub-sub ตรง ๆ ไม่ต้อง
+ * Baseline widely available ตั้งแต่ มี.ค. 2022 ตาม MDN — และโค้ดด้านล่าง feature-detect
+ * ก่อนใช้อยู่แล้ว ไม่ได้เชื่อตารางรองรับเฉย ๆ ส่วนฟิลด์ browserslist ใน package.json
+ * ไม่มีอะไรใน build อ่าน จึงไม่ใช่หลักประกัน ดู .agents/rules/ecc/web/compatibility.md)
+ * แทน window 'storage' event เดิม เพราะเป็นกลไก pub-sub ตรง ๆ ไม่ต้อง
  * พึ่งเบราว์เซอร์ refire event จากการเขียน localStorage ทางอ้อม — ยังต้องเก็บใน
  * localStorage เหมือนเดิมสำหรับ persist/backfill ตอนเปิดแท็บใหม่ BroadcastChannel
  * แค่เป็นชั้น "แจ้งเตือนสด" เพิ่มเข้ามา ไม่ได้แทนที่ localStorage
