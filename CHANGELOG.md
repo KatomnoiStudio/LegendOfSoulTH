@@ -7,6 +7,34 @@
 
 ยังไม่มี
 
+## [0.3.0] - 2026-08-07
+
+รอบต่อจาก 0.2.0 (ที่ยังไม่เคยปล่อยจริง — run deploy ของ commit ที่ bump ไว้ถูก cancel
+ก่อนตัด release ได้ กติกาเวอร์ชันเปลี่ยนถึงปล่อยจึง skip ทุกครั้งหลังจากนั้นถูกต้องแล้ว
+เพราะเลขไม่เคยขยับ) เวอร์ชันนี้ปล่อยของทั้งสองรอบรวมกัน
+
+### Fixed
+
+- **`requestExit` ทับผลตัดสินการต่อสู้** — กดออกจากห้องพอดีเฟรมที่ชนะ/แพ้ตัดสินแล้ว
+  ทำให้สถานะกลายเป็น "กำลังออก" แทนผลจริง ตอนนี้ผลที่ตัดสินแล้วแก้ไม่ได้อีก
+- **บันทึกชนกันข้ามแท็บ** — เปิดเกมสองแท็บพร้อมกันแล้วบันทึกไล่กัน แท็บที่บันทึกทีหลัง
+  เคยทับข้อมูลของแท็บแรกเงียบ ๆ เพิ่มตัวนับรุ่น (`rev`) เทียบก่อนเขียนทุกครั้ง
+
+### Added
+
+- Property-based fuzz testing ด้วย `fast-check` — ครอบสูตรดาเมจ/ป้องกัน/HP สูงสุด/สัดส่วนหลอดเลือด
+- เทสต์ระดับ component ชุดแรก (`AuthModal`/`ErrorBoundary`/`GlobalErrorBanner`/`EnemyHealthBar`)
+  — แต่ละตัวล็อกบั๊กที่โปรเจกต์นี้เจอจริง ไม่ใช่เขียนตามสเปก
+- Prettier ผูกกับ pre-commit (`.prettierrc.json`) ให้ไฟล์ที่แก้ค่อย ๆ เป็นรูปแบบเดียวกัน
+- CI รัน Node 22 และ 24 คู่ขนาน (`engines.node >=22` ของ `package.json`)
+- `CONTRIBUTING.md` หัวข้อ Release process
+
+### Changed
+
+- แยก `vendor-react` chunk ออกจากโค้ดแอป — ผู้เล่นกลับมาเล่นได้ใช้ cache เดิมของ react
+  ในดีพลอยที่ไม่ได้แตะ react
+- บีบภาพตัวละครที่เกินเพดานการแสดงผลจริงก่อนแปลง WebP (`tools/optimize-images.mjs`)
+
 ## [0.2.0] - 2026-08-07
 
 รวมงานทั้งหมดตั้งแต่ 0.1.0 — เว็บจริงตามหลัง 18 commit อยู่ก่อนหน้านี้ เพราะทุก push
@@ -14,8 +42,9 @@
 (ปล่อยเมื่อเลขเวอร์ชันเกมเปลี่ยนเท่านั้น — ดู `.github/workflows/deploy.yml`)
 
 ### Fixed
+
 - **นำเข้าไฟล์ save ที่ไม่มีข้อมูลผู้เล่นแล้วเกมเปิดไม่ได้ถาวร** — ตัวตรวจไม่ได้ดู `player`
-  และฟังก์ชันเขียนบัญชีกับ session ลง localStorage สำเร็จ *ก่อน* จะพัง ทำให้ทุกครั้งที่โหลดหน้า
+  และฟังก์ชันเขียนบัญชีกับ session ลง localStorage สำเร็จ _ก่อน_ จะพัง ทำให้ทุกครั้งที่โหลดหน้า
   เจอข้อผิดพลาดเดิมซ้ำ กู้ได้ทางเดียวคือล้าง localStorage เอง
 - **ล็อกอินแล้วเกมค้างยาว** — `renderer.init()` ของ WebGPU ไม่มี timeout ถ้าการเจรจา adapter
   ค้าง (เจอจริงบน GPU/ไดรเวอร์บางตัว) จะไม่ resolve ไม่ reject จึงไม่ตกไป WebGL2 เลย
@@ -31,6 +60,7 @@
 - ตัวเลขดาเมจสะสมหน่วยความจำไม่มีเพดานตลอดการต่อสู้
 
 ### Added
+
 - สกิล "กระบวนทองคำ" ของหงอคง พร้อมปุ่มสกิลบนจอ คูลดาวน์ และช่วงอมตะ
 - ปุ่ม "ต่อสู้" กับ "เริ่มการผจญภัย" เข้าห้องต่อสู้ตรง ๆ ไม่ต้องเดินหา NPC
 - สไปรต์ตือโป๊ยก่ายชุด v7 ครบ 8 ทิศ พร้อมท่ายืนหายใจและท่าทางประจำตัว
@@ -39,6 +69,7 @@
 - `.github/workflows/upstream-skill-watch.yml` — เฝ้าแหล่ง skill ต้นทาง เปิด issue เมื่อมีของใหม่
 
 ### Changed
+
 - **deploy ผูกกับเลขเวอร์ชันเกม** ไม่ใช่ทุก push อีกต่อไป และตัด GitHub Release
   พร้อมแนบ SBOM ให้อัตโนมัติเมื่อปล่อย
 - deploy รันเทสต์ก่อน build แล้ว (ก่อนหน้านี้ commit ที่เทสต์แดงขึ้น production ได้)
@@ -50,6 +81,7 @@
 เวอร์ชันแรกที่ tag/release อย่างเป็นทางการ
 
 ### Added
+
 - หน้า Lobby, สมัคร/เข้าสู่ระบบ, ตั้งชื่อตัวละครครั้งแรก
 - ฉาก 3D Lobby (React Three Fiber) พร้อม idle animation ต่อตัวละคร
 - ระบบทอง/หยก (เควส/ดรอปเท่านั้นสำหรับทอง, เติมเงินจริง/คูปองสำหรับหยก) ผ่าน `accountRepository.ts`
@@ -59,6 +91,7 @@
 - ภาพทั้งหมดแปลงเป็น WebP ผ่าน pipeline `assets/raw/` → `npm run build:images`
 - Governance: `AGENTS.md`, `MEMORY.md`, `.agents/rules/**`, `SECURITY.md`
 
-[Unreleased]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/LegendofSoulTH/LegendOfSoulTH/releases/tag/v0.1.0
