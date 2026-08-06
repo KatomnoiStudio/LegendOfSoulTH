@@ -21,7 +21,9 @@
   flex-direction: column;
   width: min(100%, 26rem);
   /* ต้องสูงพอให้ .panel (min-height 30rem) + header + แถบแท็บ อยู่ครบโดยไม่ถูกบีบจนต้องเลื่อน */
-  max-height: min(88%, 40rem);
+  /* dvh ไม่ใช่ % — % ของ .backdrop (grid place-items:center) ไม่ resolve จริง วัดสดยืนยันแล้ว
+     ที่ 844x390 ว่าล้นจอ (ดูเหตุผลเต็มใน SettingsModal.module.css) */
+  max-height: min(88dvh, 40rem);
   /* แผ่นป้ายทองมุมตัดเฉียง ชุดเดียวกับ CharacterRosterModal/AuthModal/NameModal */
   border: 1px solid rgb(226 183 88 / 52%);
   clip-path: polygon(20px 0, calc(100% - 20px) 0, 100% 20px, 100% calc(100% - 20px), calc(100% - 20px) 100%, 20px 100%, 0 calc(100% - 20px), 0 20px);
@@ -61,8 +63,8 @@
   inset-inline-end: var(--sp-3);
   display: grid;
   place-items: center;
-  width: 2rem;
-  height: 2rem;
+  width: var(--sz-icon-close);
+  height: var(--sz-icon-close);
   border-radius: 50%;
   color: var(--c-text-dim);
   font-size: 1.3rem;
@@ -309,7 +311,7 @@
 
 @media (max-width: 720px) {
   .backdrop { padding: var(--sp-2); }
-  .dialog { max-height: 92%; }
+  .dialog { max-height: 92dvh; }
   .header,
   .panel { padding: var(--sp-4); }
 }

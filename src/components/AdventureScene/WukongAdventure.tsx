@@ -15,6 +15,7 @@ import {
   type Point,
 } from '../../game/adventure/movement'
 import { ROSTER, type Character } from '../../game/characters'
+import { SCENE_WIDTH, SCENE_HEIGHT } from '../../game/sceneDimensions'
 import { getWalkKit } from '../../game/walkKits'
 import { publicUrl } from '../../lib/publicUrl'
 import styles from './WukongAdventure.module.css'
@@ -25,8 +26,6 @@ const BG_TEMPLE_STYLE: CSSProperties = {
   ['--bg-temple' as string]: `url(${publicUrl('ui/thai/thai-temple-lobby.webp')})`,
 }
 
-const WORLD_WIDTH = 1600
-const WORLD_HEIGHT = 900
 const FRAME_COUNT = 8
 const WALK_SPEED = 215
 const RUN_SPEED = 345
@@ -196,10 +195,10 @@ export function WukongAdventure({
   })
   const [destination, setDestination] = useState<Point | null>(null)
   const [dustTick, setDustTick] = useState(0)
-  const [sceneSize, setSceneSize] = useState({ width: WORLD_WIDTH, height: WORLD_HEIGHT })
+  const [sceneSize, setSceneSize] = useState({ width: SCENE_WIDTH, height: SCENE_HEIGHT })
 
   // ฉากนี้ไม่ได้อยู่บนเวทีคงที่ 1600x900 อีกแล้ว (GameViewport ตัด letterbox ออก) —
-  // ต้องวัดขนาดจริงของ .scene เองแล้วแม็ปพิกัดโลก (WORLD_WIDTH/HEIGHT) เป็นพิกัดจอจริง
+  // ต้องวัดขนาดจริงของ .scene เองแล้วแม็ปพิกัดโลก (SCENE_WIDTH/HEIGHT) เป็นพิกัดจอจริง
   // ด้วยสูตรเดียวกับที่ CSS background-size:cover ใช้กับภาพพื้นหลัง (ย่อ/ขยายเท่ากันทั้งสองแกน
   // แล้ว crop ส่วนเกิน) ตำแหน่งเดินจึงตรงกับลานวัดในภาพเสมอไม่ว่าอัตราส่วนจอจะเป็นเท่าไหร่
   useLayoutEffect(() => {
@@ -394,9 +393,9 @@ export function WukongAdventure({
     return () => window.clearInterval(timer)
   }, [view.moving, view.running])
 
-  const courtyardScale = Math.max(sceneSize.width / WORLD_WIDTH, sceneSize.height / WORLD_HEIGHT)
-  const courtyardOffsetX = (sceneSize.width - WORLD_WIDTH * courtyardScale) / 2
-  const courtyardOffsetY = (sceneSize.height - WORLD_HEIGHT * courtyardScale) / 2
+  const courtyardScale = Math.max(sceneSize.width / SCENE_WIDTH, sceneSize.height / SCENE_HEIGHT)
+  const courtyardOffsetX = (sceneSize.width - SCENE_WIDTH * courtyardScale) / 2
+  const courtyardOffsetY = (sceneSize.height - SCENE_HEIGHT * courtyardScale) / 2
   const worldToScreen = useCallback(
     (point: Point) => ({
       x: courtyardOffsetX + point.x * courtyardScale,
