@@ -8,6 +8,10 @@
       ตามสเปก) ป้องกัน clickjacking แบบเต็มรูปแบบต้องมี CDN (เช่น Cloudflare) มาคั่นหน้า GH Pages
       ก่อน — เป็นข้อจำกัดที่ยอมรับของ deploy target นี้ ไม่ใช่ช่องโหว่ที่มองข้าม
 
+      base-uri เป็น 'none' ไม่ใช่ 'self' — OWASP ASVS 5.0.0 V3.4.3 ระบุขั้นต่ำไว้เป็น 'none' ตรง ๆ
+      หน้านี้ไม่มี <base> tag เลย (ตรวจแล้วทั้ง index.html และผลลัพธ์ใน dist/) การห้ามทั้งหมด
+      จึงไม่กระทบอะไร และปิดช่องที่ script injection จะเปลี่ยนฐาน URL ของทุก relative path
+
       style-src ต้องมี 'unsafe-inline' เพราะแอปนี้ใช้ inline style prop ของ React ใส่ CSS custom
       property (พื้นหลังรูปที่ต้องต่อกับ Vite base path แบบไดนามิก — ดู src/lib/publicUrl.ts)
       ทั่วทั้งแอป ไม่มีทางเลี่ยงโดยไม่เขียนใหม่ทั้งระบบ — ความเสี่ยงของ style injection แคบกว่า
@@ -15,7 +19,7 @@
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self';"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none';"
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <!--
