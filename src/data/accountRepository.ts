@@ -4,7 +4,7 @@ import { generateUid } from '../game/uid'
 import { TEAM_SIZE } from '../game/team'
 import { createSalt, hashPassword, needsRehash, verifyPassword } from '../lib/password'
 import { isStorageAvailable, readJson, removeKey, writeJson } from '../lib/storage'
-import { EMPTY_PROGRESS, type Player } from '../types/player'
+import { EMPTY_PROGRESS, type FriendCandidate, type Player } from '../types/player'
 
 /**
  * ฐานข้อมูลผู้เล่น (เวอร์ชันเก็บใน localStorage)
@@ -209,6 +209,7 @@ function normalizePlayer(player: Player): Player {
     ...player,
     progress: player.progress ?? EMPTY_PROGRESS,
     inventory: player.inventory ?? [],
+    friends: player.friends ?? [],
   }
 }
 
@@ -241,6 +242,7 @@ function createNewPlayer(uid: string): Player {
     ),
     // กระเป๋าเริ่มต้นว่างเปล่า — ไอเทมต้องได้จากการเล่นเท่านั้น (ดู grantItem)
     inventory: [],
+    friends: [],
     frameId: 'arcane',
     progress: { ...EMPTY_PROGRESS },
   }
@@ -401,12 +403,7 @@ export function getSessionEmail(): string | null {
   return readJson<{ uid: string; email: string }>(SESSION_KEY)?.email ?? null
 }
 
-export interface FriendCandidate {
-  uid: string
-  name: string
-  level: number
-  title: string
-}
+export type { FriendCandidate } from '../types/player'
 
 /**
  * ค้นหาผู้เล่นจาก UID เพื่อเพิ่มเป็นเพื่อน — ใช้ UID เท่านั้น ไม่ใช้ชื่อ/อีเมล

@@ -211,7 +211,12 @@ export function LobbyPage({
       ) : null}
 
       {addFriendOpen ? (
-        <AddFriendModal onSearch={onFindFriend} onClose={() => setAddFriendOpen(false)} />
+        <AddFriendModal
+          player={player}
+          onPlayerChange={onPlayerChange}
+          onSearch={onFindFriend}
+          onClose={() => setAddFriendOpen(false)}
+        />
       ) : null}
 
       {itemsOpen ? <ItemsModal player={player} onClose={() => setItemsOpen(false)} /> : null}

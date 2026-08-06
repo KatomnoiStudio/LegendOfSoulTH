@@ -26,6 +26,14 @@ export interface InventoryItem {
   obtainedFrom: string
 }
 
+/** สแนปช็อตข้อมูลผู้เล่นอีกคน ณ ตอนค้นหา/เพิ่มเพื่อน — ไม่ใช่ live reference (ไม่มีฐานข้อมูลกลางให้ sync) */
+export interface FriendCandidate {
+  uid: string
+  name: string
+  level: number
+  title: string
+}
+
 export interface Player {
   id: string
   /**
@@ -50,6 +58,12 @@ export interface Player {
    * `player.inventory ?? []` เสมอ (ดู normalizePlayer ใน accountRepository.ts)
    */
   inventory: InventoryItem[]
+  /**
+   * รายชื่อเพื่อน — สแนปช็อต ณ ตอนกดเพิ่ม ไม่ใช่ live data (ไม่มีฐานข้อมูลกลาง อ่านซ้ำไม่ได้)
+   * บัญชีเก่าที่สมัครก่อนมีระบบนี้จะไม่มีฟิลด์นี้ใน localStorage — อ่านค่าผ่าน
+   * `player.friends ?? []` เสมอ (ดู normalizePlayer ใน accountRepository.ts)
+   */
+  friends: FriendCandidate[]
   /**
    * ผังทีมในลานประลอง ยาว TEAM_SIZE (4) เสมอ — null คือช่องว่าง
    * เก็บเป็น characterId ที่ต้องมีอยู่ใน ownedCharacters (ดู src/game/team.ts)
