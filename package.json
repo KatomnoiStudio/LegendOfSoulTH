@@ -18,7 +18,9 @@
     "ci": "npm run typecheck && npm run lint && npm run test && npm run build",
     "preview": "vite preview",
     "prepare": "husky",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "browserslist": [
     "last 2 Chrome versions",
@@ -47,13 +49,18 @@
     "jsdom": "^30.0.1",
     "lint-staged": "^17.3.0",
     "oxlint": "^1.75.0",
+    "prettier": "^3.9.6",
     "sharp": "^0.35.3",
     "typescript": "~7.0.2",
     "vite": "^8.2.0",
     "vitest": "^4.1.10"
   },
   "lint-staged": {
-    "*.{ts,tsx}": "oxlint"
+    "*.{ts,tsx}": [
+      "prettier --write",
+      "oxlint"
+    ],
+    "*.{json,css,md}": "prettier --write"
   },
   "license": "MIT"
 }

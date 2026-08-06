@@ -25,6 +25,23 @@ npm run ci        # typecheck + lint + test + build — รันให้ผ่
 
 รายงานช่องโหว่ความปลอดภัย **ห้าม**เปิด public issue — ดูขั้นตอนที่ [`SECURITY.md`](SECURITY.md)
 
+## Release process
+
+`.github/workflows/deploy.yml` ผูก release เข้ากับเลขเวอร์ชันใน `src/game/gameInfo.ts`
+(`GAME_INFO.version`) โดยตรง ไม่ใช่ตาม push:
+
+1. เขียน entry ใหม่ใน [`CHANGELOG.md`](CHANGELOG.md) หัวข้อ `## [x.y.z]`
+2. ขึ้นเลขที่ `GAME_INFO.version` ให้ตรงกับหัวข้อนั้น — `src/game/gameInfo.test.ts` เช็คว่า
+   ค่านี้ตรงกับ `package.json` เสมอ ลืมข้างใดข้างหนึ่งจะ fail ตั้งแต่ `npm run ci`
+3. push เข้า `master` — workflow เทียบเวอร์ชันก่อน/หลัง push นั้นเอง ถ้าไม่เปลี่ยนจะข้าม deploy
+   ทั้งชุด (ปลอดภัยสำหรับ push ปกติที่ไม่ตั้งใจ release), ถ้าเปลี่ยนจะ build → test → deploy
+   ขึ้น GitHub Pages → ตัด GitHub Release ให้อัตโนมัติ (แนบ SBOM, ดึง release note จากหัวข้อ
+   CHANGELOG ที่ตรงกัน)
+4. ยืนยันที่ [Releases](https://github.com/LegendofSoulTH/LegendOfSoulTH/releases) ว่าขึ้นจริง
+
+รัน workflow มือได้ผ่าน "Run workflow" บนแท็บ Actions เสมอ (ไม่สนว่าเวอร์ชันเปลี่ยนไหม)
+ใช้ตอนต้องการ deploy ซ้ำโดยไม่ผูกกับ commit ใหม่
+
 ## ถ้าใช้ AI agent ช่วยเขียนโค้ด
 
 โปรเจกต์นี้มีกฎบังคับสำหรับ AI agent ที่ทำงานในนี้ (memory protocol, coding standard,

@@ -27,8 +27,15 @@ permissions:
 
 jobs:
   ci:
-    name: Continuous Integration
+    name: Continuous Integration (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+
+    # engines.node ใน package.json บังคับ >=22 — matrix นี้เช็คว่าโค้ดยังรันได้จริงบน LTS
+    # ปัจจุบัน (22) และ LTS ถัดไปที่กำลังจะมาแทน (24) ไม่ใช่แค่เวอร์ชันเดียวที่ dev เครื่องนี้ใช้
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [22, 24]
 
     steps:
       - name: Harden Runner
@@ -42,7 +49,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 22
+          node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
       - name: Install dependencies
@@ -75,6 +82,24 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           du -h dist/assets/*.js dist/assets/*.css | sort -rh >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+  # branch protection ตั้ง required status check ไว้ที่ชื่อ "Continuous Integration" เดี่ยว ๆ
+  # (ตั้งไว้ก่อนมี matrix) — matrix ด้านบนทำให้ context จริงกลายเป็น "Continuous Integration
+  # (Node 22)" / "(Node 24)" ซึ่งชื่อไม่ตรงกับที่ required ไว้อีกต่อไป งานนี้รวมผลลัพธ์ทุก
+  # node-version แล้วรายงานภายใต้ชื่อเดิมเป๊ะ — required check ยังชี้ถูกจุดโดยไม่ต้องไปแก้
+  # branch protection ทุกครั้งที่ปรับ matrix
+  ci-status:
+    name: Continuous Integration
+    needs: ci
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: ตรวจว่าทุกเวอร์ชันใน matrix ผ่านหมด
+        run: |
+          if [ "${{ contains(needs.ci.result, 'failure') || contains(needs.ci.result, 'cancelled') }}" = "true" ]; then
+            echo "อย่างน้อยหนึ่ง Node version ใน matrix ไม่ผ่าน" >&2
+            exit 1
+          fi
 
   dependency-review:
     name: Dependency Review
