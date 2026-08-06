@@ -34,24 +34,75 @@ export interface AttackDefinition {
 }
 
 /**
- * ท่าโจมตีพื้นฐานของผู้เล่น
+ * คอมโบสามไม้ของผู้เล่น (§14)
  *
- * ตอนนี้มีท่าเดียว — คอมโบสามไม้จะเข้ามาในงานถัดไป (สเปกข้อ 33 แยกเป็นคนละ commit)
- * ฟิลด์ comboWindow ถูกใช้แล้วตั้งแต่ตอนนี้เพื่อกำหนดว่า "กดซ้ำได้เมื่อไหร่"
+ * ไม้ที่สามแรงและกระเด็นไกลกว่าสองไม้แรกชัดเจน เพื่อให้การต่อคอมโบจนจบมีรางวัลจริง
+ * ไม่ใช่แค่ตีเร็วขึ้น และ recovery ของไม้สามยาวกว่าเพื่อไม่ให้วนคอมโบไม่รู้จบ
  */
-export const PLAYER_ATTACK: AttackDefinition = {
-  id: 'monkey-attack-1',
-  animationId: 'attack-1',
-  startupMs: 110,
-  activeMs: 90,
-  recoveryMs: 180,
-  comboWindowStartMs: 150,
-  comboWindowEndMs: 620,
-  damageMultiplier: 1,
-  range: 120,
-  arcDegrees: 110,
-  knockback: 60,
-}
+export const PLAYER_ATTACK_CHAIN: AttackDefinition[] = [
+  {
+    id: 'monkey-attack-1',
+    animationId: 'attack-1',
+    startupMs: 110,
+    activeMs: 90,
+    recoveryMs: 180,
+    comboWindowStartMs: 110,
+    comboWindowEndMs: 700,
+    damageMultiplier: 1,
+    range: 120,
+    arcDegrees: 110,
+    knockback: 60,
+  },
+  {
+    id: 'monkey-attack-2',
+    animationId: 'attack-2',
+    startupMs: 100,
+    activeMs: 90,
+    recoveryMs: 190,
+    comboWindowStartMs: 100,
+    comboWindowEndMs: 700,
+    damageMultiplier: 1.15,
+    range: 128,
+    arcDegrees: 120,
+    knockback: 80,
+  },
+  {
+    id: 'monkey-attack-3',
+    animationId: 'attack-3',
+    startupMs: 150,
+    activeMs: 120,
+    recoveryMs: 320,
+    // ไม้สุดท้ายไม่มีหน้าต่างต่อคอมโบ — จบคอมโบแล้วต้องเริ่มใหม่
+    comboWindowStartMs: 0,
+    comboWindowEndMs: 0,
+    damageMultiplier: 1.55,
+    range: 150,
+    arcDegrees: 150,
+    knockback: 210,
+  },
+]
+
+/**
+ * ค่าจังหวะของระบบคอมโบ — อยู่ที่เดียว ห้าม hard-code กระจายหลายไฟล์ (§14)
+ *
+ * comboResetMs  : ปล่อยนานเกินนี้หลังจบท่า คอมโบรีเซ็ตกลับไม้แรก (สเปกแนะนำ 650–800)
+ * inputBufferMs : กดก่อนท่าปัจจุบันจบได้เท่านี้ แล้วระบบจะจำไว้ยิงต่อให้ (แนะนำ 120–180)
+ * hitStopMs     : หยุดเวลาแวบหนึ่งตอนโดน ให้รู้สึกว่าหมัดมีน้ำหนัก (แนะนำ 40–70)
+ */
+export const COMBO_CONFIG = {
+  comboResetMs: 700,
+  inputBufferMs: 160,
+  hitStopMs: 55,
+} as const
+
+/** ค่าจังหวะของ dash (§17) */
+export const DASH_CONFIG = {
+  durationMs: 220,
+  invulnerableMs: 170,
+  cooldownMs: 1300,
+  /** ระยะทางรวมของการพุ่งหนึ่งครั้ง (หน่วย runtime) */
+  distance: 300,
+} as const
 
 /** ท่าโจมตีของศัตรู — จังหวะเดียวกับที่ EnemyAISystem ใช้ตัดสินใจ */
 export const ENEMY_ATTACK: AttackDefinition = {
