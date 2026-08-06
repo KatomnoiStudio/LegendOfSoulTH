@@ -93,76 +93,10 @@ jobs:
         with:
           egress-policy: audit
 
-      # ป้องกันหลายรัน deploy พร้อมกันตอน push ถี่ ๆ (พบว่า concurrency.cancel-in-progress
-      # ด้านบนไม่ทันคืนคำสั่ง Pages API ที่ยิงไปแล้ว หลายรันจึงไปค้าง "deployment_queued"
-      # แล้ว timeout พร้อมกัน — 2026-08-06, gh run 31100107280/31101039697)
-      #
-      # เดิมเช็คว่า commit นี้ยังเป็นปลาย master ไหม ถ้าไม่ใช่ก็ข้าม โดยหวังว่า "รันของ commit
-      # ล่าสุดจะ deploy แทน" — แต่สมมติฐานนั้นผิดเมื่อ commit ที่มาแซงเป็นไฟล์ที่ paths-ignore
-      # กรองทิ้ง (เช่น docs/*.md) เพราะ commit แบบนั้น **ไม่ทำให้เกิด run เลย** สายส่งต่อจึงขาด
-      # กลางทางและเว็บค้างอยู่ที่ build เก่าโดยที่ทุก job รายงานว่า success
-      # (เจอจริง 2026-08-06: run #6 ข้ามให้ 66fcfd7 ซึ่งเป็น docs(memory) ล้วน → ไม่มีรันตามมา)
-      #
-      # เลยเปลี่ยนเกณฑ์จาก "มี commit ใหม่กว่าไหม" เป็น "มี **รันของ workflow นี้** ที่ใหม่กว่า
-      # และยังไม่จบไหม" ซึ่งเป็นเงื่อนไขที่ตรงกับเจตนาจริง คือข้ามเฉพาะตอนที่รู้แน่ว่ามีคนอื่น
-      # กำลังจะ deploy ให้ ไม่ใช่เดาจาก sha
-      - name: รอ push ถี่ตกตะกอนก่อน deploy
-        id: debounce
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          sleep 30
-          # เช็ค API พังก็ไม่ควรทำให้ job ทั้งใบแดง (นี่แค่กันเคสถี่ ไม่ใช่ gate ความถูกต้อง) —
-          # เช็คไม่ได้ = ถือว่าไม่มีใครมาแทน ปล่อย deploy ตามปกติ ปลอดภัยกว่าข้ามแล้วเว็บค้าง
-          newer="$(gh api \
-            "repos/${{ github.repository }}/actions/workflows/deploy.yml/runs?branch=master&per_page=20" \
-            --jq '[.workflow_runs[]
-                   | select(.status == "queued" or .status == "in_progress")
-                   | select(.run_number > ${{ github.run_number }})]
-                  | length' || echo 0)"
-          if [ "${newer:-0}" -gt 0 ]; then
-            echo "มีรัน deploy ที่ใหม่กว่ากำลังทำงานอยู่ ($newer รัน) — ข้าม deploy รอบนี้"
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "ไม่มีรันที่ใหม่กว่า — deploy ต่อ"
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      # ตัว debounce ด้านบนกันแค่ "รันซ้อนกันในหน้าต่างสั้น ๆ" แต่ไม่ได้กัน "ยิง deployment
-      # ใหม่ทับกองคิวที่ค้างอยู่แล้ว" — พบจริง 2026-08-06 (gh run 31106222751/31107374696):
-      # ช่วง push ถี่ต่อเนื่องหลายชั่วโมง คิว Pages ของ repo นี้ล้นสะสม แต่ละ deployment
-      # (แม้รอบที่ "success") ค้างคิว 10–50+ นาที เช็คสถานะ Deployments API พบว่า repo นี้
-      # ยิง deploy ถี่กว่าที่ backend ของ Pages รับไหว (60+ ครั้งใน 18 ชม.) — ยิงใหม่ซ้อนกอง
-      # ที่ค้างอยู่มีแต่ทำให้แย่ลง จึงเช็คก่อนว่า deployment ล่าสุดของ environment นี้จบสถานะ
-      # (success/failure/error/inactive) แล้วหรือยัง ถ้ายังไม่จบ ข้ามรอบนี้ไปเลย ให้ push ถัดไป
-      # (หรือรอบถัดมาหลังคิวโล่ง) จัดการแทน
-      - name: กันยิง deploy ซ้อนคิวที่ยังค้างอยู่
-        id: queue-check
-        if: steps.debounce.outputs.skip != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          latest_id="$(gh api "repos/${{ github.repository }}/deployments?environment=github-pages&per_page=1" --jq '.[0].id // empty' || echo '')"
-          if [ -z "$latest_id" ]; then
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          state="$(gh api "repos/${{ github.repository }}/deployments/$latest_id/statuses?per_page=1" --jq '.[0].state // empty' || echo '')"
-          case "$state" in
-            queued|in_progress|pending)
-              echo "deployment ล่าสุด ($latest_id) ยังค้างสถานะ $state — คิว Pages ยังไม่ว่าง ข้าม deploy รอบนี้กันซ้อนกองที่ค้างอยู่"
-              echo "skip=true" >> "$GITHUB_OUTPUT"
-              ;;
-            *)
-              echo "skip=false" >> "$GITHUB_OUTPUT"
-              ;;
-          esac
-
-      # timeout ปริยายของ action คือ 10 นาที ซึ่งสั้นเกินไปเมื่อคิว Pages หนา — เจอจริง
-      # 2026-08-06 หลาย run ค้าง "deployment_queued" แล้วตายที่ 10:00 นาทีเป๊ะ (run #5, #7)
-      # ทำให้เว็บค้างที่ build เก่าทั้งที่ merge ไปหลายรอบแล้ว ยืดเป็น 30 นาที
+      # 2026-08-06: ถอด debounce + queue-check — push ถี่ ๆ ทำให้ทุกรัน sleep 30s แล้วเห็นรันใหม่กว่า
+      # in_progress จึง skip deploy ทุกครั้ง (run #88–#100 ข้ามหมด) เว็บค้างที่ build 12:26
+      # ทั้งที่ workflow รายงาน success — พึ่ง concurrency.group + cancel-in-progress แทน
       - name: Deploy to GitHub Pages
-        if: steps.debounce.outputs.skip != 'true' && steps.queue-check.outputs.skip != 'true'
         id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
         with:
