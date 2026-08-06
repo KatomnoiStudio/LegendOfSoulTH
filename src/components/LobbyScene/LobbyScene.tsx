@@ -42,6 +42,13 @@ const CAM_BASE: [number, number, number] = [0, 3.75, 8.4]
  * ตอนนี้ปิดไว้ตามที่ตกลง — ลอบบี้เหลือแต่ฉากวัดเปล่า ๆ
  * ไฟล์ ArenaSlotRing.tsx และ CharacterModel.tsx ยังอยู่ครบ ไม่ได้ลบ
  * เปลี่ยนเป็น true เมื่อไหร่ ทุกอย่างกลับมาเหมือนเดิมทันที
+ *
+ * ⚠️ ช่องว่างที่ยังไม่แก้ (gold-standard UX audit, 2026-08-06): CharacterModel.tsx's
+ * onClick เลือกตัวละครเป็น react-three-fiber <group onClick> — mesh ใน canvas ไม่ใช่
+ * DOM node จริง กดคีย์บอร์ดเลือกไม่ได้เลย ไม่มีทางเลือกสำรอง (list/roster UI) ให้เรียก
+ * onSelect(character.id) แบบเดียวกัน ตอนนี้ปลอดภัยเพราะฟีเจอร์ปิดอยู่ (ไม่มีผู้เล่นจริงไปถึง
+ * path นี้) — ถ้าจะเปิด SHOW_ARENA_SLOTS = true ต้องแก้จุดนี้ก่อน ไม่งั้น WCAG 2.2 AA
+ * (SC 2.1.1 Keyboard) จะพังจริงทันที ดู .agents/ux-audit-backlog.md
  */
 const SHOW_ARENA_SLOTS = false
 
