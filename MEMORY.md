@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T09:44:00+07:00 by `Claude Code (kaoshock123, Ring 1)`  
+> **Last Updated**: 2026-08-06T11:05:00+07:00 by `Claude Code (kaoshock123, Ring 1)`  
 > **RULES_VERSION: 4** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
@@ -261,6 +261,15 @@
     - **Still not visually confirmed** (`[[no-browser-automation]]`) — but unlike items 37–39 this one is grounded in measured pixel data rather than eyeballed proportions, so the failure mode should be much narrower.
 
 41. **EXP bar hidden on desktop to free room for name/power** (2026-08-06): follow-up to item 40 — HetCreep asked to drop the bar under พลังรบ to get more space. `.expRow` in `TopBar.tsx` wraps **both** the progress bar and the `x / y` label, so one `display: none` in the `@media (min-width: 761px)` block clears the whole row (and drops it from the accessibility tree too, leaving no invisible `role="progressbar"` behind). Done in CSS rather than removing the JSX **because mobile still shows it** — the standing "desktop only, don't touch mobile" constraint from items 38–40 applies, and deleting the markup would have hit both. The reclaimed row went straight into legibility: `.name` `0.52rem`→`0.75rem`, `.power` `0.64rem`→`0.9rem`, `.identity` gap `1px`→`2px` (still name-smaller-than-power per HetCreep's earlier instruction; ~29.7px of a 34.7px budget, so ~2.5px breathing room top and bottom). The now-dead `.expTrack`/`.expText` desktop overrides were deleted rather than left behind. Full verify green, lint warnings unchanged at 43.
+
+42. **ช่องคำสั่งผู้ดูแล + `/givecharacter` + `grantCharacter()`** (2026-08-06): HetCreep ส่งชุด sprite เดิน 80 เฟรมของตือโป๊ยก่ายมาให้ต่อเข้าเกม ระหว่างสำรวจพบว่า**ไม่มีทางได้ตัวละครตัวที่สองเลยในเกม** — บัญชีใหม่ได้ `monkey-king` ตัวเดียว (`STARTER_CHARACTER_ID`) และมีแค่ `grantItem` ไม่มี `grantCharacter` แปลว่าต่อให้ใส่เฟรมเดินครบ ตือโป๊ยก่ายก็จะไม่โผล่ในแถบเลือกขุนพลของฉากเดิน (ซึ่งกรองจากตัวที่ครอบครองจริง) HetCreep เลือกแก้ด้วยการให้สร้างช่องแชท/คำสั่งมุมซ้ายล่าง พิมพ์ `/givecharacter pig` โดยจำกัดเฉพาะ Account Admin
+    - **แจ้ง HetCreep ตรง ๆ ก่อนลงมือว่า "admin only" ที่นี่กันได้แค่ในนาม** — เกมเป็น client-only ล้วน การเช็คสิทธิ์รันในเบราว์เซอร์ผู้เล่นเองเทียบกับ localStorage ที่ผู้เล่นแก้ได้ ใครเปิด devtools เป็นก็ข้ามได้ (ตรงกับที่ `SECURITY.md` ระบุไว้แล้วในหัวข้อ Out of Scope) HetCreep รับทราบและเลือกเกณฑ์ admin = **ลิสต์อีเมลในโค้ด** คำเตือนนี้เขียนไว้ที่หัวไฟล์ `src/data/admins.ts` ด้วย เผื่อคนอ่านโค้ดทีหลังเข้าใจผิดว่าเป็น security boundary
+    - **ไฟล์ใหม่**: [`src/data/admins.ts`](src/data/admins.ts) (`ADMIN_EMAILS` + `isAdminEmail()`, ตอนนี้มี `kaoshock123@gmail.com`), [`src/components/CommandConsole/`](src/components/CommandConsole/) — `commands.ts` (ตัวแปลคำสั่งล้วน ไม่แตะ state), `CommandConsole.tsx`, `.module.css`, และ `commands.test.ts` (9 เทสต์ ครอบคลุมชื่อย่อ/ชื่อไทย/id เต็ม/คำสั่งมั่ว/ไม่ใส่อาร์กิวเมนต์)
+    - **ไฟล์ที่แก้**: `accountRepository.ts` (+`getSessionEmail()` — จำเป็นเพราะ `Player` ตั้งใจไม่มีฟิลด์อีเมล อีเมลอยู่แค่ใน `StoredAccount`/session; +`grantCharacter()` ตาม pattern ของ `grantItem` เป๊ะ ๆ กันซ้ำ/ตรวจ id กับ ROSTER/**ไม่แตะ `teamSlots`** เพราะการได้ตัวละครกับการจัดทีมเป็นคนละเรื่อง), `useAuth.ts` (+`isAdmin`, +`grantCharacter`, เก็บ email แยกใน state), `App.tsx`/`LobbyPage.tsx` (ส่ง prop ลงมา, render console เฉพาะ `isAdmin`)
+    - **บั๊กที่เจอตอนเขียนแล้วแก้ทันที**: log tone ตั้งชื่อว่า `'input'` ซึ่ง `styles[line.tone]` จะไปหยิบคลาส `.input` ของช่องพิมพ์ข้อความมาใช้แทน (ชนกันใน CSS module) เปลี่ยนเป็น `'echo'` พร้อมคอมเมนต์กันคนเผลอเปลี่ยนกลับ
+    - `onKeyDown` ของช่องพิมพ์เรียก `stopPropagation()` เสมอ — ไม่งั้น WASD/ลูกศรที่พิมพ์ในช่องจะลอยไปสั่งตัวละครเดินในฉากที่ mount อยู่ข้างหลังพร้อมกัน
+    - Full verify เขียว (typecheck/lint/test/build), lint warnings คงที่ 43 ตัว (ของเดิมทั้งหมด), เทสต์รวม 5→14
+    - **ยังค้าง**: sprite 80 เฟรมยังไม่ได้เอาเข้า repo — HetCreep ให้ path มาเป็น placeholder (`<PATH_TO>/sprites`) และค้นไดรฟ์ C: แล้วไม่เจอไฟล์ `Walk_1_Front_01.png`/`HandGrip_*.png` เลย (โฟลเดอร์ `sprites` เดียวที่เจอคือ `Desktop/game/assets/sprites` ซึ่งว่างเปล่า และ `Desktop/game` เป็นคนละโปรเจกต์) รอ path จริง
 
 ---
 

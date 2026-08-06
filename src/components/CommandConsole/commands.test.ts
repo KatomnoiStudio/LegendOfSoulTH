@@ -1,0 +1,60 @@
+import { describe, expect, it } from 'vitest'
+import { parseCommand } from './commands'
+
+describe('parseCommand', () => {
+  it('ข้อความว่างไม่ถือเป็นคำสั่ง', () => {
+    expect(parseCommand('')).toBeNull()
+    expect(parseCommand('   ')).toBeNull()
+  })
+
+  it('ข้อความที่ไม่ขึ้นต้นด้วย / ถูกปฏิเสธ', () => {
+    const result = parseCommand('givecharacter pig')
+    expect(result).toEqual({ kind: 'error', message: expect.stringContaining('ขึ้นต้นด้วย /') })
+  })
+
+  it('/givecharacter pig แปลงชื่อย่อเป็น id จริงได้', () => {
+    expect(parseCommand('/givecharacter pig')).toEqual({
+      kind: 'give-character',
+      characterId: 'pig-warrior',
+    })
+  })
+
+  it('รับ id เต็มและชื่อไทยได้ด้วย', () => {
+    expect(parseCommand('/givecharacter pig-warrior')).toEqual({
+      kind: 'give-character',
+      characterId: 'pig-warrior',
+    })
+    expect(parseCommand('/givecharacter ตือโป๊ยก่าย')).toEqual({
+      kind: 'give-character',
+      characterId: 'pig-warrior',
+    })
+  })
+
+  it('ชื่อคำสั่งไม่สนตัวพิมพ์เล็กใหญ่', () => {
+    expect(parseCommand('/GiveCharacter pig')).toEqual({
+      kind: 'give-character',
+      characterId: 'pig-warrior',
+    })
+  })
+
+  it('ไม่ใส่ชื่อตัวละครต้องได้ข้อความบอกวิธีใช้', () => {
+    expect(parseCommand('/givecharacter')).toEqual({
+      kind: 'error',
+      message: expect.stringContaining('/givecharacter <ตัวละคร>'),
+    })
+  })
+
+  it('ตัวละครที่ไม่มีจริงต้องไม่ถูกเดาให้', () => {
+    const result = parseCommand('/givecharacter dragon')
+    expect(result?.kind).toBe('error')
+  })
+
+  it('คำสั่งที่ไม่รู้จักต้องไม่ถูกตีความเป็นคำสั่งอื่น', () => {
+    const result = parseCommand('/deleteeverything')
+    expect(result).toEqual({ kind: 'error', message: expect.stringContaining('ไม่รู้จักคำสั่ง') })
+  })
+
+  it('/help ใช้ได้', () => {
+    expect(parseCommand('/help')).toEqual({ kind: 'help' })
+  })
+})

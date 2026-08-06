@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import * as accounts from '../data/accountRepository'
-import type { CurrencyResult, FriendCandidate, GoldSource } from '../data/accountRepository'
+import type {
+  CharacterGrantResult,
+  CurrencyResult,
+  FriendCandidate,
+  GoldSource,
+} from '../data/accountRepository'
+import { isAdminEmail } from '../data/admins'
 import type { Player } from '../types/player'
 
 /**
@@ -31,11 +37,20 @@ export interface AuthState {
   redeemCoupon: (code: string) => Promise<CurrencyResult>
   /** ค้นหาผู้เล่นจาก UID เพื่อเพิ่มเพื่อน — คืน null ถ้าไม่พบ (ดู accountRepository.findPlayerByUid) */
   findFriendByUid: (uid: string) => Promise<FriendCandidate | null>
+  /**
+   * บัญชีนี้ใช้คำสั่งผู้ดูแลได้ไหม (ดู src/data/admins.ts)
+   * ⚠️ ไม่ใช่ขอบเขตความปลอดภัย — เช็คฝั่ง client กับข้อมูลที่ผู้เล่นแก้เองได้
+   */
+  isAdmin: boolean
+  /** มอบตัวละครให้บัญชีนี้ — ตอนนี้เรียกจากช่องคำสั่งผู้ดูแลเท่านั้น */
+  grantCharacter: (characterId: string) => Promise<CharacterGrantResult>
 }
 
 export function useAuth(): AuthState {
   const [status, setStatus] = useState<AuthStatus>('loading')
   const [player, setPlayer] = useState<Player | null>(null)
+  // อีเมลไม่ได้อยู่ใน Player (เป็นข้อมูลบัญชี ไม่ใช่ของตัวละคร) จึงเก็บแยกไว้ตรวจสิทธิ์ผู้ดูแล
+  const [email, setEmail] = useState<string | null>(null)
 
   // กู้ session ตอนเปิดเกม เพื่อไม่ต้องล็อกอินซ้ำทุกครั้ง
   useEffect(() => {
@@ -44,6 +59,7 @@ export function useAuth(): AuthState {
     accounts.getSessionPlayer().then((restored) => {
       if (cancelled) return
       setPlayer(restored)
+      setEmail(restored ? accounts.getSessionEmail() : null)
       setStatus(restored ? 'signed-in' : 'guest')
       return undefined
     })
@@ -54,18 +70,20 @@ export function useAuth(): AuthState {
   }, [])
 
   /** คืน null เมื่อสำเร็จ คืนข้อความเมื่อผิดพลาด */
-  const register = useCallback(async (email: string, password: string) => {
-    const result = await accounts.register(email, password)
+  const register = useCallback(async (nextEmail: string, password: string) => {
+    const result = await accounts.register(nextEmail, password)
     if (!result.ok) return result.error
     setPlayer(result.player)
+    setEmail(accounts.getSessionEmail())
     setStatus('signed-in')
     return null
   }, [])
 
-  const login = useCallback(async (email: string, password: string) => {
-    const result = await accounts.login(email, password)
+  const login = useCallback(async (nextEmail: string, password: string) => {
+    const result = await accounts.login(nextEmail, password)
     if (!result.ok) return result.error
     setPlayer(result.player)
+    setEmail(accounts.getSessionEmail())
     setStatus('signed-in')
     return null
   }, [])
@@ -73,6 +91,7 @@ export function useAuth(): AuthState {
   const logout = useCallback(async () => {
     await accounts.logout()
     setPlayer(null)
+    setEmail(null)
     setStatus('guest')
   }, [])
 
@@ -128,6 +147,16 @@ export function useAuth(): AuthState {
   /** ค้นหาไม่ต้องล็อกอินก็เรียกได้จริง แต่ล็อกไว้เผื่อผู้เล่นเรียกจากหน้าที่ต้องล็อกอินก่อนเสมออยู่แล้ว */
   const findFriendByUid = useCallback(async (uid: string) => accounts.findPlayerByUid(uid), [])
 
+  const grantCharacter = useCallback(
+    async (characterId: string) => {
+      if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
+      const result = await accounts.grantCharacter(player.uid, characterId)
+      if (result.ok) setPlayer(result.player)
+      return result
+    },
+    [player],
+  )
+
   return {
     status,
     player,
@@ -140,5 +169,7 @@ export function useAuth(): AuthState {
     topUpGems,
     redeemCoupon,
     findFriendByUid,
+    isAdmin: isAdminEmail(email),
+    grantCharacter,
   }
 }

@@ -32,6 +32,8 @@ export default function App() {
     topUpGems,
     redeemCoupon,
     findFriendByUid,
+    isAdmin,
+    grantCharacter,
   } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
 
@@ -49,6 +51,8 @@ export default function App() {
             onTopUpGems={topUpGems}
             onRedeemCoupon={redeemCoupon}
             onFindFriend={findFriendByUid}
+            isAdmin={isAdmin}
+            onGiveCharacter={grantCharacter}
           />
         </ToastProvider>
       </GameViewport>
