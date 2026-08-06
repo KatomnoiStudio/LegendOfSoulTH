@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { getCharacter } from '../game/characters'
+import { hasWalkFrames } from '../game/walkKits'
 import { AddFriendModal } from '../components/AddFriendModal/AddFriendModal'
 import { WukongAdventure } from '../components/AdventureScene/WukongAdventure'
 import { WorldChat } from '../components/WorldChat/WorldChat'
@@ -78,6 +79,19 @@ export function LobbyPage({
       }),
     [player.ownedCharacters],
   )
+  /**
+   * ตัวที่มีชุดเฟรมเดินจริง — เกณฑ์เดียวกับที่ WukongAdventure ใช้กรอง castBar ของตัวเอง
+   * (ดู src/components/AdventureScene/WukongAdventure.tsx) ใช้ค่าเดียวกันที่นี่เพื่อให้
+   * ปุ่ม "เดินชมจันทร์" ใน ProfileModal เสนอเฉพาะตัวที่เดินได้จริง ไม่ใช่ทุกตัวที่ครอบครอง
+   */
+  const walkableCharacters = useMemo(
+    () => ownedCharacters.filter((entry) => hasWalkFrames(entry.model.kind)),
+    [ownedCharacters],
+  )
+  /** ตัวที่กำลังเดินอยู่ในฉากเดินชมจันทร์ — null คือยังไม่เคยเลือก ใช้ตัวแรกที่เดินได้เป็นค่าเริ่มต้น
+   * (ควบคุมจาก castBar ในฉากเองได้ หรือจากปุ่ม "เดินชมจันทร์" ใน ProfileModal ก็ได้ ทั้งสองจุด
+   * sync กันผ่าน state ตัวนี้ — ดู activeCharacterId/onActiveCharacterChange ของ WukongAdventure) */
+  const [walkingCharacterId, setWalkingCharacterId] = useState<string | null>(null)
   /**
    * ตัวละครที่ถูกแตะในฉาก — ตอนนี้ใช้แค่แสดงวงแหวนใต้เท้าและกระตุ้นท่าประจำตัว
    * (แผงข้อมูลตอนแตะโมเดลถูกถอดออกไว้ก่อน รอดูว่าจะใส่อะไรแทนในอนาคต)
@@ -162,12 +176,28 @@ export function LobbyPage({
         คุมทิศทางด้วย WASD/คลิกพื้นได้เหมือนเดิม เลือกตัวที่จะเดินได้จากแถบเลือกขุนพล
         (ตำแหน่งที่เดินอยู่ยังคงอยู่แม้สลับตัวละคร เพราะ component ไม่ถูก mount ใหม่)
       */}
-      <WukongAdventure mode="moonlight" characters={ownedCharacters} />
+      <WukongAdventure
+        mode="moonlight"
+        characters={ownedCharacters}
+        activeCharacterId={walkingCharacterId}
+        onActiveCharacterChange={setWalkingCharacterId}
+      />
 
       {/* หน้า Lobby ยังคง mount อยู่ข้างหลัง ฉาก 3D และแอนิเมชันตัวละครจึงไม่รีเซ็ต */}
       {rosterOpen ? <CharacterRosterModal player={player} onClose={() => setRosterOpen(false)} /> : null}
 
-      {profileOpen ? <ProfileModal player={player} onClose={() => setProfileOpen(false)} /> : null}
+      {profileOpen ? (
+        <ProfileModal
+          player={player}
+          walkableCharacters={walkableCharacters}
+          activeWalkCharacterId={walkingCharacterId}
+          onSelectWalkCharacter={(id) => {
+            setWalkingCharacterId(id)
+            setProfileOpen(false)
+          }}
+          onClose={() => setProfileOpen(false)}
+        />
+      ) : null}
 
       {addFriendOpen ? (
         <AddFriendModal onSearch={onFindFriend} onClose={() => setAddFriendOpen(false)} />
