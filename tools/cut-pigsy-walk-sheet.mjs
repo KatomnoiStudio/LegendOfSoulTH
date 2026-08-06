@@ -58,6 +58,14 @@ const BG = [12, 14, 16]
 const BG_TOLERANCE = 30
 /** รัศมี closing — เชื่อมช่องขาดในตัวละครที่กว้างไม่เกิน 2 เท่าของค่านี้ */
 const CLOSE_RADIUS = 3
+/**
+ * พิกเซลที่ closing เติมเข้ามาและสีใกล้พื้นหลังกว่านี้ ถือเป็น "สะพาน" ไม่ใช่ตัวละคร
+ * ตั้งไว้แคบมากโดยตั้งใจ: วัดจากชีตแล้วพื้นหลังแท้ ๆ อยู่ที่ 0-9 ส่วนเงาเข้มในชุด
+ * ตัวละครอยู่ที่ 13-17 — ตั้งหลวมกว่านี้จะไปกินเงาในชุดจนตัวพรุนเป็นรู
+ */
+const BRIDGE_BG_LIMIT = 12
+/** สะพานที่ใหญ่กว่านี้คือแผ่นถมช่องว่างจริง ต้องลบทิ้ง (เล็กกว่านี้คือเส้นเชื่อมที่ต้องเก็บ) */
+const BRIDGE_MAX_AREA = 40
 /** ขอบซ้ายของเฟรมแรก — ซ้ายกว่านี้เป็นป้ายชื่อทิศภาษาไทย ต้องไม่เอา */
 const LABEL_EDGE = 125
 const PANEL_RIGHT = 890
@@ -193,6 +201,47 @@ function extractCell(data, W, channels, box) {
   let mask = box1D(box1D(seed, CLOSE_RADIUS, true), CLOSE_RADIUS, false)
   mask = erode1D(erode1D(mask, CLOSE_RADIUS, true), CLOSE_RADIUS, false)
   for (let i = 0; i < mask.length; i++) if (seed[i]) mask[i] = 1
+
+  // 2.5) ลบ "สะพาน" ที่ closing สร้างเกินจำเป็น
+  //
+  // closing เชื่อมทุกอย่างที่อยู่ใกล้กันไม่เกิน 2 เท่าของรัศมี รวมถึงของที่ไม่ควรเชื่อม
+  // เช่นใบคราดที่ผ่านใกล้หัวในท่าหันหลัง — ช่องว่างตรงนั้นถูกถมด้วยพิกเซลสีพื้นหลัง
+  // ที่ถูกทำให้ทึบ กลายเป็นแท่งดำทึบที่ไม่มีอยู่ในต้นฉบับ
+  //
+  // สะพานที่ "ควรเก็บ" คือเส้นบาง ๆ ที่เชื่อมส่วนของตัวละครที่เงาตัดขาด — เล็กเสมอ
+  // สะพานที่ "ต้องลบ" คือแผ่นกว้างที่ถมช่องว่างจริง — ใหญ่เสมอ จึงแยกด้วยขนาดได้
+  {
+    const isBridge = (i) =>
+      mask[i] && !seed[i] && colorDistance(data, at(i % w, (i / w) | 0), channels) <= BRIDGE_BG_LIMIT
+    const seenBridge = new Uint8Array(w * h)
+    for (let i = 0; i < w * h; i++) {
+      if (seenBridge[i] || !isBridge(i)) continue
+      const blob = [i]
+      seenBridge[i] = 1
+      const queue = [i]
+      while (queue.length > 0) {
+        const current = queue.pop()
+        const x = current % w
+        const y = (current / w) | 0
+        for (const [dx, dy] of [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+        ]) {
+          const nx = x + dx
+          const ny = y + dy
+          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
+          const next = ny * w + nx
+          if (seenBridge[next] || !isBridge(next)) continue
+          seenBridge[next] = 1
+          blob.push(next)
+          queue.push(next)
+        }
+      }
+      if (blob.length >= BRIDGE_MAX_AREA) for (const p of blob) mask[p] = 0
+    }
+  }
 
   // 3) เติมรูที่ตัวละครล้อมไว้ให้ทึบ — ช่องว่างจริง (เช่นระหว่างขา) เปิดออกสู่ขอบกรอบ จึงไม่โดนเติม
   const outside = new Uint8Array(w * h)
