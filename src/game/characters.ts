@@ -5,7 +5,7 @@ export type CharacterModelKind = 'monkey-king' | 'pig-warrior' | 'pilgrim-monk'
 
 /** สไปรต์ idle เริ่มต้นของแต่ละตัวละคร ใช้เป็น fallback เมื่อไม่มี model.spriteUrl ให้ใช้ */
 export const MONKEY_SPRITE_URL = publicUrl('characters/monkey-v2-idle-0.webp')
-export const PIGSY_SPRITE_URL = publicUrl('characters/pigsy-idle-0.webp')
+export const PIGSY_SPRITE_URL = publicUrl('characters/pigsy-team-0.webp')
 export const TRIPITAKA_SPRITE_URL = publicUrl('characters/tripitaka-idle-0.webp')
 export type CharacterOrigin = 'Myth' | 'History' | 'Original'
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary'
