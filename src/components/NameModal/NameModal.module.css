@@ -17,6 +17,13 @@
   align-items: center;
   gap: 16px;
   width: min(100%, 29rem);
+  /* กันเนื้อหาล้นจอเตี้ย — ปิดไม่ได้โดยตั้งใจ (ดูคอมเมนต์หัวไฟล์) ปุ่มยืนยันต้องเอื้อมถึงได้เสมอ
+     ไฟล์นี้ไม่มีส่วนหัว/แท็บแยกจากฟอร์มเหมือน AuthModal เลยให้กล่องทั้งกล่องเลื่อนเองตรง ๆ
+     ใช้ dvh ไม่ใช่ % — เหตุผลเดียวกับ AuthModal.module.css (% ของ .backdrop แบบ grid
+     place-items:center ไม่ resolve จริง วัดแล้ว) */
+  max-height: min(90dvh, 34rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 50px 34px 30px;
   border: 1px solid rgb(215 174 88 / 66%);
   border-radius: 2px;
