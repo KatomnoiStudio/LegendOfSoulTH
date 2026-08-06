@@ -104,6 +104,33 @@ export const DASH_CONFIG = {
   distance: 300,
 } as const
 
+/**
+ * สกิลหมุนกระบวนทองคำของหงอคง (§18)
+ *
+ * โจมตีรอบตัว 360° ช่วง active ยาวกว่าคอมโบไม้เดียว — ศัตรูแต่ละตัวโดนได้ครั้งเดียวต่อการร่าย
+ * damageMultiplier สูงกว่าไม้สามของคอมโบเล็กน้อย เพื่อให้คูลดาวน์ 8 วินาทีคุ้มค่า
+ */
+export const MONKEY_SPINNING_STAFF: AttackDefinition = {
+  id: 'monkey-spinning-staff',
+  animationId: 'skill-1',
+  startupMs: 180,
+  activeMs: 420,
+  recoveryMs: 520,
+  comboWindowStartMs: 0,
+  comboWindowEndMs: 0,
+  damageMultiplier: 1.65,
+  range: 158,
+  arcDegrees: 360,
+  knockback: 140,
+}
+
+/** ค่าจังหวะของสกิล (§18) — อยู่ที่เดียว ห้าม hard-code กระจายหลายไฟล์ */
+export const SKILL_CONFIG = {
+  cooldownMs: 8000,
+  /** i-frame ช่วงเปิดท่า — สั้นกว่าเวลาร่ายทั้งหมด ไม่ให้รอดฟรีตลอดท่า */
+  invulnerableMs: 280,
+} as const
+
 /** ท่าโจมตีของศัตรู — จังหวะเดียวกับที่ EnemyAISystem ใช้ตัดสินใจ */
 export const ENEMY_ATTACK: AttackDefinition = {
   id: 'enemy-melee',

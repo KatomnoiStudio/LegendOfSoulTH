@@ -94,9 +94,17 @@ jobs:
 
       # ป้องกันหลายรัน deploy พร้อมกันตอน push ถี่ ๆ (พบว่า concurrency.cancel-in-progress
       # ด้านบนไม่ทันคืนคำสั่ง Pages API ที่ยิงไปแล้ว หลายรันจึงไปค้าง "deployment_queued"
-      # แล้ว timeout พร้อมกัน — 2026-08-06, gh run 31100107280/31101039697) รอเผื่อ push ถี่
-      # ตกตะกอนก่อน แล้วเช็คว่า commit นี้ยังเป็นปลาย master จริงไหม ถ้าไม่ใช่ (มี push ใหม่
-      # แซงเข้ามาระหว่างรอ) ข้ามการ deploy รอบนี้ไปเลย ให้รันของ commit ล่าสุดจัดการแทน
+      # แล้ว timeout พร้อมกัน — 2026-08-06, gh run 31100107280/31101039697)
+      #
+      # เดิมเช็คว่า commit นี้ยังเป็นปลาย master ไหม ถ้าไม่ใช่ก็ข้าม โดยหวังว่า "รันของ commit
+      # ล่าสุดจะ deploy แทน" — แต่สมมติฐานนั้นผิดเมื่อ commit ที่มาแซงเป็นไฟล์ที่ paths-ignore
+      # กรองทิ้ง (เช่น docs/*.md) เพราะ commit แบบนั้น **ไม่ทำให้เกิด run เลย** สายส่งต่อจึงขาด
+      # กลางทางและเว็บค้างอยู่ที่ build เก่าโดยที่ทุก job รายงานว่า success
+      # (เจอจริง 2026-08-06: run #6 ข้ามให้ 66fcfd7 ซึ่งเป็น docs(memory) ล้วน → ไม่มีรันตามมา)
+      #
+      # เลยเปลี่ยนเกณฑ์จาก "มี commit ใหม่กว่าไหม" เป็น "มี **รันของ workflow นี้** ที่ใหม่กว่า
+      # และยังไม่จบไหม" ซึ่งเป็นเงื่อนไขที่ตรงกับเจตนาจริง คือข้ามเฉพาะตอนที่รู้แน่ว่ามีคนอื่น
+      # กำลังจะ deploy ให้ ไม่ใช่เดาจาก sha
       - name: รอ push ถี่ตกตะกอนก่อน deploy
         id: debounce
         env:
@@ -104,12 +112,18 @@ jobs:
         run: |
           sleep 30
           # เช็ค API พังก็ไม่ควรทำให้ job ทั้งใบแดง (นี่แค่กันเคสถี่ ไม่ใช่ gate ความถูกต้อง) —
-          # เช็คไม่ได้ = ถือว่ายังเป็นปลาย master อยู่ ปล่อย deploy ตามปกติ
-          latest_sha="$(gh api "repos/${{ github.repository }}/commits/master" --jq .sha || echo "${{ github.sha }}")"
-          if [ "$latest_sha" != "${{ github.sha }}" ]; then
-            echo "commit ${{ github.sha }} ไม่ใช่ปลาย master แล้ว (ปัจจุบันคือ $latest_sha) — ข้าม deploy รอบนี้"
+          # เช็คไม่ได้ = ถือว่าไม่มีใครมาแทน ปล่อย deploy ตามปกติ ปลอดภัยกว่าข้ามแล้วเว็บค้าง
+          newer="$(gh api \
+            "repos/${{ github.repository }}/actions/workflows/deploy.yml/runs?branch=master&per_page=20" \
+            --jq '[.workflow_runs[]
+                   | select(.status == "queued" or .status == "in_progress")
+                   | select(.run_number > ${{ github.run_number }})]
+                  | length' || echo 0)"
+          if [ "${newer:-0}" -gt 0 ]; then
+            echo "มีรัน deploy ที่ใหม่กว่ากำลังทำงานอยู่ ($newer รัน) — ข้าม deploy รอบนี้"
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
+            echo "ไม่มีรันที่ใหม่กว่า — deploy ต่อ"
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
@@ -143,7 +157,12 @@ jobs:
               ;;
           esac
 
+      # timeout ปริยายของ action คือ 10 นาที ซึ่งสั้นเกินไปเมื่อคิว Pages หนา — เจอจริง
+      # 2026-08-06 หลาย run ค้าง "deployment_queued" แล้วตายที่ 10:00 นาทีเป๊ะ (run #5, #7)
+      # ทำให้เว็บค้างที่ build เก่าทั้งที่ merge ไปหลายรอบแล้ว ยืดเป็น 30 นาที
       - name: Deploy to GitHub Pages
         if: steps.debounce.outputs.skip != 'true' && steps.queue-check.outputs.skip != 'true'
         id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
+        with:
+          timeout: 1800000

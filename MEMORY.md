@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-07T06:45:00+07:00 by `Claude Code (memory-keeper)`  
+> **Last Updated**: 2026-08-06T20:45:00+07:00 by `Cursor Agent (Phase 2 fork sync)`  
 > **RULES_VERSION: 10** (see `.agents/rules/rules-freshness-check.md` — the freshness check itself compares `AGENTS.md`'s header against the `RULES_VERSION last synced:` line in "Current Status" below, not this line; keep this line in sync as a courtesy so a skim doesn't see a stale number)
 
 ---
@@ -592,19 +592,48 @@
     - **Merge collision found and resolved mid-push**: while this workflow ran, `kaoshock123` pushed `740f502` (removed Pigsy's not-yet-ready walk/turnaround/idle sprite sheets, repointed `characters.ts`/`stages.ts`/`npcs.ts`'s `pigsy-idle-0.webp` → `pigsy-team-0.webp`) — touching the same literal `spriteUrl:` lines in the same 3 files this session's centralization had just touched. A real conflict, not just proximity. Resolved by keeping the centralized `PIGSY_SPRITE_URL` reference at all 3 use sites and updating its one value inside `characters.ts` to the new path — exactly what centralization is for: the incoming asset-path fix only needed to land in one place instead of three. Full verify (typecheck/lint/test 166/build) re-run green after the merge, before pushing. Pushed as `c11eeb6` (the centralization refactor) then `d3fc90e` (the merge) — **supersedes item 59's stale-SHA caveat** on `origin/master`.
     - **Process note**: first genuine use of the `Workflow` tool (ultracode) this session rather than ad-hoc `Agent` calls or CoalBoard's ask-CB lane — reserved for a task that's repo-wide, multi-category, and where the categories are independent enough to scout in parallel but risky to implement in parallel (same-file collision risk), hence the sequential for-loop for the implement phase instead of `pipeline()`/`parallel()`.
 
-63. **The battle button now opens the battle room directly — exploration cut from the main path** (2026-08-06, `Claude Code (cloud session, Ring 1)`, contributed from the `nustanakritwithai/GameTurnBase` fork line, user-directed):
-    - **Reported by a player**: pressing **ต่อสู้** in the lobby showed the shadow-village exploration map, not a battle. Reaching an actual fight meant walking to an NPC, pressing "คุย", then pressing "ต่อสู้" again inside the dialogue box. That detour is long enough that the player concluded the deployed build was stale — it wasn't.
-    - **Cause**: `LobbyPage.tsx` wired **both** entry points to exploration — `MainNavigation`'s `onOpenBattle` and `StartAdventure`'s `onStart` each called `setExplorationOpen(true)`.
-    - **Decision (asked before implementing, since it changes feature scope)**: the button enters `trial-01` directly and returns to the lobby when the fight ends; **exploration is cut from the main path**. Its files all remain (`GameExplorationSession`, `ExplorationScene`, `useGameFlow`, the NPC/dialogue systems) but nothing imports them, so there is no entry point. To bring it back, wire a new entry — do not rewrite it.
-    - **`LobbyBattleSession.tsx`** is deliberately thin: pick the stage → open the room → save the result → close. No exploration state (map, position, NPC, dialogue) is involved at all, and `BattleScene` is still lazy-loaded so three.js stays out of the main chunk.
-    - **No duplicate persistence**: it uses the same `appendBattleHistory()` that `useGameFlow` uses, and converts through the existing `toLegacyBattleResult()` — the single place that knows `BattleRecord` still wants `turns` (the realtime migration replaces it with `durationMs` later; converting inline here would create a second site to forget). It sets the same `trial_cleared_<stageId>` flag the NPC path set, so stage progress counts identically, and a `savedRef` guards against writing history twice.
-    - **Useful side effect**: the main chunk shrinks because the whole exploration subtree tree-shakes out once nothing imports it.
-    - **Verified in a real browser at 1280×720 and 844×390**: the button reaches the room in ~1.3 s / ~1.1 s; **exploration is never mounted on the way** (checked for the `_explore_` class and the map's name while inside the room — both absent, so this is not merely "passed through quickly"); the HUD reads `ลานฝึกหน้าวิหาร คลื่น 1/1 · เหลือศัตรู 3`; attacking produces damage numbers; **pressing ออก returns to the lobby**; touch buttons measure 116/76 px and 148/112 px; **0 console errors and 0 responses ≥ 400** at both sizes. `npm run ci` green (157 tests / 17 files).
+63. **Fork Phase 2 — merge upstream `master` into `nustanakritwithai/GameTurnBase`** (2026-08-06, Agent: Cursor Agent, Ring 1 cloud):
+   - **Operator**: HetCreep | **Precondition**: Step 1 (upstream gap-fix PR — webp battle sprites + `battleAssets.test.ts`) completed by operator.
+   - **Method**: `git merge upstream/master` on fork `master` (normal merge, **not** force-push). Safety branch `phase2-pre-merge-20260806` from pre-merge fork `master`.
+   - **Pre-merge divergence**: fork ~30 ahead / upstream ~40 ahead.
+   - **Conflict policy**: upstream canonical for `realtimeBattle/*`, `battleSpriteSequences`, `useRealtimeBattle`, `MEMORY.md` base; fork kept `LobbyBattleSession` (PR #13 direct lobby battle entry), `docs/battle-integration-contract-readiness.md`, `vite.config.ts` `resolveBasePath()`, `.cursor/environment.json`.
+   - **Verify before push**: `npm run ci` (166 tests) + `npm run build` green.
+   - **Post-push target**: `git rev-list --left-right --count upstream/master...origin/master` → **behind 0** (ahead remains — expected).
+   - **Outstanding after Phase 2**: rebase/merge P1 skill branch `cursor/battle-monkey-skill-e117` (PR #12) onto new `master`; P2 reward integration still not started.
+
+64. **Deploy ขึ้น Pages ล้มเงียบ ๆ ติดกันหลายรอบ — เว็บค้างที่ build เก่า** (2026-08-06T21:20+07:00, `Claude Code (cloud session, Ring 1)`):
+    - **อาการ**: merge เข้า master ไป 3 รอบติด (PR #13 ปุ่มต่อสู้, sync Phase 2, PR #12 สกิล)
+      แต่เว็บยังเสิร์ฟ bundle เดิมของ PR #11 (`index-CFNXXhiv.js`, 329,733 ไบต์) ยืนยันด้วยการ
+      ดาวน์โหลด bundle จากเว็บจริงมา grep — ยังมี `หมู่บ้านแห่งเงา`/`เริ่มการผจญภัย`/`คุย`
+      ครบ แปลว่าปุ่มต่อสู้ยังพาไปหน้าสำรวจอยู่ ผู้ใช้จึง "กดแล้วเข้าต่อสู้ไม่ได้" จริง ๆ
+    - **บั๊กที่ 1 — debounce ส่งต่อให้ commit ที่ไม่มีวันมีรัน**: ขั้นตอน "รอ push ถี่ตกตะกอน"
+      เช็คว่า commit ของตัวเองยังเป็นปลาย master ไหม ถ้าไม่ใช่ก็ **skip** โดยหวังว่ารันของ
+      commit ที่มาแซงจะ deploy แทน แต่ commit ที่แซงคือ `docs(memory): ...` ซึ่งโดน
+      `paths-ignore: '**/*.md'` กรองทิ้ง = **ไม่เคยเกิด run เลย** สายส่งต่อขาดกลางทาง
+      และทุก job รายงาน `success` ทั้งที่ไม่ได้เผยแพร่อะไร (run #6, step "Deploy to GitHub
+      Pages" = `skipped`) — ความล้มเหลวแบบเงียบสนิทซึ่งอันตรายกว่าแดง
+    - **แก้**: เปลี่ยนเกณฑ์จาก "มี commit ใหม่กว่าไหม" เป็น "**มีรันของ workflow นี้ที่ใหม่กว่า
+      และยัง `queued`/`in_progress` ไหม**" ซึ่งตรงกับเจตนาจริงคือข้ามเฉพาะตอนรู้แน่ว่ามีคนอื่น
+      กำลังจะ deploy ให้ ไม่ใช่เดาจาก sha · ถ้า API เช็คไม่ได้ให้ถือว่า **ไม่มีใครมาแทน แล้ว
+      deploy ต่อ** (ปลอดภัยกว่าข้ามแล้วเว็บค้าง) · ทดสอบ jq filter กับข้อมูลรันจริงแล้ว:
+      รันที่จบแล้วไม่นับ (คืน 0 = deploy ต่อ) มีรันใหม่กว่าที่ยังทำงานอยู่จึงคืน 1 = ข้าม
+    - **บั๊กที่ 2 — timeout สั้นเกินไป**: `actions/deploy-pages` ใช้ค่าปริยาย 10 นาที
+      run #5 และ #7 ค้างสถานะ `deployment_queued` แล้วตายที่ **10:00 นาทีเป๊ะ** ทั้งคู่
+      (run #7: 13:53:38 → 14:03:40) ยืดเป็น **30 นาที** เพราะคิว Pages หนากว่าที่ค่าปริยายเผื่อไว้
+    - **บทเรียน**: กลไกกัน deploy ชนกันที่ "ข้ามงานตัวเอง" ต้องพิสูจน์ให้ได้ว่ามีคนอื่นทำแทนจริง
+      การอนุมานจาก sha ไม่พอ เพราะ `paths-ignore` ทำให้ commit บางตัวไม่ก่อให้เกิดรันเลย
+
+65. **Upstream Pages sync PR** (2026-08-06, Agent: Cursor Agent, Ring 1 cloud):
+   - **Target URL**: `https://legendofsoulth.github.io/LegendOfSoulTH/`
+   - **Branch**: `cursor/upstream-pages-deploy-e117` — fork master rebased on upstream `e101f59`
+   - **Payload**: P1 skill, deploy fixes (debounce + queue-check + 30min timeout), `resolveBasePath()`, turn-based cleanup from upstream
+   - **Blocker**: agent cannot push upstream (403) — HetCreep merges PR fork → upstream to deploy
 
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
 
+- **Fork sync (Phase 2)**: 🟢 Complete — `origin/master` (`nustanakritwithai/GameTurnBase`) merged `upstream/master` @ merge commit `4c615f0` (2026-08-06). `behind 0` / `ahead 31` vs upstream (expected). Fork-only: `LobbyBattleSession`, `docs/battle-integration-contract-readiness.md`, `resolveBasePath()`. **Next**: rebase P1 skill branch `cursor/battle-monkey-skill-e117` (PR #12) onto new `master`.
 - **Repo Status**: 🟢 Clean & Synced (`origin/master` @ `d3fc90e`, tagged `v0.1.0`) — item 62's centralization push confirms the SHA chain (`c11eeb6` → merge `d3fc90e`), full verify green before push. **SUPERSEDES item 59's stale-SHA caveat** (`40216dd`) — no longer needs re-verification.
 - **CI Pipelines**: 🟢 All green (Build/Typecheck/Lint, CodeQL, Security & Secret Scan, Deploy) — Gitleaks license-paywall failure fixed (item 12)
 - **Security & Protection**: 🛡️ 100% Enabled & Monitored (CodeQL + Dependabot + Secret Scanning + Gitleaks + NPM Audit) + branch protection (basic, `master`) + Actions SHA-pin enforcement (item 37). Secret-scanning validity-checks still off (API can't toggle it — needs manual check at Settings → Code security).
@@ -631,7 +660,6 @@
 - **RULES_VERSION last synced: 10** (`.agents/rules/rules-freshness-check.md`) — unchanged this session (item 62); no new/edited rule file, verified.
 - **Ring**: this machine is Ring 0 (`.agents/ring0.local` present, gitignored). Any other clone is Ring 1 by default — see `.agents/rules/ring0-authority.md`.
 - **Pages base path**: `vite.config.ts`'s `resolveBasePath()` derives the Vite `base` from `GITHUB_REPOSITORY` at build time (item 57) — never hardcode a repo name there again; a wrong `base` produces a blank page with a 200 HTML response and no console error, which is very hard to spot. Override with `BASE_PATH` for a custom domain served from root.
-- **Battle entry**: the lobby's ต่อสู้ / เริ่มการผจญภัย buttons open `LobbyBattleSession` (`trial-01`) directly (item 63) — **exploration is no longer on the main path**. Its files are all still present but unimported, so they tree-shake out of the bundle; wire a new entry point to bring it back rather than rewriting it.
 - **Pre-push sync**: `.agents/rules/pre-push-sync-law.md` — binding on every machine before every push.
 
 ---
