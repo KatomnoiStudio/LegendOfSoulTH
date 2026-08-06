@@ -124,14 +124,10 @@ interface WukongAdventureProps {
   /** ตัวละครที่ผู้เล่นครอบครอง — ใช้เป็นตัวเลือกในแถบเลือกขุนพล */
   characters: Character[]
   /**
-   * ควบคุมตัวที่กำลังเดินจากภายนอกได้ (เช่นปุ่ม "เดินชมจันทร์" ใน ProfileModal) —
-   * ไม่ส่งมาก็ยังทำงานเหมือนเดิมทุกประการ (ใช้ state ภายในของตัวเอง ตัวแรกใน
-   * availableCharacters เป็นค่าเริ่มต้น) นี่คือ controlled/uncontrolled hybrid
-   * มาตรฐานของ React — external ชนะเมื่อมีค่า ไม่งั้น fallback ไป internal
+   * ตัวที่จะพาเดิน — มาจากปุ่ม "เดินชมจันทร์" ในโปรไฟล์ (ดู ProfileModal.tsx)
+   * ซึ่งเป็นทางเดียวที่เปลี่ยนตัวได้ ไม่ส่งมา (หรือส่ง null) ก็ใช้ตัวแรกที่มีชุดเฟรมเดิน
    */
   activeCharacterId?: string | null
-  /** เรียกทุกครั้งที่ตัวที่เดินอยู่เปลี่ยน ไม่ว่าจะจาก castBar ในฉากนี้เองหรือจากภายนอก */
-  onActiveCharacterChange?: (characterId: string) => void
 }
 
 export function WukongAdventure({
@@ -139,7 +135,6 @@ export function WukongAdventure({
   mode = 'trial',
   characters,
   activeCharacterId,
-  onActiveCharacterChange,
 }: WukongAdventureProps) {
   const copy = MODE_COPY[mode]
   // Migrating local accounts can briefly have no owned characters. This is
@@ -155,18 +150,14 @@ export function WukongAdventure({
     (entry) => getWalkKit(entry.model.kind).walkPrefix !== null,
   )
 
-  // โหมดชมจันทร์เลือกขุนพลได้ ส่วนลานฝึกยังเป็นบทของซุนหงอคงตามเนื้อเรื่อง
-  const canPickCharacter = mode === 'moonlight' && availableCharacters.length > 1
-  const [internalActiveId, setInternalActiveId] = useState(availableCharacters[0]?.id ?? '')
+  /*
+     ตัวเริ่มต้นคือตัวแรกที่มีชุดเฟรมเดิน ส่วนการ "เปลี่ยนตัว" ทำได้จากปุ่ม
+     "เดินชมจันทร์" ในโปรไฟล์ทางเดียว (ส่งมาทาง activeCharacterId) — เดิมมีแถบเลือก
+     ลอยอยู่กลางฉากลอบบี้ด้วย แต่ถอดออกแล้วเพราะบังฉากและซ้ำซ้อนกับปุ่มในโปรไฟล์
+  */
+  const [internalActiveId] = useState(availableCharacters[0]?.id ?? '')
   // ค่าจากภายนอก (activeCharacterId) ชนะถ้ามี — ดู comment ของ prop ด้านบน
   const activeId = activeCharacterId ?? internalActiveId
-  const setActiveId = useCallback(
-    (id: string) => {
-      setInternalActiveId(id)
-      onActiveCharacterChange?.(id)
-    },
-    [onActiveCharacterChange],
-  )
   // undefined ได้ ถ้าผู้เล่นมีแต่ตัวที่ยังไม่มีเฟรมเดิน — จัดการหลัง hook ทั้งหมด
   const active: Character | undefined =
     availableCharacters.find((entry) => entry.id === activeId) ?? availableCharacters[0]
@@ -527,24 +518,6 @@ export function WukongAdventure({
           </div>
         )}
       </div>
-
-      {canPickCharacter ? (
-        <div className={styles.castBar} role="group" aria-label="เลือกขุนพลที่จะพาเดิน">
-          {availableCharacters.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              className={styles.castButton}
-              aria-pressed={entry.id === active.id}
-              aria-label={`พา${entry.name}เดิน`}
-              onClick={() => setActiveId(entry.id)}
-            >
-              <img src={entry.model.spriteUrl} alt="" draggable={false} />
-              <span className={styles.castName}>{entry.name}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
 
       {mode === 'moonlight' ? null : (
         <div className={styles.helpBar}>

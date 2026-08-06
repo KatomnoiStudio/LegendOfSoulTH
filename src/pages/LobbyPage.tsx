@@ -92,8 +92,7 @@ export function LobbyPage({
     [ownedCharacters],
   )
   /** ตัวที่กำลังเดินอยู่ในฉากเดินชมจันทร์ — null คือยังไม่เคยเลือก ใช้ตัวแรกที่เดินได้เป็นค่าเริ่มต้น
-   * (ควบคุมจาก castBar ในฉากเองได้ หรือจากปุ่ม "เดินชมจันทร์" ใน ProfileModal ก็ได้ ทั้งสองจุด
-   * sync กันผ่าน state ตัวนี้ — ดู activeCharacterId/onActiveCharacterChange ของ WukongAdventure) */
+   * เปลี่ยนได้จากปุ่ม "เดินชมจันทร์" ในโปรไฟล์ทางเดียว (แถบเลือกที่เคยลอยอยู่กลางฉากถูกถอดออกแล้ว) */
   const [walkingCharacterId, setWalkingCharacterId] = useState<string | null>(null)
   /**
    * ตัวละครที่ถูกแตะในฉาก — ตอนนี้ใช้แค่แสดงวงแหวนใต้เท้าและกระตุ้นท่าประจำตัว
@@ -193,7 +192,6 @@ export function LobbyPage({
         mode="moonlight"
         characters={ownedCharacters}
         activeCharacterId={walkingCharacterId}
-        onActiveCharacterChange={setWalkingCharacterId}
       />
 
       {/* หน้า Lobby ยังคง mount อยู่ข้างหลัง ฉาก 3D และแอนิเมชันตัวละครจึงไม่รีเซ็ต */}
