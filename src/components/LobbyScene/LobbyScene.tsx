@@ -142,12 +142,17 @@ export function LobbyScene({ teamSlots, selectedId, onSelect, qualityOverride }:
               // หลังล็อกอิน — เกิดตรงนี้ ไม่ใช่ตอน login จริง) กันด้วย timeout แล้วตกไป WebGL2
               // แทนที่จะรอเฉย ๆ ไม่มีกำหนด
               const INIT_TIMEOUT_MS = 4000
-              await Promise.race([
-                renderer.init(),
-                new Promise((_resolve, reject) => {
-                  setTimeout(() => reject(new Error('WebGPU renderer.init() timed out')), INIT_TIMEOUT_MS)
-                }),
-              ])
+              let timeoutId: ReturnType<typeof setTimeout> | undefined
+              try {
+                await Promise.race([
+                  renderer.init(),
+                  new Promise((_resolve, reject) => {
+                    timeoutId = setTimeout(() => reject(new Error('WebGPU renderer.init() timed out')), INIT_TIMEOUT_MS)
+                  }),
+                ])
+              } finally {
+                clearTimeout(timeoutId)
+              }
               // WebGPU ไม่ยิง DOM event 'webglcontextlost' (นั่นเป็นกลไกเฉพาะ WebGL) —
               // ต้องผูก onDeviceLost ของตัว renderer เองแทน ไม่งั้นการ์ดจอหลุดแล้วเงียบ
               // ไม่มี fallback UI ให้เห็นเลย (ต่างจากฝั่ง WebGL2 ด้านล่างที่ยังใช้ DOM event เดิม)
