@@ -356,7 +356,16 @@ export async function register(email: string, password: string): Promise<AuthRes
     return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
   }
 
-  writeJson(SESSION_KEY, { uid, email: key })
+  /*
+    ต้องเช็คค่าที่คืนมาเหมือน saveDb ไม่ใช่ยิงทิ้ง
+
+    บัญชีเขียนลงแล้วแต่ session เขียนไม่ลง (พื้นที่พอสำหรับก้อนใหญ่แต่ไม่พอสำหรับก้อนเล็ก
+    ที่ตามมา) ให้ผลประหลาดที่สุด: หน้าจอเข้าเกมได้ตามปกติ แต่พอโหลดหน้าใหม่ getSessionPlayer
+    หา session ไม่เจอแล้วเด้งกลับหน้าล็อกอิน ทั้งที่บัญชีถูกบันทึกไว้เรียบร้อยแล้วจริง ๆ
+  */
+  if (!writeJson(SESSION_KEY, { uid, email: key })) {
+    return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
+  }
   return { ok: true, player: normalizePlayer(account.player) }
 }
 
@@ -380,7 +389,10 @@ export async function login(email: string, password: string): Promise<AuthResult
     saveDb(db)
   }
 
-  writeJson(SESSION_KEY, { uid: account.uid, email: key })
+  // เช็คค่าที่คืนมาด้วยเหตุผลเดียวกับใน register (ดูคอมเมนต์ที่นั่น)
+  if (!writeJson(SESSION_KEY, { uid: account.uid, email: key })) {
+    return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
+  }
   return { ok: true, player: normalizePlayer(account.player) }
 }
 
@@ -462,7 +474,10 @@ export async function importSave(json: string): Promise<AuthResult> {
     return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
   }
 
-  writeJson(SESSION_KEY, { uid: account.uid, email: key })
+  // เช็คค่าที่คืนมาด้วยเหตุผลเดียวกับใน register (ดูคอมเมนต์ที่นั่น)
+  if (!writeJson(SESSION_KEY, { uid: account.uid, email: key })) {
+    return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
+  }
   return { ok: true, player: normalizePlayer(account.player) }
 }
 

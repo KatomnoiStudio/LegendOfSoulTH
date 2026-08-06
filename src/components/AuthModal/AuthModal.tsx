@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { PASSWORD_MIN_LENGTH } from '../../data/accountRepository'
 import { useModalA11y } from '../../hooks/useModalA11y'
 import { getLastEmail, setLastEmail } from '../../lib/authUi'
+import { reportError } from '../../lib/errors/reportError'
 import styles from './AuthModal.module.css'
 
 type Mode = 'register' | 'login'
@@ -49,10 +50,11 @@ export function AuthModal({ onRegister, onLogin, onImportSave }: AuthModalProps)
         setError(message)
         setBusy(false)
       }
-    } catch {
+    } catch (cause) {
       // ต้องจับไว้ ไม่งั้น busy ค้าง true ตลอด แล้วทั้งปุ่มส่งและปุ่มนำเข้าไฟล์ถูก disable
       // ผู้เล่นติดอยู่ในกล่องนี้โดยไม่มีข้อความบอกสาเหตุ (อ่านไฟล์พลาด/แฮชในไฟล์เพี้ยน
       // จน WebCrypto reject ก็มาทางนี้)
+      reportError('AUTH_IMPORT_FAIL', 'silent', cause)
       setError('อ่านไฟล์ save ไม่สำเร็จ ลองใหม่หรือใช้ไฟล์อื่น')
       setBusy(false)
     }
@@ -101,10 +103,11 @@ export function AuthModal({ onRegister, onLogin, onImportSave }: AuthModalProps)
         setError(message)
         setBusy(false)
       }
-    } catch {
+    } catch (cause) {
       // เหตุผลเดียวกับ handleImportFile: ถ้าปล่อย reject หลุด busy จะค้าง true
       // แล้วกล่องนี้ใช้ต่อไม่ได้เลย (เช่นตอนหน้าไม่ได้อยู่บน secure context จน
       // crypto.subtle ใช้ไม่ได้ หรือแฮชที่เก็บไว้เพี้ยนจน deriveBits โยนข้อผิดพลาด)
+      reportError('AUTH_SUBMIT_FAIL', 'silent', cause)
       setError('ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง')
       setBusy(false)
     }

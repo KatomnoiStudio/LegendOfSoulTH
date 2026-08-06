@@ -30,9 +30,10 @@ export function AddFriendModal({ player, onPlayerChange, onSearch, onClose }: Ad
   // เมื่อมีระบบแล้วให้เก็บ blockedUids บน Player แบบเดียวกับ friends แล้วเติมรายชื่อจริงตรงนี้
   const blockedPlayers: FriendCandidate[] = []
 
-  const handleAddFriend = (candidate: FriendCandidate) => {
-    void onPlayerChange({ ...player, friends: [...friendsList, candidate] })
-  }
+  // คืน promise ให้ผู้เรียกรอได้ ไม่ใช่ยิงทิ้ง — ปุ่มเพิ่มเพื่อนต้องรู้ว่าเขียนเสร็จแล้ว
+  // ค่อยบอกผู้เล่นว่าสำเร็จ (ดูคอมเมนต์ใน AddFriendPanel.handleAdd)
+  const handleAddFriend = (candidate: FriendCandidate) =>
+    onPlayerChange({ ...player, friends: [...friendsList, candidate] })
 
   const tabs: { id: TabId; label: string; icon: typeof AddFriendIcon }[] = [
     { id: 'friend', label: 'เพิ่มเพื่อน', icon: AddFriendIcon },

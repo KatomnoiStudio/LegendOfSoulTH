@@ -11,7 +11,7 @@ interface AddFriendPanelProps {
   /** true ถ้า uid นี้อยู่ในรายชื่อเพื่อนอยู่แล้ว — กันเพิ่มซ้ำ */
   isFriend: (uid: string) => boolean
   /** เพิ่มเข้ารายชื่อเพื่อนจริง (บันทึกลง player.friends) */
-  onAddFriend: (candidate: FriendCandidate) => void
+  onAddFriend: (candidate: FriendCandidate) => Promise<void>
 }
 
 type SearchState =
@@ -48,10 +48,19 @@ export function AddFriendPanel({ onSearch, isFriend, onAddFriend }: AddFriendPan
       showToast(`${player.name}อยู่ในรายชื่อเพื่อนอยู่แล้ว`)
       return
     }
-    onAddFriend(player)
-    showToast(`เพิ่ม${player.name}เป็นเพื่อนแล้ว`)
-    setUidInput('')
-    setSearch({ status: 'idle' })
+    /*
+      รอให้เขียนเสร็จก่อนค่อยบอกว่าสำเร็จ
+
+      เดิมยิง toast "เพิ่มเป็นเพื่อนแล้ว" ในบรรทัดถัดจากการสั่งเขียนทันที ถ้าเขียนไม่ผ่าน
+      (พื้นที่เต็ม/โหมดส่วนตัว) useAuth.updatePlayer จะย้อนรายชื่อกลับเงียบ ๆ ผู้เล่นจึง
+      เห็นข้อความว่าสำเร็จ แล้วเพื่อนหายไปเองสักพักโดยไม่มีอะไรเชื่อมสองเหตุการณ์เข้าด้วยกัน
+    */
+    void (async () => {
+      await onAddFriend(player)
+      showToast(`เพิ่ม${player.name}เป็นเพื่อนแล้ว`)
+      setUidInput('')
+      setSearch({ status: 'idle' })
+    })()
   }
 
   return (
