@@ -21,13 +21,31 @@ const KEY_VECTORS: Record<string, Vec2> = {
   KeyD: { x: 1, y: 0 },
 }
 
+/** ปุ่มโจมตีบนคีย์บอร์ด — เว้นวรรคคือปุ่มที่คนเล่นเกมบนเบราว์เซอร์คาดหวังที่สุด */
+const ATTACK_KEYS = new Set(['Space', 'KeyJ'])
+
 export class InputSystem {
   private pressedKeys = new Set<string>()
   private joystick: Vec2 = { x: 0, y: 0 }
+  /**
+   * จำนวนครั้งที่สั่งโจมตีค้างไว้ รอให้เฟรมจำลองมาหยิบ
+   *
+   * เก็บเป็น "การกดที่ยังไม่ถูกใช้" ไม่ใช่ "ปุ่มถูกกดอยู่ไหม" เพราะการกดหนึ่งครั้งต้อง
+   * แปลว่าโจมตีหนึ่งครั้งเสมอ ไม่ว่าเฟรมจำลองจะมาถี่แค่ไหน และการกดค้างต้องไม่กลายเป็น
+   * โจมตีรัวอัตโนมัติ
+   */
+  private pendingAttacks = 0
 
   /** เริ่มฟังคีย์บอร์ด คืนฟังก์ชันสำหรับถอด listener (ต้องเรียกตอน unmount — §28) */
   attachKeyboard(target: Window = window): () => void {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (ATTACK_KEYS.has(event.code)) {
+        event.preventDefault()
+        // กดค้างไม่นับซ้ำ — ต้องปล่อยแล้วกดใหม่ถึงจะเป็นการโจมตีครั้งถัดไป
+        if (!this.pressedKeys.has(event.code)) this.pendingAttacks += 1
+        this.pressedKeys.add(event.code)
+        return
+      }
       if (!(event.code in KEY_VECTORS)) return
       // กันหน้าเว็บเลื่อนตามปุ่มลูกศรระหว่างเล่น
       event.preventDefault()
@@ -78,8 +96,25 @@ export class InputSystem {
     return { x, y }
   }
 
+  /** ปุ่มโจมตีบนจอสัมผัสเรียกตัวนี้ */
+  pressAttack(): void {
+    this.pendingAttacks += 1
+  }
+
+  /**
+   * หยิบคำสั่งโจมตีที่ค้างอยู่ไปหนึ่งครั้ง — คืน true ถ้ามี
+   *
+   * ใช้แบบ "หยิบแล้วหาย" เพื่อให้การกดหนึ่งครั้ง = โจมตีหนึ่งครั้งพอดี
+   */
+  consumeAttack(): boolean {
+    if (this.pendingAttacks <= 0) return false
+    this.pendingAttacks -= 1
+    return true
+  }
+
   reset(): void {
     this.pressedKeys.clear()
     this.joystick = { x: 0, y: 0 }
+    this.pendingAttacks = 0
   }
 }

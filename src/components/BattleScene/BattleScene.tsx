@@ -24,7 +24,7 @@ interface BattleSceneProps {
 }
 
 export function BattleScene({ player, stageId, onComplete, onExit }: BattleSceneProps) {
-  const { phase, errorMessage, runtime, snapshot, requestExit, setJoystick } = useRealtimeBattle({
+  const { phase, errorMessage, runtime, snapshot, requestExit, setJoystick, pressAttack } = useRealtimeBattle({
     player,
     stageId,
     onComplete,
@@ -65,6 +65,7 @@ export function BattleScene({ player, stageId, onComplete, onExit }: BattleScene
       snapshot={snapshot}
       onExit={handleExit}
       onMove={setJoystick}
+      onAttack={pressAttack}
     />
   )
 }
