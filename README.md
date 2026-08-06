@@ -27,10 +27,29 @@ npm run preview   # ดู production build
 npm run ci        # typecheck + lint + test + build ครบ (CI จริงมีขั้น build:models เพิ่มก่อนหน้านี้ด้วย
                   # — ปกติไม่กระทบ typecheck/lint/test/build เพราะแตะแค่ไฟล์ .glb ที่ TS ไม่เช็ค)
                   # pre-commit hook (husky + lint-staged) รัน oxlint บนไฟล์ที่ staged อัตโนมัติแล้ว
+npm run audit     # npm audit --audit-level=high (ตัวเดียวกับที่ security-scan.yml รันทุกวัน)
 
 npm run build:models   # สร้างไฟล์ GLB ของตัวละครลง public/models/
 npm run build:images   # แปลงภาพต้นฉบับ assets/raw/ -> WebP บีบอัดแล้วลง public/
 ```
+
+## การปล่อยเว็บ
+
+เว็บ **ไม่ได้ deploy ทุก push** — ปล่อยเมื่อเลขเวอร์ชันเกมเปลี่ยนเท่านั้น
+
+```bash
+# 1. แก้เลขให้ตรงกันทั้งสองที่ (มีเทสต์กันหลุด — src/game/gameInfo.test.ts)
+#    src/game/gameInfo.ts  ->  version: '0.3.0'
+#    package.json          ->  "version": "0.3.0"
+# 2. เขียนหัวข้อ ## [0.3.0] ใน CHANGELOG.md  (เนื้อรีลีสดึงจากตรงนี้)
+# 3. push -> deploy + สร้าง GitHub Release + แนบ SBOM ให้อัตโนมัติ
+```
+
+push ที่ไม่ได้ bump จะจบที่ job `gate` สั้น ๆ ไม่เสียเวลา build ทั้งชุด
+อยากปล่อยโดยไม่ bump ก็กด **Run workflow** ที่ Actions → Deploy to GitHub Pages ได้
+
+เหตุผล: ก่อนหน้านี้ทุก push ยิง deploy พร้อมกันจนถูก cancel ทับกันเอง เว็บจริงเคยค้าง
+ตามหลัง master อยู่ 18 commit โดยที่ workflow รายงาน success ตลอด
 
 > อยากรู้ว่าโปรเจกต์นี้ทำงานร่วมกับ AI agent ยังไง (กฎบังคับ, ที่มาโค้ด, ประวัติการตัดสินใจ) ดู
 > [`AGENTS.md`](AGENTS.md) และ [`MEMORY.md`](MEMORY.md)
@@ -158,55 +177,74 @@ python scripts/<ชื่อสคริปต์>.py
 
 ## โครงสร้าง
 
+รายชื่อเป็นระดับ "โฟลเดอร์ + ไฟล์ที่ต้องรู้จริง" ไม่ใช่สารบัญทุกไฟล์ — สารบัญเต็มจะเก่าเร็ว
+กว่าที่คนจะมาแก้ ⭐ = จุดที่ควรอ่านก่อนแตะอะไรใกล้ ๆ
+
 ```
 src/
-├─ App.tsx                        เส้นทางเข้าเกม: Title → Auth → NameModal → Lobby (ดู useAuth)
-├─ index.css                      design token ทั้งหมด (สี / spacing / motion) + reset
-├─ game/characters.ts             ⭐ ทะเบียนนักรบ + ตำแหน่งช่องยืน + นโยบาย IP + getCombatPower()
-├─ pages/
-│  ├─ TitlePage.tsx               หน้าแรกก่อนล็อกอิน
-│  └─ LobbyPage.tsx               ประกอบ layout, ถือ state การเลือกตัวละคร/modal ต่าง ๆ
+├─ App.tsx                    เส้นทางเข้าเกม: Title → Auth → NameModal → Lobby
+├─ index.css                  design token ทั้งหมด (สี / spacing / motion) + reset
+│
+├─ pages/                     TitlePage (ก่อนล็อกอิน) · LobbyPage (ประกอบ layout + state ของ modal)
+│
+├─ game/                      ตรรกะเกมล้วน ไม่มี React
+│  ├─ realtimeBattle/         ⭐ ระบบต่อสู้ที่ใช้จริง — runtime, ลูปเฟรมคงที่, ดาเมจ, hitbox,
+│  │                          คอมโบ, พุ่ง, สกิล, AI ศัตรู, ตั้งค่าด่าน (มีเทสต์เกือบทุกไฟล์)
+│  ├─ battle/                 เศษที่เหลือของระบบเทิร์นเดิม — เหลือแค่ formulas/types ที่ยังถูก import
+│  ├─ adventure/              ตรรกะการเดินของตัวละครในลอบบี้ (WukongAdventure)
+│  ├─ dialogue/ npc/ exploration/ flow/
+│  │                          โหมดสำรวจ + บทสนทนา — โค้ดครบแต่ **ไม่มีทางเข้าในเกมตอนนี้**
+│  │                          (ปุ่มในลอบบี้เข้าห้องต่อสู้ตรง ๆ ดู MEMORY.md) เก็บไว้ตั้งใจ
+│  ├─ characters.ts           ⭐ ทะเบียนนักรบ + นโยบาย IP + getCombatPower()
+│  ├─ gameInfo.ts             ⭐ ชื่อ/เวอร์ชันเกม — **เลขนี้เป็นตัวสั่งปล่อยเว็บ** (ดูหัวข้อ deploy)
+│  ├─ items.ts team.ts collection.ts frames.ts uid.ts
+│  └─ walkKits.ts spriteSequences.ts battleSpriteSequences.ts backgroundAssets.ts sceneDimensions.ts
+│                             ทะเบียนสไปรต์/ฉาก — แยกจาก component เพื่อให้เปลี่ยนภาพได้โดยไม่แตะ UI
+│
 ├─ hooks/
-│  ├─ useAuth.ts                  ⭐ state บัญชีผู้เล่นของทั้งเกม — ทุกหน้าจอคุยผ่าน hook นี้เท่านั้น
-│  │                               (register/login/logout/updatePlayer/earnGold/topUpGold/topUpGems/redeemCoupon)
-│  ├─ useDeployWatcher.ts         เช็คทุก 5 นาที + ตอนกลับมาโฟกัสแท็บ ว่ามี build ใหม่ deploy หรือยัง
-│  │                               (เทียบชื่อไฟล์ entry script ที่มี hash — ดู UpdateBanner/)
-│  └─ useDeviceRefreshRate.ts     วัด Hz จริงของจอผ่าน requestAnimationFrame (ปัดเข้าค่ามาตรฐาน
-│                                  30/60/90/120/144/165/240) ใช้ปรับ dpr สูงสุดของ Canvas ใน LobbyScene
+│  ├─ useAuth.ts              ⭐ state บัญชีผู้เล่นของทั้งเกม ทุกหน้าจอคุยผ่านตัวนี้เท่านั้น
+│  ├─ useRealtimeBattle.ts    ผูก runtime ต่อสู้เข้ากับ React
+│  ├─ useGameFlow.ts useExploration.ts useDialogue.ts
+│  │                          คู่กับโหมดสำรวจข้างบน — ยังไม่มีทางเข้าเช่นกัน
+│  ├─ usePerformanceQuality.ts useDeviceRefreshRate.ts   ปรับคุณภาพเรนเดอร์ตาม FPS/Hz จริง
+│  ├─ useDeployWatcher.ts     เช็คว่ามี build ใหม่ยัง (คู่กับ UpdateBanner)
+│  └─ useModalA11y.ts         focus trap + คืนโฟกัสให้ modal ทุกตัว
+│
 ├─ data/
-│  ├─ accountRepository.ts        ⭐ "ฐานข้อมูล" ตอนนี้ = localStorage (คีย์ `los:db:v1`)
-│  │                               บัญชี/ล็อกอิน/UID + ทอง (เฉพาะ quest/drop) + หยก (เฉพาะ topup/coupon)
-│  │                               มี schema เทียบเท่า SQL ไว้ในคอมเมนต์หัวไฟล์ สำหรับย้ายไป backend จริง
-│  └─ mockPlayer.ts               mock data (MOCK_BADGES — ใช้ใน LobbyPage.tsx)
+│  ├─ accountRepository.ts    ⭐ "ฐานข้อมูล" = localStorage (`los:db:v1`) — บัญชี/ล็อกอิน/UID,
+│  │                          ทอง (quest/drop เท่านั้น), หยก (topup/coupon เท่านั้น), เพื่อน,
+│  │                          import/export ไฟล์ save · มี schema เทียบเท่า SQL ในคอมเมนต์หัวไฟล์
+│  ├─ admins.ts               อีเมลที่ใช้คำสั่งลับในแชทได้ — **ไม่ใช่ขอบเขตความปลอดภัย**
+│  └─ mockPlayer.ts           MOCK_BADGES ที่ LobbyPage ยังใช้
+│
 ├─ lib/
-│  ├─ storage.ts                  ตัวห่อ localStorage ที่ไม่โยน exception (log ก่อน fallback ทุกจุด)
-│  ├─ password.ts                 hash/verify รหัสผ่าน (client-side เดโม ยังไม่ใช่ระดับ production)
-│  ├─ format.ts                   formatNumber / formatBadge / clampRatio (มี unit test)
-│  ├─ publicUrl.ts                ต่อ asset path ใน public/ กับ Vite base — จำเป็นเพราะ deploy จริง
-│  │                               ขึ้น subpath (`/LegendOfSoulTH/`) ไม่ใช่ root
-│  └─ globalErrorHandlers.ts      window 'error'/'unhandledrejection' — ดัก error นอก React render
-│                                  (R3F useFrame loop ไม่ผ่าน ErrorBoundary)
+│  ├─ errors/                 ⭐ codes.ts (ทะเบียนรหัสข้อผิดพลาด) + reportError.ts
+│  │                          — ที่เดียวที่เรียก console.* ได้ ทุก catch ต้องผ่านตัวนี้
+│  ├─ audio/                  AudioEngine (Web Audio ตรง ๆ ไม่พึ่ง library) + ทะเบียนไฟล์เสียง
+│  ├─ storage.ts              ตัวห่อ localStorage ที่ไม่โยน exception
+│  ├─ password.ts             PBKDF2 hash/verify (client-side เดโม)
+│  ├─ saveFile.ts             ดาวน์โหลดไฟล์สำรอง — ใช้ทั้งหน้าตั้งค่าและหน้าจอ crash
+│  ├─ publicUrl.ts            ต่อ asset path กับ Vite base (deploy ขึ้น subpath)
+│  ├─ globalErrorHandlers.ts  ดัก error นอก React render (R3F useFrame ไม่ผ่าน ErrorBoundary)
+│  └─ format.ts a11ySettings.ts performanceSettings.ts authUi.ts
+│
 ├─ components/
-│  ├─ ErrorBoundary/              จับ crash ระดับ render ทั้งแอป, แสดงปุ่ม "โหลดใหม่"
-│  ├─ LobbyScene/
-│  │  ├─ LobbyScene.tsx           <Canvas>, กล้อง, แสง, หมอก, เช็ค WebGL2 ก่อน mount + จับ context-lost
-│  │  ├─ ArenaSlotRing.tsx        วงแหวนประจำช่องในลานประลอง (ขึ้นครบ 4 ช่องเสมอ)
-│  │  └─ CharacterModel.tsx       ⭐ โมเดล low-poly + idle animation + วงเลือก
-│  ├─ AuthModal/                  ฟอร์มสมัคร/เข้าสู่ระบบ
-│  ├─ NameModal/                  ตั้งชื่อตัวละครครั้งแรกหลังสมัคร (2–10 ตัวอักษร)
-│  ├─ TopBar/                     avatar, ชื่อ, พลังรบ, แถบ EXP, ปุ่ม + ของ Gold/Gem เปิดหน้าเติมเงินตามสกุลที่กด
-│  ├─ CurrencyShopModal/           เลือกแพ็กเกจเติมทอง/หยก (เดโม ยังไม่ผูก payment gateway จริง)
-│  ├─ SettingsModal/               แท็บข้อมูลเกม / เสียง / คูปอง (แลกโค้ดหยกจริงผ่าน redeemCoupon)
-│  ├─ ProfileModal/                รายละเอียดผู้เล่น
-│  ├─ CharacterRoster/             ทำเนียบวีรชน (การ์ด/พรีวิวตัวละครที่ครอบครอง)
-│  ├─ CharacterPanel/              กรอบข้อมูลตัวละคร (ข้อมูล placeholder)
-│  ├─ StartAdventure/              ปุ่มหลัก
-│  ├─ MainNavigation/              Battle / Heroes / Barracks / Summon / Guild
-│  ├─ SideActions/                 Mail / Mission / Settings (มี badge)
-│  ├─ Toast/                       ระบบ toast + `useToast().comingSoon()`
-│  ├─ UpdateBanner/                แถบเตือนลอยด้านบน โผล่เมื่อ useDeployWatcher เจอ build ใหม่
-│  └─ icons/GameIcons.tsx          ไอคอน SVG ที่วาดเองทั้งหมด
-└─ types/player.ts                Player, PlayerBadges, PlayerState
+│  ├─ GameViewport/           กรอบนอกสุดที่ทุกหน้าอยู่ข้างใน
+│  ├─ LobbyScene/             ⭐ <Canvas> ของลอบบี้ — WebGPU ก่อน ตกไป WebGL2, จับ context-lost
+│  ├─ BattleScene/            ⭐ ห้องต่อสู้ทั้งหมด — canvas, HUD, จอย, ปุ่มโจมตี/หลบ/สกิล,
+│  │                          หลอดเลือดศัตรู, เลขดาเมจ
+│  ├─ LobbyBattleSession/     ทางเข้าห้องต่อสู้จากปุ่มในลอบบี้ (ทางเดียวที่ใช้จริงตอนนี้)
+│  ├─ AdventureScene/         ตัวละครเดินได้ในลอบบี้ (2D/DOM ไม่ใช่ WebGL)
+│  ├─ ExplorationScene/ ExplorationControls/ DialogueBox/ BattleTransition/ GameExplorationSession/
+│  │                          โหมดสำรวจ — ไม่มีทางเข้าตอนนี้ (ดู game/ ข้างบน)
+│  ├─ ErrorBoundary/ ErrorCodeTag/ Toast/ LoadingScreen/ UpdateBanner/
+│  │                          ชั้นแจ้งสถานะ/ข้อผิดพลาดให้ผู้เล่น
+│  ├─ AuthModal/ NameModal/ SettingsModal/ ProfileModal/ ItemsModal/
+│  │  CurrencyShopModal/ AddFriendModal/ CharacterRoster/ CharacterPanel/
+│  ├─ TopBar/ SideActions/ MainNavigation/ StartAdventure/ WorldChat/
+│  └─ icons/GameIcons.tsx     ไอคอน SVG ที่วาดเองทั้งหมด
+│
+└─ types/player.ts            Player และชนิดที่เกี่ยวข้อง
 ```
 
 ## เปลี่ยนโมเดล placeholder → โมเดล 3D จริง

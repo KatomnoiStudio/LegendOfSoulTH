@@ -34,6 +34,26 @@ body:
     validations:
       required: true
   - type: input
+    id: error-code
+    attributes:
+      label: Error code (รหัสข้อผิดพลาด)
+      description: >
+        If the game showed a code on screen, paste it here. This game sends no telemetry
+        anywhere, so the code you can see is the only stack trace we get.
+        ถ้าหน้าจอขึ้นรหัสไว้ ใส่มาด้วย — เกมนี้ไม่ส่งข้อมูลไปที่ไหนเลย รหัสที่คุณเห็นคือ
+        เบาะแสเดียวที่เรามี
+      placeholder: e.g. LOBBY_SCENE_WEBGPU_INIT_FAIL
+    validations:
+      required: false
+  - type: input
+    id: game-version
+    attributes:
+      label: Game version (เวอร์ชันเกม)
+      description: Shown on the title screen and in Settings → ข้อมูลเกม.
+      placeholder: e.g. 0.2.0
+    validations:
+      required: false
+  - type: input
     id: environment
     attributes:
       label: Environment
