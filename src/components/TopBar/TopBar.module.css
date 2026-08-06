@@ -57,7 +57,7 @@
 .gold .currencyIcon { filter: drop-shadow(0 0 7px rgb(242 181 44 / 70%)); }
 .gem .currencyIcon { filter: drop-shadow(0 0 7px rgb(98 210 255 / 65%)); }
 .amount { color: #f4e8cb; font-family: var(--font-display); font-size: 0.82rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: 0.06em; text-shadow: 0 2px 4px #000; }
-.addButton { display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid #ebc46d; rotate: 45deg; background: linear-gradient(145deg, #f2c968, #8e5c18); color: #261805; box-shadow: 0 3px 8px rgb(0 0 0 / 55%), inset 0 1px #fff0ba; transition: transform 180ms ease, filter 180ms ease; }
+.addButton { display: grid; place-items: center; width: 20px; height: 20px; border: 1px solid #ebc46d; rotate: 45deg; background: linear-gradient(145deg, #f2c968, #8e5c18); color: #261805; box-shadow: 0 3px 8px rgb(0 0 0 / 55%), inset 0 1px #fff0ba; transition: transform 180ms ease, filter 180ms ease; }
 /* % ของ .addButton เอง (25px→20px @760px) แทน rem ตายตัว จะได้ย่อตามปุ่มพ่อจริง ๆ */
 .addButton svg { width: 52%; height: 52%; rotate: -45deg; }
 .addButton:hover:not(:disabled) { transform: scale(1.14) rotate(90deg); filter: brightness(1.18); }
@@ -78,7 +78,7 @@
   .currency { grid-template-columns: 20px 45px 22px; min-height: 32px; padding: 3px 4px 3px 8px; }
   .currencyIcon { width: 1rem; height: 1rem; }
   .amount { font-size: 0.67rem; }
-  .addButton { width: 20px; height: 20px; }
+  .addButton { width: 16px; height: 16px; }
 }
 
 /* Thai fantasy skin — ภาพวาดพญานาคและคลังสมบัติ */
@@ -161,7 +161,7 @@
 }
 .currency {
   /* คลังสมบัติ: ป้ายยาวขึ้นและเตี้ยลง ให้ดูเป็นแผ่นป้ายแนวนอนมากกว่าปุ่มก้อน */
-  grid-template-columns: 30px minmax(96px, auto) 24px;
+  grid-template-columns: 24px minmax(96px, auto) 20px;
   gap: 9px;
   min-height: 38px;
   padding: 3px 9px 3px 10px;
@@ -181,8 +181,8 @@
   pointer-events: none;
 }
 .currencyIcon {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
@@ -205,6 +205,6 @@
   */
   .name { font-size: 0.86rem; }
   .power { font-size: 0.6rem; }
-  .currency { grid-template-columns: 22px minmax(66px, auto) 19px; gap: 6px; min-height: 29px; padding: 2px 6px 2px 7px; }
-  .currencyIcon { width: 23px; height: 23px; }
+  .currency { grid-template-columns: 18px minmax(66px, auto) 16px; gap: 6px; min-height: 29px; padding: 2px 6px 2px 7px; }
+  .currencyIcon { width: 18px; height: 18px; }
 }

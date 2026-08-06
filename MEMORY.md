@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T05:48:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **Last Updated**: 2026-08-06T09:03:00+07:00 by `Claude Code (kaoshock123, Ring 1)`  
 > **RULES_VERSION: 4** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
@@ -229,6 +229,13 @@
     - **SBOM + build provenance in `deploy.yml`**: researched fresh rather than assumed (source-grounding — this is exactly the kind of version-sensitive CI-tooling fact the project's own canary rules require verifying). `npm sbom --sbom-format=cyclonedx` (native since npm 10) generates the SBOM; `actions/attest@v4` (the current unified action — supersedes both `actions/attest-build-provenance` and `actions/attest-sbom`, which the action's own README now points away from) handles both the build-provenance attestation (`subject-path: dist/**`) and the SBOM attestation (same subject-path + `sbom-path: sbom.cdx.json`) as two separate steps. Needed `id-token: write` + `attestations: write` + `artifact-metadata: write` added to the `build` job's permissions. Pinned to the real commit SHA (`1e69f48acb82d1966a394da916b4c1698aa569d6` = `v4.2.2`) matching this project's supply-chain-pinning convention — not left as a floating `@v4` tag.
     - **Analytics/telemetry: same wall as Sentry, HetCreep chose to skip again.** Asked directly rather than assume: real analytics needs a remote endpoint to send events to, and this project has zero backend by design — every option (GA, Plausible, etc.) requires an external account signup, the exact constraint that killed Sentry earlier this session (item — see "Sentry / remote error tracking" in the Marketplace-picks entry). Offered GitHub's own repo Traffic Insights as a zero-setup partial substitute; HetCreep confirmed the trade-off explicitly ("connecting an external service unlocks it, so skip for now") rather than silently accepting a workaround.
     - Full verify green (typecheck/lint/test/build), YAML syntax-checked. **Current honest state**: every gap that doesn't require either a human license decision or a genuinely-scoped testing effort or an external-service signup is now closed.
+
+37. **HUD icons shrunk across the board, full-art layout kept** (2026-08-06), Ring 1 session (`kaoshock123` — no `.agents/ring0.local`, git identity ≠ HetCreep, confirmed via `.agents/rules/ring0-authority.md` check before starting): HetCreep sent a live-site screenshot and asked to make "every icon" smaller while keeping the full-bleed art layout intact and not breaking mobile. Scoped to the three actual small-icon HUD clusters (deliberately left the naga-frame portrait/background alone — that's "the full picture" the request said to keep, and `[[css-fix-overcorrection]]`'s lesson flags that exact frame as fragile to resize without also touching its background art):
+    - `TopBar.module.css`: `.currencyIcon` 32px→24px desktop, 23px→18px mobile; `.addButton` 25px→20px desktop, 20px→16px mobile; `.currency` grid-template-columns narrowed to match on both breakpoints.
+    - `SideActions.module.css`: `--quick-icon-size` 48px→38px desktop, 40px→32px mobile; `.action` hit-area min-width/min-height 57px→45px desktop, 46px→38px mobile (gap is tied to `--quick-icon-size` by design per the file's own comment, so it shrank proportionally too — not a separate edit).
+    - `MainNavigation.module.css`: `--menu-icon-size` `clamp(64px,5.15vw,86px)`→`clamp(50px,4.2vw,68px)` desktop, `clamp(36px,7vw,60px)`→`clamp(30px,5.8vw,50px)` mobile — kept the `vw`-based clamp shape (already responsive), just lowered all three numbers proportionally rather than switching to a fixed unit.
+    - Full verify green (`typecheck && lint && test && build`) — lint warnings present are pre-existing (jsx-a11y/react-hooks, unrelated to this change), not introduced by it.
+    - **Not visually confirmed in-browser this session** — no screenshot/browser-automation tool available in this environment (see `[[no-browser-automation]]`); verified via code review + full CI-equivalent checks only. If proportions look off on a real device, that's the first thing to check.
 
 ---
 
