@@ -10,14 +10,17 @@ on:
     - cron: '0 3 * * 1' # ทุกวันจันทร์ 03:00 UTC
   workflow_dispatch:
 
+# เพดานของ workflow เป็นอ่านอย่างเดียว สิทธิ์เขียนประกาศที่ job ที่ต้องใช้จริงเท่านั้น
 permissions:
-  contents: write
-  issues: write
+  contents: read
 
 jobs:
   watch:
     name: Check upstream skill sources for new commits
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # commit state.json กลับเข้า repo (step สุดท้าย)
+      issues: write # เปิด/คอมเมนต์ issue แจ้งของใหม่
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
@@ -52,9 +55,16 @@ jobs:
               continue
             fi
 
-            compare_json="$(gh api "repos/$repo/compare/$old_sha...$new_sha")"
-            ahead_by="$(echo "$compare_json" | jq -r .ahead_by | tr -d '\r')"
-            compare_url="$(echo "$compare_json" | jq -r .html_url | tr -d '\r')"
+            # compare พังได้จริงถ้า upstream force-push จน old_sha หายไปจากประวัติ (404)
+            # ปล่อยให้ set -e ฆ่า step จะทำให้ watch นี้แดงทุกวันจันทร์จนกว่าจะมีคนแก้
+            # state.json ด้วยมือ — แจ้งเท่าที่รู้แล้วไปต่อดีกว่าหยุดทั้งงาน
+            if compare_json="$(gh api "repos/$repo/compare/$old_sha...$new_sha" 2>/dev/null)"; then
+              ahead_by="$(echo "$compare_json" | jq -r .ahead_by | tr -d '\r')"
+              compare_url="$(echo "$compare_json" | jq -r .html_url | tr -d '\r')"
+            else
+              ahead_by="?"
+              compare_url="https://github.com/$repo/commits/$branch (เทียบตรง ๆ ไม่ได้ — SHA เดิมอาจถูก force-push ทับไปแล้ว)"
+            fi
 
             echo "$repo: เจอ $ahead_by commit ใหม่ ($old_sha -> $new_sha)"
             {
@@ -78,6 +88,9 @@ jobs:
         if: steps.check.outputs.updated == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          # ส่งผ่าน env ไม่แทรก ${{ }} ลงในตัว run โดยตรง — รูปแบบเดียวกับ GH_TOKEN ข้างบน
+          # ค่านี้เป็น path จาก mktemp จึงไม่มีอักขระอันตราย แต่ไม่ทิ้งรูปแบบที่ผิดไว้ให้ลอกต่อ
+          BODY_FILE: ${{ steps.check.outputs.body_file }}
         run: |
           set -euo pipefail
           TITLE="Upstream skill source(s) have new commits"
@@ -89,12 +102,12 @@ jobs:
 
           if [ -n "$existing" ]; then
             echo "issue #$existing เปิดค้างอยู่แล้ว — เพิ่ม comment แทนเปิดใหม่ซ้ำ"
-            gh issue comment "$existing" --body-file "${{ steps.check.outputs.body_file }}"
+            gh issue comment "$existing" --body-file "$BODY_FILE"
           else
             gh issue create \
               --title "$TITLE" \
               --label "dependencies" \
-              --body-file "${{ steps.check.outputs.body_file }}"
+              --body-file "$BODY_FILE"
           fi
 
       - name: บันทึก SHA ใหม่กลับเข้า repo

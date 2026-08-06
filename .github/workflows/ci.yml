@@ -67,6 +67,10 @@ jobs:
         # ไม่ต้องสมัคร external service — แค่ print ขนาด chunk ทุก build ลง log
         # เทียบ trend เองได้จาก run history (Actions > this workflow > ผลลัพธ์ย้อนหลัง)
         run: |
+          # pipefail จำเป็น: shell ปริยายของ run: คือ bash -e ซึ่งไม่มี pipefail
+          # สถานะของไปป์จึงมาจาก sort ตัวท้ายเสมอ ถ้า du หาไฟล์ไม่เจอ (เช่น CSS ถูก
+          # inline หมด หรือ assetsDir เปลี่ยน) step นี้จะรายงานเขียวพร้อมกล่องโค้ดว่าง
+          set -o pipefail
           echo "### Bundle size (dist/assets)" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           du -h dist/assets/*.js dist/assets/*.css | sort -rh >> "$GITHUB_STEP_SUMMARY"

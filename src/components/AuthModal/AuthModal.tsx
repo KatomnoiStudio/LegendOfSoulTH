@@ -41,11 +41,19 @@ export function AuthModal({ onRegister, onLogin, onImportSave }: AuthModalProps)
   const handleImportFile = async (file: File) => {
     setBusy(true)
     setError(null)
-    const text = await file.text()
-    const message = await onImportSave(text)
-    // สำเร็จแล้ว component จะถูกถอดออกโดยหน้าแม่ จึงตั้ง busy กลับเฉพาะตอนพลาด
-    if (message) {
-      setError(message)
+    try {
+      const text = await file.text()
+      const message = await onImportSave(text)
+      // สำเร็จแล้ว component จะถูกถอดออกโดยหน้าแม่ จึงตั้ง busy กลับเฉพาะตอนพลาด
+      if (message) {
+        setError(message)
+        setBusy(false)
+      }
+    } catch {
+      // ต้องจับไว้ ไม่งั้น busy ค้าง true ตลอด แล้วทั้งปุ่มส่งและปุ่มนำเข้าไฟล์ถูก disable
+      // ผู้เล่นติดอยู่ในกล่องนี้โดยไม่มีข้อความบอกสาเหตุ (อ่านไฟล์พลาด/แฮชในไฟล์เพี้ยน
+      // จน WebCrypto reject ก็มาทางนี้)
+      setError('อ่านไฟล์ save ไม่สำเร็จ ลองใหม่หรือใช้ไฟล์อื่น')
       setBusy(false)
     }
   }
@@ -81,15 +89,23 @@ export function AuthModal({ onRegister, onLogin, onImportSave }: AuthModalProps)
 
     setBusy(true)
     setError(null)
-    const message = mode === 'register'
-      ? await onRegister(email, password)
-      : await onLogin(email, password)
+    try {
+      const message = mode === 'register'
+        ? await onRegister(email, password)
+        : await onLogin(email, password)
 
-    if (!message) setLastEmail(email)
+      if (!message) setLastEmail(email)
 
-    // สำเร็จแล้ว component จะถูกถอดออกโดยหน้าแม่ จึงตั้ง busy กลับเฉพาะตอนพลาด
-    if (message) {
-      setError(message)
+      // สำเร็จแล้ว component จะถูกถอดออกโดยหน้าแม่ จึงตั้ง busy กลับเฉพาะตอนพลาด
+      if (message) {
+        setError(message)
+        setBusy(false)
+      }
+    } catch {
+      // เหตุผลเดียวกับ handleImportFile: ถ้าปล่อย reject หลุด busy จะค้าง true
+      // แล้วกล่องนี้ใช้ต่อไม่ได้เลย (เช่นตอนหน้าไม่ได้อยู่บน secure context จน
+      // crypto.subtle ใช้ไม่ได้ หรือแฮชที่เก็บไว้เพี้ยนจน deriveBits โยนข้อผิดพลาด)
+      setError('ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง')
       setBusy(false)
     }
   }

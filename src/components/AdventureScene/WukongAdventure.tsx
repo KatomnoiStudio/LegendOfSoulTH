@@ -235,6 +235,24 @@ export function WukongAdventure({
 
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
+      /*
+        ไม่แตะคีย์ที่ผู้เล่นกำลังพิมพ์ลงช่องกรอก
+
+        ตัวเดินนี้ถูก mount ค้างไว้ตลอดเวลาที่อยู่ในลอบบี้ และ listener อยู่บน window
+        คีย์จึงถึงที่นี่แม้โฟกัสอยู่ในช่องกรอกของโมดัลที่เปิดทับอยู่ ผลคือพิมพ์ w/a/s/d
+        แล้วตัวละครหลังโมดัลเดิน และลูกศร/เว้นวรรคถูก preventDefault จนเลื่อนเคอร์เซอร์
+        ในช่องกรอกไม่ได้ (ช่องคูปองในตั้งค่า และช่องรหัสเพื่อน) — ช่องแชทโลกกันปัญหานี้
+        ด้วย stopPropagation ของตัวเอง ที่นี่กันให้ครบทุกช่องในที่เดียวแทน
+      */
+      const target = event.target as HTMLElement | null
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target?.isContentEditable
+      ) {
+        return
+      }
+
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(event.key)) {
         event.preventDefault()
       }

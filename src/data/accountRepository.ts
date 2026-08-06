@@ -73,11 +73,16 @@ interface Database {
   accounts: Record<string, StoredAccount>
 }
 
-const EMPTY_DB: Database = { version: 1, accounts: {} }
-
+/**
+ * ต้องคืนอ็อบเจ็กต์ใหม่ทุกครั้ง ห้ามคืนค่าคงที่ตัวเดียวร่วมกัน
+ *
+ * ผู้เรียกทุกรายแก้ผลลัพธ์ตรง ๆ (`db.accounts[key] = ...` แล้วค่อย saveDb) ถ้าคืนตัวคงที่
+ * ตัวเดิม การสมัครตอนพื้นที่เก็บข้อมูลเต็มจะแจ้งผู้ใช้ว่าบันทึกไม่สำเร็จ แต่บัญชีนั้นค้าง
+ * อยู่ในตัวคงที่แล้ว — login ครั้งถัดไปในแท็บเดิมจึงผ่านได้ทั้งที่ไม่มีอะไรถูกบันทึกจริง
+ */
 function loadDb(): Database {
   const db = readJson<Database>(DB_KEY)
-  if (!db || db.version !== 1 || typeof db.accounts !== 'object') return EMPTY_DB
+  if (!db || db.version !== 1 || typeof db.accounts !== 'object') return { version: 1, accounts: {} }
   return db
 }
 
@@ -377,7 +382,12 @@ export async function importSave(json: string): Promise<AuthResult> {
     parsed?.exportVersion !== SAVE_EXPORT_VERSION ||
     !account?.uid ||
     !account?.email ||
-    !account?.passwordHash
+    !account?.passwordHash ||
+    // ต้องเช็ค player ด้วย ไม่ใช่แค่ฟิลด์บัญชี: ด้านล่างเขียน account ลง localStorage และตั้ง
+    // session ให้เรียบร้อยก่อน แล้วค่อยเรียก normalizePlayer() ซึ่งจะ throw ถ้า player หายไป
+    // ผลคือไฟล์ที่ไม่มี player ทำให้เกมเปิดไม่ได้ถาวร (getSessionPlayer เจอ throw เดิมทุกครั้ง
+    // ที่โหลดหน้า) แก้ได้ทางเดียวคือให้ผู้เล่นล้าง localStorage เอง — ต้องกันตั้งแต่ตรงนี้
+    typeof account.player?.name !== 'string'
   ) {
     return { ok: false, error: 'ไฟล์ save ไม่ตรงรูปแบบที่รองรับ' }
   }

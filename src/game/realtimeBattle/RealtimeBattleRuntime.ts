@@ -421,7 +421,15 @@ export class RealtimeBattleRuntime {
       return
     }
 
-    if (state.enemies.length === 0 || !state.enemies.every((enemy) => enemy.state === 'dead')) return
+    /*
+      รายการว่างต้องไหลต่อไปหาคลื่นถัดไป ไม่ใช่ return ทิ้ง
+
+      createWaveEnemies ข้ามศัตรูที่หา template หรือจุดเกิดไม่เจอแบบเงียบ ๆ (ดู codes.ts)
+      ถ้าทั้งคลื่นข้ามหมดจะได้รายการว่าง แล้วเงื่อนไขเดิมทำให้ที่นี่ return ทุกเฟรมตลอดไป
+      ห้องนั้นจึงชนะไม่ได้ แพ้ก็ไม่ได้ ค้างอยู่อย่างนั้นโดยไม่มีข้อผิดพลาดใด ๆ ขึ้นมาบอก
+      (every() บนรายการว่างคืน true อยู่แล้ว จึงตกไปเข้าตรรกะขึ้นคลื่นถัดไปได้ตามปกติ)
+    */
+    if (!state.enemies.every((enemy) => enemy.state === 'dead')) return
 
     const nextWaveIndex = state.currentWaveIndex + 1
     const nextWaveEnemies = createWaveEnemies(state.stage, nextWaveIndex)

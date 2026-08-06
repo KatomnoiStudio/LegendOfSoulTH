@@ -32,9 +32,11 @@ export function BattleJoystick({ onChange }: { onChange: (vector: Vec2) => void 
       /*
         แปลงเป็นพิกัดของเวทีก่อน แล้วค่อยหารด้วยรัศมี
 
-        GameViewport ย่อทั้งเวทีด้วย transform: scale() ทำให้ระยะที่วัดจาก
-        getBoundingClientRect เป็น "พิกเซลบนจอจริง" ซึ่งเล็กกว่าพิกเซลของเวที
-        ถ้าไม่หารกลับ จอยจะรู้สึกหนืดผิดปกติเมื่อเปิดบนจอเล็ก
+        ฐานจอยถูกกำหนดขนาดด้วย CSS ที่ยืดตามจอ ระยะที่ได้จาก getBoundingClientRect
+        จึงเป็น "พิกเซลบนจอจริง" ไม่ใช่หน่วยของ STICK_RADIUS ถ้าไม่หารกลับ จอยจะรู้สึก
+        หนืดผิดปกติเมื่อเปิดบนจอเล็ก
+        (เดิมคอมเมนต์ตรงนี้อ้าง transform: scale() ของ GameViewport ซึ่งถูกถอดไปแล้ว —
+        ดู GameViewport.tsx สูตรยังถูกอยู่ เพราะวัดจากขนาดจริงของฐานจอยเอง)
       */
       const scale = rect.width / (STICK_RADIUS * 2)
       const x = dx / scale / STICK_RADIUS

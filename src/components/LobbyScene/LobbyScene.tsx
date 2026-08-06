@@ -51,7 +51,7 @@ const CAM_BASE: [number, number, number] = [0, 3.75, 8.4]
  * DOM node จริง กดคีย์บอร์ดเลือกไม่ได้เลย ไม่มีทางเลือกสำรอง (list/roster UI) ให้เรียก
  * onSelect(character.id) แบบเดียวกัน ตอนนี้ปลอดภัยเพราะฟีเจอร์ปิดอยู่ (ไม่มีผู้เล่นจริงไปถึง
  * path นี้) — ถ้าจะเปิด SHOW_ARENA_SLOTS = true ต้องแก้จุดนี้ก่อน ไม่งั้น WCAG 2.2 AA
- * (SC 2.1.1 Keyboard) จะพังจริงทันที ดู .agents/ux-audit-backlog.md
+ * (SC 2.1.1 Keyboard) จะพังจริงทันที
  *
  * หมายเหตุ (ask-CB opinion lane, 2026-08-06): usePerformanceQuality ด้านล่างวัด/ปรับคุณภาพ
  * เรนเดอร์ของฉากนี้อยู่ — ตอนนี้ฉากมีแค่แสง 4 ดวง ไม่มีโมเดล/เงาให้ปรับเห็นผลชัด ผลจะชัดขึ้นมาก
