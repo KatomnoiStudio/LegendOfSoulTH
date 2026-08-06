@@ -4,6 +4,7 @@ import type { Character } from '../../game/characters'
 import { PETS } from '../../game/collection'
 import { formatUid } from '../../game/uid'
 import { clampRatio, formatNumber } from '../../lib/format'
+import { reportError } from '../../lib/errors/reportError'
 import type { Player } from '../../types/player'
 import {
   CopyIcon,
@@ -215,7 +216,7 @@ function UidRow({ uid }: { uid: string }) {
       showToast('คัดลอกรหัสผู้เล่นแล้ว')
     } catch (err) {
       // เบราว์เซอร์บางตัวไม่ให้สิทธิ์คลิปบอร์ด — บอกให้ผู้เล่นคัดลอกเองแทน
-      console.warn('[ProfileModal] clipboard write failed', err)
+      reportError('PROFILE_CLIPBOARD_FAIL', 'silent', err)
       showToast('คัดลอกอัตโนมัติไม่ได้ กรุณาจดรหัสด้วยตนเอง', 'error')
     }
   }

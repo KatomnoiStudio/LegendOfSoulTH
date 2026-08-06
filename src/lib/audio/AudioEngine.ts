@@ -1,3 +1,4 @@
+import { reportError } from '../errors/reportError'
 import { readJson, writeJson } from '../storage'
 import { publicUrl } from '../publicUrl'
 import { MUSIC, SFX, type MusicId, type SfxId } from './sounds'
@@ -90,7 +91,7 @@ export function initAudioEngine(): void {
     void context.resume()
   } catch (err) {
     // Web Audio ใช้ไม่ได้ (เบราว์เซอร์เก่ามาก/ปิดสิทธิ์) — เกมเล่นต่อได้ปกติ แค่ไม่มีเสียง
-    console.debug('[audio] เปิด AudioContext ไม่สำเร็จ', err)
+    reportError('AUDIO_CONTEXT_INIT_FAIL', 'silent', err)
     context = null
   }
 }
@@ -102,7 +103,7 @@ export function getAudioSettings(): AudioSettings {
 export function setAudioSettings(next: AudioSettings): void {
   settings = next
   if (!writeJson(SETTINGS_KEY, settings)) {
-    console.error('[audio] บันทึกค่าเสียงไม่สำเร็จ (พื้นที่เก็บข้อมูลอาจเต็ม)')
+    reportError('AUDIO_SETTINGS_SAVE_FAIL', 'silent')
   }
   applySettingsToGraph()
 }
@@ -122,7 +123,7 @@ async function loadBuffer(id: string, path: string): Promise<AudioBuffer | null>
     return audioBuffer
   } catch (err) {
     // ไฟล์ยังไม่มี/decode ไม่ผ่าน — เกมเล่นต่อได้ปกติ แค่เงียบเสียงนั้นไปเฉย ๆ
-    console.debug(`[audio] โหลดเสียง "${id}" (${path}) ไม่สำเร็จ`, err)
+    reportError('AUDIO_BUFFER_LOAD_FAIL', 'silent', err, { id, path })
     return null
   }
 }

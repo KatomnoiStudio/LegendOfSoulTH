@@ -1,3 +1,5 @@
+import { reportError } from './errors/reportError'
+
 /**
  * ดัก error ที่เกิดนอก React render cycle — R3F useFrame,
  * async callback ที่ไม่มีใครใส่ .catch() ไว้
@@ -6,10 +8,10 @@
  */
 export function installGlobalErrorHandlers() {
   window.addEventListener('error', (event) => {
-    console.error('[global] uncaught error', event.error ?? event.message)
+    reportError('GLOBAL_UNCAUGHT', 'visible', event.error ?? event.message)
   })
 
   window.addEventListener('unhandledrejection', (event) => {
-    console.error('[global] unhandled promise rejection', event.reason)
+    reportError('GLOBAL_REJECTION', 'visible', event.reason)
   })
 }

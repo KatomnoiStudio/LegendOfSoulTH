@@ -2,6 +2,7 @@ import { useState, type CSSProperties } from 'react'
 import { BattleIcon } from '../components/icons/GameIcons'
 import { GAME_INFO } from '../game/gameInfo'
 import { getSynthDestination, initAudioEngine } from '../lib/audio/AudioEngine'
+import { reportError } from '../lib/errors/reportError'
 import { publicUrl } from '../lib/publicUrl'
 import styles from './TitlePage.module.css'
 
@@ -71,7 +72,7 @@ function playLegendPortalSound() {
     strike.stop(now + 0.14)
   } catch (err) {
     // Web Audio may be unavailable; the visual response still works.
-    console.debug('[TitlePage] Web Audio unavailable', err)
+    reportError('AUDIO_PORTAL_SOUND_FAIL', 'silent', err)
   }
 }
 

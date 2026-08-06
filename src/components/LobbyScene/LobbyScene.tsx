@@ -4,10 +4,13 @@ import { WebGLRenderer, type PerspectiveCamera } from 'three'
 import WebGL from 'three/addons/capabilities/WebGL.js'
 import { getCharacter } from '../../game/characters'
 import { useDeviceRefreshRate } from '../../hooks/useDeviceRefreshRate'
+import { reportError } from '../../lib/errors/reportError'
+import type { ErrorCode } from '../../lib/errors/codes'
 import { publicUrl } from '../../lib/publicUrl'
 import { SLOT_INDEXES, SLOT_TRANSFORM, normalizeTeam, type TeamSlots } from '../../game/team'
 import { ArenaSlotRing } from './ArenaSlotRing'
 import { CharacterModel } from './CharacterModel'
+import { ErrorCodeTag } from '../ErrorCodeTag/ErrorCodeTag'
 import styles from './LobbyScene.module.css'
 
 /**
@@ -59,6 +62,7 @@ export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps)
   const team = normalizeTeam(teamSlots)
   const [webglAvailable] = useState(() => WebGL.isWebGL2Available())
   const [contextLost, setContextLost] = useState(false)
+  const [contextLostCode, setContextLostCode] = useState<ErrorCode | null>(null)
   const refreshRate = useDeviceRefreshRate()
 
   /**
@@ -80,7 +84,10 @@ export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps)
   return (
     <div className={styles.scene} style={BG_TEMPLE_STYLE}>
       {contextLost ? (
-        <div className={styles.fallback}>การ์ดจอขาดการเชื่อมต่อ — กำลังลองใหม่ ลองรีเฟรชหน้าถ้ายังไม่กลับมา</div>
+        <div className={styles.fallback}>
+          การ์ดจอขาดการเชื่อมต่อ — กำลังลองใหม่ ลองรีเฟรชหน้าถ้ายังไม่กลับมา
+          {contextLostCode ? <ErrorCodeTag code={contextLostCode} /> : null}
+        </div>
       ) : null}
       <Canvas
         className={styles.canvas}
@@ -110,12 +117,13 @@ export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps)
               // ต้องผูก onDeviceLost ของตัว renderer เองแทน ไม่งั้นการ์ดจอหลุดแล้วเงียบ
               // ไม่มี fallback UI ให้เห็นเลย (ต่างจากฝั่ง WebGL2 ด้านล่างที่ยังใช้ DOM event เดิม)
               renderer.onDeviceLost = (info) => {
-                console.error('[LobbyScene] WebGPU device lost', info)
+                reportError('LOBBY_SCENE_DEVICE_LOST', 'visible', info)
                 setContextLost(true)
+                setContextLostCode('LOBBY_SCENE_DEVICE_LOST')
               }
               return renderer
             } catch (error) {
-              console.warn('[LobbyScene] WebGPU init ล้มเหลว ใช้ WebGL2 แทน', error)
+              reportError('LOBBY_SCENE_WEBGPU_INIT_FAIL', 'silent', error)
               // init() ล้มเหลวหลังจาก renderer จอง GPU adapter/device ไปแล้วบางส่วน —
               // dispose ทิ้งก่อนตกไปสร้าง WebGLRenderer ตัวใหม่ กัน GPU resource ค้าง
               renderer?.dispose()
@@ -131,8 +139,9 @@ export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps)
           // เรียก addEventListener ซ้ำที่นี่กับ WebGPURenderer ไม่พังอะไร แค่ไม่มี event ให้ยิงเฉย ๆ
           gl.domElement.addEventListener('webglcontextlost', (e) => {
             e.preventDefault()
-            console.error('[LobbyScene] WebGL context lost')
+            reportError('LOBBY_SCENE_WEBGL_CONTEXT_LOST', 'visible')
             setContextLost(true)
+            setContextLostCode('LOBBY_SCENE_WEBGL_CONTEXT_LOST')
           })
           gl.domElement.addEventListener('webglcontextrestored', () => {
             setContextLost(false)

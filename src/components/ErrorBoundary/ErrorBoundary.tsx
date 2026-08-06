@@ -1,4 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { ErrorCodeTag } from '../ErrorCodeTag/ErrorCodeTag'
+import { reportError } from '../../lib/errors/reportError'
 import styles from './ErrorBoundary.module.css'
 
 interface ErrorBoundaryProps {
@@ -23,7 +25,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('[ErrorBoundary] uncaught render error', error, info.componentStack)
+    reportError('BOUNDARY_RENDER_CRASH', 'visible', error, { componentStack: info.componentStack })
   }
 
   render() {
@@ -35,6 +37,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <p className={styles.message}>
               เกมพบปัญหาที่ไม่คาดคิด ลองโหลดหน้าใหม่อีกครั้ง
             </p>
+            <ErrorCodeTag code="BOUNDARY_RENDER_CRASH" />
             <button className={styles.reload} onClick={() => window.location.reload()}>
               โหลดใหม่
             </button>
