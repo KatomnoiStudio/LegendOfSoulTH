@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useModalA11y } from '../../hooks/useModalA11y'
 import {
   GOLD_PACKAGES,
   GEM_PACKAGES,
@@ -31,14 +32,8 @@ export function CurrencyShopModal({ currency, onBuy, onClose }: CurrencyShopModa
   const copy = COPY[currency]
   const packages: (GoldPackage | GemPackage)[] = currency === 'gold' ? GOLD_PACKAGES : GEM_PACKAGES
 
-  // ปิดด้วยปุ่ม Esc เหมือน modal อื่น ๆ ในเกม
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
+  // Esc, backdrop-click, focus trap, คืนโฟกัสตอนปิด — รวมไว้ที่ useModalA11y ตัวเดียว
+  const { shellRef, backdropProps } = useModalA11y<HTMLDivElement>(onClose)
 
   const handleBuy = async (pack: GoldPackage | GemPackage) => {
     if (pendingId) return
@@ -55,13 +50,15 @@ export function CurrencyShopModal({ currency, onBuy, onClose }: CurrencyShopModa
   }
 
   return (
-    <div
-      className={styles.backdrop}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose()
-      }}
-    >
-      <div className={styles.dialog} role="dialog" aria-modal="true" aria-label={copy.title}>
+    <div className={styles.backdrop} {...backdropProps}>
+      <div
+        ref={shellRef}
+        className={styles.dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-label={copy.title}
+        tabIndex={-1}
+      >
         <button type="button" className={styles.close} onClick={onClose} aria-label="ปิด">
           ×
         </button>
