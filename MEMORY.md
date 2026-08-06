@@ -417,6 +417,12 @@
     - 4 tests added (`vite.config.test.ts`): this repo's name, a fork's name, `BASE_PATH` override, and the outside-CI fallback.
     - **Also needed, and not fixable in code**: a fork does not inherit Pages settings. The fork's Pages source was still "Deploy from a branch", so it served the raw `index.html` pointing at `/src/main.tsx` and the Actions deployment was cancelled while queued. Switching Settings → Pages → Source to **GitHub Actions** is a repo setting the owner must flip.
 
+58. **The battle room was unreachable in the shipped game — two independent blockers** (2026-08-06, `Claude Code (cloud session, Ring 1)`, contributed from the `nustanakritwithai/GameTurnBase` fork line):
+    - Found while trying to reach `trial-01` for unrelated work: **there was no way to start a battle at all**. Two separate bugs stacked on top of each other, either one alone being enough to block it.
+    - **1. The d-pad and the "คุย" button were unclickable.** `ExplorationControls.module.css` set `.controls { z-index: 30 }`, below `ExplorationScene`'s `z-index: 500`, so the scene's `.world` covered the whole control layer. The buttons rendered and looked normal but no press ever landed. Confirmed with `document.elementFromPoint()` at the centre of the ▲ button, which returned the scene's `div` instead of the button. Raised to **510** — above the scene, still below `BattleScene` (600), `BattleTransition` (650) and `DialogueBox` (700), all of which must cover the controls when open.
+    - **2. `npc-shadow-guard` stood inside a wall.** Its position `(620, 360)` sits inside the map obstacle at `(480, 280)` sized `240×120`, i.e. spanning x 480–720 / y 280–400 (`src/game/exploration/maps.ts`). `findNearbyNpc` calls `hasLineOfSight`, which probes points along the line to the NPC and checks `isWalkable` on each — the endpoint is inside the obstacle, so it always returned false, the "คุย" button never appeared, and `trial-01` was unreachable. Moved to **`y = 448`**, clear of the obstacle's bottom edge (400), still standing in front of the temple, and genuinely walkable up to ~61 units away, inside its `interactionRadius` of 72.
+    - **Verified in a real browser** (Playwright + Chromium) after the fix: walk to the NPC → "คุย" appears and responds → dialogue → battle starts. Neither bug is visible from source alone, and no existing test covered either one.
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
