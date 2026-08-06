@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useModalA11y } from '../../hooks/useModalA11y'
+import type { Character } from '../../game/characters'
 import { PETS } from '../../game/collection'
 import { formatUid } from '../../game/uid'
 import { clampRatio, formatNumber } from '../../lib/format'
@@ -9,6 +10,7 @@ import {
   FrameIcon,
   HeroesIcon,
   HistoryIcon,
+  MoonWalkIcon,
   PawIcon,
   PhotoIcon,
   RenameIcon,
@@ -23,6 +25,12 @@ type TabId = 'characters' | 'pets' | 'history'
 interface ProfileModalProps {
   player: Player
   onClose: () => void
+  /** ตัวละครที่ครอบครองและมีชุดเฟรมเดินจริง — ตัวเลือกในตัวเลือก "เดินชมจันทร์" (ดู src/game/walkKits.ts) */
+  walkableCharacters: Character[]
+  /** ตัวที่กำลังเดินอยู่ในลอบบี้ตอนนี้ — null คือยังไม่เคยเลือก (ใช้ตัวแรกเป็นค่าเริ่มต้น) */
+  activeWalkCharacterId: string | null
+  /** เลือกตัวใหม่ให้ไปเดินในลอบบี้ — ปิดหน้าต่างนี้ให้เองหลังเลือก จะได้เห็นตัวละครเดินทันที */
+  onSelectWalkCharacter: (characterId: string) => void
 }
 
 /**
@@ -33,9 +41,16 @@ interface ProfileModalProps {
  * - สัตว์เลี้ยงและประวัติการต่อสู้ มาจาก src/game/collection.ts ซึ่งยังว่างจริง
  *   เพราะยังไม่มีระบบทั้งสองอย่าง จึงแสดงสถานะว่างแทนการใส่ข้อมูลปลอม
  */
-export function ProfileModal({ player, onClose }: ProfileModalProps) {
+export function ProfileModal({
+  player,
+  onClose,
+  walkableCharacters,
+  activeWalkCharacterId,
+  onSelectWalkCharacter,
+}: ProfileModalProps) {
   const { comingSoon } = useToast()
   const [tab, setTab] = useState<TabId>('characters')
+  const [walkPickerOpen, setWalkPickerOpen] = useState(false)
   // Esc, backdrop-click, focus trap, คืนโฟกัสตอนปิด — รวมไว้ที่ useModalA11y ตัวเดียว
   const { shellRef: dialogRef, backdropProps } = useModalA11y<HTMLDivElement>(onClose)
 
@@ -112,12 +127,31 @@ export function ProfileModal({ player, onClose }: ProfileModalProps) {
           <button
             type="button"
             className={styles.editButton}
+            aria-expanded={walkPickerOpen}
+            aria-label="เดินชมจันทร์ — เลือกตัวละครที่จะพาไปเดินในลอบบี้"
+            onClick={() => setWalkPickerOpen((open) => !open)}
+          >
+            <MoonWalkIcon />
+            เดินชมจันทร์
+          </button>
+          <button
+            type="button"
+            className={styles.editButton}
             onClick={() => comingSoon('เปลี่ยนชื่อผู้เล่น')}
           >
             <RenameIcon />
             เปลี่ยนชื่อ
           </button>
         </div>
+
+        {walkPickerOpen ? (
+          <WalkPicker
+            characters={walkableCharacters}
+            activeId={activeWalkCharacterId}
+            lockedCount={player.ownedCharacters.length - walkableCharacters.length}
+            onSelect={onSelectWalkCharacter}
+          />
+        ) : null}
 
         <div className={styles.tabs} role="tablist">
           {tabs.map((item) => (
@@ -227,6 +261,58 @@ function EmptyState({ icon, title, text }: { icon: ReactNode; title: string; tex
       {icon}
       <span className={styles.emptyTitle}>{title}</span>
       <p className={styles.emptyText}>{text}</p>
+    </div>
+  )
+}
+
+/**
+ * ตัวเลือกตัวละครสำหรับปุ่ม "เดินชมจันทร์" — เลือกแล้วพาไปเดินในลานพระจันทร์ที่ลอบบี้ทันที
+ *
+ * แสดงเฉพาะตัวที่มีชุดเฟรมเดินจริง (walkableCharacters ที่กรองมาจาก LobbyPage แล้ว —
+ * เกณฑ์เดียวกับ WukongAdventure's castBar) ตัวที่ครอบครองแต่ยังไม่มีท่าเดินจะไม่ขึ้นในนี้
+ * แต่บอกจำนวนตรง ๆ แทนการซ่อนเงียบ ๆ (ตาม convention ของ walkKits.ts — "UI จะบอกผู้เล่น
+ * ตามตรงว่ายังไม่มีชุดเฟรมเดิน")
+ */
+function WalkPicker({
+  characters,
+  activeId,
+  lockedCount,
+  onSelect,
+}: {
+  characters: Character[]
+  activeId: string | null
+  lockedCount: number
+  onSelect: (characterId: string) => void
+}) {
+  if (characters.length === 0) {
+    return (
+      <div className={styles.walkPicker}>
+        <p className={styles.walkPickerHint}>ยังไม่มีตัวละครที่มีท่าเดิน รอการอัปเดตเพิ่มเติม</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className={styles.walkPicker}>
+      <div className={styles.walkPickerGrid} role="group" aria-label="เลือกตัวละครที่จะพาไปเดินชมจันทร์">
+        {characters.map((character) => (
+          <button
+            key={character.id}
+            type="button"
+            className={styles.walkPickerItem}
+            aria-pressed={character.id === activeId}
+            onClick={() => onSelect(character.id)}
+          >
+            <img src={character.model.spriteUrl} alt="" draggable={false} />
+            <span>{character.name}</span>
+          </button>
+        ))}
+      </div>
+      {lockedCount > 0 ? (
+        <p className={styles.walkPickerHint}>
+          ตัวละครที่ครอบครองอีก {lockedCount} ตัวยังไม่มีท่าเดิน จะเลือกได้เมื่อมีการอัปเดตเพิ่มเติม
+        </p>
+      ) : null}
     </div>
   )
 }
