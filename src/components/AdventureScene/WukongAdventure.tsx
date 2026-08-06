@@ -8,6 +8,12 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
+import {
+  directionFromVector,
+  projectToWalkableArea,
+  type Direction,
+  type Point,
+} from '../../game/adventure/movement'
 import { ROSTER, type Character } from '../../game/characters'
 import { getWalkKit } from '../../game/walkKits'
 import { publicUrl } from '../../lib/publicUrl'
@@ -36,36 +42,6 @@ const RUN_SPEED = 345
  */
 const TARGET_COMMIT_HZ = 60
 const COMMIT_INTERVAL_MS = 1000 / TARGET_COMMIT_HZ
-
-type Direction =
-  | 'down'
-  | 'down-right'
-  | 'right'
-  | 'up-right'
-  | 'up'
-  | 'up-left'
-  | 'left'
-  | 'down-left'
-
-type Point = { x: number; y: number }
-
-/**
- * Navigation mesh traced from the visible courtyard floor. The narrow top is
- * the temple stairway: the player can approach the door, while the two upper
- * wings remain solid walls instead of invisible walkable scenery.
- */
-const WALKABLE_AREA: Point[] = [
-  { x: 735, y: 530 },
-  { x: 865, y: 530 },
-  { x: 1015, y: 642 },
-  { x: 1425, y: 662 },
-  { x: 1490, y: 715 },
-  { x: 1490, y: 790 },
-  { x: 110, y: 790 },
-  { x: 110, y: 715 },
-  { x: 175, y: 662 },
-  { x: 585, y: 642 },
-]
 
 const DEPTH_TOP = 530
 const DEPTH_BOTTOM = 790
@@ -103,75 +79,6 @@ const DIRECTION_LABEL: Record<Direction, string> = {
   'down-left': 'เฉียงซ้ายล่าง',
 }
 
-function directionFromVector(x: number, y: number): Direction {
-  const angle = Math.atan2(y, x)
-  const octant = Math.round(angle / (Math.PI / 4))
-  const lookup: Record<number, Direction> = {
-    0: 'right',
-    1: 'down-right',
-    2: 'down',
-    3: 'down-left',
-    4: 'left',
-    [-4]: 'left',
-    [-3]: 'up-left',
-    [-2]: 'up',
-    [-1]: 'up-right',
-  }
-  return lookup[octant] ?? 'down'
-}
-
-function isInsideWalkableArea(point: Point) {
-  let inside = false
-  for (let index = 0, previous = WALKABLE_AREA.length - 1; index < WALKABLE_AREA.length; previous = index++) {
-    const currentPoint = WALKABLE_AREA[index]
-    const previousPoint = WALKABLE_AREA[previous]
-    const crossesRay =
-      currentPoint.y > point.y !== previousPoint.y > point.y &&
-      point.x <
-        ((previousPoint.x - currentPoint.x) * (point.y - currentPoint.y)) /
-          (previousPoint.y - currentPoint.y) +
-          currentPoint.x
-    if (crossesRay) inside = !inside
-  }
-  return inside
-}
-
-function closestPointOnSegment(point: Point, start: Point, end: Point) {
-  const segmentX = end.x - start.x
-  const segmentY = end.y - start.y
-  const lengthSquared = segmentX * segmentX + segmentY * segmentY
-  if (lengthSquared === 0) return start
-  const amount = Math.min(
-    1,
-    Math.max(
-      0,
-      ((point.x - start.x) * segmentX + (point.y - start.y) * segmentY) /
-        lengthSquared,
-    ),
-  )
-  return { x: start.x + segmentX * amount, y: start.y + segmentY * amount }
-}
-
-function projectToWalkableArea(point: Point) {
-  if (isInsideWalkableArea(point)) return point
-
-  let closest = WALKABLE_AREA[0]
-  let closestDistance = Number.POSITIVE_INFINITY
-  for (let index = 0; index < WALKABLE_AREA.length; index++) {
-    const candidate = closestPointOnSegment(
-      point,
-      WALKABLE_AREA[index],
-      WALKABLE_AREA[(index + 1) % WALKABLE_AREA.length],
-    )
-    const distance = (candidate.x - point.x) ** 2 + (candidate.y - point.y) ** 2
-    if (distance < closestDistance) {
-      closest = candidate
-      closestDistance = distance
-    }
-  }
-  return closest
-}
-
 function preload(urls: string[]) {
   urls.forEach((url) => {
     const image = new Image()
@@ -181,8 +88,10 @@ function preload(urls: string[]) {
 
 /**
  * โหมดของฉาก — ใช้ระบบเดินชุดเดียวกันทั้งหมด ต่างกันแค่บรรยากาศและข้อความ
- * 'trial'     ลานฝึกวายุ (เข้าจากปุ่มเริ่มการผจญภัย)
- * 'moonlight' เดินชมจันทร์ (เข้าจากโปรไฟล์) — ฉากเดียวกันแต่ย้อมโทนคืนเดือนเพ็ญ
+ * 'trial'     ลานฝึกวายุ — ปัจจุบันไม่มีจุดเรียกใช้ใน src/ (ปุ่ม "เริ่มการผจญภัย" เปิด
+ *             GameExplorationSession/useExploration แทน — ระบบกริด 4 ทิศคนละตัวกับที่นี่)
+ *             เก็บโหมดนี้ไว้เป็นค่า default เผื่อ mount ตรง ๆ ในอนาคต ไม่ใช่ dead code ที่ลืมลบ
+ * 'moonlight' เดินชมจันทร์ (เข้าจาก LobbyPage mount ตรง ๆ) — ฉากเดียวกันแต่ย้อมโทนคืนเดือนเพ็ญ
  */
 export type AdventureMode = 'trial' | 'moonlight'
 
