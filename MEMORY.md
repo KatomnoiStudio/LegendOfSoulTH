@@ -3,8 +3,8 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T12:12:00+07:00 by `Claude Code (HetCreep Agent)`  
-> **RULES_VERSION: 8** (see `.agents/rules/rules-freshness-check.md` — the freshness check itself compares `AGENTS.md`'s header against the `RULES_VERSION last synced:` line in "Current Status" below, not this line; keep this line in sync as a courtesy so a skim doesn't see a stale number)
+> **Last Updated**: 2026-08-06T12:25:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **RULES_VERSION: 9** (see `.agents/rules/rules-freshness-check.md` — the freshness check itself compares `AGENTS.md`'s header against the `RULES_VERSION last synced:` line in "Current Status" below, not this line; keep this line in sync as a courtesy so a skim doesn't see a stale number)
 
 ---
 
@@ -294,6 +294,12 @@
 
 46. **retired `.agents/rules/ask-cb-on-new-systems.md` (2026-08-06): HetCreep ไม่ต้องการให้กฎเฉพาะเครื่อง (Ring 0 only) ถูกแชร์ขึ้น GitHub สาธารณะ** — item 45's Infra bullet เพิ่งเพิ่มไฟล์นี้เข้า repo ที่ tracked/push ไปแล้วในวันเดียวกัน HetCreep สั่งเอาออกทันทีที่เห็นว่าเนื้อหา "สั่งเฉพาะเครื่องนี้" ไปโผล่บน GitHub ที่ Ring 1/สาธารณะมองเห็นได้ ลบไฟล์ออกจาก repo, เอา `AGENTS.md` mandate #11 ออก, `RULES_VERSION` 7→8 (ถือเป็น material change เหมือนตอนเพิ่ม ไม่ใช่แค่ revert เงียบ ๆ) เนื้อหาจริงไม่ได้หายไปไหน — ย้ายไปเก็บที่ [`MEMORY.local.md`](MEMORY.local.md) (gitignored) แทน ในหมวดใหม่ "Ring-0 operating preferences" (ต่างจาก personal-scope-law เดิมที่คุมแค่เนื้อหา *ส่วนตัว/ไม่เกี่ยวโปรเจกต์* — อันนี้เกี่ยวกับโปรเจกต์จริงแต่ scope เฉพาะเครื่อง จึงเป็นเหตุผลใหม่ที่ยังไม่มี rule คุมมาก่อน). ตัว git history เก่า (commit `6278511`) ยังมีไฟล์นี้อยู่ — ไม่ได้ force-push ลบประวัติ (เสี่ยงกับ Ring 1 session ที่ทำงานร่วมอยู่) HetCreep ไม่ได้ขอระดับนั้น ถ้าต้องการ purge ประวัติจริงต้องสั่งแยกต่างหาก
 
+47. **`ring0-authority.md` เคยฝังอีเมลจริงของ HetCreep ไว้ในไฟล์ public — เจอตอนสั่ง "re-read กฎหมายทั้งหมด" หลัง item 46** (2026-08-06): HetCreep ขอให้อ่านกฎทั้งหมดซ้ำเพื่อเช็คว่ามีของเฉพาะหลุดไปอีกไหม อ่านครบ 7 ไฟล์ project-authored (ไม่รวม `ecc/` vendored) ไม่เจอไฟล์ Ring-0-only อื่นเพิ่ม แต่เจอเรื่องคนละแบบ: `ring0-authority.md:17`'s signal 2 ("Git identity") เคย hardcode `zxc59217412@gmail.com` (อีเมลจริงของ HetCreep) ไว้ตรง ๆ — repo public, อีเมลนี้อยู่ทั้งในไฟล์ปัจจุบันและ git history ที่ push ไปแล้ว
+    - HetCreep เลือก "ย้ายไป ring0.local" — แต่พบปัญหาจริงระหว่างแก้: `.agents/ring0.local` เป็น local-only marker (gitignored) ที่ไฟล์นี้เองบอกไว้ว่า **cloud/hosted agent session ไม่มีทางเห็นเลย** ("will never see .agents/ring0.local — that's by design") signal 2 มีไว้เป็น fallback สำหรับกรณีนั้นโดยเฉพาะ — ถ้าให้ signal 2 ไปอ่านค่าจาก `.agents/ring0.local` จะทำให้ signal ที่มีไว้ใช้ตอนไม่มี local marker ต้องพึ่ง local marker เอง กลายเป็น fallback ที่ไม่ fallback จริง
+    - แก้จริง: **ลบการเช็คอีเมลออกจาก signal 2 ไปเลย** (ไม่ใช่แค่ย้ายที่เก็บ) เพราะซ้ำซ้อนอยู่แล้ว — `git config user.name == HetCreep` และ `gh api user --jq .login == HetCreep` (ที่ไฟล์เดิมมีอยู่แล้วเป็นตัวเลือกที่ 3) ครอบคลุมกรณี cloud agent ได้เหมือนกันโดยไม่ต้องมีค่าลับให้ hardcode เลย — เก็บเหตุผลที่เบี่ยงจากตัวเลือกที่ HetCreep เลือกไว้ในไฟล์ตรง ๆ ไม่ใช่เงียบ ๆ เปลี่ยนเอง `.agents/ring0.local`'s `git_user_email=` ยังเก็บอีเมลไว้เป็นข้อมูลอ้างอิงในเครื่องเหมือนเดิม แค่ไม่ใช่สิ่งที่ไฟล์ public เช็คด้วยแล้ว
+    - `RULES_VERSION` 8→9 (แก้ signal ที่ใช้ตัดสิน Ring 0 จริง ๆ ไม่ใช่แค่ comment)
+    - อีเมลใน git history เก่ายังอยู่เหมือนเดิม (ไม่ force-push ลบประวัติ ด้วยเหตุผลเดียวกับ item 46)
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
@@ -306,7 +312,7 @@
 - **Player accounts/currency**: functional locally (see Past Summary item 6) but entirely client-side — no real backend, no payment gateway. Do not treat as production-ready for real money or cross-device play.
 - **Open/next work**: no quest system, no real drop table. `GemShopModal` renamed to `CurrencyShopModal` (item 26); basic battle system exists (`src/game/battle/`, `BattleScene`, wired via `GameExplorationSession`). `LICENSE` resolved — MIT (item 43).
 - **New systems law**: from item 45 on, a genuinely new system (own line in a 10-system-style breakdown) gets offered a CoalBoard "ask CB" opinion-lane pass before being called done — Ring 0 only. Retired from the tracked repo item 46 (2026-08-06, HetCreep didn't want it visible on public GitHub); the instruction itself still stands, now kept in gitignored `MEMORY.local.md`.
-- **RULES_VERSION last synced: 8** (`.agents/rules/rules-freshness-check.md`)
+- **RULES_VERSION last synced: 9** (`.agents/rules/rules-freshness-check.md`)
 - **Ring**: this machine is Ring 0 (`.agents/ring0.local` present, gitignored). Any other clone is Ring 1 by default — see `.agents/rules/ring0-authority.md`.
 - **Pre-push sync**: `.agents/rules/pre-push-sync-law.md` — binding on every machine before every push.
 
