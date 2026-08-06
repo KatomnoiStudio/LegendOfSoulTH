@@ -115,7 +115,20 @@ export function useGameFlow({ player, onPlayerChange, onExit }: UseGameFlowOptio
         }
 
         void onPlayerChange({ ...player, progress })
-        return { ...state, lastBattleResult: result.outcome === 'victory' ? 'win' : 'lose' }
+
+        /*
+          หลังจบการต่อสู้กลับสำรวจทันที — เดิมค้างที่ mode:'battle' ทำให้ห้องไม่ปิด
+          ผู้เล่นต้องกด "ออก" เอง (ดูเหมือนเกมค้าง) การเดินต่อหา NPC/ด่านถัดไปทำไม่ได้
+        */
+        const npc = npcId ? getNpc(npcId) : null
+        let position = state.battleContext?.returnPosition ?? state.explorationPosition
+        if (position && npc) {
+          position = nudgeAwayFrom(position, npc.position, npc.interactionRadius + 24)
+        }
+        return returnToExploration(
+          { ...state, lastBattleResult: result.outcome === 'victory' ? 'win' : 'lose' },
+          position ?? undefined,
+        )
       })
     },
     [onPlayerChange, player],

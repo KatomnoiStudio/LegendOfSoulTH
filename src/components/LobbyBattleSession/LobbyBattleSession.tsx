@@ -76,8 +76,10 @@ export function LobbyBattleSession({
       }
 
       void onPlayerChange({ ...player, progress })
+      // บันทึกแล้วปิดห้องกลับล็อบบี้ — ไม่งั้นค้างในห้องต่อสู้จนผู้เล่นกด "ออก" เอง
+      onExit()
     },
-    [onPlayerChange, player],
+    [onExit, onPlayerChange, player],
   )
 
   return (
