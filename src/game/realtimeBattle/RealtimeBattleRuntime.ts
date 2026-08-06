@@ -6,13 +6,23 @@ import { findHitTargets } from './HitboxSystem'
 import { clampToArena, resolveCircleOverlap, stepMovement } from './MovementSystem'
 import {
   applyHitStop,
+  cancelCombo,
   createComboState,
   isAttacking,
   pressAttack,
   stepCombo,
   type ComboState,
 } from './ComboSystem'
-import { createDashState, startDash, stepDash, type DashState } from './DashSystem'
+import { createDashState, isDashing, startDash, stepDash, type DashState } from './DashSystem'
+import { getRealtimeSkillForCharacter } from './skills'
+import {
+  canStartSkill,
+  createSkillState,
+  isCastingSkill,
+  startSkill,
+  stepSkill,
+  type SkillState,
+} from './SkillSystem'
 import type {
   BattleEffectEvent,
   DamageEvent,
@@ -65,9 +75,12 @@ export class RealtimeBattleRuntime {
   private playerCombat: ComboState = createComboState()
   /** สถานะการพุ่งหลบของผู้เล่น */
   private playerDash: DashState = createDashState()
-  /** ผู้เล่นสั่งโจมตี/พุ่งค้างไว้ รอให้เฟรมจำลองถัดไปหยิบไปใช้ */
+  /** สถานะสกิลของผู้เล่น */
+  private playerSkill: SkillState = createSkillState()
+  /** ผู้เล่นสั่งโจมตี/พุ่ง/สกิลค้างไว้ รอให้เฟรมจำลองถัดไปหยิบไปใช้ */
   private attackRequested = false
   private dashRequested = false
+  private skillRequested = false
   /** ตัวสุ่มที่ระบบดาเมจใช้ — เทสต์ป้อนค่าคงที่เข้ามาแทนได้ */
   private random: RandomFn
   private eventCounter = 0
@@ -99,37 +112,41 @@ export class RealtimeBattleRuntime {
     this.tickTimers(state.player, deltaMs)
     for (const enemy of state.enemies) this.tickTimers(enemy, deltaMs)
 
-    this.stepPlayerAttack(deltaMs)
+    const castingSkill = isCastingSkill(this.playerSkill)
 
-    /*
-      อยู่ในท่าโจมตี = ขยับไม่ได้
-
-      สเปกข้อ 11 เปิดช่องให้ "ลดความเร็วขณะโจมตี" ก็ได้ แต่ท่าของหงอคงสั้นมาก (380 ms)
-      การให้เลื่อนตัวได้ระหว่างนั้นทำให้ hitbox ลากตามตัวไปด้วยจนระยะโจมตีเพี้ยน
-      จึงเลือกหยุดสนิทระหว่างท่า ซึ่งเป็นแบบที่เกม hack & slash ส่วนใหญ่ใช้
-    */
-    if (this.dashRequested) {
-      this.dashRequested = false
-      startDash(state.player, this.playerDash, this.moveInput, state.elapsedMs)
+    if (this.skillRequested) {
+      this.skillRequested = false
+      this.tryStartPlayerSkill()
     }
 
-    /*
-      ลำดับความสำคัญของการเคลื่อนที่: พุ่ง > โจมตี > เดินปกติ
+    this.stepPlayerSkill(deltaMs)
 
-      การพุ่งกินสิทธิ์เหนือทุกอย่างเพราะมันคือท่าหลบ ถ้ายอมให้การเดินหรือท่าโจมตี
-      มาแทรกกลางคัน ระยะพุ่งจะสั้นลงแบบเดาไม่ได้ และ i-frame จะไม่คุ้มกับคูลดาวน์
-    */
-    const dashing = stepDash(state.player, this.playerDash, deltaMs, state.stage)
-    const moved = dashing || isAttacking(this.playerCombat)
-      ? false
-      : stepMovement(state.player, this.moveInput, deltaMs, {
-          stage: state.stage,
-          blockers: state.enemies,
-        })
+    if (!castingSkill && !isCastingSkill(this.playerSkill)) {
+      this.stepPlayerAttack(deltaMs)
 
-    // สถานะเดิน/ยืน คุมจากผลของระบบเดินจุดเดียว ไม่ให้ component เดาเอง
-    if (state.player.state === 'idle' && moved) state.player.state = 'walk'
-    else if (state.player.state === 'walk' && !moved) state.player.state = 'idle'
+      if (this.dashRequested) {
+        this.dashRequested = false
+        startDash(state.player, this.playerDash, this.moveInput, state.elapsedMs)
+      }
+
+      /*
+        ลำดับความสำคัญของการเคลื่อนที่: พุ่ง > โจมตี > เดินปกติ
+
+        การพุ่งกินสิทธิ์เหนือทุกอย่างเพราะมันคือท่าหลบ ถ้ายอมให้การเดินหรือท่าโจมตี
+        มาแทรกกลางคัน ระยะพุ่งจะสั้นลงแบบเดาไม่ได้ และ i-frame จะไม่คุ้มกับคูลดาวน์
+      */
+      const dashing = stepDash(state.player, this.playerDash, deltaMs, state.stage)
+      const moved = dashing || isAttacking(this.playerCombat)
+        ? false
+        : stepMovement(state.player, this.moveInput, deltaMs, {
+            stage: state.stage,
+            blockers: state.enemies,
+          })
+
+      // สถานะเดิน/ยืน คุมจากผลของระบบเดินจุดเดียว ไม่ให้ component เดาเอง
+      if (state.player.state === 'idle' && moved) state.player.state = 'walk'
+      else if (state.player.state === 'walk' && !moved) state.player.state = 'idle'
+    }
 
     this.stepEnemies(deltaMs)
     this.separateEnemies()
@@ -195,6 +212,81 @@ export class RealtimeBattleRuntime {
     if (targets.length > 0) applyHitStop(this.playerCombat)
   }
 
+  private tryStartPlayerSkill(): void {
+    const state = this.state
+    const definition = getRealtimeSkillForCharacter(state.player.characterId)
+    if (!definition) return
+
+    if (
+      !canStartSkill(
+        state.player,
+        this.playerSkill,
+        isAttacking(this.playerCombat),
+        isDashing(this.playerDash),
+      )
+    ) {
+      return
+    }
+
+    cancelCombo(state.player, this.playerCombat)
+    startSkill(state.player, this.playerSkill, definition, state.elapsedMs)
+    this.pushEffectEvent('skill-spin', state.player.position, 700)
+    this.publish()
+  }
+
+  /** เดินท่าสกิลของผู้เล่น แล้วลงดาเมจถ้าอยู่ใน active frame */
+  private stepPlayerSkill(deltaMs: number): void {
+    const state = this.state
+    const tick = stepSkill(state.player, this.playerSkill, deltaMs)
+    if (!tick.hitboxActive || !tick.attack) return
+
+    const targets = findHitTargets(state.enemies, {
+      attacker: state.player,
+      attack: tick.attack,
+      alreadyHit: this.playerSkill.hitTargets,
+      elapsedMs: state.elapsedMs,
+    })
+
+    for (const target of targets) {
+      this.playerSkill.hitTargets.add(target.id)
+      const outcome = applyDamage({
+        attacker: state.player,
+        target,
+        attack: tick.attack,
+        elapsedMs: state.elapsedMs,
+        random: this.random,
+      })
+
+      state.damageDealt += outcome.amount
+      target.position = clampToArena(target.position, target.collisionRadius, state.stage)
+
+      if (outcome.defeated && !state.defeatedEnemyIds.includes(target.id)) {
+        state.defeatedEnemyIds.push(target.id)
+      }
+
+      this.pushDamageEvent(target, outcome.amount, outcome.critical)
+      this.publish()
+    }
+  }
+
+  private pushEffectEvent(
+    kind: BattleEffectEvent['kind'],
+    position: Vec2,
+    durationMs: number,
+  ): void {
+    this.eventCounter += 1
+    this.effectEvents = [
+      ...this.effectEvents,
+      {
+        id: `fx-${this.eventCounter}`,
+        kind,
+        position: { ...position },
+        createdAtMs: this.state.elapsedMs,
+        durationMs,
+      },
+    ]
+  }
+
   /** ศัตรูลงดาเมจใส่ผู้เล่นเมื่อท่าของมันเข้าสู่ active frame */
   private resolveEnemyAttack(enemy: RealtimeBattleEntity, brain: EnemyBrain): void {
     const state = this.state
@@ -253,6 +345,11 @@ export class RealtimeBattleRuntime {
   /** สั่งให้ผู้เล่นพุ่งหลบในเฟรมจำลองถัดไป */
   requestDash(): void {
     this.dashRequested = true
+  }
+
+  /** สั่งให้ผู้เล่นใช้สกิลในเฟรมจำลองถัดไป */
+  requestSkill(): void {
+    this.skillRequested = true
   }
 
   /**

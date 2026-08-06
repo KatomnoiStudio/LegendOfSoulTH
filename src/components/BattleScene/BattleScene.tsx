@@ -33,6 +33,7 @@ export function BattleScene({ player, stageId, onComplete, onExit }: BattleScene
     setJoystick,
     pressAttack,
     pressDash,
+    pressSkill,
   } = useRealtimeBattle({
     player,
     stageId,
@@ -76,6 +77,7 @@ export function BattleScene({ player, stageId, onComplete, onExit }: BattleScene
       onMove={setJoystick}
       onAttack={pressAttack}
       onDash={pressDash}
+      onSkill={pressSkill}
     />
   )
 }

@@ -27,6 +27,9 @@ const ATTACK_KEYS = new Set(['Space', 'KeyJ'])
 /** ปุ่มพุ่งหลบ — Shift คือปุ่มหลบมาตรฐานของเกมแนวนี้บนคีย์บอร์ด */
 const DASH_KEYS = new Set(['ShiftLeft', 'ShiftRight', 'KeyK'])
 
+/** ปุ่มสกิล — E เป็นปุ่มสกิลมาตรฐานของเกม action บนคีย์บอร์ด */
+const SKILL_KEYS = new Set(['KeyE', 'KeyL'])
+
 export class InputSystem {
   private pressedKeys = new Set<string>()
   private joystick: Vec2 = { x: 0, y: 0 }
@@ -39,6 +42,7 @@ export class InputSystem {
    */
   private pendingAttacks = 0
   private pendingDashes = 0
+  private pendingSkills = 0
 
   /** เริ่มฟังคีย์บอร์ด คืนฟังก์ชันสำหรับถอด listener (ต้องเรียกตอน unmount — §28) */
   attachKeyboard(target: Window = window): () => void {
@@ -53,6 +57,12 @@ export class InputSystem {
       if (DASH_KEYS.has(event.code)) {
         event.preventDefault()
         if (!this.pressedKeys.has(event.code)) this.pendingDashes += 1
+        this.pressedKeys.add(event.code)
+        return
+      }
+      if (SKILL_KEYS.has(event.code)) {
+        event.preventDefault()
+        if (!this.pressedKeys.has(event.code)) this.pendingSkills += 1
         this.pressedKeys.add(event.code)
         return
       }
@@ -116,6 +126,11 @@ export class InputSystem {
     this.pendingDashes += 1
   }
 
+  /** ปุ่มสกิลบนจอสัมผัสเรียกตัวนี้ */
+  pressSkill(): void {
+    this.pendingSkills += 1
+  }
+
   /** หยิบคำสั่งพุ่งที่ค้างอยู่ไปหนึ่งครั้ง */
   consumeDash(): boolean {
     if (this.pendingDashes <= 0) return false
@@ -134,10 +149,18 @@ export class InputSystem {
     return true
   }
 
+  /** หยิบคำสั่งสกิลที่ค้างอยู่ไปหนึ่งครั้ง */
+  consumeSkill(): boolean {
+    if (this.pendingSkills <= 0) return false
+    this.pendingSkills -= 1
+    return true
+  }
+
   reset(): void {
     this.pressedKeys.clear()
     this.joystick = { x: 0, y: 0 }
     this.pendingAttacks = 0
     this.pendingDashes = 0
+    this.pendingSkills = 0
   }
 }

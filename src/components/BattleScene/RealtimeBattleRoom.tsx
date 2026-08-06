@@ -25,6 +25,7 @@ export function RealtimeBattleRoom({
   onMove,
   onAttack,
   onDash,
+  onSkill,
 }: {
   runtime: RealtimeBattleRuntime
   snapshot: RealtimeBattleSnapshot
@@ -32,6 +33,7 @@ export function RealtimeBattleRoom({
   onMove: (vector: Vec2) => void
   onAttack: () => void
   onDash: () => void
+  onSkill: () => void
 }) {
   const [webglAvailable] = useState(() => WebGL.isWebGL2Available())
   const [contextLost, setContextLost] = useState(false)
@@ -110,7 +112,7 @@ export function RealtimeBattleRoom({
       <DamageNumberLayer runtime={runtime} projection={projection} />
 
       <BattleHud snapshot={snapshot} onExit={onExit} />
-      <BattleControls runtime={runtime} onMove={onMove} onAttack={onAttack} onDash={onDash} />
+      <BattleControls runtime={runtime} onMove={onMove} onAttack={onAttack} onDash={onDash} onSkill={onSkill} />
 
       {snapshot.status === 'intro' ? (
         <div className={styles.introBanner} aria-live="polite">

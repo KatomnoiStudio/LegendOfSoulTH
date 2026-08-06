@@ -53,6 +53,19 @@ export function isAttacking(combo: ComboState): boolean {
   return combo.attack !== null
 }
 
+/** ยกเลิกคอมโบทันที — ใช้เมื่อเริ่มสกิลหรือสถานะอื่นที่ต้องขัดจังหวะท่าโจมตี */
+export function cancelCombo(player: RealtimeBattleEntity, combo: ComboState): void {
+  combo.attack = null
+  combo.chainIndex = 0
+  combo.sinceStartMs = 0
+  combo.sinceLastFinishMs = Number.POSITIVE_INFINITY
+  combo.bufferedInputAgeMs = null
+  combo.hitTargets.clear()
+  combo.hitStopRemainingMs = 0
+  if (player.state === 'attack') player.state = 'idle'
+  player.velocity = { x: 0, y: 0 }
+}
+
 /** ไม้ที่กำลังเล่นอยู่เป็นไม้ที่เท่าไหร่ของคอมโบ (1-based) — ใช้กับ UI/เทสต์ */
 export function currentComboStep(combo: ComboState): number {
   return combo.attack ? combo.chainIndex : 0
