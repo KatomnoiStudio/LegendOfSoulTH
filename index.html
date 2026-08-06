@@ -18,10 +18,13 @@
       content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self';"
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
-    />
+    <!--
+      ห้ามใส่ user-scalable=no — บล็อก pinch-zoom ทั้งหมด ผิด WCAG 2.2 AA (SC 1.4.4/1.4.10)
+      ตรง ๆ (gold-standard UX audit, 2026-08-06) เช็คแล้วไม่มีอะไรในแอปพึ่งการล็อกซูมนี้
+      (ทุก layout ใช้ vw/vh/responsive ธรรมดา, canvas 3D วัดขนาดจาก ResizeObserver ไม่ใช่ viewport
+      transform) — เอาออกแล้วไม่กระทบอะไร
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#070911" />
     <meta
       name="description"

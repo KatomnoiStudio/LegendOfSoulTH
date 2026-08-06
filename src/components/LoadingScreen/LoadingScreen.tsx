@@ -28,7 +28,13 @@ interface LoadingScreenProps {
  */
 export function LoadingScreen({ label, children, background = 'opaque' }: LoadingScreenProps) {
   return (
-    <div className={background === 'overlay' ? styles.overlayScreen : styles.opaqueScreen}>
+    <div
+      className={background === 'overlay' ? styles.overlayScreen : styles.opaqueScreen}
+      // เนื้อหาที่ส่งมาเอง (children เช่นการ์ด VS ของ BattleTransition) เป็นเจ้าของ
+      // aria-live ตัวเองอยู่แล้ว — ใส่ role/aria-live ที่นี่เฉพาะตอนใช้ visual เริ่มต้น
+      // เท่านั้น กันไม่ให้เกิด live region ซ้อนกันสอง politeness level
+      {...(children ? {} : { role: 'status', 'aria-live': 'polite' })}
+    >
       {children ?? (
         <div className={styles.visual}>
           {DEFAULT_LOADING_IMAGE_SRC ? (

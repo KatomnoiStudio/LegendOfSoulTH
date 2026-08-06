@@ -4,8 +4,8 @@
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
 > **Default Branch**: `master`  
 > **Last Updated**: 2026-08-06T14:16:00+07:00 by `Claude Code (kaoshock123, Ring 1)`  
-> **RULES_VERSION: 9** (see `.agents/rules/rules-freshness-check.md` — the freshness check itself compares `AGENTS.md`'s header against the `RULES_VERSION last synced:` line in "Current Status" below, not this line; keep this line in sync as a courtesy so a skim doesn't see a stale number)
-> **Fork note**: สาย `nustanakritwithai/GameTurnBase` (Ring 1) — Battle Room Overhaul ดูข้อ 54 เป็นต้นไป  
+> **RULES_VERSION: 10** (see `.agents/rules/rules-freshness-check.md` — the freshness check itself compares `AGENTS.md`'s header against the `RULES_VERSION last synced:` line in "Current Status" below, not this line; keep this line in sync as a courtesy so a skim doesn't see a stale number)
+> **Fork note**: สาย `nustanakritwithai/GameTurnBase` (Ring 1) — Battle Room Overhaul ดูข้อ 55 เป็นต้นไป  
 
 ---
 
@@ -371,7 +371,17 @@
     - **Skipped `ultracode`/`CoalFace` for the implementation** despite it being explicitly requested for this pass — the ask-CB verdict narrowed the real scope from "wrap ~8 transition points across the app" down to 2-3 files (one new component + two retrofits), which sits below CoalFace's own min-unit floor (a job too small to clear the floor makes the scout net overhead, per the skill's own wallet section) — fanning out anyway would have been ceremony, not speed. Explained this to HetCreep rather than silently skipping the requested tool.
     - Full verify green (typecheck/lint — zero new warnings/59 tests/build); browser-verified live — no new console errors, `LobbyScene` still renders correctly post-refactor.
 
-54. **Fork `nustanakritwithai/GameTurnBase` + Battle Migration Audit** (2026-08-06T02:15+07:00, `Claude Code (cloud session, Ring 1)`, operator ผู้สั่งงานสายนี้: `nustanakritwithai`):
+54. **gold-standard UI/UX AUDIT + FILL + ADOPT, combined with CoalBoard ask-CB** (2026-08-06): HetCreep invoked `/coalmine:gold-standard` directly, asking to find UI/UX gaps against world-class exemplars + use a free/no-license-conflict template so another dev could bring it to 100%. Manual invocation → wizard's PROGRAMMER order→bill→pay flow: picked **AUDIT+FILL+ADOPT** (CONFORM stays separately gated per the skill's own rule), dimension = UX/DX, tier = Standard, confirmed the bill, then fanned out 4 category scouts (Auth/onboarding, HUD/navigation, Modals/forms, Accessibility/responsive) each grading this project against fresh-picked exemplars — **Honkai: Star Rail** + **Genshin Impact** (HoYoverse, same genre — turn-based gacha RPG), **Material Design 3** (Google), **WCAG 2.2 AA** (W3C, verified live still current — 3.0 not final until 2028+), **Apple HIG**.
+    - **Score**: ~70% overall (Auth/Onboarding 72.5% · HUD/Nav 61% · Modals/Forms 86% · Accessibility 64%) — ~25 gaps found across all 4, each with `path:line` evidence, MUST/EXCELLENCE tier, and effort/impact.
+    - **Before FILLing anything, ran a second ask-CB pass** (per the standing instruction) on two open strategic questions the audit itself couldn't answer: (1) hand-write scaffolding against WAI-ARIA APG patterns (no new dependency) vs. install a free UI-primitives library (e.g. Radix) as the "template" HetCreep asked for; (2) scaffold literally all ~25 gaps now vs. MUST-HAVE only, rest as a visible backlog. **Unanimous 4/4 on both**, reached independently via 4 different methods (live research, actual code execution/tracing, walked player scenes, cold blind design):
+      - **Template = hand-write, no new dependency.** `realtime` live-fetched npm/bundlephobia and found Radix's `react-dialog` alone pulls 15 transitive packages/12.6KB gzip for ONE primitive. `reality` demonstrated (by reading the real hook signature and reasoning through an actual diff) that `src/hooks/useModalA11y.ts` — the project's own shared modal hook, already used by 6/8 modal-shaped components — fits the 2 remaining gaps (`AuthModal`/`NameModal`) with a ~4-line diff each, zero new dependency. `feeling` found the sharpest fact: **this exact Radix-vs-hand-written question was already litigated once this session** (item 45/28, 3-of-4-seats against Radix, same reasoning) — re-opening it without new facts "isn't independent judgment, it's re-asking a question that already has an answer sitting in `MEMORY.md`." `outdim` (blind, no access to that history) independently arrived at the identical "hand-write, project idiom" answer from cold reasoning.
+      - **Scope = MUST-HAVE now, rest as an in-repo visible backlog, not literal all-25.** `reality` estimated (from the 6-7 gaps it could size concretely) that scaffolding all ~25 would fan out past single-writer territory into CoalFace scope — but also flagged that 2 of the "MUST-HAVE" items (the 3D character-select keyboard path, the accessibility-settings tab) are genuinely **feature-shaped work**, not scaffold-sized placeholders, and shouldn't get a half-built stub either. `outdim`'s own self-flagged failure mode (backlog tickets get silently deprioritized on a solo/small team) drove the decision to put the backlog **in the tracked repo itself** (`.agents/rules/gold-standard-baseline.md`, extending the file from the EARLIER general-hygiene gold-standard pass rather than creating a parallel doc — "extend existing, never duplicate" per the skill's own rule) instead of an external system this project doesn't even have.
+    - **CLOSED this pass** (5 items, all real fixes/builds, not stubs): pinch-zoom re-enabled (`index.html`'s `user-scalable=no` removed — verified live nothing in the CSS/3D-canvas layout depends on it); `AuthModal.tsx`/`NameModal.tsx` wired onto `useModalA11y` (focus-trap only, `onClose` = no-op since neither is dismissable by design — confirmed both modals' existing Escape-behavior and mount-focus behavior survive unchanged, since the hook's own listener and each modal's own listener are separate `window` listeners that don't collide); `LoadingScreen.tsx` got `role="status"`/`aria-live="polite"` (only on the default-visual path — custom `children` like `BattleTransition`'s VS card keep owning their own `aria-live`, avoiding nested live regions of different politeness); `TopBar`'s currency `.addButton` 20px→24px (WCAG 2.2 AA SC 2.5.8 floor; also fixed a stale CSS comment claiming a 25px value that didn't actually exist in the rule); new **in-app Accessibility settings tab** in `SettingsModal` — one real working control (`src/lib/a11ySettings.ts`, `localStorage`-persisted reduce-motion override applied via a `data-reduce-motion` attribute on `<html>`, layered alongside the existing OS-level `prefers-reduced-motion` media query in `index.css`) plus an honest "more coming" note rather than a fully-fake empty tab; new `AccessibilityIcon` added to `GameIcons.tsx` matching the existing hand-drawn SVG icon set.
+    - **Deliberately left OPEN, not scaffolded** (documented in `gold-standard-baseline.md`'s new section, cited with exemplar+effort+impact each): 3D character-select keyboard path (dormant — gated behind `SHOW_ARENA_SLOTS = false`, an inline warning comment left at that flag so re-enabling it surfaces the gap first); `SettingsModal`'s export/logout buttons lack pending-state (double-click race); 3 tab strips missing `aria-controls`/roving-tabindex; `useModalA11y`'s Escape not scoped to the top-most dialog if two ever stack (latent, no code path triggers it today); `SideActions` mobile touch-target shrink (47→40px, still above the WCAG floor, below MD3's nicer recommendation); `AuthModal` live-validation + password show/hide toggle; `WorldChat` launcher `aria-expanded` + focus-return-on-close; `MainNavigation`'s 5 unwired nav items looking identical to the 3 working ones; no shared `--bp-*` breakpoint tokens (11 hardcoded values across 25 files); a few animated HUD elements missing `prefers-reduced-motion` overrides.
+    - **RULES_VERSION 9→10** (`gold-standard-baseline.md` materially extended with a new binding section; `AGENTS.md` mandate #10 updated to mention it).
+    - Full verify green throughout (typecheck/lint — same pre-existing warning classes only, no new categories/59 tests/build); browser-verified live — the new Accessibility tab renders, its toggle actually flips `document.documentElement.dataset.reduceMotion` and persists to `localStorage`, no new console errors.
+
+55. **Fork `nustanakritwithai/GameTurnBase` + Battle Migration Audit** (2026-08-06T02:15+07:00, `Claude Code (cloud session, Ring 1)`, operator ผู้สั่งงานสายนี้: `nustanakritwithai`):
     - **บริบท**: repo นี้ถูก fork จาก `LegendofSoulTH/GameTurnBase` (master) มาเป็น
       `nustanakritwithai/GameTurnBase` เพื่อพัฒนางานฝั่งตัวเองก่อน แล้วค่อยพิจารณาส่งกลับ upstream
       ทีหลัง งานทุกชิ้นในสายนี้เดินเป็น **1 เรื่องเสร็จ = 1 commit = 1 PR** เข้า `master` ของ fork
@@ -399,7 +409,7 @@
     - Baseline ก่อนเริ่ม: `typecheck` ผ่าน, `lint` เหลือ warning เดิม 3 ตัว (ไม่ใช่ error),
       `test` 5/5 ผ่าน, `build` สำเร็จ (318 kB + 884 kB chunk)
 
-55. **ทางเข้าห้องต่อสู้ใช้งานไม่ได้จริงมาตลอด — แก้แล้ว** (2026-08-06T02:45+07:00, `Claude Code (cloud session, Ring 1)`, สาย fork `nustanakritwithai/GameTurnBase`):
+56. **ทางเข้าห้องต่อสู้ใช้งานไม่ได้จริงมาตลอด — แก้แล้ว** (2026-08-06T02:45+07:00, `Claude Code (cloud session, Ring 1)`, สาย fork `nustanakritwithai/GameTurnBase`):
     - เจอระหว่างพยายามทดสอบโหมดสำรวจในเบราว์เซอร์จริงด้วย Playwright ก่อนเริ่มงาน migration
       ห้องต่อสู้ — ปรากฏว่า**เดินไม่ได้เลยและคุยกับ NPC ด่านแรกไม่ได้เลย** ทั้งสองอย่างเป็นบั๊ก
       ที่มีอยู่ก่อนแล้ว ไม่ได้เกิดจากงานใหม่
@@ -422,7 +432,7 @@
       ให้ตรงก่อนถึงจะเข้าไปในระยะคุยได้ — เป็นความรู้สึกที่ฝืดสำหรับผู้เล่นจริง แต่ยังไม่แก้
       ในรอบนี้เพราะอยู่นอกขอบเขตงานที่ตกลงไว้
 
-56. **ห้องต่อสู้ real-time — วางฐาน runtime + เปลี่ยนทางเข้า** (2026-08-06T03:10+07:00, `Claude Code (cloud session, Ring 1)`, สาย fork `nustanakritwithai/GameTurnBase`, Migration Step 2–3):
+57. **ห้องต่อสู้ real-time — วางฐาน runtime + เปลี่ยนทางเข้า** (2026-08-06T03:10+07:00, `Claude Code (cloud session, Ring 1)`, สาย fork `nustanakritwithai/GameTurnBase`, Migration Step 2–3):
     - **ทางเข้าห้องต่อสู้เปลี่ยนเป็นระบบใหม่แล้ว**: `BattleScene` รับแค่ `player / stageId /
       onComplete / onExit` — ไม่มี `snapshot`, `activeUnit`, `pendingKind`, `validTargetIds`,
       `onAttack/onDefend/onSkill/onSelectTarget/onCancelTarget` อีกต่อไป
@@ -459,7 +469,7 @@
     - **ยังไม่มีในรอบนี้ (ตามแผน)**: การเดิน, joystick, กล้องตามตัว, AI ศัตรู, hitbox/ดาเมจ,
       คอมโบ, dash, สกิล, victory/defeat, รางวัล — เข้ามาทีละใบตามลำดับ PR ที่วางไว้
 
-57. **ห้องต่อสู้ real-time — การเดิน กล้อง และจอยสติก** (2026-08-06T03:35+07:00, `Claude Code (cloud session, Ring 1)`, Migration Step 4):
+58. **ห้องต่อสู้ real-time — การเดิน กล้อง และจอยสติก** (2026-08-06T03:35+07:00, `Claude Code (cloud session, Ring 1)`, Migration Step 4):
     - `InputSystem.ts` — รวมอินพุตทุกทางให้เหลือเวกเตอร์เดียว: WASD + ปุ่มลูกศร + จอยสติก
       จอยชนะคีย์บอร์ดเมื่อถูกดันจริง (ถ้าบวกกันจะได้ทิศเพี้ยนตอนเผลอแตะทั้งสองทาง)
       ล้างปุ่มค้างตอน `blur` — สลับแท็บทั้งที่กดค้างแล้วตัวละครเดินค้างเป็นบั๊กคลาสสิก
@@ -481,7 +491,7 @@
     - ยืนยันในเบราว์เซอร์จริง: เดินด้วยคีย์บอร์ดและจอยสติกได้ทั้งคู่ กล้องไล่ตามและไม่หลุดห้อง
       เดินชนขอบแล้วไม่ทะลุ ไม่มี console error
 
-58. **ห้องต่อสู้ real-time — AI ศัตรูไล่และเข้าโจมตี** (2026-08-06T04:00+07:00, `Claude Code (cloud session, Ring 1)`, Migration Step 5):
+59. **ห้องต่อสู้ real-time — AI ศัตรูไล่และเข้าโจมตี** (2026-08-06T04:00+07:00, `Claude Code (cloud session, Ring 1)`, Migration Step 5):
     - `EnemyAISystem.ts` — สมองของศัตรู **ตัดสินใจอย่างเดียว ไม่ขยับเอง**: คืนเวกเตอร์ให้
       `stepMovement` เป็นคนขยับ ถ้าให้ AI เขียนโค้ดเดินเองจะกลายเป็นระบบเดินชุดที่สอง
       ที่กฎขอบห้อง/การชนไม่ตรงกับของผู้เล่น
@@ -502,7 +512,7 @@
       hit stun ยกเลิกท่า · ตายแล้วหยุดถาวร · ผู้เล่นตายแล้วเลิกไล่ · คูลดาวน์แล้วยืนรอ ·
       (ระดับ runtime) ศัตรูเข้าใกล้ผู้เล่นจริง · ไม่กองทับกัน · ไม่หลุดห้อง · หยุดสนิทเมื่อออกจากห้อง
 
-59. **ห้องต่อสู้ real-time — hitbox และดาเมจ (การต่อสู้เกิดขึ้นจริงแล้ว)** (2026-08-06T04:25+07:00, `Claude Code (cloud session, Ring 1)`, Migration Step 6):
+60. **ห้องต่อสู้ real-time — hitbox และดาเมจ (การต่อสู้เกิดขึ้นจริงแล้ว)** (2026-08-06T04:25+07:00, `Claude Code (cloud session, Ring 1)`, Migration Step 6):
     - `attacks.ts` — `AttackDefinition` ตาม §13 (startup/active/recovery/range/arc/knockback)
       **ค่าจังหวะทุกตัวอยู่ไฟล์เดียว** ห้ามกระจาย เพราะการปรับสมดุลคือการแก้ตัวเลขชุดนี้
     - `HitboxSystem.ts` — กรวย (ระยะ+มุม) เทียบ `hurtboxRadius` ตรวจครบ: ระยะ · มุม · ยังไม่ตาย ·
@@ -530,7 +540,7 @@
     - **ยังไม่มี**: ผู้เล่นเลือดหมดแล้วยังไม่มีจอแพ้ (ยืนนิ่งอยู่ในห้อง กดออกได้อย่างเดียว)
       และฆ่าครบก็ยังไม่มีจอชนะ — `BattleEndSystem` อยู่ในใบรางวัล/จบการต่อสู้
 
-60. **ห้องต่อสู้ real-time — คอมโบ 3 ไม้ และการพุ่งหลบ** (2026-08-06T04:45+07:00, `Claude Code (cloud session, Ring 1)`, Migration Step 7):
+61. **ห้องต่อสู้ real-time — คอมโบ 3 ไม้ และการพุ่งหลบ** (2026-08-06T04:45+07:00, `Claude Code (cloud session, Ring 1)`, Migration Step 7):
     - `ComboSystem.ts` แทนที่ `PlayerCombatSystem.ts` (ลบไฟล์เดิมทิ้ง ไม่ทิ้งไว้เป็น dead code)
       สามอย่างที่ทำให้กดแล้วรู้สึกดี: **combo window** (กดต่อในหน้าต่างได้ไม้ถัดไป กดช้าเริ่มใหม่) ·
       **input buffer** (กดก่อนท่าจบนิดหน่อยระบบจำไว้ยิงต่อให้ — ไม่มีตัวนี้ต้องกดตรงเป๊ะระดับ
@@ -555,14 +565,22 @@
       กระเด็นกว่า · โดนตีแล้วคอมโบขาด · hit stop หยุดแล้วเดินต่อ · พุ่งตามอินพุต/ตามทิศที่หัน ·
       คูลดาวน์ · **i-frame กันดาเมจได้จริง** · พุ่งทะลุกำแพงไม่ได้ · ตาย/เซแล้วพุ่งไม่ได้
 
-61. **รวม `upstream/master` เข้าสายห้องต่อสู้ real-time** (2026-08-06T15:50+07:00, `Claude Code (cloud session, Ring 1)`):
+62. **รวม `upstream/master` เข้าสายห้องต่อสู้ real-time** (2026-08-06T15:50+07:00, `Claude Code (cloud session, Ring 1)`):
     - สายของ fork ตามหลัง upstream อยู่ **41 commit** (`git rev-list --left-right --count
       upstream/master...origin/master` → `41 15`) ทำให้ทำงานต่อบนฐานเก่าไปเรื่อย ๆ เสี่ยงชนหนัก
       ขึ้นทุกใบ จึงหยุดทำฟีเจอร์แล้วรวมฐานให้ตรงกันก่อน **หนึ่ง PR ทำเรื่องเดียวคือ sync**
-    - `RULES_VERSION` ขยับ **4 → 9** อ่าน `AGENTS.md` + `.agents/rules/**` ใหม่ทั้งชุดตาม §0
+      ระหว่างตรวจ upstream ขยับต่ออีก 4 commit จึงรวมรอบสองให้จบที่ `dc07289` (รวม 45 commit)
+      ไม่ปล่อยให้ใบ sync ล้าตั้งแต่วันที่เปิด
+    - `RULES_VERSION` ขยับ **4 → 10** (upstream ขยับจาก 9 เป็น 10 ระหว่างที่ใบนี้กำลังตรวจอยู่
+      จึงอ่านซ้ำอีกรอบตาม §0) อ่าน `AGENTS.md` + `.agents/rules/**` ใหม่ทั้งชุด
       กฎที่เพิ่มและมีผลกับงานนี้: **#9 `personal-scope-law`** (เนื้อหาส่วนตัวไป `MEMORY.local.md`)
-      และ **#10 `gold-standard-baseline`** (เหลือ component test coverage เป็นช่องว่างเดียว
-      และ**ห้ามทำเองโดยไม่ได้รับคำสั่ง**) · โปรเจกต์ถูกเปลี่ยนชื่อเป็น `LegendOfSoulTH`
+      และ **#10 `gold-standard-baseline`** — เดิมเหลือ component test coverage เป็นช่องว่างเดียว
+      รอบ 10 เพิ่ม**หมวด UI/UX ที่เป็น binding** เข้ามาอีกชุด (ปิดไป 5 ข้อ: pinch-zoom,
+      focus-trap ของ modal แรกเข้า, live region ของ `LoadingScreen`, ขนาดปุ่ม 24px,
+      แท็บการเข้าถึงใน `SettingsModal`) — **การทำให้ข้อที่ปิดแล้วถอยหลังนับเป็น regression จริง**
+      ห้องต่อสู้ของสายนี้ไม่ได้แตะข้อไหนเลย และปุ่มบนจอสัมผัสวัดได้ 148px/112px เกินเกณฑ์ทั้งคู่
+      ทั้งสองรอบยัง**ห้ามทำงานที่ยังเปิดอยู่เองโดยไม่ได้รับคำสั่ง** ใบนี้จึงไม่แตะ ·
+      โปรเจกต์ถูกเปลี่ยนชื่อเป็น `LegendOfSoulTH`
     - แก้ conflict ด้วยมือทุกจุด **ไม่ใช้ `--ours`/`--theirs` เหมาเข่ง** ตาม `pre-push-sync-law`:
       `components/BattleScene/*` เอาของเรา (ห้องเรียลไทม์แทนที่ UI เทิร์นไปแล้ว) ·
       `useBattle.ts`/`game/battle/**` + เทสต์ engine ใหม่ของ upstream เอาของ upstream ทั้งหมด
@@ -585,6 +603,21 @@
       `BATTLE_ASSET_LOAD_FAIL`, `BATTLE_DEFERRED_ASSET_FAIL`, `BATTLE_WEBGL_CONTEXT_LOST`)
     - ผลหลังรวม: `npm run ci` เขียว — **เทสต์ 154 ตัว / 16 ไฟล์ผ่านหมด**, typecheck สะอาด,
       build ผ่าน (main chunk 327 kB, BattleScene แยก chunk 36 kB ตามเดิม)
+    - เบราว์เซอร์จริง (Playwright + Chromium) ทั้ง **1280×720 และ 844×390**: เข้าห้องต่อสู้ได้
+      สไปรต์ขึ้นครบ เลขดาเมจโผล่จริง **console error = 0 และ response ≥ 400 = 0 ทั้งสองขนาด**
+      (ตัวหลังคือตัวจับ 404 ของ asset หลังเปลี่ยนเป็น `.webp`) ปุ่มโจมตี/หลบวัดได้ **148px/112px**
+      ที่ 844×390 (เกณฑ์ 44px)
+    - **เจอระหว่างตรวจ แต่ไม่ได้แก้เพราะอยู่นอกขอบเขตใบนี้**: ที่ 844×390 **สมัครสมาชิกไม่ได้เลย**
+      วัดจริงบนฐานล่าสุด (`dc07289`) — จอสูง **390px** แต่ `[role="dialog"]` ของ `AuthModal`
+      กินตั้งแต่ y=16 ถึง **y=576** (ล้นขอบล่าง 186px) computed style เป็น
+      `overflow-y: visible` / `max-height: none` → `scrollHeight === clientHeight` เลื่อนไม่ได้
+      ปุ่ม "สมัครและเริ่มเล่น" อยู่ที่ y=436 คือ **ต่ำกว่าขอบจอ 46px** เอื้อมไม่ถึงทั้งเมาส์และนิ้ว
+      (Playwright `locator.click` timeout ซ้ำได้ทุกครั้ง)
+      เป็นบั๊กนอกห้องต่อสู้ของสาย upstream — รอบ audit UI/UX ของ upstream เพิ่งแตะ `AuthModal`
+      (focus-trap) แต่**ไม่ได้จับข้อนี้** และ backlog ใน `gold-standard-baseline.md` ก็ยังไม่มี
+      ส่งต่อให้ HetCreep ตัดสิน ไม่แก้เองตามกฎ #10 (ห้ามทำงานที่ยังเปิดอยู่โดยไม่ได้รับคำสั่ง)
+      สคริปต์ตรวจของใบนี้จึงสมัครที่ 1280×720 ก่อน แล้วเปิดแท็บใหม่ที่ 844×390 เพื่อให้
+      `GameViewport` คำนวณตัวคูณย่อที่ขนาดเป้าหมายตั้งแต่ mount
     - **ธงถึง Ring 0 (`ring0-authority` ข้อ 4)**: upstream กำลัง**เพิ่มเทสต์ให้ระบบเทิร์นเบส**
       (`engine.test.ts`, `formulas.test.ts`) ขณะที่แผน migration ของสาย fork จะ**ลบระบบนั้นทิ้ง**
       ใน Step 9 — เป็นความขัดแย้งเชิงทิศทางที่ HetCreep ต้องเป็นคนตัดสิน ไม่ใช่ agent
@@ -607,13 +640,14 @@
 - **Open/next work**: no quest system, no real drop table. `GemShopModal` renamed to `CurrencyShopModal` (item 26); basic battle system exists (`src/game/battle/`, `BattleScene`, wired via `GameExplorationSession`). `LICENSE` resolved — MIT (item 43).
 - **Error-code helper**: `src/lib/errors/` — every error site in the app routes through `reportError(code, tier, err?, context?)`, enforced going forward by oxlint's `no-console` (item 52). No report channel exists for players yet (codes are maintainer-facing only, by design for now).
 - **Loading screen**: `src/components/LoadingScreen/` — used at the one real async boundary (`LobbyPage`'s `LobbyScene` Suspense fallback) and as `BattleTransition`'s shared chrome (item 53). Deliberately NOT wrapped around synchronous scene/mode switches (Title→Auth→Name→Lobby, exploration↔dialogue↔battle_result) — ask-CB found nothing async there to justify it. Placeholder art swap point: `loadingImage.ts`'s `DEFAULT_LOADING_IMAGE_SRC` (currently `null` → shows the 魂 seal motif).
+- **UI/UX gold-standard**: `.agents/rules/gold-standard-baseline.md`'s UI/UX section (item 54) is now binding — ~70% overall, 5 MUST-HAVEs closed (pinch-zoom, AuthModal/NameModal focus-trap, LoadingScreen live region, a touch-target size, an Accessibility settings tab), the rest tracked as an in-repo backlog with exemplar citations, not scaffolded. `src/lib/a11ySettings.ts` is the first accessibility-settings module — extend it (never duplicate) for future controls (text size/contrast/colorblind).
 - **Audio system**: engine built (item 48) + 8 real CC0 SFX files sourced from Kenney.nl and wired into shared touchpoints — modal open/close, dialogue advance, battle hits, toast notify/error/currency-gain, main nav + start-adventure buttons (item 49). `portalOpen`/`levelUp`/`victory`/`defeat` + lobby music remain unresolved placeholders on purpose (no confident mood-matched CC0 file found without listening) — left for a future dev/session to fill in by ear.
 - **New systems law**: from item 45 on, a genuinely new system (own line in a 10-system-style breakdown) gets offered a CoalBoard "ask CB" opinion-lane pass before being called done — Ring 0 only. Retired from the tracked repo item 46 (2026-08-06, HetCreep didn't want it visible on public GitHub); the instruction itself still stands, now kept in gitignored `MEMORY.local.md`. Extended by item 51 (2026-08-06) to also cover retroactively catching another dev/session's new system that skipped it — first catch was `WorldChat` (item 49), reworked per its verdict in item 51.
 - **สาย fork `nustanakritwithai/GameTurnBase`**: Battle Room Overhaul (Turn-based →
   Top-down Realtime) — ทำถึง Step 7 (คอมโบ+dash) แล้ว ระบบเทิร์นเดิม **ยังอยู่ครบ ยังไม่ลบ**
-  จนกว่าจะผ่าน Acceptance Criteria ครบ (ดูข้อ 54–60) · ฐานถูกรวมกับ `upstream/master`
-  ที่ `94e69be` แล้ว (ข้อ 61) รวมท่อ asset WebP ใหม่และกฎ `no-console`/`reportError`
-- **RULES_VERSION last synced: 9** (`.agents/rules/rules-freshness-check.md`)
+  จนกว่าจะผ่าน Acceptance Criteria ครบ (ดูข้อ 55–61) · ฐานถูกรวมกับ `upstream/master`
+  ที่ `dc07289` แล้ว (ข้อ 62) รวมท่อ asset WebP ใหม่และกฎ `no-console`/`reportError`
+- **RULES_VERSION last synced: 10** (`.agents/rules/rules-freshness-check.md`)
 - **Ring**: this machine is Ring 0 (`.agents/ring0.local` present, gitignored). Any other clone is Ring 1 by default — see `.agents/rules/ring0-authority.md`.
 - **Pre-push sync**: `.agents/rules/pre-push-sync-law.md` — binding on every machine before every push.
 

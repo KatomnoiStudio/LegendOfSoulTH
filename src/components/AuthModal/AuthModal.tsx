@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { PASSWORD_MIN_LENGTH } from '../../data/accountRepository'
+import { useModalA11y } from '../../hooks/useModalA11y'
 import { getLastEmail, setLastEmail } from '../../lib/authUi'
 import styles from './AuthModal.module.css'
 
@@ -31,6 +32,11 @@ export function AuthModal({ onRegister, onLogin, onImportSave }: AuthModalProps)
   const [busy, setBusy] = useState(false)
   const emailRef = useRef<HTMLInputElement>(null)
   const importRef = useRef<HTMLInputElement>(null)
+  // focus trap เท่านั้น — ปิดด้วย Esc/backdrop-click ไม่ได้โดยตั้งใจ (ดูคอมเมนต์หัวไฟล์)
+  // จึงส่ง onClose เป็น no-op: Tab ยังคงวนอยู่ในกล่องนี้ แต่ Esc/backdrop ไม่ทำอะไร
+  // (Esc ของ modal นี้เองด้านล่างยังสลับแท็บสมัคร/เข้าสู่ระบบต่อไปตามเดิม — คนละ listener กัน
+  // ไม่ชนกัน เพราะ stopPropagation() ไม่บล็อก listener อื่นบน target เดียวกัน)
+  const { shellRef, backdropProps } = useModalA11y<HTMLDivElement>(() => {})
 
   const handleImportFile = async (file: File) => {
     setBusy(true)
@@ -91,8 +97,15 @@ export function AuthModal({ onRegister, onLogin, onImportSave }: AuthModalProps)
   const isRegister = mode === 'register'
 
   return (
-    <div className={styles.backdrop}>
-      <div className={styles.dialog} role="dialog" aria-modal="true" aria-label="เข้าสู่ตำนาน">
+    <div className={styles.backdrop} {...backdropProps}>
+      <div
+        ref={shellRef}
+        className={styles.dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-label="เข้าสู่ตำนาน"
+        tabIndex={-1}
+      >
         <div className={styles.head}>
           <h2 className={styles.title}>{isRegister ? 'สมัครบัญชีใหม่' : 'เข้าสู่ระบบ'}</h2>
           <p className={styles.subtitle}>
