@@ -23,17 +23,20 @@ if (!WebGL.isWebGL2Available()) {
 }
 ```
 
-## Minimum support floor (OPEN — the declared floor is not enforced by anything)
+## Minimum support floor
 
-`package.json` carries a `browserslist` field (`last 2 Chrome/Firefox/Safari/Edge versions`), but **nothing in this project's build reads it.** Verified 2026-08-07: there is no `@vitejs/plugin-legacy`, no `autoprefixer`, no `postcss` config, no Babel; `vite.config.ts` sets no `build.target`, so Vite silently applies its own default target, which is unrelated to the declared list. `tsconfig.app.json` pins a third, separate target that never reaches output (`noEmit: true`). Three declarations, none of them wired together.
+**The enforced floor is `build.target` in `vite.config.ts`** — currently `chrome111 · edge111 · firefox114 · safari16.4 · ios16.4` (Vite's `baseline-widely-available`, written out explicitly so a Vite upgrade cannot move it silently).
 
-Consequences to treat as binding:
+**`browserslist` in `package.json` enforces nothing.** Verified 2026-08-07: no `@vitejs/plugin-legacy`, no `autoprefixer`, no `postcss` config, no Babel — nothing in this build reads that field. It records intent; treat it as a comment. `tsconfig.app.json`'s `target` is a third value that never reaches output (`noEmit: true`).
 
-- **Do not cite `browserslist` as a compatibility guarantee** in code comments or reviews. It documents intent, not enforcement. Three source files did exactly this and had to be corrected alongside this rule (`src/lib/audio/AudioEngine.ts`, `src/lib/audio/sounds.ts`, `src/components/WorldChat/chatStorage.ts`).
-- A support claim about a specific browser version needs a real check — a feature detect at the call site (the pattern `chatStorage.ts` and `AudioEngine.ts` already use), or a verified caniuse/MDN reference stated as a reference rather than as something the build enforces.
-- Closing this for real means picking one mechanism and wiring it: `build.target` derived from `browserslist`, or `@vitejs/plugin-legacy`, or deleting the `browserslist` field so nothing can lean on it. Choosing among those is a human call, not an agent's.
+Binding consequences:
 
-> Corrected 2026-08-07: this section previously read "CLOSED — `package.json` already carries a `browserslist` field, so Vite/esbuild target the declared floor instead of defaulting." That was false, and the false CLOSED was load-bearing — three source files cited the guarantee it claimed to provide.
+- **Never cite `browserslist` as a compatibility guarantee** in code comments or reviews. Three source files did exactly that and had to be corrected alongside this rule (`src/lib/audio/AudioEngine.ts`, `src/lib/audio/sounds.ts`, `src/components/WorldChat/chatStorage.ts`). Cite `build.target`, or caniuse/MDN as a reference.
+- A support claim about a specific browser still wants a real check at the call site — the feature-detect pattern `chatStorage.ts` and `AudioEngine.ts` use. `build.target` controls what syntax is emitted; it does not conjure missing APIs.
+- Moving the floor **down** is not a thing worth doing here: the game needs WebGL2 at minimum, which is already far above it.
+- Whether to delete the `browserslist` field, or wire it as the source for `build.target`, is still a human call — but it is no longer urgent, because the floor is now enforced somewhere real.
+
+> History, 2026-08-07: this section used to read "CLOSED — `package.json` already carries a `browserslist` field, so Vite/esbuild target the declared floor instead of defaulting." That was false, and the false CLOSED was load-bearing — three source files cited the guarantee it claimed to provide. It was rewritten as OPEN the same day, then closed for real once `build.target` was set explicitly.
 
 ## Mobile / touch
 

@@ -1,0 +1,18 @@
+# โปรเจกต์นี้ไม่มี formatter อัตโนมัติ (ไม่มี prettier/oxfmt) — ไฟล์นี้จึงเป็นสิ่งเดียว
+# ที่บอก editor ว่ารูปแบบพื้นฐานควรเป็นแบบไหน อย่างน้อยก็ไม่ให้ไฟล์เดียวกันมีทั้ง tab
+# และ space ปนกันเวลามีคนใช้ editor ต่างตัว
+#
+# ค่าที่เลือกมาจากของที่โค้ดในรีโปใช้อยู่จริงแล้ว ไม่ได้ตั้งมาตรฐานใหม่ทับของเดิม
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Markdown ใช้ช่องว่างท้ายบรรทัดสองตัวเป็นการขึ้นบรรทัดใหม่ ตัดทิ้งไม่ได้
+[*.md]
+trim_trailing_whitespace = false

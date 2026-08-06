@@ -35,11 +35,49 @@ export default defineConfig(({ command }) => ({
   base: command === 'build' ? resolveBasePath() : '/',
   plugins: [react()],
   build: {
+    /*
+      ประกาศ floor ของเบราว์เซอร์ให้ชัดตรงนี้ ไม่ปล่อยให้เป็นค่าปริยาย
+
+      ฟิลด์ `browserslist` ใน package.json **ไม่มีอะไรในบิลด์นี้อ่าน** — ไม่มี plugin-legacy
+      ไม่มี autoprefixer ไม่มี postcss ไม่มี babel มันเป็นเอกสารบอกเจตนาเท่านั้น
+      ที่ผ่านมามีโค้ดสามไฟล์อ้างมันเป็น "หลักประกัน" ทั้งที่ไม่ใช่ (แก้แล้ว 2026-08-07
+      ดู .agents/rules/ecc/web/compatibility.md) การเขียน target ตรงนี้คือจุดเดียวที่บังคับได้จริง
+
+      ค่านี้คือ 'baseline-widely-available' ที่ Vite ใช้เป็นค่าปริยายอยู่แล้ว กางออกมาเขียนตรง ๆ
+      เพื่อให้เห็นด้วยตาว่า floor คืออะไร และการเปลี่ยนมันกลายเป็นการแก้โค้ดที่มีคนเห็นใน diff
+      ไม่ใช่ผลข้างเคียงเงียบ ๆ จากการอัป Vite (ยืนยันกับเอกสาร Vite 2026-08-07)
+
+      ตัวเกมต้องการ WebGL2 เป็นอย่างน้อยอยู่แล้ว ซึ่งสูงกว่า floor นี้มาก การรองรับต่ำกว่านี้
+      จึงไม่มีความหมายกับเกม — ถ้าจะขยับ ให้ขยับขึ้น ไม่ใช่ลง
+    */
+    target: ['chrome111', 'edge111', 'firefox114', 'safari16.4', 'ios16.4'],
+
     // ฉาก 3D (three.js) ถูกแยกเป็น chunk แยกและโหลดแบบ lazy อยู่แล้ว
     // จึงยกเพดานเตือนขึ้นเพื่อไม่ให้ warning รบกวนทุกครั้งที่ build
     chunkSizeWarningLimit: 1000,
   },
   test: {
     environment: 'jsdom',
+    coverage: {
+      /*
+        รายงานเฉย ๆ ยังไม่ตั้งเพดานบังคับ
+
+        ตอนนี้ component ทั้งหมด (~57 ไฟล์ .tsx) ยังไม่มีเทสต์สักตัว ตั้ง threshold ตอนนี้
+        จะได้เลขที่ต่ำจนต้องตั้งให้หลวมเพื่อให้ผ่าน ซึ่งกลายเป็นเพดานที่ไม่ได้กันอะไรเลย
+        เอาไว้ก่อนให้ "เห็นว่าคลุมอะไรอยู่บ้าง" — ตั้งเพดานเมื่อมีเทสต์ component จริงแล้ว
+        (ดู .agents/rules/gold-standard-baseline.md ข้อ 6)
+      */
+      provider: 'v8',
+      reporter: ['text-summary', 'html'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.test.ts',
+        'src/**/*.d.ts',
+        // ทะเบียนข้อมูลล้วน ไม่มีตรรกะให้คลุม นับรวมแล้วทำให้ตัวเลขหลอกตา
+        'src/game/{characters,items,frames,collection,gameInfo,backgroundAssets,sceneDimensions}.ts',
+        'src/game/{spriteSequences,battleSpriteSequences,walkKits}.ts',
+        'src/lib/errors/codes.ts',
+      ],
+    },
   },
 }))
