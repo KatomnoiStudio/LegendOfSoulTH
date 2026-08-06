@@ -2,7 +2,7 @@ import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { getCharacter } from '../game/characters'
 import { AddFriendModal } from '../components/AddFriendModal/AddFriendModal'
 import { WukongAdventure } from '../components/AdventureScene/WukongAdventure'
-import { CommandConsole } from '../components/CommandConsole/CommandConsole'
+import { WorldChat } from '../components/WorldChat/WorldChat'
 import { GameExplorationSession } from '../components/GameExplorationSession/GameExplorationSession'
 import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRosterModal'
 import { ItemsModal } from '../components/ItemsModal/ItemsModal'
@@ -44,9 +44,9 @@ interface LobbyPageProps {
   onRedeemCoupon: (code: string) => Promise<CurrencyResult>
   /** ค้นหาผู้เล่นจาก UID เพื่อเพิ่มเพื่อน */
   onFindFriend: (uid: string) => Promise<FriendCandidate | null>
-  /** บัญชีนี้ใช้คำสั่งผู้ดูแลได้ไหม — ช่องคำสั่งจะไม่ถูก render เลยถ้าไม่ใช่ (ดู src/data/admins.ts) */
+  /** บัญชีนี้ใช้คำสั่งลับในแชทได้ไหม — ไม่มีผลต่อหน้าตา UI เลย (ดู src/data/admins.ts) */
   isAdmin: boolean
-  /** มอบตัวละครให้บัญชีนี้ — ใช้จากช่องคำสั่งผู้ดูแลเท่านั้นในตอนนี้ */
+  /** มอบตัวละครให้บัญชีนี้ — เรียกจากคำสั่งลับในแชท (ดู WorldChat.tsx) */
   onGiveCharacter: (characterId: string) => Promise<CharacterGrantResult>
   /** ส่งออก save เป็นไฟล์ JSON — คืน null เมื่อสำเร็จ (ดาวน์โหลดแล้ว) คืนข้อความเมื่อผิดพลาด */
   onExportSave: () => Promise<string | null>
@@ -142,12 +142,12 @@ export function LobbyPage({
       />
 
       {/*
-        ช่องคำสั่งผู้ดูแล — เช็ค isAdmin เป็น UI gate เท่านั้น ไม่ใช่ security boundary
-        (ดูคำเตือนใน src/data/admins.ts — เช็คฝั่ง client ล้วน ๆ ข้ามได้ด้วย DevTools)
-        import.meta.env.DEV กันไว้อีกชั้นให้ component ไม่ถูก build เข้า production bundle เลย
-        ผู้เล่นทั่วไปในเกมจริงจึงไม่มีทางเห็น แม้จะพยายามปลอมอีเมลผ่าน localStorage ก็ตาม
+        แชทเห็นได้ทุกบัญชีตั้งใจ (ไม่ใช่ dev-only/admin-only gate อีกต่อไป — คำสั่งลับ
+        ผู้ดูแลซ่อนอยู่ข้างในโดยไม่ใบ้อะไรใน UI เลย ดู WorldChat.tsx). แทนที่ CommandConsole
+        เดิม (ซึ่งอีกเครื่องเพิ่งใส่ import.meta.env.DEV gate ไว้พร้อมกัน — ไม่ต้องแล้วเพราะ
+        component เปลี่ยนชื่อ/พฤติกรรมไปคนละแบบ ไม่ใช่คอนโซลลับอีกต่อไป)
       */}
-      {import.meta.env.DEV && isAdmin ? <CommandConsole onGiveCharacter={onGiveCharacter} /> : null}
+      <WorldChat playerName={player.name} isAdmin={isAdmin} onGiveCharacter={onGiveCharacter} />
 
       {explorationOpen ? (
         <GameExplorationSession

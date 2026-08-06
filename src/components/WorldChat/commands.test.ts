@@ -7,9 +7,9 @@ describe('parseCommand', () => {
     expect(parseCommand('   ')).toBeNull()
   })
 
-  it('ข้อความที่ไม่ขึ้นต้นด้วย / ถูกปฏิเสธ', () => {
-    const result = parseCommand('givecharacter pig')
-    expect(result).toEqual({ kind: 'error', message: expect.stringContaining('ขึ้นต้นด้วย /') })
+  it('ข้อความแชทธรรมดาที่ไม่ขึ้นต้นด้วย / ไม่ถือเป็นคำสั่ง (ต้องส่งเป็นแชทปกติ)', () => {
+    expect(parseCommand('สวัสดีครับ')).toBeNull()
+    expect(parseCommand('givecharacter pig')).toBeNull()
   })
 
   it('/givecharacter pig แปลงชื่อย่อเป็น id จริงได้', () => {
