@@ -6,7 +6,9 @@ import type { CharacterModelKind } from './characters'
  *
  * ─── สถานะทรัพยากรตอนนี้ ──────────────────────────────────
  * ซุนหงอคง      มีเฟรมเดินครบ 8 ทิศ ทิศละ 8 เฟรม (64 ไฟล์)
- * ตือโป๊ยก่าย    ยังไม่มีเฟรมเดิน มีแต่เฟรมหันทิศ 8 ทิศ
+ * ตือโป๊ยก่าย    มีเฟรมเดินครบ 8 ทิศแล้ว — ต้นฉบับวาดมาทิศละ 7 เฟรม (ไม่ใช่ 8)
+ *                เฟรมที่ 8 ของทุกทิศ = สำเนาเฟรมที่ 7 ซ้ำ (ตัด/แปลงอัตโนมัติ ยังไม่ได้วาดเพิ่ม)
+ *                ถ้าได้เฟรมที่ 8 จริงมาทีหลัง ให้แทนที่ไฟล์ pigsy-walk-{ทิศ}-7.webp ได้เลย
  * พระถังซัมจั๋ง  ยังไม่มีเฟรมเดิน มีแต่เฟรมหันทิศ 8 ทิศ
  *
  * ตัวที่ยังไม่มีเฟรมเดินจะเลือกมาเดินได้ แต่ใช้ภาพหันทิศแทน
@@ -36,7 +38,7 @@ const WALK_KITS: Record<CharacterModelKind, WalkKit> = {
     idleCount: 24,
   },
   'pig-warrior': {
-    walkPrefix: null,
+    walkPrefix: publicUrl('characters/walk/pigsy-walk'),
     turnPrefix: publicUrl('characters/turnaround/pigsy-turn'),
     idlePrefix: publicUrl('characters/pigsy-idle'),
     idleCount: 24,
