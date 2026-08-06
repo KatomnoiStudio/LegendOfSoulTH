@@ -150,6 +150,12 @@ pip install -r scripts/requirements.txt   # Pillow, numpy, scipy
 python scripts/<ชื่อสคริปต์>.py
 ```
 
+**ช่องว่างที่ต้องรู้ (ยังไม่อัตโนมัติ)**: `split_wukong_walk_sheets.py` เขียนผลลัพธ์เป็น `.png`
+ตรงไปที่ `public/characters/walk/` แต่ pipeline ภาพ 2D ด้านบน (`build:images`) แปลง
+`assets/raw/ → public/` เป็น `.webp` เท่านั้น ไม่มีขั้นตอนไหนแปลง `.png` ที่สคริปต์นี้เขียนไว้
+ให้เป็น `.webp` ให้อัตโนมัติ — ต้องรัน `build:images` ตามหลัง (หรือแปลงเอง) แล้วลบ `.png`
+ทิ้งก่อน commit เสมอ ไม่งั้นจะมีทั้งสองนามสกุลค้างอยู่ใน `public/` โดยไม่มีใครรู้ตัว
+
 ## โครงสร้าง
 
 ```

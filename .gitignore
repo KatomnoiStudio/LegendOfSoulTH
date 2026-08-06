@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# build:models output — nothing in src/ loads .glb yet (game renders 2D sprites),
+# regenerate locally with `npm run build:models` when actually needed; not shipped to deploy
+public/models/
+
 # Agent tool internal state — never shipped, machine-local only
 .claude/coalhearth/
 .claude/coalwash/
