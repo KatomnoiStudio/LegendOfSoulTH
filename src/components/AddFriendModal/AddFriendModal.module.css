@@ -290,7 +290,7 @@
   border: 1px solid color-mix(in srgb, var(--c-danger) 45%, transparent);
   border-radius: var(--r-md);
   background: color-mix(in srgb, var(--c-danger) 10%, transparent);
-  color: #ffb3a6;
+  color: var(--c-danger-text);
   font-size: 0.78rem;
 }
 

@@ -2,6 +2,11 @@ import { publicUrl } from '../lib/publicUrl'
 import type { OwnedCharacter } from '../types/player'
 
 export type CharacterModelKind = 'monkey-king' | 'pig-warrior' | 'pilgrim-monk'
+
+/** สไปรต์ idle เริ่มต้นของแต่ละตัวละคร ใช้เป็น fallback เมื่อไม่มี model.spriteUrl ให้ใช้ */
+export const MONKEY_SPRITE_URL = publicUrl('characters/monkey-v2-idle-0.webp')
+export const PIGSY_SPRITE_URL = publicUrl('characters/pigsy-idle-0.webp')
+export const TRIPITAKA_SPRITE_URL = publicUrl('characters/tripitaka-idle-0.webp')
 export type CharacterOrigin = 'Myth' | 'History' | 'Original'
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary'
 
@@ -67,7 +72,7 @@ export const ROSTER: Character[] = [
     stats: { hp: 1180, atk: 92, def: 78, spd: 96 },
     model: {
       kind: 'monkey-king',
-      spriteUrl: publicUrl('characters/monkey-v2-idle-0.webp'),
+      spriteUrl: MONKEY_SPRITE_URL,
       accent: '#ffd765',
     },
   },
@@ -86,7 +91,7 @@ export const ROSTER: Character[] = [
     stats: { hp: 1420, atk: 98, def: 84, spd: 71 },
     model: {
       kind: 'pig-warrior',
-      spriteUrl: publicUrl('characters/pigsy-idle-0.webp'),
+      spriteUrl: PIGSY_SPRITE_URL,
       accent: '#7ee0ff',
     },
   },
@@ -105,7 +110,7 @@ export const ROSTER: Character[] = [
     stats: { hp: 980, atk: 95, def: 70, spd: 88 },
     model: {
       kind: 'pilgrim-monk',
-      spriteUrl: publicUrl('characters/tripitaka-idle-0.webp'),
+      spriteUrl: TRIPITAKA_SPRITE_URL,
       accent: '#fff0a2',
     },
   },

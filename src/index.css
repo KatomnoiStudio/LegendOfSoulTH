@@ -20,6 +20,7 @@
   --c-gold: #f0c85a;
   --c-gold-light: #ffe6a8;
   --c-gold-deep: #9c7418;
+  --c-gold-focus: #f3ce7c;
 
   --c-gem: #7ce8ff;
   --c-bone: #ece7f2;
@@ -32,6 +33,7 @@
   --c-border: rgb(240 200 90 / 40%);
   --c-border-arcane: rgb(109 140 255 / 45%);
   --c-danger: #f0553f;
+  --c-danger-text: #ffb3a6;
 
   /* --- Spacing scale (4px base) --- */
   --sp-1: 0.25rem;
@@ -67,6 +69,7 @@
   --dur-fast: 140ms;
   --dur-mid: 260ms;
   --dur-slow: 520ms;
+  --dur-xslow: 900ms;
 
   /* --- Layers --- */
   --z-scene: 0;
@@ -74,6 +77,20 @@
   --z-nav: 20;
   --z-panel: 30;
   --z-toast: 50;
+
+  /* --- Scene stack (ฉากเต็มจอ, ซ้อนกันตามลำดับ explore < controls < battle <
+     battle-transition < dialogue < banner) — เดิมกระจายเป็น literal ในแต่ละไฟล์
+     พร้อมคอมเมนต์ cross-reference ค่ากันเอง รวมมาไว้ที่นี่ที่เดียว */
+  --z-scene-explore: 500;
+  --z-scene-controls: 510;
+  --z-scene-battle: 600;
+  --z-scene-battle-transition: 650;
+  --z-scene-dialogue: 700;
+  --z-banner: 1000;
+
+  /* --- Adventure HUD stack (WukongAdventure.module.css เท่านั้น) --- */
+  --z-adventure-hud: 1600;
+  --z-adventure-pad: 1700;
 
   /* --- Type ---
      ฟอนต์ไทยเรียงตามที่มีในเครื่องผู้ใช้ (ไม่โหลดจากภายนอก เพื่อให้เล่นออฟไลน์ได้)

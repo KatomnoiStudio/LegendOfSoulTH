@@ -159,7 +159,7 @@
   border: 1px solid color-mix(in srgb, var(--c-danger) 55%, transparent);
   clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%);
   background: color-mix(in srgb, var(--c-danger) 14%, transparent);
-  color: #ffb3a6;
+  color: var(--c-danger-text);
   font-size: 0.72rem;
   animation: shake 260ms var(--ease-out);
 }

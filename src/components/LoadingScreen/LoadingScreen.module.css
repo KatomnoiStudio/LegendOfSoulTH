@@ -18,7 +18,7 @@
 
 /* ใช้ตอนซ้อนทับฉากที่ยังแสดงอยู่จริง (เช่น BattleTransition) — โปร่งดำ ไม่ปิดฉากด้านหลังสนิท */
 .overlayScreen {
-  z-index: 650;
+  z-index: var(--z-scene-battle-transition);
   background: rgb(0 0 0 / 72%);
   animation: fadeIn 400ms var(--ease-out);
 }

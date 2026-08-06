@@ -1,7 +1,7 @@
 .scene {
   position: absolute;
   inset: 0;
-  z-index: 500;
+  z-index: var(--z-scene-explore); /* เดียวกับ ExplorationScene.module.css .explore */
   overflow: hidden;
   color: #f8e4a7;
   user-select: none;
@@ -132,7 +132,7 @@
 
 .hud {
   position: absolute;
-  z-index: 1600;
+  z-index: var(--z-adventure-hud);
   top: 28px;
   left: clamp(12px, 3vw, 36px);
   right: clamp(12px, 3vw, 36px);
@@ -461,7 +461,7 @@
 
 .helpBar {
   position: absolute;
-  z-index: 1600;
+  z-index: var(--z-adventure-hud);
   left: 50%;
   bottom: 24px;
   height: 52px;
@@ -516,7 +516,7 @@
   --pad-cell: clamp(38px, 11vw, 50px);
   --pad-gap: 3px;
   position: absolute;
-  z-index: 1700;
+  z-index: var(--z-adventure-pad);
   left: 34px;
   bottom: 28px;
   width: calc(var(--pad-cell) * 3 + var(--pad-gap) * 2);

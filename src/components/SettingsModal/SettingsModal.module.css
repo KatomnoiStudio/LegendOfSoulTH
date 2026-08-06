@@ -236,7 +236,7 @@
   border: 1px solid color-mix(in srgb, var(--c-danger) 58%, transparent);
   border-radius: var(--r-pill);
   background: color-mix(in srgb, var(--c-danger) 12%, transparent);
-  color: #ffb3a6;
+  color: var(--c-danger-text);
   font-family: var(--font-display);
   font-size: 0.82rem;
   font-weight: 800;

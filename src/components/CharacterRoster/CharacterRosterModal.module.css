@@ -170,7 +170,7 @@
 .toolButton:hover,
 .toolButton:focus-visible {
   outline: none;
-  border-color: #f3ce7c;
+  border-color: var(--c-gold-focus);
   filter: brightness(1.16);
   transform: translateY(-2px);
 }

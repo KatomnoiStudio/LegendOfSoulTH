@@ -1,4 +1,4 @@
-import { publicUrl } from '../../lib/publicUrl'
+import { TEMPLE_LOBBY_BG, BATTLE_ART_BG } from '../backgroundAssets'
 import type { CharacterModelKind } from '../characters'
 import type { Vec2 } from './types'
 
@@ -154,7 +154,7 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
         ],
       },
     ],
-    backgroundAsset: publicUrl('ui/thai/thai-temple-lobby.webp'),
+    backgroundAsset: TEMPLE_LOBBY_BG,
   },
   'trial-02': {
     id: 'trial-02',
@@ -180,7 +180,7 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
         ],
       },
     ],
-    backgroundAsset: publicUrl('backgrounds/wukong-vs-bull-demon-v2-game-art.webp'),
+    backgroundAsset: BATTLE_ART_BG,
   },
 }
 
