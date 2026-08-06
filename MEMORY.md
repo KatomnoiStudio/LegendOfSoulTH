@@ -4,7 +4,7 @@
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`
 > **Default Branch**: `master`
 > **Last Updated**: 2026-08-06T23:59:00+07:00 by `Claude Code`
-> **RULES_VERSION: 10** (see `.agents/rules/rules-freshness-check.md`)
+> **RULES_VERSION last synced: 11** (see `.agents/rules/rules-freshness-check.md` — this exact line is what the check greps for; the compression pass that rewrote this file dropped it, restored here)
 
 > **2026-08-06 overhaul**: this file had grown to 65+ interleaved, verbose items (two colliding numbering
 > tracks from concurrent sessions/forks) and was getting expensive to read every session. Compressed to
