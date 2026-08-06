@@ -22,7 +22,6 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const SHEET = join(ROOT, 'assets', 'archive', 'characters', 'pigsy-v7-walk-sheet.png')
 const WALK_DIR = join(ROOT, 'assets', 'raw', 'characters', 'walk')
 const TURN_DIR = join(ROOT, 'assets', 'raw', 'characters', 'turnaround')
-const IDLE_DIR = join(ROOT, 'assets', 'raw', 'characters')
 const PREVIEW = process.argv.includes('--preview')
 
 /** แถวเรียงตามป้ายกำกับในชีต แม็ปเป็นชื่อทิศที่เกมใช้ */
@@ -72,7 +71,6 @@ const TARGET_FEET_Y = 474
 const TARGET_FEET_CENTER_X = 349.5
 
 const FRAME_COUNT = 8
-const IDLE_FRAME_COUNT = 24
 
 /**
  * ทิศฝั่งขวาสร้างจากการพลิกกระจกฝั่งซ้าย ไม่ได้ใช้แถวฝั่งขวาในชีต
@@ -373,6 +371,45 @@ function findSpriteColumns(data, W, channels, y0, y1) {
   return Array.from({ length: COLUMN_COUNT }, (_, i) => [cuts[i], cuts[i + 1] - 1])
 }
 
+/**
+ * เลือกเฟรมที่ "เท้าลงพื้นทั้งสองข้าง" สำหรับใช้เป็นท่ายืนตอนหยุดเดิน
+ *
+ * เดิมใช้เฟรมแรกของแถวดื้อ ๆ ซึ่งมักเป็นท่ากลางก้าว (ขาข้างหนึ่งลอย) พอผู้เล่นหยุด
+ * ตัวละครเลยค้างอยู่ในท่าเดินครึ่ง ๆ กลาง ๆ ดูไม่เหมือนคนยืน
+ *
+ * วัดจากจำนวนพิกเซลทึบในแถบล่างสุดของตัวละคร (12% สุดท้ายของความสูง) — ท่าที่เท้า
+ * แตะพื้นทั้งสองข้างจะมีเนื้อในแถบนั้นมากกว่าท่าที่ยกขาข้างหนึ่งขึ้น
+ */
+function pickPlantedPose(cells) {
+  let best = cells[0]
+  let bestScore = -1
+  for (const entry of cells) {
+    const { buffer, width, bbox } = entry.cell
+    // ใช้เส้นพื้นร่วมของแถวเป็นระดับพื้น ไม่ใช่ขอบล่างของเฟรมนั้น ๆ — เฟรมที่ยกขาสูง
+    // ขอบล่างจะอยู่สูงกว่าพื้นจริง ถ้าวัดจากขอบตัวเองจะเข้าใจผิดว่าเท้าแตะพื้นเต็ม
+    const groundY = Math.min(entry.groundLocalY, bbox.maxY)
+    const band = Math.max(2, Math.round((bbox.maxY - bbox.minY + 1) * 0.04))
+    let first = -1
+    let last = -1
+    for (let y = groundY - band; y <= groundY; y++) {
+      if (y < 0) continue
+      for (let x = bbox.minX; x <= bbox.maxX; x++) {
+        if (buffer[(y * width + x) * 4 + 3] > 128) {
+          if (first === -1 || x < first) first = x
+          if (x > last) last = x
+        }
+      }
+    }
+    // ความกว้างของรอยสัมผัสพื้น: ยืนสองขาแตะพื้นจะกว้าง ส่วนท่ายกขาข้างหนึ่งจะแคบ
+    const score = last - first
+    if (score > bestScore) {
+      bestScore = score
+      best = entry
+    }
+  }
+  return best
+}
+
 async function main() {
   const { data, info } = await sharp(SHEET).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
   const { width: W, channels } = info
@@ -470,16 +507,12 @@ async function main() {
 
   for (const [index, direction] of TURN_ORDER.entries()) {
     const { cells, mirror } = sourceFor(direction)
-    await render(cells[0], join(TURN_DIR, `pigsy-turn-${index}.png`), mirror)
+    await render(pickPlantedPose(cells), join(TURN_DIR, `pigsy-turn-${index}.png`), mirror)
   }
-  console.log(`เขียนเฟรมหันทิศแล้ว ${TURN_ORDER.length} ไฟล์`)
+  console.log(`เขียนเฟรมหันทิศแล้ว ${TURN_ORDER.length} ไฟล์ (เลือกเฟรมที่เท้าลงพื้นทั้งสองข้าง)`)
 
-  // ชีตเป็นชุดเดินล้วน ไม่มีแถวท่าหายใจ — ใช้ท่าหันหน้าเฟรมแรกยืนนิ่งไว้ก่อน
-  const idlePose = byDirection.get('down')[0]
-  for (let frame = 0; frame < IDLE_FRAME_COUNT; frame++) {
-    await render(idlePose, join(IDLE_DIR, `pigsy-idle-${frame}.png`))
-  }
-  console.log(`เขียนเฟรมยืนเฉยแล้ว ${IDLE_FRAME_COUNT} ไฟล์ (ท่าเดียวซ้ำ — ชีตยังไม่มีท่าหายใจ)`)
+  // เฟรมยืนเฉย (หายใจ) มาจากชีตแยกต่างหาก ตัดด้วย tools/cut-pigsy-pose-sheet.mjs
+  // สคริปต์นี้จึงไม่แตะ pigsy-idle-* เพื่อไม่ให้ทับท่าหายใจที่ตัดไว้แล้ว
 
   if (PREVIEW) {
     const tiles = []

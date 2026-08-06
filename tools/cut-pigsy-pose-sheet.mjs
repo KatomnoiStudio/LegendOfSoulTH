@@ -52,12 +52,20 @@ const FILLED_BG_MIN_AREA = 25
 
 const CANVAS_W = 640
 const CANVAS_H = 512
-/** ค่าอ้างอิงเดียวกับชุด v4 เพื่อให้ทิศขวาขนาดเท่าทิศอื่นและเท้าอยู่ระดับเดียวกัน */
-const TARGET_HEAD_HEIGHT = 60
+/** ค่าอ้างอิงเดียวกับ cut-pigsy-v7-walk.mjs เพื่อให้ตัวขนาดเท่ากันทั้งตอนเดิน ยืน และทำท่า */
+const TARGET_BODY_HEIGHT = 333
 const TARGET_FEET_Y = 474
 const TARGET_FEET_CENTER_X = 349.5
 
-const FRAME_COUNT = 8
+/*
+   จำนวนไฟล์ปลายทาง
+   gesture ใช้ 8 ตามที่เกมผูกไว้กับ actionUrls
+   idle ต้องเป็น 24 เพราะ WukongAdventure คำนวณเฟรมยืนด้วย (เฟรมเดิน * 3) % idleCount
+   ถ้าลดเหลือ 8 สูตรนี้จะกระโดดเป็น 0,3,6,1,4,7,2,5 คือเล่นสลับลำดับจนดูกระตุก
+   จึงคงช่องไว้ 24 แล้วให้ต้นฉบับ 1 เฟรมกินช่องละ 3 ช่องติดกันแทน — สูตรเดิมจะไปตกที่
+   ช่อง 0,3,6,...,21 ซึ่งแมปกลับเป็นเฟรมต้นฉบับ 0..7 เรียงตามลำดับพอดี
+*/
+const FRAME_COUNT = ANIMATION === 'idle' ? 24 : 8
 function bgDistance(data, index, channels) {
   const dr = data[index * channels] - BG[0]
   const dg = data[index * channels + 1] - BG[1]
@@ -330,11 +338,6 @@ function measureFeet(rgba, w, h) {
   return { y: h - 1, centerX: w / 2 }
 }
 
-/** เลือก n เฟรมกระจายทั่ววงจร ไม่ใช่ตัด n ตัวแรก จะได้ครบรอบก้าวขา */
-function sampleEvenly(list, n) {
-  if (list.length <= n) return list
-  return Array.from({ length: n }, (_, i) => list[Math.round((i * (list.length - 1)) / n)])
-}
 
 /** หาช่วง x ของตัวละครแต่ละตัวในแถว โดยข้ามหัวเรื่องที่แคบกว่า */
 function findSpriteColumns(data, W, channels, y0, y1) {
@@ -447,13 +450,18 @@ async function main() {
     process.exit(1)
   }
 
-  const heads = cells
-    .map((entry) => entry.head?.height)
-    .filter(Boolean)
+  /*
+     เทียบสเกลจากความสูงตัวละคร ไม่ใช่ขนาดหัว — ต้องใช้เกณฑ์เดียวกับ cut-pigsy-v7-walk.mjs
+     ไม่งั้นตัวละครจะขนาดไม่เท่ากันระหว่างตอนเดินกับตอนยืน/ทำท่า ซึ่งเห็นชัดมากเวลาสลับ
+     (อาร์ตแต่ละชีตวาดสัดส่วนหัวต่อตัวไม่เท่ากัน การวัดจากหัวจึงให้ขนาดตัวต่างกันไป)
+     ใช้มัธยฐานเพื่อกันเฟรมที่ยกคราดสูงจนกรอบภาพสูงผิดปกติ
+  */
+  const bodyHeights = cells
+    .map((entry) => entry.cell.bbox.maxY - entry.cell.bbox.minY + 1)
     .toSorted((a, b) => a - b)
-  const medianHead = heads[Math.floor(heads.length / 2)]
-  const scale = TARGET_HEAD_HEIGHT / medianHead
-  console.log(`หัวในชีต (มัธยฐาน) ${medianHead}px → สเกล ${scale.toFixed(4)}`)
+  const medianBody = bodyHeights[Math.floor(bodyHeights.length / 2)]
+  const scale = TARGET_BODY_HEIGHT / medianBody
+  console.log(`ตัวละครในชีต (มัธยฐาน) ${medianBody}px → สเกล ${scale.toFixed(4)}`)
 
   const render = async ({ cell, feet }, file) => {
     const { bbox } = cell
@@ -486,11 +494,14 @@ async function main() {
 
   await mkdir(OUT_DIR, { recursive: true })
 
-  const picked = sampleEvenly(cells, FRAME_COUNT)
   for (let frame = 0; frame < FRAME_COUNT; frame++) {
-    await render(picked[frame], join(OUT_DIR, `${FILE_PREFIX}-${frame}.png`))
+    // ยืดต้นฉบับให้เต็มจำนวนช่องแบบเรียงลำดับ (ไม่ใช่สุ่ม/ข้าม) เพื่อให้ลูปหายใจต่อเนื่อง
+    const source = cells[Math.min(cells.length - 1, Math.floor((frame * cells.length) / FRAME_COUNT))]
+    await render(source, join(OUT_DIR, `${FILE_PREFIX}-${frame}.png`))
   }
-  console.log(`เขียนแล้ว ${FRAME_COUNT} ไฟล์: ${FILE_PREFIX}-0..${FRAME_COUNT - 1}.png`)
+  console.log(
+    `เขียนแล้ว ${FRAME_COUNT} ไฟล์: ${FILE_PREFIX}-0..${FRAME_COUNT - 1}.png (จากต้นฉบับ ${cells.length} เฟรม)`,
+  )
 
 
   if (PREVIEW) {
