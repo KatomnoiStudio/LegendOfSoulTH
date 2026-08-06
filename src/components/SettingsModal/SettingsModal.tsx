@@ -362,8 +362,8 @@ function AccessibilityPanel({
     <section className={styles.panel} role="tabpanel" aria-label="การเข้าถึง">
       <button
         type="button"
-        className={styles.muteButton}
-        data-muted={settings.reduceMotion}
+        className={styles.a11yToggle}
+        data-active={settings.reduceMotion}
         aria-pressed={settings.reduceMotion}
         onClick={() => onChange({ ...settings, reduceMotion: !settings.reduceMotion })}
       >
