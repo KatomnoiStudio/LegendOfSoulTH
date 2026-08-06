@@ -24,6 +24,9 @@ const KEY_VECTORS: Record<string, Vec2> = {
 /** ปุ่มโจมตีบนคีย์บอร์ด — เว้นวรรคคือปุ่มที่คนเล่นเกมบนเบราว์เซอร์คาดหวังที่สุด */
 const ATTACK_KEYS = new Set(['Space', 'KeyJ'])
 
+/** ปุ่มพุ่งหลบ — Shift คือปุ่มหลบมาตรฐานของเกมแนวนี้บนคีย์บอร์ด */
+const DASH_KEYS = new Set(['ShiftLeft', 'ShiftRight', 'KeyK'])
+
 export class InputSystem {
   private pressedKeys = new Set<string>()
   private joystick: Vec2 = { x: 0, y: 0 }
@@ -35,6 +38,7 @@ export class InputSystem {
    * โจมตีรัวอัตโนมัติ
    */
   private pendingAttacks = 0
+  private pendingDashes = 0
 
   /** เริ่มฟังคีย์บอร์ด คืนฟังก์ชันสำหรับถอด listener (ต้องเรียกตอน unmount — §28) */
   attachKeyboard(target: Window = window): () => void {
@@ -43,6 +47,12 @@ export class InputSystem {
         event.preventDefault()
         // กดค้างไม่นับซ้ำ — ต้องปล่อยแล้วกดใหม่ถึงจะเป็นการโจมตีครั้งถัดไป
         if (!this.pressedKeys.has(event.code)) this.pendingAttacks += 1
+        this.pressedKeys.add(event.code)
+        return
+      }
+      if (DASH_KEYS.has(event.code)) {
+        event.preventDefault()
+        if (!this.pressedKeys.has(event.code)) this.pendingDashes += 1
         this.pressedKeys.add(event.code)
         return
       }
@@ -101,6 +111,18 @@ export class InputSystem {
     this.pendingAttacks += 1
   }
 
+  /** ปุ่มพุ่งหลบบนจอสัมผัสเรียกตัวนี้ */
+  pressDash(): void {
+    this.pendingDashes += 1
+  }
+
+  /** หยิบคำสั่งพุ่งที่ค้างอยู่ไปหนึ่งครั้ง */
+  consumeDash(): boolean {
+    if (this.pendingDashes <= 0) return false
+    this.pendingDashes -= 1
+    return true
+  }
+
   /**
    * หยิบคำสั่งโจมตีที่ค้างอยู่ไปหนึ่งครั้ง — คืน true ถ้ามี
    *
@@ -116,5 +138,6 @@ export class InputSystem {
     this.pressedKeys.clear()
     this.joystick = { x: 0, y: 0 }
     this.pendingAttacks = 0
+    this.pendingDashes = 0
   }
 }

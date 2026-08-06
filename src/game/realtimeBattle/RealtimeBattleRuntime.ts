@@ -5,12 +5,14 @@ import { createEnemyBrain, stepEnemyAI, type EnemyBrain } from './EnemyAISystem'
 import { findHitTargets } from './HitboxSystem'
 import { clampToArena, resolveCircleOverlap, stepMovement } from './MovementSystem'
 import {
-  createPlayerCombatState,
+  applyHitStop,
+  createComboState,
   isAttacking,
-  startAttack,
-  stepPlayerCombat,
-  type PlayerCombatState,
-} from './PlayerCombatSystem'
+  pressAttack,
+  stepCombo,
+  type ComboState,
+} from './ComboSystem'
+import { createDashState, startDash, stepDash, type DashState } from './DashSystem'
 import type {
   BattleEffectEvent,
   DamageEvent,
@@ -59,10 +61,13 @@ export class RealtimeBattleRuntime {
    * และมันถูกคัดลอกลง snapshot ทุกครั้งที่ publish — สถานะ AI ไม่ควรไหลไปถึง React
    */
   private brains = new Map<string, EnemyBrain>()
-  /** สถานะท่าโจมตีของผู้เล่น */
-  private playerCombat: PlayerCombatState = createPlayerCombatState()
-  /** ผู้เล่นสั่งโจมตีค้างไว้ รอให้เฟรมจำลองถัดไปหยิบไปใช้ */
+  /** สถานะคอมโบของผู้เล่น */
+  private playerCombat: ComboState = createComboState()
+  /** สถานะการพุ่งหลบของผู้เล่น */
+  private playerDash: DashState = createDashState()
+  /** ผู้เล่นสั่งโจมตี/พุ่งค้างไว้ รอให้เฟรมจำลองถัดไปหยิบไปใช้ */
   private attackRequested = false
+  private dashRequested = false
   /** ตัวสุ่มที่ระบบดาเมจใช้ — เทสต์ป้อนค่าคงที่เข้ามาแทนได้ */
   private random: RandomFn
   private eventCounter = 0
@@ -103,7 +108,19 @@ export class RealtimeBattleRuntime {
       การให้เลื่อนตัวได้ระหว่างนั้นทำให้ hitbox ลากตามตัวไปด้วยจนระยะโจมตีเพี้ยน
       จึงเลือกหยุดสนิทระหว่างท่า ซึ่งเป็นแบบที่เกม hack & slash ส่วนใหญ่ใช้
     */
-    const moved = isAttacking(this.playerCombat)
+    if (this.dashRequested) {
+      this.dashRequested = false
+      startDash(state.player, this.playerDash, this.moveInput, state.elapsedMs)
+    }
+
+    /*
+      ลำดับความสำคัญของการเคลื่อนที่: พุ่ง > โจมตี > เดินปกติ
+
+      การพุ่งกินสิทธิ์เหนือทุกอย่างเพราะมันคือท่าหลบ ถ้ายอมให้การเดินหรือท่าโจมตี
+      มาแทรกกลางคัน ระยะพุ่งจะสั้นลงแบบเดาไม่ได้ และ i-frame จะไม่คุ้มกับคูลดาวน์
+    */
+    const dashing = stepDash(state.player, this.playerDash, deltaMs, state.stage)
+    const moved = dashing || isAttacking(this.playerCombat)
       ? false
       : stepMovement(state.player, this.moveInput, deltaMs, {
           stage: state.stage,
@@ -138,10 +155,10 @@ export class RealtimeBattleRuntime {
 
     if (this.attackRequested) {
       this.attackRequested = false
-      startAttack(state.player, this.playerCombat)
+      pressAttack(state.player, this.playerCombat)
     }
 
-    const tick = stepPlayerCombat(state.player, this.playerCombat, deltaMs)
+    const tick = stepCombo(state.player, this.playerCombat, deltaMs)
     if (!tick.hitboxActive || !tick.attack) return
 
     const targets = findHitTargets(state.enemies, {
@@ -172,6 +189,9 @@ export class RealtimeBattleRuntime {
       this.pushDamageEvent(target, outcome.amount, outcome.critical)
       this.publish()
     }
+
+    // หมัดเข้าเป้าแล้วหยุดเวลาแวบหนึ่ง ให้รู้สึกถึงน้ำหนักของการปะทะ (§14)
+    if (targets.length > 0) applyHitStop(this.playerCombat)
   }
 
   /** ศัตรูลงดาเมจใส่ผู้เล่นเมื่อท่าของมันเข้าสู่ active frame */
@@ -227,6 +247,11 @@ export class RealtimeBattleRuntime {
   /** สั่งให้ผู้เล่นโจมตีในเฟรมจำลองถัดไป */
   requestAttack(): void {
     this.attackRequested = true
+  }
+
+  /** สั่งให้ผู้เล่นพุ่งหลบในเฟรมจำลองถัดไป */
+  requestDash(): void {
+    this.dashRequested = true
   }
 
   /**
