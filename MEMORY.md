@@ -623,6 +623,12 @@
     - **บทเรียน**: กลไกกัน deploy ชนกันที่ "ข้ามงานตัวเอง" ต้องพิสูจน์ให้ได้ว่ามีคนอื่นทำแทนจริง
       การอนุมานจาก sha ไม่พอ เพราะ `paths-ignore` ทำให้ commit บางตัวไม่ก่อให้เกิดรันเลย
 
+65. **Upstream Pages sync PR** (2026-08-06, Agent: Cursor Agent, Ring 1 cloud):
+   - **Target URL**: `https://legendofsoulth.github.io/LegendOfSoulTH/`
+   - **Branch**: `cursor/upstream-pages-deploy-e117` — fork master rebased on upstream `e101f59`
+   - **Payload**: P1 skill, deploy fixes (debounce + queue-check + 30min timeout), `resolveBasePath()`, turn-based cleanup from upstream
+   - **Blocker**: agent cannot push upstream (403) — HetCreep merges PR fork → upstream to deploy
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)

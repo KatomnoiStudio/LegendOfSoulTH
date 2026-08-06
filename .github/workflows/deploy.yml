@@ -127,11 +127,41 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # ตัว debounce ด้านบนกันแค่ "รันซ้อนกันในหน้าต่างสั้น ๆ" แต่ไม่ได้กัน "ยิง deployment
+      # ใหม่ทับกองคิวที่ค้างอยู่แล้ว" — พบจริง 2026-08-06 (gh run 31106222751/31107374696):
+      # ช่วง push ถี่ต่อเนื่องหลายชั่วโมง คิว Pages ของ repo นี้ล้นสะสม แต่ละ deployment
+      # (แม้รอบที่ "success") ค้างคิว 10–50+ นาที เช็คสถานะ Deployments API พบว่า repo นี้
+      # ยิง deploy ถี่กว่าที่ backend ของ Pages รับไหว (60+ ครั้งใน 18 ชม.) — ยิงใหม่ซ้อนกอง
+      # ที่ค้างอยู่มีแต่ทำให้แย่ลง จึงเช็คก่อนว่า deployment ล่าสุดของ environment นี้จบสถานะ
+      # (success/failure/error/inactive) แล้วหรือยัง ถ้ายังไม่จบ ข้ามรอบนี้ไปเลย ให้ push ถัดไป
+      # (หรือรอบถัดมาหลังคิวโล่ง) จัดการแทน
+      - name: กันยิง deploy ซ้อนคิวที่ยังค้างอยู่
+        id: queue-check
+        if: steps.debounce.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest_id="$(gh api "repos/${{ github.repository }}/deployments?environment=github-pages&per_page=1" --jq '.[0].id // empty' || echo '')"
+          if [ -z "$latest_id" ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          state="$(gh api "repos/${{ github.repository }}/deployments/$latest_id/statuses?per_page=1" --jq '.[0].state // empty' || echo '')"
+          case "$state" in
+            queued|in_progress|pending)
+              echo "deployment ล่าสุด ($latest_id) ยังค้างสถานะ $state — คิว Pages ยังไม่ว่าง ข้าม deploy รอบนี้กันซ้อนกองที่ค้างอยู่"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "skip=false" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
       # timeout ปริยายของ action คือ 10 นาที ซึ่งสั้นเกินไปเมื่อคิว Pages หนา — เจอจริง
       # 2026-08-06 หลาย run ค้าง "deployment_queued" แล้วตายที่ 10:00 นาทีเป๊ะ (run #5, #7)
       # ทำให้เว็บค้างที่ build เก่าทั้งที่ merge ไปหลายรอบแล้ว ยืดเป็น 30 นาที
       - name: Deploy to GitHub Pages
-        if: steps.debounce.outputs.skip != 'true'
+        if: steps.debounce.outputs.skip != 'true' && steps.queue-check.outputs.skip != 'true'
         id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
         with:
