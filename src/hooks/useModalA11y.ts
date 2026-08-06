@@ -22,6 +22,14 @@ export function useModalA11y<T extends HTMLElement>(onClose: () => void) {
   const shellRef = useRef<T>(null)
   const previouslyFocused = useRef<HTMLElement | null>(null)
 
+  // ทุก caller ส่ง onClose เป็น inline arrow (`onClose={() => setOpen(false)}`) ซึ่งเป็นค่าใหม่
+  // ทุกครั้งที่ parent re-render — ใส่ effect ด้านล่างให้ผูกกับค่านี้ตรง ๆ จะทำให้ focus-on-mount/
+  // capture-previously-focused รันซ้ำทุก re-render ของ parent (ไม่ใช่แค่ตอนเปิด modal จริง)
+  // ซึ่งแย่ง focus ออกจาก input ที่ผู้เล่นกำลังพิมพ์อยู่ข้างในไปเรื่อย ๆ — เก็บ onClose ล่าสุดไว้ใน
+  // ref แทน แล้วให้ effect ด้านล่างรันแค่ตอน mount/unmount จริงเท่านั้น
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
   useEffect(() => {
     previouslyFocused.current = document.activeElement as HTMLElement | null
     shellRef.current?.focus()
@@ -29,7 +37,7 @@ export function useModalA11y<T extends HTMLElement>(onClose: () => void) {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.stopPropagation()
-        onClose()
+        onCloseRef.current()
         return
       }
 
@@ -61,11 +69,11 @@ export function useModalA11y<T extends HTMLElement>(onClose: () => void) {
       // คืนโฟกัสให้ element ที่เปิด modal นี้ไว้ (ปุ่มเมนู ฯลฯ) แทนที่จะปล่อยลอย
       previouslyFocused.current?.focus?.()
     }
-  }, [onClose])
+  }, [])
 
   const backdropProps = {
     onClick: (event: ReactMouseEvent<HTMLElement>) => {
-      if (event.target === event.currentTarget) onClose()
+      if (event.target === event.currentTarget) onCloseRef.current()
     },
   }
 
