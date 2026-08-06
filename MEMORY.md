@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T05:48:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **Last Updated**: 2026-08-06T06:05:00+07:00 by `Claude Code (HetCreep Agent)`  
 > **RULES_VERSION: 4** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
@@ -222,7 +222,7 @@
     - **Pre-commit hooks**: added `husky`+`lint-staged` as devDependencies, `npm run prepare` wires `.husky/pre-commit` → `npx lint-staged` → `oxlint` on staged `*.{ts,tsx}`. `.husky/_/` is husky's own auto-managed/gitignored internal dir (has its own `.gitignore: *`, didn't need to touch the project's own).
     - Verified the CSP change doesn't break anything live (dev server): app rendered fully, no `Refused to...` CSP-violation console errors, no visible breakage — the only console noise was the same stale-cached `useLayoutEffect is not defined` log from items 26/32 (confirmed harness artifact again, not live, via `get_page_text` showing full normal UI).
     - Full verify green (typecheck/lint/test/build) — `dist/index.html` grew from 0.91KB to 2.58KB (the CSP meta tag + comments), everything else unchanged.
-    - **Still open per HetCreep's explicit choice**: LICENSE (waiting on the creator), component/integration test coverage (waiting for its own scoped round).
+    - **Still open per HetCreep's explicit choice**: LICENSE resolved in item 38 (MIT). Component/integration test coverage still waiting for its own scoped round.
 
 36. **Gold-standard: recomputed score honestly (~89%, not 100%), closed the remaining reachable gaps** (2026-08-06): HetCreep asked "is it 100% now, excluding LICENSE and test coverage?" — recomputed per-dimension rather than just agreeing (P10 anti-inflation discipline). Answer was no: item 35's CONFORM only closed the specific MUST-HAVE list from item 34's FILL rule file, but three smaller EXCELLENCE-tier/🟡 gaps from the original AUDIT were never in that list at all — no SBOM/build provenance (Distribution), no analytics/telemetry (Observability), and 2 pre-existing `promise(always-return)` lint warnings (Error handling). Recomputed honestly: ~89%, not 100%, even discounting LICENSE/test-coverage. HetCreep said fix all three.
     - **Lint warnings fixed properly, not just silenced**: `useAuth.ts`'s session-restore `.then()` callback got an explicit `return undefined` (all code paths now visibly return, satisfying the rule without behavior change). `build-models.mjs`'s `FileReader` shim had the *same* warning at a *different* `.then()` than the one first suspected — found it by re-reading the actual flagged line rather than assuming; also fixed a genuine, unrelated code smell along the way: that file was calling `await import('node:fs/promises').then((fs) => fs.readFile(...))` inside a loop when `readFile` was already statically imported at the top of the file (just not used) — replaced the whole awkward dynamic-import-mid-loop pattern with the existing static import instead of just patching the symptom.
@@ -230,17 +230,25 @@
     - **Analytics/telemetry: same wall as Sentry, HetCreep chose to skip again.** Asked directly rather than assume: real analytics needs a remote endpoint to send events to, and this project has zero backend by design — every option (GA, Plausible, etc.) requires an external account signup, the exact constraint that killed Sentry earlier this session (item — see "Sentry / remote error tracking" in the Marketplace-picks entry). Offered GitHub's own repo Traffic Insights as a zero-setup partial substitute; HetCreep confirmed the trade-off explicitly ("connecting an external service unlocks it, so skip for now") rather than silently accepting a workaround.
     - Full verify green (typecheck/lint/test/build), YAML syntax-checked. **Current honest state**: every gap that doesn't require either a human license decision or a genuinely-scoped testing effort or an external-service signup is now closed.
 
+37. **Repo settings hardened via `gh api`** (2026-08-06): HetCreep asked to configure everything necessary at github.com/.../settings. Audited current state first (`gh api repos/.../{branches/master/protection,pages,actions/permissions,vulnerability-alerts,code-scanning/default-setup}`) rather than guessing — found no branch protection at all on `master`, secret-scanning push-protection and validity-checks both off, Actions SHA-pin enforcement off. Flagged that full branch protection (required PR review) would break the direct-push-to-master workflow used all session, so asked before applying. HetCreep chose **basic protection only** (block force-push + block branch deletion, no required review) plus push-protection + SHA-pin enforcement (validity-checks and delete-branch-on-merge were offered too).
+    - Applied: `PUT .../branches/master/protection` (`allow_force_pushes: false`, `allow_deletions: false`, no required reviews/status checks) · `PATCH .../repos/...` `security_and_analysis.secret_scanning_push_protection: enabled` · `PUT .../actions/permissions` `sha_pinning_required: true` (repo already hand-pins every Action SHA per convention — this just makes it enforced, not just followed).
+    - `secret_scanning_validity_checks` would **not** turn on via API even in an isolated PATCH — response kept coming back `disabled` with no error. Left as a known gap; needs checking directly at Settings → Code security (likely needs GitHub Advanced Security enrollment at the org level, not a plain per-repo toggle).
+    - CodeQL default-setup left untouched on purpose — this repo already runs a custom `.github/workflows/codeql.yml`; enabling GitHub's default setup on top would double-scan/conflict.
+    - Did not touch: `delete_branch_on_merge` (offered, not selected), license (was still a separate open item — see item 38), Discussions (not requested).
+
+38. **LICENSE installed: MIT, HetCreep's explicit decision** (2026-08-06): item 34/35's gold-standard rule (`.agents/rules/gold-standard-baseline.md`) explicitly forbids an agent picking a license — this was flagged as "ask HetCreep" since item 8. HetCreep came back with the decision ("ติดตั้ง MIT") after checking with the project's original creator, as they'd said they would. Added root `LICENSE` file (standard MIT text, copyright holder `LegendofSoulTH`, year 2026) and `"license": "MIT"` in `package.json` (was absent — `private: true` so never published, but the field still matters for the SBOM/attestation tooling from item 36 and any future tooling that reads it). No README/CONTRIBUTING change needed — neither referenced a specific license name, both already pointed generically at "the LICENSE file."
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
 
 - **Repo Status**: 🟢 Clean & Synced (`origin/master` @ `970beb6`, tagged `v0.1.0`)
 - **CI Pipelines**: 🟢 All green (Build/Typecheck/Lint, CodeQL, Security & Secret Scan, Deploy) — Gitleaks license-paywall failure fixed (item 12)
-- **Security & Protection**: 🛡️ 100% Enabled & Monitored (CodeQL + Dependabot + Secret Scanning + Gitleaks + NPM Audit)
+- **Security & Protection**: 🛡️ 100% Enabled & Monitored (CodeQL + Dependabot + Secret Scanning + Gitleaks + NPM Audit) + branch protection (basic, `master`) + Actions SHA-pin enforcement (item 37). Secret-scanning validity-checks still off (API can't toggle it — needs manual check at Settings → Code security).
 - **Deployment**: 🟢 Live on GitHub Pages — https://legendofsoulth.github.io/LegendOfSoulTH/ (repo renamed from `GameTurnBase`, see item 24 — GitHub's redirect covers old links, `vite.config.ts` `base` updated to match)
 - **Remote check**: `git remote -v` on this machine correctly points `origin` at `https://github.com/LegendofSoulTH/LegendOfSoulTH.git` (updated after the rename via `git remote set-url`) — the "remote mismatch" flagged in the prior concurrent session's notes was local to that machine/clone (remote URLs are per-clone git config, never part of repo content) and doesn't apply here; no action needed on this machine.
 - **Player accounts/currency**: functional locally (see Past Summary item 6) but entirely client-side — no real backend, no payment gateway. Do not treat as production-ready for real money or cross-device play.
-- **Open/next work**: no quest system, no real drop table, no shop UI beyond `GemShopModal`, no battle system. Project's own `LICENSE` file still undecided (see item 8).
+- **Open/next work**: no quest system, no real drop table, no shop UI beyond `GemShopModal`, no battle system. `LICENSE` resolved — MIT (item 38).
 - **RULES_VERSION last synced: 6** (`.agents/rules/rules-freshness-check.md`)
 - **Ring**: this machine is Ring 0 (`.agents/ring0.local` present, gitignored). Any other clone is Ring 1 by default — see `.agents/rules/ring0-authority.md`.
 - **Pre-push sync**: `.agents/rules/pre-push-sync-law.md` — binding on every machine before every push.
