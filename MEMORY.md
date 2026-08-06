@@ -643,6 +643,17 @@
       ส่วน VM มี Node `v22.14.0` → เป็นแค่ warning ไม่ทำให้ pipeline พัง (typecheck/lint/test/build
       ผ่านหมด). ถ้าต้องการล้าง warning ในอนาคต ค่อยพิจารณาเพิ่ม Dockerfile ปักหมุด Node รุ่นใหม่กว่านี้.
 
+64. **Agent 2 — Integration Contract Readiness audit + review Enemy AI + ยืนยัน gate ของ PR #9** (2026-08-06T09:55+07:00, `Cursor Cloud Agent (cloud session, Ring 1)` — git identity `Cursor Agent`, `gh` = 401, ไม่มี `.agents/ring0.local`; base `8939dd9`):
+    - **บทบาท**: Agent 2 (Integration / Migration / Verification / Legacy Cleanup) ตามคำสั่ง SOL — งานหลักคือ PR #9 (Victory/Reward/Return/Migration) และ PR #10 (ลบ legacy) ทั้งคู่ยังถูก gate ไว้ รอบนี้ทำเฉพาะงานที่ปลดล็อกได้: contract audit + review งานที่เพิ่ง merge
+    - **Review PR combat ใบล่าสุด (GitHub PR#6 = "PR #5" ตามคำสั่ง = Enemy chase & melee AI) ผ่านทุกข้อ §3**: AI ถูกเรียกจาก `RealtimeBattleRuntime.step()` จุดเดียว (`stepEnemies`), คืน movement intent ไม่ขยับเอง, ใช้ `stepMovement()` เดิม, ใช้ `resolveCircleOverlap()` เดิม (`separateEnemies`), ศัตรูหยุดเมื่อ `status!=='running'`, attack timeline มี startup/active/recovery (`ENEMY_ATTACK_TIMING`), และ **ยังไม่มี damage ตามขอบเขต** — ไม่พบ blocker
+    - **Gate PR #9 ยังปิด**: ยังขาด Damage → Combo/Dash → Skill (task PR #6–#8) และที่สำคัญ `step()` ยังไม่ตั้ง `status='victory'|'defeat'`, ไม่มี wave progression, ไม่มี damage → **`onComplete` ยิงจาก gameplay ไม่ได้** จึงยังทำ integrate จริงไม่ได้
+    - **numbering drift**: หมายเลข PR ในคำสั่ง (#5–#8) ไม่ตรงกับ PR จริงบน GitHub (movement/joystick เป็น PR#5 จริง, enemy AI เป็น PR#6 จริง) — ตารางเทียบอยู่ในเอกสาร
+    - **สิ่งที่พร้อมแล้วสำหรับ PR #9**: `RealtimeBattleResult` (types.ts:115) ตรงสเปก §4.4 ครบ, snapshot มี `currentWave/totalWaves`, `stageConfig` มี `trial-02` 2 wave + `createWaveEnemies(stage,waveIndex)`, `BattleResultAdapter.toRealtimeBattleResult()` มีแล้ว (ส่ง reward=0 ซื่อสัตย์), seam ต่อ end-to-end ครบ (`GameExplorationSession.BattleLayer → BattleScene onComplete → toLegacyBattleResult → useGameFlow.onBattleComplete`)
+    - **ส่งมอบ**: `docs/battle-integration-contract-readiness.md` — contract readiness matrix (มี/ไม่มี พร้อม file:line), integration seam map, รายการ blocker, ผล review Enemy AI, จุดที่ PR #9 จะแก้ (ในขอบเขต Agent 2), cross-ref migration plan + Ring-1 `onEarnGold` reversal ของ audit เดิม (ไม่ทำซ้ำ)
+    - **ช่องว่างเครื่องมือ verification (แจ้งตาม §0 ไม่ข้ามเงียบ)**: `/opt/pw-browsers/...chrome` ไม่มีบน VM นี้, `scratchpad/battle-smoke.mjs`+`movement-check.mjs` ไม่มีในทุก branch, Playwright ไม่อยู่ใน `package.json`, `gh` 401 → รอบนี้ใช้ `npm run ci` (46/46 tests, build ผ่าน) เป็นหลักฐาน (เอกสารล้วน ไม่มี runtime ใหม่ให้ browser-test)
+    - **ยังไม่แตะ**: combat runtime, ไฟล์ของ Agent ตัวแรก, ระบบเทิร์นเดิม, `useGameFlow` — เอกสาร + MEMORY เท่านั้น
+    - **Next**: รอ Damage/Combo-Dash/Skill merge → review ต่อใบ → เมื่อ `status` จบเกมทำงาน ปลด gate PR #9
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
