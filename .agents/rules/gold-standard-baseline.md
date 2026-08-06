@@ -1,4 +1,5 @@
 <!-- coalmine: verified 2026-08-07 · exemplar OpenSSF Scorecard (18 checks) / OWASP ASVS 5.0.0 / excalidraw / Keep a Changelog 2.0.0 / pmndrs/react-three-fiber · revalidate 90d -->
+
 # Project Law: Gold-Standard Baseline (from the 2026-08-06 gold-standard AUDIT)
 
 > **Target Workspace**: `LegendOfSoulTH` (LegendofSoulTH)
@@ -42,32 +43,90 @@ stay closed, not as an open checklist). 6 remains the one open gap.
    `npx lint-staged` → `oxlint` on staged files), catching lint failures before commit,
    not just in CI.
 
-6. **Component/integration test coverage** — OPEN, the one remaining gap. As of 2026-08-07
-   there are **20 `*.test.ts` files / 174 tests** covering the realtime-battle systems, the
-   dialogue engine, the account/password modules, and pure helpers — but **zero `*.test.tsx`
-   and no `@testing-library/*` dependency**, so not one of the ~57 interactive React
-   components has a rendering-level test. (Compare: excalidraw ships 50+ `.test.tsx`;
-   react-three-fiber tests its canvas/events/hooks the same way.) This remains the single
-   biggest real gap.
+6. **Component/integration test coverage** — PARTIALLY CLOSED, narrowed scope. As of the
+   2026-08-07 FINAL AUDIT (see section below) there are **28 test files / 197 tests**,
+   including **4 `*.test.tsx` files** (`AuthModal`, `ErrorBoundary`, `GlobalErrorBanner`,
+   `EnemyHealthBar`) using `@testing-library/react` — each one pins a bug this project
+   actually hit, per `proven-good-do-it-now.md`, not written on spec. 4 of ~58 components
+   have a rendering-level test; the remaining ~54 do not. Coverage: **32.17% statements /
+   29.57% branches / 24.78% functions / 32.77% lines** (`npm run test:coverage`, measured
+   live 2026-08-07 — functions is the weakest axis). No threshold enforced yet, same
+   reasoning as before: a threshold that passes today would still guard almost nothing.
 
-   **Amended 2026-08-07 — this item no longer says "don't start without asking".** It used
-   to, and `.agents/rules/proven-good-do-it-now.md` now supersedes that: a test that pins a
-   bug this project actually hit is a proven-good change, so **write it, don't ask**. What
-   still gets weighed rather than just done is a *sweep* — sitting down to cover 57
-   components on spec. For that, state the cost and what it buys, recommend, and proceed
-   unless told otherwise.
+   Property-based/fuzz testing also closed this pass (`fast-check`, 4 `*.fuzz.test.ts` files)
+   — an EXCELLENCE-tier item the 2026-08-06 pass didn't even list, closed anyway.
 
-   Coverage tooling now exists (`npm run test:coverage`, `@vitest/coverage-v8`) and reports
-   **24.42% of statements** as of 2026-08-07 — the realtime battle systems and the
-   account/password modules are covered; no React component is. No threshold is enforced
-   yet, deliberately: with every `.tsx` untested, any threshold low enough to pass would be
-   one that guards nothing. Set one once component tests exist.
+   Remains **OPEN as a sweep**: covering the other ~54 components on spec is still a weighed
+   decision, not a proven-good default — state cost/benefit and recommend, per the rule.
 
-   > Corrected 2026-08-07: this item previously stated "Current coverage is a single file
-   > (`src/lib/format.test.ts`, pure functions only)". The conclusion held but the evidence
-   > had gone stale — four independent scouts in the 2026-08-07 audit flagged it. A binding
-   > rule citing a fact anyone can disprove in one command costs the whole ruleset its
-   > credibility, which is why the correction is recorded rather than silently overwritten.
+---
+
+<!-- coalmine: verified 2026-08-07 · exemplar OpenSSF Scorecard (18 checks) / Excalidraw / vitejs/vite / pmndrs/react-three-fiber / Keep a Changelog 2.0.0 / OWASP Password Storage Cheat Sheet / Signal Desktop (privacy-first error surfacing) · revalidate 90d -->
+
+## 2026-08-07 FINAL AUDIT — closing task #14 ("เติมให้ 100%")
+
+RE-VALIDATE pass on items 1–6 above: all still valid, no rewrites/tombstones needed —
+item 6 narrowed per its own update above. This section is the FULL re-run, 6 parallel
+scouts (one per dimension pair), each picking fresh exemplars and scoring the ACTUAL
+current repo state (not memory). Full per-criterion tables live in this session's
+transcript; this is the synthesis.
+
+### Scorecard (11 dimensions, simple average — no dimension weighted above another)
+
+| Dimension                      | Score | Note                                                                                 |
+| ------------------------------ | ----- | ------------------------------------------------------------------------------------ |
+| Security                       | 91%   | 1 MUST gap (Code-Owner review not enforced), 2 EXCELLENCE gaps                       |
+| Distribution/Integrity         | 89%   | SBOM+SLSA attestation, signed commits, OIDC deploy — strong                          |
+| Observability + Error Handling | 97%   | Central relay, tiered codes, tested; no-telemetry stance correctly scored N-A not ❌ |
+| Compatibility                  | 84%   | WebGL2/WebGPU feature-detect+fallback solid; mobile touch parity still open          |
+| Governance/Licensing           | 88%   | MIT+SECURITY.md+CoC+CODEOWNERS all present; CODEOWNERS still advisory-only           |
+| Docs/Onboarding                | 86%   | README/CONTRIBUTING strong; Thai-only, no English onboarding path                    |
+| Maintainability                | 88%   | Rule-freshness protocol, dead-code hygiene, commit discipline all exemplary          |
+| UX/DX                          | 85%   | Formatter+linter+strict-TS loop solid; no commitlint, no pre-push hook               |
+| Correctness                    | 83%   | Battle-system unit coverage strong; some known-open items still tracked not fixed    |
+| Testing/CI                     | 69%   | Fuzz+CI-matrix closed EXCELLENCE gaps; component coverage still the weak point       |
+| Performance                    | 62%   | Chunking+image-resize closed; no enforced bundle budget, `<img>` missing dims        |
+
+**Overall: ~84%** (up from the 2026-08-06 baseline's ~58%, 76.5/132 — the gap closed this
+session: deploy-gate rebuild, central error relay, admins.ts/currency-ledger decisions,
+exploration-mode closure, component tests, fuzz tests, formatter, CI Node matrix,
+`requestExit`/cross-tab-write resilience fixes, release-process docs).
+
+**One scout finding corrected before recording**: the Performance scout reported "no
+service worker / precache, and no documented rationale found" as a gap, having grepped
+only `.agents/rules/**`. The rationale exists — `MEMORY.md`'s Current Status section and
+commit `64a67fd`'s message both record the decision (a naive SW cache risks serving a
+stale build past the version-bump deploy gate this project just built specifically to
+stop that). Correct classification: **N-A, justified**, not a gap. Recorded here so it
+doesn't quietly re-enter as a "gap" in a future pass that only reads this file.
+
+### Consolidated gap register (top items, MUST-tier first; full per-scout lists in the transcript)
+
+**MUST-tier:**
+
+1. Component test coverage — 4/58 `.tsx` files (tracked above as the narrowed item 6).
+2. `<img>` tags across the codebase missing `width`/`height`/`loading="lazy"` — CLS risk.
+3. No enforced bundle-size budget in CI (`ci.yml` prints size, never fails on regression).
+4. Branch protection: Code-Owner review not required, `enforce_admins: false` — **HetCreep's
+   call, not an agent's** (see MEMORY.md's Branch protection entry — this is a known,
+   accepted trade-off for a repo where the owner is the primary author, not an oversight).
+
+**EXCELLENCE-tier (lower priority, listed not auto-actioned):** 5. `format:check` not wired into `npm run ci` — deliberate (existing tree isn't
+prettier-clean yet), needs a one-time repo-wide reformat pass before it can gate. 6. No pre-push git hook automating `pre-push-sync-law.md`'s fetch/merge/verify sequence. 7. `noUncheckedIndexedAccess`/`exactOptionalPropertyTypes` TS flags not set. 8. No commitlint — commit-message discipline is real but currently manual/agent-enforced. 9. No E2E/visual-regression tooling (Playwright etc.) — WebGL2/WebGPU fallback logic is
+compat-critical and currently only unit-tested, not exercised end-to-end. 10. No mutation testing (Stryker) — test _presence_ is measured, test _quality_ isn't. 11. `harden-runner` runs `egress-policy: audit` everywhere, not `block`+allowlist. 12. Docs are Thai-majority with no English onboarding path (SECURITY.md/CoC/LICENSE are
+English-only, creating an inconsistent split for non-Thai contributors/researchers). 13. `CHANGELOG.md`'s `[0.2.0]` entry is dated with no `v0.2.0` tag pushed yet — resolves
+itself once a version is actually bumped and the deploy pipeline cuts that release.
+
+### What this section is NOT
+
+Not a mandate to close all 13 gaps immediately. Per `proven-good-do-it-now.md`: a gap that
+matches a class this project has already proven beneficial (another regression test, another
+`reportError`-routed catch, another mechanical audit-named fix) gets done without asking.
+Everything else here — an E2E framework, commitlint, a repo-wide reformat, branch-protection
+policy changes — gets weighed against what it actually buys a solo-maintained hobby project,
+stated, and either done with reasoning or left for HetCreep to prioritize. This register
+exists so that weighing has somewhere to start from next time, not so every item becomes a
+task.
 
 ## What NOT to do with this file
 
@@ -76,10 +135,13 @@ stay closed, not as an open checklist). 6 remains the one open gap.
 - Don't pick a LICENSE on HetCreep's behalf.
 - Don't treat this as license to start an unscoped testing sweep — surface the gap,
   let the human decide the scope/timing.
+- Don't re-litigate branch-protection strictness or the no-service-worker decision without
+  new facts — both are recorded trade-offs, not oversights.
 
 ---
 
 <!-- coalmine: verified 2026-08-06 · exemplar WCAG 2.2 AA (W3C) / Material Design 3 (Google) / Honkai: Star Rail + Genshin Impact (HoYoverse, same genre) / Apple HIG · revalidate 90d -->
+
 ## UI/UX MUST-HAVE standards (from the 2026-08-06 gold-standard UI/UX AUDIT)
 
 Second, separate audit pass — UI/UX dimension specifically (not a repeat of the general
@@ -113,6 +175,7 @@ regresses a CLOSED item below is a real regression, not a style nitpick — trea
    says so honestly rather than implying it's complete.
 
 ### OPEN — backlog, not yet touched in code (scaffold intentionally NOT inserted per the
+
 ask-CB verdict: these are either genuinely dormant/unreachable today, or feature-shaped
 work that a half-built stub would obscure more than help)
 
