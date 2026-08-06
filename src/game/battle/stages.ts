@@ -32,7 +32,7 @@ const ENEMY_TEMPLATES: Record<string, EnemyTemplate> = {
   'demon-captain': {
     id: 'demon-captain',
     name: 'แม่ทัพปีศาจ',
-    spriteUrl: publicUrl('characters/pigsy-team-0.webp'),
+    spriteUrl: publicUrl('characters/pigsy-idle-0.webp'),
     accent: '#ff6a5c',
     atk: 78,
     def: 55,
