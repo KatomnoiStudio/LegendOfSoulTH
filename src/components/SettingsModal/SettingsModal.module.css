@@ -62,8 +62,8 @@
   inset-inline-end: var(--sp-3);
   display: grid;
   place-items: center;
-  width: 2rem;
-  height: 2rem;
+  width: var(--sz-icon-close);
+  height: var(--sz-icon-close);
   border-radius: 50%;
   color: var(--c-text-dim);
   font-size: 1.3rem;
