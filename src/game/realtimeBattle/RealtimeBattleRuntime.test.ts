@@ -205,4 +205,23 @@ describe('RealtimeBattleRuntime', () => {
     runtime.step(16)
     expect(runtime.getSnapshot().status).toBe('victory')
   })
+
+  it('ใช้สกิลแล้วศัตรูในระยะโดนดาเมจ', () => {
+    const runtime = makeRuntime()
+    runtime.step(1000)
+
+    const state = runtime.getState()
+    const enemy = state.enemies[0]
+    const hpBefore = enemy.hp
+    enemy.position = { x: state.player.position.x + 60, y: state.player.position.y }
+
+    runtime.requestSkill()
+
+    for (let t = 0; t < 1200; t += 16) {
+      runtime.step(16)
+    }
+
+    expect(state.damageDealt).toBeGreaterThan(0)
+    expect(enemy.hp).toBeLessThan(hpBefore)
+  })
 })
