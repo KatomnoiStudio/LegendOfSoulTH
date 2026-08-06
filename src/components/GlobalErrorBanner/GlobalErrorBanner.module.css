@@ -1,0 +1,77 @@
+/*
+  โครงเดียวกับ UpdateBanner โดยตั้งใจ — ผู้เล่นเห็นแถบลอยด้านบนแล้วรู้ทันทีว่าเป็นข้อความ
+  ระบบ ไม่ใช่ส่วนหนึ่งของเกม ต่างกันแค่โทนสี: อันนั้นบอกข่าวดี อันนี้บอกว่ามีอะไรพัง
+*/
+.banner {
+  position: fixed;
+  z-index: var(--z-banner);
+  inset-block-start: max(10px, env(safe-area-inset-top));
+  inset-inline: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-inline: auto;
+  padding: 10px 14px;
+  width: fit-content;
+  max-width: min(92vw, 34rem);
+  border: 1px solid rgb(214 96 96 / 60%);
+  border-radius: var(--r-pill);
+  background: rgb(46 16 16 / 94%);
+  color: var(--c-text);
+  animation: slide-in 220ms ease-out;
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(-14px); }
+}
+
+/* เคารพการตั้งค่าลดการเคลื่อนไหว ทั้งของ OS และของในเกมเอง (ดู src/lib/a11ySettings.ts) */
+@media (prefers-reduced-motion: reduce) {
+  .banner { animation: none; }
+}
+
+:global(html[data-reduce-motion='true']) .banner {
+  animation: none;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.title {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/*
+  รหัสต้องอ่านออกและเลือกคัดลอกได้จริง — นี่คือสิ่งเดียวที่ผู้เล่นมีให้แปะในรายงานปัญหา
+  เกมนี้ไม่ส่ง telemetry ไปไหน จึงไม่มีอย่างอื่นให้เรา
+*/
+.code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: var(--c-text-dim);
+  user-select: all;
+  overflow-wrap: anywhere;
+}
+
+.dismiss {
+  flex-shrink: 0;
+  /* 24px คือพื้นขั้นต่ำของ WCAG 2.2 AA SC 2.5.8 — ปุ่มปิดก็ต้องกดโดนบนมือถือ */
+  min-width: 24px;
+  min-height: 24px;
+  border: 0;
+  background: transparent;
+  color: var(--c-text-dim);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dismiss:hover {
+  color: var(--c-text);
+}

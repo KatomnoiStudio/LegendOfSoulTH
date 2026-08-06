@@ -4,7 +4,7 @@ paths:
   - "**/*.jsx"
   - "**/*.ts"
 ---
-<!-- coalmine: verified 2026-08-07 · exemplar React Error Boundaries docs (react.dev) + React 19 release notes + Sentry React SDK + excalidraw TopErrorBoundary + MDN unhandledrejection / WEBGL_lose_context · revalidate 90d -->
+<!-- coalmine: verified 2026-08-07b · exemplar React Error Boundaries docs (react.dev) + React 19 release notes + Sentry React SDK + excalidraw TopErrorBoundary + MDN unhandledrejection / WEBGL_lose_context · revalidate 90d -->
 # Observability & Error Handling
 
 > Project-authored — no `observability.md` or dedicated error-handling section exists in the upstream [affaan-m/ECC](https://github.com/affaan-m/ECC) import for any of the four layers pulled into this repo. Written because this app deploys to GitHub Pages (static hosting, no server logs) — client-side instrumentation is the *only* channel for learning about production failures.
@@ -45,9 +45,12 @@ canvas.addEventListener('webglcontextlost', (e) => {
 
 What that decision obliges instead — with no server to receive a report, the *player* is the transport, so make what they can hand over actually useful:
 
-- Every reported failure carries a stable `ErrorCode` from `src/lib/errors/codes.ts`, and `ErrorCodeTag` shows it on screen. A player pasting "LOBBY_SCENE_WEBGPU_INIT_FAIL" into an issue is this project's substitute for a stack trace — treat the code registry as the load-bearing part, not a nicety.
-- A crash screen should give the player a way to preserve their data before reloading. `exportSave()` already exists (`src/data/accountRepository.ts`, wired at `src/hooks/useAuth.ts`) but is not reachable from `ErrorBoundary` — that gap is the real cost of having no sink, and it is worth more than adding one would be.
-- Keep the bug-report path connected: `.github/ISSUE_TEMPLATE/bug_report.yml` should have a field for the error code the crash screen displays.
+- Every reported failure carries a stable `ErrorCode` from `src/lib/errors/codes.ts`. A player pasting "LOBBY_SCENE_WEBGPU_INIT_FAIL" into an issue is this project's substitute for a stack trace — treat the code registry as the load-bearing part, not a nicety.
+- **A code that never reaches the screen is worth nothing.** `tier: 'visible'` now genuinely surfaces: `reportError` notifies subscribers, and `GlobalErrorBanner` (mounted beside `<App/>` in `main.tsx`, outside every context on purpose) renders the code where the player can select and copy it. Callers that can render their own `ErrorCodeTag` still should — the banner is the floor, not a replacement.
+- A crash screen gives the player a way to preserve their data before reloading — `ErrorBoundary` offers a backup download via `exportSave()`.
+- Keep the bug-report path connected: `.github/ISSUE_TEMPLATE/bug_report.yml` carries fields for the error code and the game version.
+
+> Amended 2026-08-07: `reportError.ts` used to state there was deliberately **no central relay** — "the caller knows its own code and can show it directly" — from an earlier ask-CB that judged a relay over-engineered. That was true when written: every `'visible'` caller was a component that could render. Three canaries then found independently that it had stopped being true. `globalErrorHandlers` runs outside React entirely, `useAuth.updatePlayer` sits above `ToastProvider`, and the battle error screens showed a message without a code — so `'visible'` was quietly lying in its own contract. The relay added is the smallest thing that fixes it: a `Set` of callbacks and a loop, no store, no state, no context. Reversing a recorded decision needs new facts; these were the facts.
 
 > Corrected 2026-08-07: this section previously read "Pick a client error-tracking sink before shipping further… `@sentry/react` is the standard choice." That was written before the decision to decline analytics was made, and the two documents then sat in unreconciled contradiction — an agent reading only this file would have installed Sentry against a settled call, and one reading only `MEMORY.md` would have silently violated a written MUST-HAVE.
 
