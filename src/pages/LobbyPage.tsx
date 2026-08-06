@@ -38,7 +38,8 @@ interface LobbyPageProps {
   /** ผู้เล่นที่ล็อกอินอยู่ — มาจากฐานข้อมูล ไม่ใช่ mock อีกแล้ว */
   player: Player
   /** บันทึกความคืบหน้ากลับลงฐานข้อมูล */
-  onPlayerChange: (next: Player) => Promise<void>
+  /** คืน true เมื่อบันทึกลงที่เก็บข้อมูลจริง — false แปลว่าหน้าจอถูกย้อนกลับแล้ว */
+  onPlayerChange: (next: Player) => Promise<boolean>
   onLogout: () => Promise<void>
   /** เติมทองด้วยเงินจริง */
   onTopUpGold: (packageId: string) => Promise<CurrencyResult>

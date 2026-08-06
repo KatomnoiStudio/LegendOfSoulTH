@@ -7,8 +7,8 @@ import styles from './AddFriendModal.module.css'
 
 interface AddFriendModalProps {
   player: Player
-  /** บันทึกรายชื่อเพื่อนกลับลงฐานข้อมูล */
-  onPlayerChange: (next: Player) => Promise<void>
+  /** บันทึกรายชื่อเพื่อนกลับลงฐานข้อมูล — คืน true เมื่อลงจริง, false แปลว่าหน้าจอถูกย้อนกลับแล้ว */
+  onPlayerChange: (next: Player) => Promise<boolean>
   /** ค้นหาผู้เล่นจาก UID — คืน null ถ้าไม่พบ */
   onSearch: (uid: string) => Promise<FriendCandidate | null>
   onClose: () => void

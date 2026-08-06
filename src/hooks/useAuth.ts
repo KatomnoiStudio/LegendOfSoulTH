@@ -28,7 +28,8 @@ export interface AuthState {
   login: (email: string, password: string) => Promise<string | null>
   logout: () => Promise<void>
   /** บันทึกความคืบหน้า เช่น ตั้งชื่อตัวละคร จัดทีม อัปเกรด */
-  updatePlayer: (next: Player) => Promise<void>
+  /** คืน true เมื่อบันทึกลงที่เก็บข้อมูลจริง — false แปลว่าหน้าจอถูกย้อนกลับแล้ว */
+  updatePlayer: (next: Player) => Promise<boolean>
   /** ให้ทองจากการเล่นเท่านั้น — ทำเควสสำเร็จหรือของดรอป (ดู accountRepository.earnGold) */
   earnGold: (source: GoldSource, amount: number, refId?: string) => Promise<CurrencyResult>
   /** เติมทองด้วยเงินจริง (ดู accountRepository.topUpGold) */
@@ -114,20 +115,20 @@ export function useAuth(): AuthState {
     ToastProvider ใน App.tsx จึงเรียก useToast ไม่ได้ และการโชว์ค่าเดิมที่เป็นความจริง
     ดีกว่าโชว์ค่าใหม่ที่ไม่ได้ถูกบันทึก
 
-    ไม่คืนค่า boolean ออกไปทั้งที่รู้ผล เพราะยังไม่มีผู้เรียกรายไหนต้องใช้ — การเปลี่ยน
-    ชนิดที่คืนต้องไล่แก้ prop ของผู้เรียกอีกสี่ไฟล์เพื่อค่าที่ไม่มีใครอ่าน ถ้าวันหลังมีที่ที่
-    อยากบอกผู้เล่นละเอียดกว่านี้ ค่อยเปิดค่าคืนตอนนั้น
+    คืน boolean ให้ผู้เรียกตัดสินใจต่อได้ — ปุ่มเพิ่มเพื่อนเป็นรายแรกที่ต้องใช้จริง
+    (ก่อนหน้านี้ตัดค่าคืนทิ้งเพราะยังไม่มีใครใช้ แล้วผู้ใช้ก็โผล่มาจริงในวันเดียวกัน)
   */
   const updatePlayer = useCallback(
-    async (next: Player) => {
+    async (next: Player): Promise<boolean> => {
       const previous = player
       // อัปเดตหน้าจอทันที แล้วค่อยเขียนลงฐานข้อมูล
       setPlayer(next)
 
-      if (!(await accounts.savePlayer(next))) {
-        reportError('PLAYER_SAVE_FAIL', 'visible')
-        setPlayer(previous)
-      }
+      if (await accounts.savePlayer(next)) return true
+
+      reportError('PLAYER_SAVE_FAIL', 'visible')
+      setPlayer(previous)
+      return false
     },
     [player],
   )

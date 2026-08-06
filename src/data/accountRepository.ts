@@ -364,6 +364,15 @@ export async function register(email: string, password: string): Promise<AuthRes
     หา session ไม่เจอแล้วเด้งกลับหน้าล็อกอิน ทั้งที่บัญชีถูกบันทึกไว้เรียบร้อยแล้วจริง ๆ
   */
   if (!writeJson(SESSION_KEY, { uid, email: key })) {
+    /*
+      ถอนบัญชีที่เพิ่งสร้างออกด้วย
+
+      บอกว่าสมัครไม่สำเร็จแต่ทิ้งบัญชีไว้ในฐานข้อมูล จะทำให้ผู้เล่นสมัครอีเมลเดิมซ้ำไม่ได้
+      (เจอ "อีเมลนี้ถูกใช้สมัครไปแล้ว") ทั้งที่ระบบเพิ่งบอกเองว่าไม่สำเร็จ — ทางตันที่งงกว่า
+      ปัญหาเดิมอีก ถอนออกให้สถานะกลับไปเหมือนก่อนกดสมัคร
+    */
+    delete db.accounts[key]
+    saveDb(db)
     return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
   }
   return { ok: true, player: normalizePlayer(account.player) }

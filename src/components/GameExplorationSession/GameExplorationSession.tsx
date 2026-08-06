@@ -23,7 +23,8 @@ import type { DialogueAction } from '../../game/dialogue/types'
 
 interface GameExplorationSessionProps {
   player: Player
-  onPlayerChange: (next: Player) => Promise<void>
+  /** คืน true เมื่อบันทึกลงที่เก็บข้อมูลจริง — false แปลว่าหน้าจอถูกย้อนกลับแล้ว */
+  onPlayerChange: (next: Player) => Promise<boolean>
   onExit: () => void
 }
 
