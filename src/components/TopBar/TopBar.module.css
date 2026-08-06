@@ -35,14 +35,14 @@
 
 .profileTag { position: absolute; top: -7px; left: 90px; padding: 1px 10px; border-inline: 1px solid rgb(103 203 168 / 35%); background: #0b1922; color: rgb(130 213 184 / 70%); font: 700 0.43rem/1.5 var(--font-display); letter-spacing: 0.2em; }
 .avatarWrap { position: relative; flex: none; }
-.avatarFrame { --frame-size: 2.4rem; } /* ลด 40% คู่กับกรอบพญานาค (desktop) — mobile @media ด้านล่างตั้ง 3rem แยกไว้แล้ว ไม่ถูกแตะ */
+.avatarFrame { --frame-size: 4rem; }
 .levelBadge { position: absolute; inset-block-end: -0.34rem; inset-inline-start: 50%; transform: translateX(-50%); min-width: 2.2rem; padding: 0.14rem 0.45rem 0.08rem; border: 1px solid #3e2707; clip-path: polygon(12% 0, 88% 0, 100% 36%, 91% 100%, 9% 100%, 0 36%); background: linear-gradient(180deg, #ffe49b, #d69d3b 58%, #8e5a14); color: #231603; font-family: var(--font-display); font-size: 0.64rem; font-weight: 900; line-height: 1.3; text-align: center; box-shadow: 0 3px 6px rgb(0 0 0 / 65%), inset 0 1px #fff2c3; }
 
 .identity { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .name { margin: 0; font-family: var(--font-display); font-size: 1rem; font-weight: 800; letter-spacing: 0.05em; color: #f4e6c4; text-shadow: 0 2px 6px #000; white-space: nowrap; }
 .power { max-width: 100%; overflow: hidden; font-size: 0.63rem; color: rgb(158 198 186 / 62%); letter-spacing: 0.07em; white-space: nowrap; text-overflow: ellipsis; }
 .expRow { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
-.expTrack { position: relative; width: clamp(63px, 5.4vw, 87px); height: 7px; border: 1px solid rgb(223 181 89 / 28%); clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%); background: rgb(2 8 14 / 88%); overflow: hidden; }
+.expTrack { position: relative; width: clamp(105px, 9vw, 145px); height: 7px; border: 1px solid rgb(223 181 89 / 28%); clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%); background: rgb(2 8 14 / 88%); overflow: hidden; }
 .expFill { position: relative; height: 100%; overflow: hidden; background: linear-gradient(90deg, #3da889, #81dfbf 65%, #f2cf78); box-shadow: 0 0 9px rgb(92 211 170 / 48%); transition: width 900ms ease-out; }
 .expFill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 35%, rgb(255 255 255 / 50%) 50%, transparent 65%); animation: sheen 3.6s ease-in-out infinite; }
 .expText { font-size: 0.58rem; font-variant-numeric: tabular-nums; color: rgb(202 211 200 / 52%); white-space: nowrap; }
@@ -86,15 +86,12 @@
   /* กว้างคงที่ตามสัดส่วนจริงของภาพเฟรม (2243x701) กันไม่ให้ชื่อยาวดันกล่องจนภาพยืดเพี้ยน
      สูงคงที่แยกจากความกว้าง (ไม่ผูก aspect-ratio) เพื่อเหลือพื้นที่แนวตั้งพอให้ชื่อ+พลังรบ
      ไม่ล้นออกนอกลายกรอบพญานาคที่ช่วงล่าง
-     ลดขนาดกรอบพญานาคลง 40% จากค่าตั้งต้น (×0.6) ตามคำขอ — เฉพาะ desktop
-     มือถือใช้ค่าตายตัวแยกใน @media ด้านล่าง ไม่ถูกแตะ
-     margin-block-start ลบ = ดึงกรอบขึ้นไปหักล้าง padding-top ของ .bar พอดี
-     ให้ขอบบนของกล่อง (= ยอดหงอนพญานาคในภาพ) แนบขอบจอ */
-  width: clamp(258px, 21.6vw, 306px);
-  height: 95px;
+     ค่าที่นี่คือค่าสำหรับมือถือ/ค่าตั้งต้น — ฝั่ง desktop ถูกเขียนทับใน @media (min-width: 761px)
+     ท้ายไฟล์ (ดูคำอธิบายในบล็อกนั้น) */
+  width: clamp(430px, 36vw, 510px);
+  height: 158px;
   min-height: 0;
-  margin-block-start: calc(-1 * max(18px, env(safe-area-inset-top)));
-  padding: 30px 31px 10px 41px;
+  padding: 50px 52px 16px 68px;
   overflow: hidden;
   border: 0;
   clip-path: none;
@@ -112,15 +109,15 @@
   filter: brightness(1.08) drop-shadow(0 16px 15px rgb(0 0 0 / 70%)) drop-shadow(0 0 8px rgb(240 187 59 / 35%));
 }
 .profileTag {
-  top: 16px;
+  top: 27px;
   left: 62%;
-  padding: 1px 10px 1px;
+  padding: 2px 16px 1px;
   translate: -50% 0;
   border: 1px solid rgb(231 184 69 / 46%);
   clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0 50%);
   background: linear-gradient(180deg, rgb(89 25 28 / 82%), rgb(27 12 26 / 88%));
   color: #f2cc70;
-  font-size: 0.4rem;
+  font-size: 0.6rem;
   letter-spacing: 0.12em;
   text-shadow: 0 2px 4px #000;
 }
@@ -135,18 +132,18 @@
   gap: 2px;
   min-width: 0;
   max-width: 100%;
-  margin-block-end: -1px;
-  padding: 3px 7px 2px 8px;
+  margin-block-end: -2px;
+  padding: 5px 12px 4px 14px;
 }
-.name { max-width: 100%; overflow: hidden; color: #f6d885; font-size: 0.69rem; text-overflow: ellipsis; text-shadow: 0 2px 4px #000, 0 0 8px rgb(222 163 48 / 22%); }
-.power { color: #a8e0c8; font-size: 0.43rem; font-weight: 700; letter-spacing: 0.06em; text-shadow: 0 2px 4px #000; }
+.name { max-width: 100%; overflow: hidden; color: #f6d885; font-size: 1.15rem; text-overflow: ellipsis; text-shadow: 0 2px 4px #000, 0 0 8px rgb(222 163 48 / 22%); }
+.power { color: #a8e0c8; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-shadow: 0 2px 4px #000; }
 .expRow { margin-top: 3px; }
-.expText { font-size: 0.42rem; }
+.expText { font-size: 0.7rem; }
 .expTrack { border-color: rgb(241 195 80 / 58%); background: rgb(25 7 14 / 88%); }
 .expFill { background: linear-gradient(90deg, #8d2631, #d79834 58%, #ffe392); box-shadow: 0 0 9px rgb(224 161 48 / 42%); }
 .avatarWrap::before {
   position: absolute;
-  inset: -5px;
+  inset: -9px;
   z-index: -1;
   border: 1px solid rgb(232 186 75 / 34%);
   rotate: 45deg;
@@ -165,12 +162,12 @@
   text-shadow: 0 2px 5px #000;
 }
 .currency {
-  /* คลังสมบัติ: ความสูงลด 30% (38px→27px), ความกว้างเพิ่ม 20% (พื้นที่ตัวเลข 96px→115px, gap/padding แนวนอนขยายตาม)
-     เฉพาะ desktop — ไอคอนในนี้ต้องเล็กลงเป็น 20px คู่กันเพื่อให้พอดีกับความสูงใหม่ (ดู .currencyIcon ด้านล่าง) */
-  grid-template-columns: 20px minmax(115px, auto) 20px;
-  gap: 11px;
-  min-height: 27px;
-  padding: 2px 11px 2px 12px;
+  /* คลังสมบัติ: ป้ายยาวขึ้นและเตี้ยลง ให้ดูเป็นแผ่นป้ายแนวนอนมากกว่าปุ่มก้อน
+     ค่าที่นี่เป็นค่าตั้งต้น/มือถือ — สัดส่วนฝั่ง desktop อยู่ใน @media (min-width: 761px) ท้ายไฟล์ */
+  grid-template-columns: 30px minmax(96px, auto) 24px;
+  gap: 9px;
+  min-height: 38px;
+  padding: 3px 9px 3px 10px;
   border: 1px solid rgb(240 191 72 / 72%);
   clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0 50%);
   background:
@@ -187,8 +184,8 @@
   pointer-events: none;
 }
 .currencyIcon {
-  width: 20px;
-  height: 20px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
@@ -199,7 +196,7 @@
 .gem { color: #4bd29e; }
 .amount { font-size: 1.08rem; }
 
-.levelBadge { font-size: 0.46rem; min-width: 1.5rem; }
+.levelBadge { font-size: 0.77rem; }
 
 @media (max-width: 760px) {
   .profile { width: 300px; height: 108px; min-height: 0; padding: 32px 24px 10px 36px; }
@@ -213,12 +210,75 @@
   .power { font-size: 0.6rem; }
   .currency { grid-template-columns: 22px minmax(66px, auto) 19px; gap: 6px; min-height: 29px; padding: 2px 6px 2px 7px; }
   .currencyIcon { width: 23px; height: 23px; }
+}
+
+/*
+   ============================================================================
+   ขนาด/ตำแหน่งฝั่ง desktop เท่านั้น (คู่ตรงข้ามของ @media (max-width: 760px))
+
+   ทำไมต้องแยกเป็นบล็อกนี้: กฎสกินลายไทยด้านบนไม่มี media query และถูกเขียนไว้
+   "หลัง" บล็อกมือถือ ค่าใด ๆ ที่ใส่ลงไปตรงนั้นจึงชนะบนมือถือด้วยเสมอ เดิมต้องไล่
+   ประกาศค่าเดิมทับกันมือถือทีละ property ซึ่งพลาดง่ายและสะสมขึ้นเรื่อย ๆ
+   ย้ายมาไว้ใน min-width แทน มือถือจะไม่แมตช์บล็อกนี้เลยโดยโครงสร้าง ไม่ต้องมีกฎกันอีก
+
+   ตัวเลขทั้งหมดอ้างอิงการวัดจากไฟล์ภาพกรอบจริง (naga-profile-frame.png, 2243x701):
+     - ยอดหงอนพญานาคอยู่ที่ y=0 พอดี → ดันกล่องชิดขอบบนได้ตรง ๆ ไม่มีขอบว่างต้องชดเชย
+     - แผ่นป้ายสีน้ำเงินด้านใน: ซ้าย 15.47% / ขวาเว้น 8.43% / บน 47.65% / ล่างเว้น 15.83%
+   ============================================================================
+*/
+@media (min-width: 761px) {
+  /* กรอบพญานาค ×0.6 ของค่าตั้งต้น (เล็กลง 40%)
+     margin-block-start ลบ = หักล้าง padding-top ของ .bar ให้ขอบบนกล่อง (= ยอดหงอน) แนบขอบจอ
+     padding แนวนอนคิดจากความกว้างกรอบเอง (calc กับ --frame-w) ไม่ใช่หน่วย % ตรง ๆ
+     เพราะ % ของ padding อ้างอิง "ความกว้างของ containing block" (คือ .bar ที่กว้างเกือบเต็มจอ)
+     ไม่ใช่ความกว้างของตัวมันเอง — ใช้ % ตรง ๆ ตรงนี้จะเพี้ยนทันที */
+  .profile {
+    --frame-w: clamp(258px, 21.6vw, 306px);
+    width: var(--frame-w);
+    height: 95px;
+    margin-block-start: calc(-1 * max(18px, env(safe-area-inset-top)));
+    padding: 30px calc(var(--frame-w) * 0.084) 10px calc(var(--frame-w) * 0.134);
+  }
+
+  .avatarFrame { --frame-size: 2.4rem; }
+  .avatarWrap::before { inset: -5px; }
+  .levelBadge { font-size: 0.46rem; min-width: 1.5rem; }
+  .profileTag { top: 16px; padding: 1px 10px; font-size: 0.4rem; }
+
   /*
-     กฎกันมือถือ: property กลุ่มนี้ถูกลดขนาดฝั่ง desktop (กรอบพญานาค ×0.6) ในบล็อกไม่มี
-     media query ด้านบน ซึ่งมาหลังบล็อกมือถือแรก จึงต้องประกาศค่าเดิมทับไว้ตรงนี้
-     ไม่งั้นค่าเดสก์ท็อปจะรั่วลงมาชนะบนมือถือด้วย (ทั้งที่งานนี้ระบุชัดว่าห้ามแตะมือถือ)
+     ชื่อ/พลังรบเคยล้นออกนอกลายกรอบ เพราะกล่องข้อความถูกวางด้วย padding + flex
+     ซึ่งไม่ตรงกับพื้นที่สีน้ำเงินจริงในภาพ (กินขึ้นไปเหนือแผ่นป้าย 15px และล้นล่าง 6px)
+     เปลี่ยนมาปักตำแหน่งด้วย inset เป็น % ของกล่องแทน — ตรงกับแผ่นป้ายในภาพเป๊ะ และ
+     ยืดหดตามความกว้างที่ clamp ไว้เองโดยไม่ต้องคำนวณ px ใหม่ทุกครั้ง
+     (% ของ inset อ้างอิงขนาดของ containing block จริง ต่างจาก padding-block ที่อ้างอิง "ความกว้าง")
+     ซ้าย 30% = พ้นรูปโปรไฟล์ที่ทับลายพญานาคอยู่ ทั้งที่ความกว้างต่ำสุดและสูงสุดของ clamp
   */
-  .profile { margin-block-start: 0; }
-  .avatarWrap::before { inset: -9px; }
-  .levelBadge { font-size: 0.77rem; min-width: 2.2rem; }
+  .identity {
+    position: absolute;
+    inset-block: 47.7% 15.8%;
+    inset-inline: 30% 8.4%;
+    justify-content: center;
+    gap: 1px;
+    margin-block-end: 0;
+    padding: 0 4px 0 2px;
+  }
+
+  /* พื้นที่แนวตั้งที่ใช้ได้จริงคือ ~34.7px — line-height ระบุชัดเพื่อให้คำนวณได้แน่นอน
+     ไม่ต้องลุ้นค่า normal ของแต่ละฟอนต์ (ชื่อ+พลังรบ+หลอด EXP รวมกัน ~29.5px พอดี)
+     ตามที่สั่ง: ตัวอักษรชื่อเล็กกว่าพลังรบ */
+  .name { font-size: 0.52rem; line-height: 1.05; }
+  .power { font-size: 0.64rem; line-height: 1.05; }
+  .expRow { margin-top: 2px; }
+  .expText { font-size: 0.4rem; line-height: 1; }
+  .expTrack { width: clamp(63px, 5.4vw, 87px); }
+
+  /* คลังสมบัติ: สูงลด 30% (38px→27px), กว้างขึ้น 20% (ช่องตัวเลข 96px→115px)
+     ไอคอนต้องลงมาที่ 20px คู่กัน ไม่งั้นความสูงจริงจะถูกไอคอนดันไว้ ไม่ลดจริงตามที่ตั้งใจ */
+  .currency {
+    grid-template-columns: 20px minmax(115px, auto) 20px;
+    gap: 11px;
+    min-height: 27px;
+    padding: 2px 11px;
+  }
+  .currencyIcon { width: 20px; height: 20px; }
 }
