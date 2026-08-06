@@ -29,7 +29,7 @@ const NAV_ITEMS: NavItem[] = [
 interface MainNavigationProps {
   /** เปิดหน้าตัวละครทั้งหมดของฉัน — ผูกกับปุ่ม id="heroes" เท่านั้น */
   onOpenHeroes: () => void
-  /** เข้าสู่โหมดสำรวจและต่อสู้ */
+  /** เข้าห้องต่อสู้ (ด่านแรก) โดยตรง — ไม่ผ่านโหมดสำรวจ */
   onOpenBattle: () => void
   /** เปิดกระเป๋าไอเทม — ผูกกับปุ่ม id="items" เท่านั้น */
   onOpenItems: () => void
