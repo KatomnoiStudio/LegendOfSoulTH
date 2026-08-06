@@ -2,6 +2,7 @@ import { Suspense, lazy, useMemo, useState } from 'react'
 import { getCharacter } from '../game/characters'
 import { AddFriendModal } from '../components/AddFriendModal/AddFriendModal'
 import { WukongAdventure } from '../components/AdventureScene/WukongAdventure'
+import { CommandConsole } from '../components/CommandConsole/CommandConsole'
 import { GameExplorationSession } from '../components/GameExplorationSession/GameExplorationSession'
 import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRosterModal'
 import { ItemsModal } from '../components/ItemsModal/ItemsModal'
@@ -15,7 +16,11 @@ import { SideActions } from '../components/SideActions/SideActions'
 import { StartAdventure } from '../components/StartAdventure/StartAdventure'
 import { TopBar } from '../components/TopBar/TopBar'
 import { MOCK_BADGES } from '../data/mockPlayer'
-import type { CurrencyResult, FriendCandidate } from '../data/accountRepository'
+import type {
+  CharacterGrantResult,
+  CurrencyResult,
+  FriendCandidate,
+} from '../data/accountRepository'
 import type { Player } from '../types/player'
 import styles from './LobbyPage.module.css'
 
@@ -38,6 +43,10 @@ interface LobbyPageProps {
   onRedeemCoupon: (code: string) => Promise<CurrencyResult>
   /** ค้นหาผู้เล่นจาก UID เพื่อเพิ่มเพื่อน */
   onFindFriend: (uid: string) => Promise<FriendCandidate | null>
+  /** บัญชีนี้ใช้คำสั่งผู้ดูแลได้ไหม — ช่องคำสั่งจะไม่ถูก render เลยถ้าไม่ใช่ (ดู src/data/admins.ts) */
+  isAdmin: boolean
+  /** มอบตัวละครให้บัญชีนี้ — ใช้จากช่องคำสั่งผู้ดูแลเท่านั้นในตอนนี้ */
+  onGiveCharacter: (characterId: string) => Promise<CharacterGrantResult>
 }
 
 export function LobbyPage({
@@ -48,6 +57,8 @@ export function LobbyPage({
   onTopUpGems,
   onRedeemCoupon,
   onFindFriend,
+  isAdmin,
+  onGiveCharacter,
 }: LobbyPageProps) {
   // แจ้งเตือนจดหมาย/ภารกิจยังเป็น mock เพราะยังไม่มีระบบทั้งสองอย่าง
   const badges = MOCK_BADGES
@@ -116,6 +127,9 @@ export function LobbyPage({
         onOpenBattle={() => setExplorationOpen(true)}
         onOpenItems={() => setItemsOpen(true)}
       />
+
+      {/* ช่องคำสั่งผู้ดูแล — ผู้เล่นทั่วไปไม่เห็นเลย (ดูคำเตือนใน src/data/admins.ts) */}
+      {isAdmin ? <CommandConsole onGiveCharacter={onGiveCharacter} /> : null}
 
       {explorationOpen ? (
         <GameExplorationSession

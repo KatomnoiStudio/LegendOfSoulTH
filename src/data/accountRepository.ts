@@ -1,3 +1,4 @@
+import { getCharacter } from '../game/characters'
 import { getItem } from '../game/items'
 import { generateUid } from '../game/uid'
 import { TEAM_SIZE } from '../game/team'
@@ -315,6 +316,16 @@ export async function getSessionPlayer(): Promise<Player | null> {
   return normalizePlayer(account.player)
 }
 
+/**
+ * อีเมลของ session ที่ล็อกอินอยู่ — ใช้ตรวจสิทธิ์ผู้ดูแล (ดู src/data/admins.ts)
+ *
+ * แยกจาก getSessionPlayer เพราะ Player ไม่มีฟิลด์อีเมล (ตั้งใจ — อีเมลเป็นข้อมูลบัญชี
+ * ไม่ใช่ข้อมูลตัวละครที่ UI ทั่วไปต้องเห็น) ฟังก์ชันนี้จึงเป็นทางเดียวที่ควรใช้อ่านอีเมล
+ */
+export function getSessionEmail(): string | null {
+  return readJson<{ uid: string; email: string }>(SESSION_KEY)?.email ?? null
+}
+
 export interface FriendCandidate {
   uid: string
   name: string
@@ -523,4 +534,57 @@ export async function grantItem(
 
   if (!saveDb(db)) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
   return { ok: true, player: updated.player }
+}
+
+/* ---------------- ตัวละคร ---------------- */
+
+export type CharacterGrantResult =
+  | { ok: true; player: Player; characterId: string }
+  | { ok: false; error: string }
+
+/**
+ * มอบตัวละครให้บัญชีผู้เล่น
+ *
+ * ยังไม่มีระบบกาชา/เควสที่มอบตัวละครได้จริง ฟังก์ชันนี้จึงถูกเรียกจากช่องคำสั่ง
+ * ผู้ดูแลเท่านั้นในตอนนี้ (ดู src/components/CommandConsole/) — เมื่อมีระบบได้ตัวละคร
+ * ของจริงแล้ว ให้ระบบนั้นเรียกฟังก์ชันเดียวกันนี้ ไม่ต้องเขียนทางเพิ่มตัวละครเส้นใหม่
+ *
+ * ไม่แตะ teamSlots: การได้ตัวละครมากับการจัดทีมเป็นคนละเรื่อง ผู้เล่นเลือกเองในหน้าจัดทีม
+ */
+export async function grantCharacter(
+  uid: string,
+  characterId: string,
+): Promise<CharacterGrantResult> {
+  if (!getCharacter(characterId)) return { ok: false, error: `ไม่พบตัวละคร "${characterId}"` }
+
+  const db = loadDb()
+  const entry = findAccountEntry(db, uid)
+  if (!entry) return { ok: false, error: 'ไม่พบบัญชีผู้เล่น' }
+
+  const [key, account] = entry
+  const owned = account.player.ownedCharacters ?? []
+  if (owned.some((slot) => slot.characterId === characterId)) {
+    return { ok: false, error: 'ครอบครองตัวละครนี้อยู่แล้ว' }
+  }
+
+  const updated: StoredAccount = {
+    ...account,
+    player: {
+      ...account.player,
+      ownedCharacters: [
+        ...owned,
+        {
+          characterId,
+          level: 1,
+          exp: 0,
+          expToNext: 500,
+          obtainedAt: new Date().toISOString(),
+        },
+      ],
+    },
+  }
+  db.accounts[key] = updated
+
+  if (!saveDb(db)) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
+  return { ok: true, player: updated.player, characterId }
 }

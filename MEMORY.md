@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T09:50:00+07:00 by `Claude Code (HetCreep Agent)`  
+> **Last Updated**: 2026-08-06T11:15:00+07:00 by `Claude Code (HetCreep Agent)`  
 > **RULES_VERSION: 6** (see `.agents/rules/rules-freshness-check.md` — the freshness check itself compares `AGENTS.md`'s header against the `RULES_VERSION last synced:` line in "Current Status" below, not this line; keep this line in sync as a courtesy so a skim doesn't see a stale number)
 
 ---
@@ -269,6 +269,15 @@
     - Did not touch: `delete_branch_on_merge` (offered, not selected), license (was still a separate open item — see item 43), Discussions (not requested).
 
 43. **LICENSE installed: MIT, HetCreep's explicit decision** (2026-08-06): item 34/35's gold-standard rule (`.agents/rules/gold-standard-baseline.md`) explicitly forbids an agent picking a license — this was flagged as "ask HetCreep" since item 8. HetCreep came back with the decision ("ติดตั้ง MIT") after checking with the project's original creator, as they'd said they would. Added root `LICENSE` file (standard MIT text, copyright holder `LegendofSoulTH`, year 2026) and `"license": "MIT"` in `package.json` (was absent — `private: true` so never published, but the field still matters for the SBOM/attestation tooling from item 36 and any future tooling that reads it). No README/CONTRIBUTING change needed — neither referenced a specific license name, both already pointed generically at "the LICENSE file."
+
+44. **ช่องคำสั่งผู้ดูแล + `/givecharacter` + `grantCharacter()`** (2026-08-06): HetCreep ส่งชุด sprite เดิน 80 เฟรมของตือโป๊ยก่ายมาให้ต่อเข้าเกม ระหว่างสำรวจพบว่า**ไม่มีทางได้ตัวละครตัวที่สองเลยในเกม** — บัญชีใหม่ได้ `monkey-king` ตัวเดียว (`STARTER_CHARACTER_ID`) และมีแค่ `grantItem` ไม่มี `grantCharacter` แปลว่าต่อให้ใส่เฟรมเดินครบ ตือโป๊ยก่ายก็จะไม่โผล่ในแถบเลือกขุนพลของฉากเดิน (ซึ่งกรองจากตัวที่ครอบครองจริง) HetCreep เลือกแก้ด้วยการให้สร้างช่องแชท/คำสั่งมุมซ้ายล่าง พิมพ์ `/givecharacter pig` โดยจำกัดเฉพาะ Account Admin
+    - **แจ้ง HetCreep ตรง ๆ ก่อนลงมือว่า "admin only" ที่นี่กันได้แค่ในนาม** — เกมเป็น client-only ล้วน การเช็คสิทธิ์รันในเบราว์เซอร์ผู้เล่นเองเทียบกับ localStorage ที่ผู้เล่นแก้ได้ ใครเปิด devtools เป็นก็ข้ามได้ (ตรงกับที่ `SECURITY.md` ระบุไว้แล้วในหัวข้อ Out of Scope) HetCreep รับทราบและเลือกเกณฑ์ admin = **ลิสต์อีเมลในโค้ด** คำเตือนนี้เขียนไว้ที่หัวไฟล์ `src/data/admins.ts` ด้วย เผื่อคนอ่านโค้ดทีหลังเข้าใจผิดว่าเป็น security boundary
+    - **ไฟล์ใหม่**: [`src/data/admins.ts`](src/data/admins.ts) (`ADMIN_EMAILS` + `isAdminEmail()`, ตอนนี้มี `kaoshock123@gmail.com`), [`src/components/CommandConsole/`](src/components/CommandConsole/) — `commands.ts` (ตัวแปลคำสั่งล้วน ไม่แตะ state), `CommandConsole.tsx`, `.module.css`, และ `commands.test.ts` (9 เทสต์ ครอบคลุมชื่อย่อ/ชื่อไทย/id เต็ม/คำสั่งมั่ว/ไม่ใส่อาร์กิวเมนต์)
+    - **ไฟล์ที่แก้**: `accountRepository.ts` (+`getSessionEmail()` — จำเป็นเพราะ `Player` ตั้งใจไม่มีฟิลด์อีเมล อีเมลอยู่แค่ใน `StoredAccount`/session; +`grantCharacter()` ตาม pattern ของ `grantItem` เป๊ะ ๆ กันซ้ำ/ตรวจ id กับ ROSTER/**ไม่แตะ `teamSlots`** เพราะการได้ตัวละครกับการจัดทีมเป็นคนละเรื่อง), `useAuth.ts` (+`isAdmin`, +`grantCharacter`, เก็บ email แยกใน state), `App.tsx`/`LobbyPage.tsx` (ส่ง prop ลงมา, render console เฉพาะ `isAdmin`)
+    - **บั๊กที่เจอตอนเขียนแล้วแก้ทันที**: log tone ตั้งชื่อว่า `'input'` ซึ่ง `styles[line.tone]` จะไปหยิบคลาส `.input` ของช่องพิมพ์ข้อความมาใช้แทน (ชนกันใน CSS module) เปลี่ยนเป็น `'echo'` พร้อมคอมเมนต์กันคนเผลอเปลี่ยนกลับ
+    - `onKeyDown` ของช่องพิมพ์เรียก `stopPropagation()` เสมอ — ไม่งั้น WASD/ลูกศรที่พิมพ์ในช่องจะลอยไปสั่งตัวละครเดินในฉากที่ mount อยู่ข้างหลังพร้อมกัน
+    - Full verify เขียว (typecheck/lint/test/build), lint warnings คงที่ 43 ตัว (ของเดิมทั้งหมด), เทสต์รวม 5→14
+    - **ยังค้าง**: sprite 80 เฟรมยังไม่ได้เอาเข้า repo — HetCreep ให้ path มาเป็น placeholder (`<PATH_TO>/sprites`) และค้นไดรฟ์ C: แล้วไม่เจอไฟล์ `Walk_1_Front_01.png`/`HandGrip_*.png` เลย (โฟลเดอร์ `sprites` เดียวที่เจอคือ `Desktop/game/assets/sprites` ซึ่งว่างเปล่า และ `Desktop/game` เป็นคนละโปรเจกต์) รอ path จริง
 
 ---
 
