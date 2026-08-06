@@ -230,10 +230,20 @@
   pointer-events: none;
 }
 
-/* จอเตี้ยแบบมือถือแนวนอน — ย่อจอยลงเพื่อไม่ให้กินพื้นที่เล่น แต่ยังใหญ่กว่า 44px มาก */
+/*
+  จอเตี้ยแบบมือถือแนวนอน — ปุ่มต้อง "ใหญ่ขึ้น" ไม่ใช่เล็กลง
+
+  ฟังดูกลับหัว แต่ GameViewport ย่อทั้งเวทีด้วย transform: scale() ตามด้านที่คับที่สุด
+  บนจอ 844x390 ตัวคูณคือ ~0.43 แปลว่าปุ่มขนาด 96px ในโค้ดจะกลายเป็น 42px จริงบนจอ
+  ซึ่งต่ำกว่าเกณฑ์เป้าแตะ 44px ของสเปกข้อ 12/29
+
+  เคยตั้งค่าชุดนี้ให้เล็กลงเพื่อประหยัดพื้นที่ แล้ววัดจริงในเบราว์เซอร์ได้
+  ปุ่มโจมตี 42px และปุ่มหลบ 28px — ผิดเกณฑ์ทั้งคู่
+  ค่าปัจจุบันเผื่อไว้ให้หลังคูณย่อแล้วยังเกิน 44px บนจอมือถือแนวนอนที่เล็กที่สุดที่รองรับ
+*/
 @media (max-height: 480px) {
-  .joystickBase { width: 104px; height: 104px; }
-  .joystickKnob { width: 46px; height: 46px; margin: -23px 0 0 -23px; }
+  .joystickBase { width: 132px; height: 132px; }
+  .joystickKnob { width: 58px; height: 58px; margin: -29px 0 0 -29px; }
 }
 
 .controlsRight {
@@ -267,7 +277,7 @@
 }
 
 @media (max-height: 480px) {
-  .attackBtn { width: 96px; height: 96px; font-size: 0.95rem; }
+  .attackBtn { width: 148px; height: 148px; font-size: 1.15rem; }
 }
 
 /* ── ชั้นข้อมูลที่ลอยทับฉาก ─────────────────────────────── */
@@ -312,4 +322,46 @@
 .enemyBarFill {
   height: 100%;
   background: linear-gradient(90deg, #ff6a5c, #ffb073);
+}
+
+.dashBtn {
+  pointer-events: auto;
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 2px solid var(--c-arcane);
+  background: rgb(20 26 52 / 82%);
+  color: var(--c-arcane-light);
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  box-shadow: var(--shadow-1);
+  transition: transform 90ms var(--ease-out);
+}
+
+.dashBtn:active { transform: scale(0.94); }
+
+/* วงคูลดาวน์ไล่จากล่างขึ้นบน — เต็ม = เพิ่งกด, ว่าง = พร้อมใช้ */
+.dashCooldown {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 0;
+  background: rgb(0 0 0 / 62%);
+  pointer-events: none;
+}
+
+.dashLabel {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-height: 480px) {
+  .dashBtn { width: 112px; height: 112px; font-size: 1rem; }
 }

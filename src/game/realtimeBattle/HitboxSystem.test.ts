@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { PLAYER_ATTACK } from './attacks'
+import { PLAYER_ATTACK_CHAIN } from './attacks'
+
+/** ไม้แรกของคอมโบ — ใช้เป็นท่าอ้างอิงในเทสต์ชุดนี้ */
+const PLAYER_ATTACK = PLAYER_ATTACK_CHAIN[0]
 import { findHitTargets } from './HitboxSystem'
 import type { RealtimeBattleEntity } from './types'
 

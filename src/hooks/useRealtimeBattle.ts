@@ -44,6 +44,8 @@ interface UseRealtimeBattleValue {
   setJoystick: (vector: Vec2) => void
   /** ปุ่มโจมตีบนจอสัมผัส */
   pressAttack: () => void
+  /** ปุ่มพุ่งหลบบนจอสัมผัส */
+  pressDash: () => void
 }
 
 /** ชุดเฟรมที่ห้องนี้ต้องใช้ = ตัวละครนำของผู้เล่น + ศัตรูทุกตัวในทุกคลื่นของด่าน */
@@ -126,6 +128,7 @@ export function useRealtimeBattle({
             // ป้อนอินพุตล่าสุดก่อนเดินการจำลองทุกก้าว — runtime ไม่รู้จักคีย์บอร์ด/จอย
             created?.setMoveInput(input.getMoveVector())
             if (input.consumeAttack()) created?.requestAttack()
+            if (input.consumeDash()) created?.requestDash()
             created?.step(deltaMs)
           },
         })
@@ -194,7 +197,11 @@ export function useRealtimeBattle({
     inputRef.current?.pressAttack()
   }, [])
 
+  const pressDash = useCallback(() => {
+    inputRef.current?.pressDash()
+  }, [])
+
   const phase: BattlePhase = errorMessage ? 'error' : runtime && snapshot ? 'ready' : 'loading'
 
-  return { phase, errorMessage, runtime, snapshot, requestExit, setJoystick, pressAttack }
+  return { phase, errorMessage, runtime, snapshot, requestExit, setJoystick, pressAttack, pressDash }
 }
