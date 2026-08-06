@@ -1,4 +1,4 @@
-import { Suspense, lazy, useMemo, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { getCharacter } from '../game/characters'
 import { AddFriendModal } from '../components/AddFriendModal/AddFriendModal'
 import { WukongAdventure } from '../components/AdventureScene/WukongAdventure'
@@ -12,7 +12,7 @@ import {
   SettingsModal,
   type AudioSettings,
 } from '../components/SettingsModal/SettingsModal'
-import { getAudioSettings, setAudioSettings } from '../lib/audio/AudioEngine'
+import { getAudioSettings, initAudioEngine, setAudioSettings } from '../lib/audio/AudioEngine'
 import { SideActions } from '../components/SideActions/SideActions'
 import { StartAdventure } from '../components/StartAdventure/StartAdventure'
 import { TopBar } from '../components/TopBar/TopBar'
@@ -95,6 +95,16 @@ export function LobbyPage({
     setAudioSettings(next)
     setAudio(next)
   }
+  /**
+   * ผู้เล่นที่เคย login ไว้แล้วเข้าตรงมาที่ลอบบี้เลย ไม่ผ่าน TitlePage (ดู App.tsx)
+   * ที่นั่นเป็นจุดเดียวที่เคยเรียก initAudioEngine() มาก่อน — คนกลุ่มนี้เลย
+   * ไม่เคยมี AudioContext ถูกสร้างเลย ต้องดัก user gesture แรกในลอบบี้เองด้วย
+   */
+  useEffect(() => {
+    const unlock = () => initAudioEngine()
+    window.addEventListener('pointerdown', unlock, { once: true })
+    return () => window.removeEventListener('pointerdown', unlock)
+  }, [])
 
   return (
     <main className={styles.page}>
