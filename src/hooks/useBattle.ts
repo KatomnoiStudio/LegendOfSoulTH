@@ -10,10 +10,22 @@ import {
   toBattleResult,
 } from '../game/battle/engine'
 import { getSkillForCharacter } from '../game/battle/skills'
+import { playSfx } from '../lib/audio/AudioEngine'
 import type { ActionKind, BattleAction, BattleSnapshot, BattleResult } from '../game/battle/types'
 import type { Player } from '../types/player'
 
 const ENEMY_DELAY_MS = 700
+
+/**
+ * ห่อ submitAction ไว้เล่นเสียงกระทบตอนมีการโจมตีจริง (ไม่เล่นตอน defend)
+ * ตั้งใจไม่ใส่ side effect นี้ใน game/battle/engine.ts เอง เพราะไฟล์นั้นเป็น pure logic
+ * ที่ unit test มัน mock Math.random ตรง ๆ (ดู formulas.test.ts/engine.test.ts) — เสียงเป็นเรื่อง
+ * ของ presentation layer เท่านั้น
+ */
+function submitActionWithSfx(snapshot: BattleSnapshot, action: BattleAction): BattleSnapshot {
+  if (action.kind !== 'defend') void playSfx('battleHit')
+  return submitAction(snapshot, action)
+}
 
 interface UseBattleOptions {
   player: Player
@@ -54,7 +66,7 @@ export function useBattle({ player, stageId, onComplete }: UseBattleOptions) {
         if (!current) return current
         const action = pickEnemyAction(current)
         if (!action) return advanceTurn(current)
-        return submitAction(current, action)
+        return submitActionWithSfx(current, action)
       })
     }, ENEMY_DELAY_MS)
 
@@ -81,14 +93,14 @@ export function useBattle({ player, stageId, onComplete }: UseBattleOptions) {
           const targets = getValidTargets(current, actor.id, kind)
           const targetId = skillDef.effect === 'heal-lowest-ally' ? actor.id : targets[0]?.id
           if (targetId) {
-            return submitAction(current, { kind, actorId: actor.id, targetId })
+            return submitActionWithSfx(current, { kind, actorId: actor.id, targetId })
           }
         }
       }
 
       const targets = getValidTargets(current, actor.id, kind)
       if (targets.length === 1) {
-        return submitAction(current, {
+        return submitActionWithSfx(current, {
           kind,
           actorId: actor.id,
           targetId: targets[0].id,
@@ -112,7 +124,7 @@ export function useBattle({ player, stageId, onComplete }: UseBattleOptions) {
           actorId: actor.id,
           targetId,
         }
-        return submitAction(current, action)
+        return submitActionWithSfx(current, action)
       })
       setPendingKind(null)
     },

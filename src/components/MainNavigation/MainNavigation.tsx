@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { playSfx } from '../../lib/audio/AudioEngine'
 import { publicUrl } from '../../lib/publicUrl'
 import { ItemBagIcon, PawIcon, TeamFormationIcon } from '../icons/GameIcons'
 import { useToast } from '../Toast/useToast'
@@ -38,6 +39,7 @@ export function MainNavigation({ onOpenHeroes, onOpenBattle, onOpenItems }: Main
   const { comingSoon } = useToast()
 
   const handleSelect = (id: string, label: string) => {
+    void playSfx('buttonClick')
     if (id === 'heroes') {
       onOpenHeroes()
       return

@@ -42,10 +42,10 @@ export function CurrencyShopModal({ currency, onBuy, onClose }: CurrencyShopModa
     setPendingId(null)
 
     if (result.ok) {
-      showToast(`${copy.title}สำเร็จ +${formatNumber(result.amount)}`)
+      showToast(`${copy.title}สำเร็จ +${formatNumber(result.amount)}`, 'currency')
       onClose()
     } else {
-      showToast(result.error)
+      showToast(result.error, 'error')
     }
   }
 
