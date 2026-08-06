@@ -4,17 +4,43 @@ import { getMap } from '../game/exploration/maps'
 import { movePosition } from '../game/exploration/movement'
 import { findNearbyNpc } from '../game/npc/proximity'
 import { getNpcsForMap } from '../game/npc/npcs'
-import type { ExplorationState, MovementVector } from '../game/exploration/types'
+import type { Direction, ExplorationState, MovementVector } from '../game/exploration/types'
 
-const KEY_TO_VECTOR: Record<string, MovementVector> = {
-  ArrowUp: { x: 0, y: -1 },
-  ArrowDown: { x: 0, y: 1 },
-  ArrowLeft: { x: -1, y: 0 },
-  ArrowRight: { x: 1, y: 0 },
-  w: { x: 0, y: -1 },
-  s: { x: 0, y: 1 },
-  a: { x: -1, y: 0 },
-  d: { x: 1, y: 0 },
+const KEY_TO_DIRECTION: Record<string, Direction> = {
+  ArrowUp: 'up',
+  ArrowDown: 'down',
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+  w: 'up',
+  s: 'down',
+  a: 'left',
+  d: 'right',
+}
+
+const DIRECTION_VECTORS: Record<Direction, MovementVector> = {
+  up: { x: 0, y: -1 },
+  down: { x: 0, y: 1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+}
+
+/**
+ * รวมทิศที่กดค้างอยู่ทั้งหมด (คีย์บอร์ด + d-pad บนจอสัมผัส) เป็นเวกเตอร์เดียว
+ *
+ * ask-CB retroactive audit (2026-08-06) เจอว่าโค้ดเดิมเก็บ "เวกเตอร์ล่าสุด" ตัวเดียว
+ * (เขียนทับกันระหว่างคีย์บอร์ด/สัมผัส) แทนที่จะเก็บ "ชุดทิศที่กดอยู่" แบบเดียวกับ
+ * InputSystem.ts ของห้องต่อสู้ — ผลคือปล่อยปุ่มไหนก็ได้ = หยุดสนิททันที ทั้งที่ปุ่ม
+ * อื่นยังกดค้างอยู่จริง (เกิดตอนเล่นปกติ ไม่ต้อง alt-tab เลย) แก้โดยย้ายมาใช้ Set แบบ
+ * InputSystem.ts (ที่พิสูจน์แล้วว่าถูก) แทน
+ */
+export function sumHeldDirections(held: ReadonlySet<Direction>): MovementVector {
+  let x = 0
+  let y = 0
+  for (const direction of held) {
+    x += DIRECTION_VECTORS[direction].x
+    y += DIRECTION_VECTORS[direction].y
+  }
+  return { x, y }
 }
 
 interface UseExplorationOptions {
@@ -38,7 +64,7 @@ export function useExploration({
     movementLocked,
   }))
 
-  const inputRef = useRef<MovementVector>({ x: 0, y: 0 })
+  const heldRef = useRef<Set<Direction>>(new Set())
   const rafRef = useRef<number | null>(null)
   const lastTimeRef = useRef<number | null>(null)
 
@@ -53,7 +79,7 @@ export function useExploration({
       const last = lastTimeRef.current ?? time
       lastTimeRef.current = time
       const delta = Math.min(0.05, (time - last) / 1000)
-      const vector = inputRef.current
+      const vector = sumHeldDirections(heldRef.current)
 
       if (vector.x !== 0 || vector.y !== 0) {
         setState((current) => {
@@ -93,30 +119,40 @@ export function useExploration({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (movementLocked) return
-      const vector = KEY_TO_VECTOR[event.key]
-      if (!vector) return
+      const direction = KEY_TO_DIRECTION[event.key]
+      if (!direction) return
       event.preventDefault()
-      inputRef.current = vector
+      heldRef.current.add(direction)
     }
     const onKeyUp = (event: KeyboardEvent) => {
-      const vector = KEY_TO_VECTOR[event.key]
-      if (!vector) return
+      const direction = KEY_TO_DIRECTION[event.key]
+      if (!direction) return
       event.preventDefault()
-      inputRef.current = { x: 0, y: 0 }
+      heldRef.current.delete(direction)
     }
+    // สลับแท็บ/มินิไมซ์ทั้งที่ยังกดค้างอยู่ = ไม่มี keyup ตามมา ต้องล้างเอง
+    // ไม่งั้นตัวละครเดินค้าง (เหมือน InputSystem.ts's onBlur ของห้องต่อสู้)
+    const onBlur = () => heldRef.current.clear()
 
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', onBlur)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('blur', onBlur)
     }
   }, [movementLocked])
 
-  const setMovementVector = useCallback((vector: MovementVector) => {
+  /** d-pad บนจอสัมผัสเรียกคู่นี้ตอนกด/ปล่อยแต่ละทิศ — ลงชุดเดียวกับคีย์บอร์ด ไม่ทับกัน */
+  const pressDirection = useCallback((direction: Direction) => {
     if (movementLocked) return
-    inputRef.current = vector
+    heldRef.current.add(direction)
   }, [movementLocked])
+
+  const releaseDirection = useCallback((direction: Direction) => {
+    heldRef.current.delete(direction)
+  }, [])
 
   const setPosition = useCallback((position: ExplorationState['playerPosition']) => {
     setState((current) => ({ ...current, playerPosition: position }))
@@ -126,7 +162,8 @@ export function useExploration({
     map,
     npcs,
     state,
-    setMovementVector,
+    pressDirection,
+    releaseDirection,
     setPosition,
   }
 }
