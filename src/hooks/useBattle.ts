@@ -16,17 +16,6 @@ import type { Player } from '../types/player'
 
 const ENEMY_DELAY_MS = 700
 
-/**
- * ห่อ submitAction ไว้เล่นเสียงกระทบตอนมีการโจมตีจริง (ไม่เล่นตอน defend)
- * ตั้งใจไม่ใส่ side effect นี้ใน game/battle/engine.ts เอง เพราะไฟล์นั้นเป็น pure logic
- * ที่ unit test มัน mock Math.random ตรง ๆ (ดู formulas.test.ts/engine.test.ts) — เสียงเป็นเรื่อง
- * ของ presentation layer เท่านั้น
- */
-function submitActionWithSfx(snapshot: BattleSnapshot, action: BattleAction): BattleSnapshot {
-  if (action.kind !== 'defend') void playSfx('battleHit')
-  return submitAction(snapshot, action)
-}
-
 interface UseBattleOptions {
   player: Player
   stageId: string
@@ -39,6 +28,20 @@ export function useBattle({ player, stageId, onComplete }: UseBattleOptions) {
   )
   const [pendingKind, setPendingKind] = useState<ActionKind | null>(null)
   const completedRef = useRef(false)
+  const seenLogCount = useRef(0)
+
+  /**
+   * เล่นเสียงกระทบตอนมีบรรทัด log tone 'damage' ใหม่โผล่ขึ้นมา — ตั้งใจไม่เล่นเสียงจาก
+   * ข้างใน setSnapshot(current => ...) updater (React StrictMode double-invoke updater
+   * ใน dev เพื่อจับ impurity — เอา side effect ไปแปะไว้ตรงนั้นจะเสี่ยงยิงเสียงซ้ำถ้าไม่มี
+   * cooldown มากันพอดี) effect นี้เป็นจุดเดียวที่ปลอดภัยสำหรับ side effect ตามสัญญาของ React
+   */
+  useEffect(() => {
+    const entries = snapshot?.log ?? []
+    const newEntries = entries.slice(seenLogCount.current)
+    seenLogCount.current = entries.length
+    if (newEntries.some((entry) => entry.tone === 'damage')) void playSfx('battleHit')
+  }, [snapshot])
 
   useEffect(() => {
     if (!snapshot || snapshot.phase !== 'intro') return
@@ -66,7 +69,7 @@ export function useBattle({ player, stageId, onComplete }: UseBattleOptions) {
         if (!current) return current
         const action = pickEnemyAction(current)
         if (!action) return advanceTurn(current)
-        return submitActionWithSfx(current, action)
+        return submitAction(current, action)
       })
     }, ENEMY_DELAY_MS)
 
@@ -93,14 +96,14 @@ export function useBattle({ player, stageId, onComplete }: UseBattleOptions) {
           const targets = getValidTargets(current, actor.id, kind)
           const targetId = skillDef.effect === 'heal-lowest-ally' ? actor.id : targets[0]?.id
           if (targetId) {
-            return submitActionWithSfx(current, { kind, actorId: actor.id, targetId })
+            return submitAction(current, { kind, actorId: actor.id, targetId })
           }
         }
       }
 
       const targets = getValidTargets(current, actor.id, kind)
       if (targets.length === 1) {
-        return submitActionWithSfx(current, {
+        return submitAction(current, {
           kind,
           actorId: actor.id,
           targetId: targets[0].id,
@@ -124,7 +127,7 @@ export function useBattle({ player, stageId, onComplete }: UseBattleOptions) {
           actorId: actor.id,
           targetId,
         }
-        return submitActionWithSfx(current, action)
+        return submitAction(current, action)
       })
       setPendingKind(null)
     },
