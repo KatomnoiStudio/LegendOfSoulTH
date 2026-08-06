@@ -1,6 +1,6 @@
 .box {
   position: absolute;
-  z-index: 700;
+  z-index: var(--z-scene-dialogue);
   inset-block-end: 0;
   inset-inline: 0;
   padding: var(--sp-4);

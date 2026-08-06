@@ -13,7 +13,7 @@
 .scene {
   position: absolute;
   inset: 0;
-  z-index: 600;
+  z-index: var(--z-scene-battle);
   background: var(--c-void);
   overflow: hidden;
   /* กันเบราว์เซอร์ตีความการลากนิ้วเป็นการเลื่อนหน้า/ซูมระหว่างเล่น (§12) */

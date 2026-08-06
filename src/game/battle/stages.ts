@@ -1,4 +1,4 @@
-import { publicUrl } from '../../lib/publicUrl'
+import { MONKEY_SPRITE_URL, PIGSY_SPRITE_URL, TRIPITAKA_SPRITE_URL } from '../characters'
 
 export interface EnemyTemplate {
   id: string
@@ -22,7 +22,7 @@ const ENEMY_TEMPLATES: Record<string, EnemyTemplate> = {
   'shadow-soldier': {
     id: 'shadow-soldier',
     name: 'ทหารเงา',
-    spriteUrl: publicUrl('characters/monkey-v2-idle-0.webp'),
+    spriteUrl: MONKEY_SPRITE_URL,
     accent: '#8b7cff',
     atk: 58,
     def: 42,
@@ -32,7 +32,7 @@ const ENEMY_TEMPLATES: Record<string, EnemyTemplate> = {
   'demon-captain': {
     id: 'demon-captain',
     name: 'แม่ทัพปีศาจ',
-    spriteUrl: publicUrl('characters/pigsy-idle-0.webp'),
+    spriteUrl: PIGSY_SPRITE_URL,
     accent: '#ff6a5c',
     atk: 78,
     def: 55,
@@ -42,7 +42,7 @@ const ENEMY_TEMPLATES: Record<string, EnemyTemplate> = {
   'spirit-guardian': {
     id: 'spirit-guardian',
     name: 'ผู้พิทักษ์วิญญาณ',
-    spriteUrl: publicUrl('characters/tripitaka-idle-0.webp'),
+    spriteUrl: TRIPITAKA_SPRITE_URL,
     accent: '#6dffb8',
     atk: 66,
     def: 48,

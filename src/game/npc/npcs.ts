@@ -1,11 +1,11 @@
-import { publicUrl } from '../../lib/publicUrl'
+import { MONKEY_SPRITE_URL, PIGSY_SPRITE_URL } from '../characters'
 import type { NpcDefinition } from './types'
 
 export const NPCS: NpcDefinition[] = [
   {
     id: 'npc-shadow-guard',
     name: 'ทหารเงา',
-    spriteUrl: publicUrl('characters/monkey-v2-idle-0.webp'),
+    spriteUrl: MONKEY_SPRITE_URL,
     mapId: 'village-01',
     /*
       เดิมอยู่ที่ (620, 360) ซึ่งอยู่ "ข้างใน" สิ่งกีดขวางของแผนที่
@@ -26,7 +26,7 @@ export const NPCS: NpcDefinition[] = [
   {
     id: 'npc-shadow-captain',
     name: 'หัวหน้าทหารเงา',
-    spriteUrl: publicUrl('characters/pigsy-idle-0.webp'),
+    spriteUrl: PIGSY_SPRITE_URL,
     mapId: 'village-01',
     position: { x: 920, y: 300 },
     dialogueId: 'shadow-captain',

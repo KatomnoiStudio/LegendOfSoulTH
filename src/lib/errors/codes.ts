@@ -36,14 +36,15 @@ export const ERROR_CODES = {
   LOBBY_SCENE_WEBGL_CONTEXT_LOST: 'การ์ดจอขาดการเชื่อมต่อ (WebGL)', // VISIBLE
   LOBBY_SCENE_WEBGPU_INIT_FAIL: 'เปิด WebGPU ไม่สำเร็จ ใช้ WebGL2 แทน', // SILENT — fallback ทำงานถูกต้องอยู่แล้ว
 
-  // ห้องต่อสู้เรียลไทม์ (src/game/realtimeBattle/*, src/components/BattleScene/*)
-  BATTLE_STAGE_NOT_FOUND: 'ไม่พบด่านของห้องต่อสู้', // VISIBLE — เข้าห้องไม่ได้เลย
-  BATTLE_NO_TEAM_CHARACTER: 'ยังไม่ได้จัดตัวละครลงทีม', // VISIBLE — เหตุผลเดียวกัน
-  BATTLE_ENEMY_TEMPLATE_MISSING: 'ไม่พบแม่แบบศัตรูของด่านนี้', // VISIBLE — ด่านเสีย
-  BATTLE_STAGE_NO_SPAWN: 'ด่านนี้ไม่มีจุดเกิดศัตรู', // VISIBLE — ด่านเสีย
-  BATTLE_ASSET_LOAD_FAIL: 'โหลดภาพของห้องต่อสู้ไม่สำเร็จ', // VISIBLE — มี Error UI ให้กลับไปสำรวจ
-  BATTLE_DEFERRED_ASSET_FAIL: 'โหลดชุดเฟรมส่วนที่เหลือไม่ครบ', // SILENT — ยังเล่นต่อได้ด้วยเฟรมที่โหลดแล้ว
-  BATTLE_WEBGL_CONTEXT_LOST: 'การ์ดจอขาดการเชื่อมต่อ (ห้องต่อสู้)', // VISIBLE
+  // ห้องต่อสู้เรียลไทม์ (src/game/realtimeBattle/**, src/hooks/useRealtimeBattle.ts,
+  // src/components/BattleScene/RealtimeBattleRoom.tsx)
+  BATTLE_STAGE_NOT_FOUND: 'ไม่พบด่านต่อสู้', // VISIBLE — เข้าห้องต่อสู้ไม่ได้เลย
+  BATTLE_NO_TEAM_CHARACTER: 'ทีมของคุณไม่มีตัวละคร', // VISIBLE — เข้าห้องต่อสู้ไม่ได้เลย
+  BATTLE_ENEMY_TEMPLATE_MISSING: 'ไม่พบแม่แบบศัตรู', // SILENT — ข้ามศัตรูตัวนั้นไป ต่อสู้ต่อได้
+  BATTLE_STAGE_NO_SPAWN: 'ด่านไม่มีจุดเกิดศัตรู', // SILENT — ข้ามศัตรูตัวนั้นไป ต่อสู้ต่อได้
+  BATTLE_ASSET_LOAD_FAIL: 'โหลดภาพตัวละครไม่สำเร็จ', // VISIBLE — โยน error ต่อจริง กระทบผู้เล่นเห็นชัด
+  BATTLE_DEFERRED_ASSET_FAIL: 'โหลดเฟรมส่วนที่เหลือไม่ครบ', // SILENT — preload พื้นหลัง ไม่บล็อกการเล่น
+  BATTLE_WEBGL_CONTEXT_LOST: 'การ์ดจอขาดการเชื่อมต่อระหว่างต่อสู้', // VISIBLE
 } as const
 
 export type ErrorCode = keyof typeof ERROR_CODES

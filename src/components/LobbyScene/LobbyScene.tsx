@@ -4,9 +4,10 @@ import { WebGLRenderer, type PerspectiveCamera } from 'three'
 import WebGL from 'three/addons/capabilities/WebGL.js'
 import { getCharacter } from '../../game/characters'
 import { useDeviceRefreshRate } from '../../hooks/useDeviceRefreshRate'
+import { usePerformanceQuality, type QualityOverride, type QualityTier } from '../../hooks/usePerformanceQuality'
 import { reportError } from '../../lib/errors/reportError'
 import type { ErrorCode } from '../../lib/errors/codes'
-import { publicUrl } from '../../lib/publicUrl'
+import { TEMPLE_LOBBY_BG } from '../../game/backgroundAssets'
 import { SLOT_INDEXES, SLOT_TRANSFORM, normalizeTeam, type TeamSlots } from '../../game/team'
 import { ArenaSlotRing } from './ArenaSlotRing'
 import { CharacterModel } from './CharacterModel'
@@ -23,6 +24,8 @@ interface LobbySceneProps {
   teamSlots: TeamSlots
   selectedId: string | null
   onSelect: (id: string | null) => void
+  /** ระดับคุณภาพที่ผู้เล่นล็อกเอง (SettingsModal → กราฟิก) — 'auto' ให้วัด FPS จริงแล้วปรับเอง */
+  qualityOverride: QualityOverride
 }
 
 /**
@@ -49,13 +52,17 @@ const CAM_BASE: [number, number, number] = [0, 3.75, 8.4]
  * onSelect(character.id) แบบเดียวกัน ตอนนี้ปลอดภัยเพราะฟีเจอร์ปิดอยู่ (ไม่มีผู้เล่นจริงไปถึง
  * path นี้) — ถ้าจะเปิด SHOW_ARENA_SLOTS = true ต้องแก้จุดนี้ก่อน ไม่งั้น WCAG 2.2 AA
  * (SC 2.1.1 Keyboard) จะพังจริงทันที ดู .agents/ux-audit-backlog.md
+ *
+ * หมายเหตุ (ask-CB opinion lane, 2026-08-06): usePerformanceQuality ด้านล่างวัด/ปรับคุณภาพ
+ * เรนเดอร์ของฉากนี้อยู่ — ตอนนี้ฉากมีแค่แสง 4 ดวง ไม่มีโมเดล/เงาให้ปรับเห็นผลชัด ผลจะชัดขึ้นมาก
+ * ตอน SHOW_ARENA_SLOTS = true (มีโมเดลจริงในฉาก) ไม่ใช่บั๊ก แค่ยังไม่มีอะไรให้วัดตอนนี้
  */
 const SHOW_ARENA_SLOTS = false
 
 // url('/ui/...') ตรง ๆ ใน CSS ชี้ผิดที่ตอน deploy ขึ้น subpath (ดู src/lib/publicUrl.ts) —
 // ส่งเข้าไปเป็น CSS custom property แทน
 const BG_TEMPLE_STYLE: CSSProperties = {
-  ['--bg-temple' as string]: `url(${publicUrl('ui/thai/thai-temple-lobby.webp')})`,
+  ['--bg-temple' as string]: `url(${TEMPLE_LOBBY_BG})`,
 }
 
 const EMBERS = [
@@ -65,20 +72,30 @@ const EMBERS = [
   { left: '82%', delay: '-6s', duration: '12s' },
 ]
 
-export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps) {
+export function LobbyScene({ teamSlots, selectedId, onSelect, qualityOverride }: LobbySceneProps) {
   const team = normalizeTeam(teamSlots)
   const [webglAvailable] = useState(() => WebGL.isWebGL2Available())
   const [contextLost, setContextLost] = useState(false)
   const [contextLostCode, setContextLostCode] = useState<ErrorCode | null>(null)
   const refreshRate = useDeviceRefreshRate()
+  // เริ่มที่ 'high' มองโลกในแง่ดีไว้ก่อน — usePerformanceQuality (ใน Canvas ด้านล่าง) ปรับให้
+  // ภายในไม่กี่วินาทีถ้าเครื่องรับไม่ไหวจริง (ask-CB opinion lane, 2026-08-06 — ดู CHANGELOG/MEMORY)
+  const [tier, setTier] = useState<QualityTier>('high')
 
   /**
    * ต้นทุนเรนเดอร์จริง ๆ ของ Three.js/WebGL แปรผันตาม (ความกว้าง × ความสูง × dpr²) × refresh rate
    * จอ 120Hz+ ต้องวาดถี่เป็น 2 เท่าของจอ 60Hz ปกติเพื่อความลื่นเท่ากัน งบเวลาต่อเฟรมจึงเหลือครึ่งเดียว
    * — ลด dpr สูงสุดลงเฉพาะจอ high-refresh (มักเป็นมือถือ/แท็บเล็ตเรือธงที่ dpr สูงอยู่แล้วด้วย)
    *   กันเฟรมดรอป โดยยังคง dpr เต็ม 2 (ตามคำแนะนำมาตรฐานของ Three.js) ไว้ให้จอ 60Hz ทั่วไป
+   *
+   * tier ('medium'/'low') ลดเพดานลงอีกชั้น — ทั้งสองสัญญาณเป็นอิสระต่อกัน (refresh rate ของจอ
+   * ไม่บอกอะไรเกี่ยวกับ GPU/CPU เลย — มือถือ 60Hz ราคาถูกกับมือถือ 90Hz เรือธงตกอยู่ dpr เพดาน
+   * เดียวกันถ้าไม่มี tier มาช่วยแยก)
    */
-  const dprMax = refreshRate >= 120 ? 1.5 : 2
+  const refreshRateDprMax = refreshRate >= 120 ? 1.5 : 2
+  const dprMax = tier === 'low' ? 1 : tier === 'medium' ? Math.min(refreshRateDprMax, 1.5) : refreshRateDprMax
+  // งบเวลาต่อเฟรม (มิลลิวินาที) ที่ usePerformanceQuality ใช้ตัดสินว่าเฟรมไหน "หนักเกินงบ"
+  const budgetMs = 1000 / refreshRate
 
   if (!webglAvailable) {
     return (
@@ -156,8 +173,9 @@ export function LobbyScene({ teamSlots, selectedId, onSelect }: LobbySceneProps)
         }}
       >
         <Suspense fallback={null}>
+          <PerformanceMonitor budgetMs={budgetMs} override={qualityOverride} onTierChange={setTier} />
           <CameraRig />
-          <Lighting />
+          <Lighting castShadow={tier !== 'low'} />
           {/*
             วนจากช่องทั้ง 4 ไม่ใช่จากรายชื่อตัวละครทั้งเกม
             วงแหวนจึงขึ้นครบ 4 วงเสมอ ส่วนโมเดลขึ้นเฉพาะช่องที่ผู้เล่นจัดไว้
@@ -233,8 +251,34 @@ function CameraRig() {
   return null
 }
 
-/** แสงของฉาก: ฟ้า-พื้น + คีย์ไลท์มีเงา + ริมไลท์เย็นด้านหลัง */
-function Lighting() {
+/**
+ * ตัวช่วย component เปล่า (คืน null) ที่รัน usePerformanceQuality ผ่าน useFrame — ต้องอยู่ใน
+ * <Canvas> เท่านั้น รูปแบบเดียวกับ CameraRig ด้านบน (component ที่ไม่วาดอะไร แค่ยึด hook ที่ต้อง
+ * การ R3F context ไว้)
+ */
+function PerformanceMonitor({
+  budgetMs,
+  override,
+  onTierChange,
+}: {
+  budgetMs: number
+  override: QualityOverride
+  onTierChange: (tier: QualityTier) => void
+}) {
+  usePerformanceQuality(budgetMs, override, onTierChange)
+  return null
+}
+
+/**
+ * แสงของฉาก: ฟ้า-พื้น + คีย์ไลท์มีเงา + ริมไลท์เย็นด้านหลัง
+ *
+ * castShadow ของคีย์ไลท์ปิด-เปิดได้ตาม tier — สลับ boolean นี้ทำให้ WebGLShadowMap ข้ามไฟดวงนี้
+ * ในรอบเรนเดอร์เงาไปเลย (live-reactive จริง) ต่างจากการลด shadow-mapSize ซึ่ง render target
+ * ถูกจองขนาดไว้ครั้งเดียวตอน mount แล้วไม่รีไซส์ตามการเปลี่ยนค่าอีก (ask-CB opinion lane,
+ * 2026-08-06: 2 seat อ่านซอร์สจริงของ three.js เจอตรงกัน — WebGLShadowMap.js เช็ค
+ * `shadow.map === null || typeChanged` เท่านั้น ไม่เช็ค mapSize เลย)
+ */
+function Lighting({ castShadow }: { castShadow: boolean }) {
   return (
     <group>
       <hemisphereLight args={['#8fa3ff', '#161a2c', 0.75]} />
@@ -244,7 +288,7 @@ function Lighting() {
         position={[4.5, 8.5, 5.5]}
         intensity={1.7}
         color="#fff0d0"
-        castShadow
+        castShadow={castShadow}
         shadow-mapSize={[1024, 1024]}
         shadow-camera-left={-9}
         shadow-camera-right={9}

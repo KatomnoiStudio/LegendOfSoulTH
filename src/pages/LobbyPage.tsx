@@ -15,6 +15,8 @@ import {
   type AudioSettings,
 } from '../components/SettingsModal/SettingsModal'
 import { getAudioSettings, initAudioEngine, setAudioSettings } from '../lib/audio/AudioEngine'
+import { getPerformanceSettings, setPerformanceSettings } from '../lib/performanceSettings'
+import type { QualityOverride } from '../hooks/usePerformanceQuality'
 import { SideActions } from '../components/SideActions/SideActions'
 import { StartAdventure } from '../components/StartAdventure/StartAdventure'
 import { TopBar } from '../components/TopBar/TopBar'
@@ -90,8 +92,7 @@ export function LobbyPage({
     [ownedCharacters],
   )
   /** ตัวที่กำลังเดินอยู่ในฉากเดินชมจันทร์ — null คือยังไม่เคยเลือก ใช้ตัวแรกที่เดินได้เป็นค่าเริ่มต้น
-   * (ควบคุมจาก castBar ในฉากเองได้ หรือจากปุ่ม "เดินชมจันทร์" ใน ProfileModal ก็ได้ ทั้งสองจุด
-   * sync กันผ่าน state ตัวนี้ — ดู activeCharacterId/onActiveCharacterChange ของ WukongAdventure) */
+   * เปลี่ยนได้จากปุ่ม "เดินชมจันทร์" ในโปรไฟล์ทางเดียว (แถบเลือกที่เคยลอยอยู่กลางฉากถูกถอดออกแล้ว) */
   const [walkingCharacterId, setWalkingCharacterId] = useState<string | null>(null)
   /**
    * ตัวละครที่ถูกแตะในฉาก — ตอนนี้ใช้แค่แสดงวงแหวนใต้เท้าและกระตุ้นท่าประจำตัว
@@ -109,6 +110,15 @@ export function LobbyPage({
   const handleAudioChange = (next: AudioSettings) => {
     setAudioSettings(next)
     setAudio(next)
+  }
+  // ยกมาไว้ที่นี่แบบเดียวกับ audio — LobbyScene (ฉาก 3D) ต้องอ่านค่านี้แบบเรียลไทม์
+  // ตอนผู้เล่นเปลี่ยนจาก SettingsModal โดยไม่ต้องปิดแล้วเปิดฉากใหม่
+  const [performanceOverride, setPerformanceOverride] = useState<QualityOverride>(
+    () => getPerformanceSettings().qualityOverride,
+  )
+  const handlePerformanceOverrideChange = (next: QualityOverride) => {
+    setPerformanceSettings({ qualityOverride: next })
+    setPerformanceOverride(next)
   }
   /**
    * ผู้เล่นที่เคย login ไว้แล้วเข้าตรงมาที่ลอบบี้เลย ไม่ผ่าน TitlePage (ดู App.tsx)
@@ -128,6 +138,7 @@ export function LobbyPage({
           teamSlots={player.teamSlots}
           selectedId={selectedId}
           onSelect={setSelectedId}
+          qualityOverride={performanceOverride}
         />
       </Suspense>
 
@@ -181,7 +192,6 @@ export function LobbyPage({
         mode="moonlight"
         characters={ownedCharacters}
         activeCharacterId={walkingCharacterId}
-        onActiveCharacterChange={setWalkingCharacterId}
       />
 
       {/* หน้า Lobby ยังคง mount อยู่ข้างหลัง ฉาก 3D และแอนิเมชันตัวละครจึงไม่รีเซ็ต */}
@@ -210,6 +220,8 @@ export function LobbyPage({
         <SettingsModal
           audio={audio}
           onAudioChange={handleAudioChange}
+          performanceOverride={performanceOverride}
+          onPerformanceOverrideChange={handlePerformanceOverrideChange}
           onLogout={onLogout}
           onRedeemCoupon={onRedeemCoupon}
           ownedCharacterCount={ownedCharacters.length}

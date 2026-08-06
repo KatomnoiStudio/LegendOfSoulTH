@@ -91,7 +91,7 @@ describe('findHitTargets', () => {
     const above = entity({ id: 'e2', position: { x: 0, y: -80 } })
 
     const hits = findHitTargets([behind, above], query({ attack: around }))
-    expect(hits.map((t) => t.id).toSorted()).toEqual(['e1', 'e2'])
+    expect(hits.map((t) => t.id).sort()).toEqual(['e1', 'e2'])
   })
 
   it('โดนหลายตัวพร้อมกันได้ถ้าอยู่ในกรวยเดียวกัน', () => {

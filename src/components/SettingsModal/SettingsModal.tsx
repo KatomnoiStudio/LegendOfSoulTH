@@ -4,9 +4,11 @@ import { useModalA11y } from '../../hooks/useModalA11y'
 import { GAME_INFO } from '../../game/gameInfo'
 import { getA11ySettings, setA11ySettings, type A11ySettings } from '../../lib/a11ySettings'
 import { type AudioChannel, type AudioSettings } from '../../lib/audio/AudioEngine'
+import type { QualityOverride } from '../../hooks/usePerformanceQuality'
 import {
   AccessibilityIcon,
   CouponIcon,
+  GraphicsIcon,
   InfoIcon,
   MinusIcon,
   PlusIcon,
@@ -17,7 +19,14 @@ import {
 import { useToast } from '../Toast/useToast'
 import styles from './SettingsModal.module.css'
 
-type TabId = 'info' | 'audio' | 'accessibility' | 'coupon'
+type TabId = 'info' | 'audio' | 'graphics' | 'accessibility' | 'coupon'
+
+const QUALITY_OPTIONS: { id: QualityOverride; label: string }[] = [
+  { id: 'auto', label: 'อัตโนมัติ' },
+  { id: 'high', label: 'สูง' },
+  { id: 'medium', label: 'กลาง' },
+  { id: 'low', label: 'ต่ำ' },
+]
 
 /** ปรับเสียงทีละ 2% */
 const VOLUME_STEP = 2
@@ -38,6 +47,10 @@ const CHANNELS: { id: AudioChannel; label: string }[] = [
 interface SettingsModalProps {
   audio: AudioSettings
   onAudioChange: (next: AudioSettings) => void
+  /** ระดับคุณภาพเรนเดอร์ที่ผู้เล่นล็อกเอง — ยกไปเก็บที่ LobbyPage เพราะ LobbyScene ต้องอ่าน
+   * ค่านี้แบบเรียลไทม์ (เหมือน AudioSettings) ไม่ใช่ค่า local แบบ a11y */
+  performanceOverride: QualityOverride
+  onPerformanceOverrideChange: (next: QualityOverride) => void
   /** ออกจากบัญชี — กลับไปหน้าสมัคร/เข้าสู่ระบบ */
   onLogout: () => Promise<void>
   /** แลกโค้ดคูปองเป็นหยก */
@@ -61,6 +74,8 @@ interface SettingsModalProps {
 export function SettingsModal({
   audio,
   onAudioChange,
+  performanceOverride,
+  onPerformanceOverrideChange,
   onLogout,
   onRedeemCoupon,
   ownedCharacterCount,
@@ -90,6 +105,7 @@ export function SettingsModal({
   const tabs: { id: TabId; label: string; icon: ReactNode }[] = [
     { id: 'info', label: 'ข้อมูลเกม', icon: <InfoIcon /> },
     { id: 'audio', label: 'เสียง', icon: <VolumeIcon /> },
+    { id: 'graphics', label: 'กราฟิก', icon: <GraphicsIcon /> },
     { id: 'accessibility', label: 'การเข้าถึง', icon: <AccessibilityIcon /> },
     { id: 'coupon', label: 'คูปอง', icon: <CouponIcon /> },
   ]
@@ -143,6 +159,13 @@ export function SettingsModal({
             audio={audio}
             onChannelChange={setChannel}
             onToggleMute={() => onAudioChange({ ...audio, muted: !audio.muted })}
+          />
+        ) : null}
+        {tab === 'graphics' ? (
+          <GraphicsPanel
+            key="graphics"
+            value={performanceOverride}
+            onChange={onPerformanceOverrideChange}
           />
         ) : null}
         {tab === 'accessibility' ? (
@@ -343,7 +366,53 @@ function ChannelRow({
 }
 
 /**
- * หน้าที่ 3 — การเข้าถึง (accessibility)
+ * หน้าที่ 3 — กราฟิก (ระดับคุณภาพเรนเดอร์ของฉากลอบบี้ 3D)
+ *
+ * ค่าเริ่มต้น "อัตโนมัติ" ให้ usePerformanceQuality วัด FPS จริงระหว่างเล่นแล้วปรับเอง
+ * เลือกระดับใดระดับหนึ่งเอง = ล็อกค่านั้นตายตัว ปิดการวัดอัตโนมัติทั้งหมดทันที (ไม่ใช่แค่
+ * เมินผลวัด) กันไม่ให้ค่าที่เลือกไว้ถูกแทนที่แบบไม่มีคำอธิบาย (ask-CB opinion lane, 2026-08-06)
+ */
+function GraphicsPanel({
+  value,
+  onChange,
+}: {
+  value: QualityOverride
+  onChange: (next: QualityOverride) => void
+}) {
+  return (
+    <section className={styles.panel} role="tabpanel" aria-label="กราฟิก">
+      <div className={styles.qualityRow} role="radiogroup" aria-label="ระดับคุณภาพเรนเดอร์">
+        {QUALITY_OPTIONS.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            role="radio"
+            aria-checked={value === option.id}
+            className={styles.qualityOption}
+            data-active={value === option.id}
+            onClick={() => onChange(option.id)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      <p className={styles.panelNote}>
+        {value === 'auto'
+          ? 'ปรับความละเอียด/เงาให้อัตโนมัติตามความลื่นจริงระหว่างเล่น'
+          : 'ล็อกระดับนี้ตายตัว ไม่ปรับอัตโนมัติอีกจนกว่าจะเปลี่ยนกลับเป็น "อัตโนมัติ"'}
+      </p>
+
+      <p className={styles.panelNote}>
+        ตอนนี้ฉากลอบบี้ยังไม่มีตัวละคร/ลานประลองแสดงอยู่ ผลของการปรับจะเห็นชัดขึ้นมากเมื่อเปิดใช้งาน
+        ส่วนนั้นเต็มรูปแบบ
+      </p>
+    </section>
+  )
+}
+
+/**
+ * หน้าที่ 4 — การเข้าถึง (accessibility)
  *
  * ตอนนี้มีสวิตช์เดียว (ลดการเคลื่อนไหว) — เพิ่มค่าอื่นทีหลังได้ (ขนาดตัวอักษร/contrast/
  * colorblind mode) แค่ขยาย A11ySettings ใน src/lib/a11ySettings.ts + เพิ่ม control ที่นี่
@@ -383,7 +452,7 @@ function AccessibilityPanel({
   )
 }
 
-/** หน้าที่ 4 — คูปอง */
+/** หน้าที่ 5 — คูปอง */
 function CouponPanel({ onRedeem }: { onRedeem: (code: string) => Promise<boolean> }) {
   const [code, setCode] = useState('')
   const [submitting, setSubmitting] = useState(false)
