@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`  
 > **Default Branch**: `master`  
-> **Last Updated**: 2026-08-06T11:05:00+07:00 by `Claude Code (kaoshock123, Ring 1)`  
+> **Last Updated**: 2026-08-06T13:55:00+07:00 by `Claude Code (kaoshock123, Ring 1)`  
 > **RULES_VERSION: 4** (see `.agents/rules/rules-freshness-check.md`)
 
 ---
@@ -278,6 +278,16 @@
     - `onKeyDown` ของช่องพิมพ์เรียก `stopPropagation()` เสมอ — ไม่งั้น WASD/ลูกศรที่พิมพ์ในช่องจะลอยไปสั่งตัวละครเดินในฉากที่ mount อยู่ข้างหลังพร้อมกัน
     - Full verify เขียว (typecheck/lint/test/build), lint warnings คงที่ 43 ตัว (ของเดิมทั้งหมด), เทสต์รวม 5→14
     - **ยังค้าง**: sprite 80 เฟรมยังไม่ได้เอาเข้า repo — HetCreep ให้ path มาเป็น placeholder (`<PATH_TO>/sprites`) และค้นไดรฟ์ C: แล้วไม่เจอไฟล์ `Walk_1_Front_01.png`/`HandGrip_*.png` เลย (โฟลเดอร์ `sprites` เดียวที่เจอคือ `Desktop/game/assets/sprites` ซึ่งว่างเปล่า และ `Desktop/game` เป็นคนละโปรเจกต์) รอ path จริง
+
+45. **`CommandConsole` reskinned into `WorldChat` — real chat UI, visible to every player, admin commands hidden inside** (2026-08-06): immediate follow-up to item 44 — HetCreep said the admin-only console should instead look and feel like an ordinary chat box (like world chat), drop the `/givecharacter pig` placeholder hint entirely, and add tabs for แชทโลก/แชทส่วนตัว/แชทกิลด์ (world/private/guild). Asked two clarifying questions before touching code since the scope reads two very different ways: (1) is this still admin-only visibility just reskinned, or does every player see it now — HetCreep said **every player sees it**; (2) how functional do the three tabs need to be, given this game has no backend/multiplayer — HetCreep said **world chat works for real**, implying private/guild are placeholder tabs.
+    - **Renamed the whole feature**: `src/components/CommandConsole/` deleted (`git rm -r`), replaced by [`src/components/WorldChat/`](src/components/WorldChat/) — `WorldChat.tsx`, `.module.css`, `commands.ts` (moved, kept for the hidden admin path), `commands.test.ts` (updated), plus new [`chatStorage.ts`](src/components/WorldChat/chatStorage.ts) (localStorage-backed message log, same pattern as `accountRepository.ts`).
+    - **Real limitation flagged up front, same class as `findPlayerByUid`'s existing caveat**: this game has zero backend, so "world chat" can only ever be messages shared between accounts that logged in on *this same browser/device* — not real cross-player chat. Documented prominently in `chatStorage.ts`'s header comment so a future session doesn't market it as more than it is. A `window.addEventListener('storage', ...)` listener re-reads the log so multiple tabs/accounts on the same device see each other's messages live, which is the honest ceiling of what's achievable without a server.
+    - **`commands.ts` changed shape**: previously `parseCommand` treated anything not starting with `/` as an error (console-only UX, made sense when the whole box was command-only). Now it returns `null` for that case — the caller (`WorldChat.tsx`) only invokes `parseCommand` at all when `isAdmin` is true, and any `/`-prefixed text from a non-admin (or non-command text from anyone) is posted as an ordinary chat message with zero indication a command mechanism exists. This is the actual mechanism behind "don't hint at `/givecharacter`" — not a UI string removed, a structural change in who ever reaches the parser.
+    - **Admin command output is local-only, never written to the shared chat log** — `SystemEntry` results (ตัวละครที่ได้/ข้อความ error) live in component state only, merged into the rendered feed by `createdAt` sort against loaded `ChatMessage[]`, so only the admin who ran the command ever sees the result; other accounts reading the same shared log never see it.
+    - **Visibility ungated in `LobbyPage.tsx`**: the `{isAdmin ? <CommandConsole .../> : null}` conditional from item 44 is gone — `<WorldChat playerName={player.name} isAdmin={isAdmin} onGiveCharacter={onGiveCharacter} />` now renders unconditionally for every signed-in player; `isAdmin` only gates whether typed `/`-commands actually get parsed, never whether the box itself appears.
+    - **Lint caught a real regression during the build**: `Array#sort()` in the feed-merge `useMemo` triggered `unicorn/no-array-sort` (mutates in place) — switched to `.toSorted()`, matching the fix already applied elsewhere in this codebase for the same rule. Stale doc comments in `accountRepository.ts`/`admins.ts` still pointing at the deleted `CommandConsole/` path were updated to `WorldChat/`.
+    - Full verify green (typecheck/lint/test/build), lint warnings back to the 43 baseline after the sort fix, all 14 tests still pass (test file moved with the rest of the folder, assertions updated for `parseCommand`'s new null-for-plain-text behavior).
+    - **Still unresolved from item 44**: sprite path for ตือโป๊ยก่าย's walk frames — still waiting on HetCreep for the real path.
 
 ---
 

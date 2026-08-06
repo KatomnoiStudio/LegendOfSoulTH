@@ -2,7 +2,7 @@ import { Suspense, lazy, useMemo, useState } from 'react'
 import { getCharacter } from '../game/characters'
 import { AddFriendModal } from '../components/AddFriendModal/AddFriendModal'
 import { WukongAdventure } from '../components/AdventureScene/WukongAdventure'
-import { CommandConsole } from '../components/CommandConsole/CommandConsole'
+import { WorldChat } from '../components/WorldChat/WorldChat'
 import { GameExplorationSession } from '../components/GameExplorationSession/GameExplorationSession'
 import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRosterModal'
 import { ItemsModal } from '../components/ItemsModal/ItemsModal'
@@ -43,9 +43,9 @@ interface LobbyPageProps {
   onRedeemCoupon: (code: string) => Promise<CurrencyResult>
   /** ค้นหาผู้เล่นจาก UID เพื่อเพิ่มเพื่อน */
   onFindFriend: (uid: string) => Promise<FriendCandidate | null>
-  /** บัญชีนี้ใช้คำสั่งผู้ดูแลได้ไหม — ช่องคำสั่งจะไม่ถูก render เลยถ้าไม่ใช่ (ดู src/data/admins.ts) */
+  /** บัญชีนี้ใช้คำสั่งลับในแชทได้ไหม — ไม่มีผลต่อหน้าตา UI เลย (ดู src/data/admins.ts) */
   isAdmin: boolean
-  /** มอบตัวละครให้บัญชีนี้ — ใช้จากช่องคำสั่งผู้ดูแลเท่านั้นในตอนนี้ */
+  /** มอบตัวละครให้บัญชีนี้ — เรียกจากคำสั่งลับในแชท (ดู WorldChat.tsx) */
   onGiveCharacter: (characterId: string) => Promise<CharacterGrantResult>
 }
 
@@ -128,8 +128,8 @@ export function LobbyPage({
         onOpenItems={() => setItemsOpen(true)}
       />
 
-      {/* ช่องคำสั่งผู้ดูแล — ผู้เล่นทั่วไปไม่เห็นเลย (ดูคำเตือนใน src/data/admins.ts) */}
-      {isAdmin ? <CommandConsole onGiveCharacter={onGiveCharacter} /> : null}
+      {/* แชทเห็นได้ทุกบัญชี — คำสั่งลับผู้ดูแลซ่อนอยู่ข้างในโดยไม่ใบ้อะไรใน UI (ดู WorldChat.tsx) */}
+      <WorldChat playerName={player.name} isAdmin={isAdmin} onGiveCharacter={onGiveCharacter} />
 
       {explorationOpen ? (
         <GameExplorationSession
