@@ -6,6 +6,7 @@ import {
 import type { CharacterModelKind } from '../game/characters'
 import { getCharacter } from '../game/characters'
 import { preloadBattleTextures } from '../game/realtimeBattle/battleAssets'
+import { reportError } from '../lib/errors/reportError'
 import { toRealtimeBattleResult } from '../game/realtimeBattle/BattleResultAdapter'
 import { createRealtimeBattle } from '../game/realtimeBattle/createRealtimeBattle'
 import { InputSystem } from '../game/realtimeBattle/InputSystem'
@@ -42,6 +43,10 @@ interface UseRealtimeBattleValue {
   requestExit: () => void
   /** จอยสติกบนจอสัมผัสส่งเวกเตอร์เดินเข้ามาทางนี้ (คีย์บอร์ดต่อตรงกับ InputSystem อยู่แล้ว) */
   setJoystick: (vector: Vec2) => void
+  /** ปุ่มโจมตีบนจอสัมผัส */
+  pressAttack: () => void
+  /** ปุ่มพุ่งหลบบนจอสัมผัส */
+  pressDash: () => void
 }
 
 /** ชุดเฟรมที่ห้องนี้ต้องใช้ = ตัวละครนำของผู้เล่น + ศัตรูทุกตัวในทุกคลื่นของด่าน */
@@ -123,6 +128,8 @@ export function useRealtimeBattle({
           step: (deltaMs) => {
             // ป้อนอินพุตล่าสุดก่อนเดินการจำลองทุกก้าว — runtime ไม่รู้จักคีย์บอร์ด/จอย
             created?.setMoveInput(input.getMoveVector())
+            if (input.consumeAttack()) created?.requestAttack()
+            if (input.consumeDash()) created?.requestDash()
             created?.step(deltaMs)
           },
         })
@@ -136,7 +143,7 @@ export function useRealtimeBattle({
           จึงไม่มีทางเห็นตัวละครหายไปเป็นช่องว่าง
         */
         preloadBattleTextures(collectDeferredTextureUrls(kinds)).catch((cause: unknown) => {
-          console.warn('[useRealtimeBattle] โหลดชุดเฟรมส่วนที่เหลือไม่ครบ', cause)
+          reportError('BATTLE_DEFERRED_ASSET_FAIL', 'silent', cause)
         })
       } catch (cause: unknown) {
         if (cancelled) return
@@ -187,7 +194,15 @@ export function useRealtimeBattle({
     inputRef.current?.setJoystick(vector)
   }, [])
 
+  const pressAttack = useCallback(() => {
+    inputRef.current?.pressAttack()
+  }, [])
+
+  const pressDash = useCallback(() => {
+    inputRef.current?.pressDash()
+  }, [])
+
   const phase: BattlePhase = errorMessage ? 'error' : runtime && snapshot ? 'ready' : 'loading'
 
-  return { phase, errorMessage, runtime, snapshot, requestExit, setJoystick }
+  return { phase, errorMessage, runtime, snapshot, requestExit, setJoystick, pressAttack, pressDash }
 }

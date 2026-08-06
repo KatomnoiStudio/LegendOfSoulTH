@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { PlayerBadges } from '../../types/player'
+import { playSfx } from '../../lib/audio/AudioEngine'
 import { formatBadge } from '../../lib/format'
 import { publicUrl } from '../../lib/publicUrl'
 import { useToast } from '../Toast/useToast'
@@ -22,10 +23,10 @@ interface SideAction {
 export function SideActions({ badges, onOpenSettings, onOpenAddFriend }: SideActionsProps) {
   const { comingSoon } = useToast()
   const actions: SideAction[] = [
-    { id: 'settings', label: 'ตั้งค่า', icon: <img src={publicUrl('ui/thai/settings.png')} alt="" draggable={false} />, onClick: onOpenSettings },
-    { id: 'mail', label: 'จดหมาย', icon: <img src={publicUrl('ui/thai/mail.png')} alt="" draggable={false} />, count: badges.mail, onClick: () => comingSoon('จดหมาย') },
-    { id: 'mission', label: 'ภารกิจ', icon: <img src={publicUrl('ui/thai/mission.png')} alt="" draggable={false} />, count: badges.mission, onClick: () => comingSoon('ภารกิจ') },
-    { id: 'add-friend', label: 'เพิ่มเพื่อน', icon: <img src={publicUrl('ui/thai/add-friend.png')} alt="" draggable={false} />, onClick: onOpenAddFriend },
+    { id: 'settings', label: 'ตั้งค่า', icon: <img src={publicUrl('ui/thai/settings.webp')} alt="" draggable={false} />, onClick: onOpenSettings },
+    { id: 'mail', label: 'จดหมาย', icon: <img src={publicUrl('ui/thai/mail.webp')} alt="" draggable={false} />, count: badges.mail, onClick: () => comingSoon('จดหมาย') },
+    { id: 'mission', label: 'ภารกิจ', icon: <img src={publicUrl('ui/thai/mission.webp')} alt="" draggable={false} />, count: badges.mission, onClick: () => comingSoon('ภารกิจ') },
+    { id: 'add-friend', label: 'เพิ่มเพื่อน', icon: <img src={publicUrl('ui/thai/add-friend.webp')} alt="" draggable={false} />, onClick: onOpenAddFriend },
   ]
 
   return (
@@ -37,7 +38,10 @@ export function SideActions({ badges, onOpenSettings, onOpenAddFriend }: SideAct
           type="button"
           className={styles.action}
           data-action={action.id}
-          onClick={action.onClick}
+          onClick={() => {
+            void playSfx('buttonClick')
+            action.onClick()
+          }}
           aria-label={action.count ? `${action.label} มี ${action.count} รายการใหม่` : action.label}
         >
           <span className={styles.actionLabel}>{action.label}</span>

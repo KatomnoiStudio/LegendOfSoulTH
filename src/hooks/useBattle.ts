@@ -10,6 +10,7 @@ import {
   toBattleResult,
 } from '../game/battle/engine'
 import { getSkillForCharacter } from '../game/battle/skills'
+import { playSfx } from '../lib/audio/AudioEngine'
 import type { ActionKind, BattleAction, BattleSnapshot, BattleResult } from '../game/battle/types'
 import type { Player } from '../types/player'
 
@@ -27,6 +28,20 @@ export function useBattle({ player, stageId, onComplete }: UseBattleOptions) {
   )
   const [pendingKind, setPendingKind] = useState<ActionKind | null>(null)
   const completedRef = useRef(false)
+  const seenLogCount = useRef(0)
+
+  /**
+   * เล่นเสียงกระทบตอนมีบรรทัด log tone 'damage' ใหม่โผล่ขึ้นมา — ตั้งใจไม่เล่นเสียงจาก
+   * ข้างใน setSnapshot(current => ...) updater (React StrictMode double-invoke updater
+   * ใน dev เพื่อจับ impurity — เอา side effect ไปแปะไว้ตรงนั้นจะเสี่ยงยิงเสียงซ้ำถ้าไม่มี
+   * cooldown มากันพอดี) effect นี้เป็นจุดเดียวที่ปลอดภัยสำหรับ side effect ตามสัญญาของ React
+   */
+  useEffect(() => {
+    const entries = snapshot?.log ?? []
+    const newEntries = entries.slice(seenLogCount.current)
+    seenLogCount.current = entries.length
+    if (newEntries.some((entry) => entry.tone === 'damage')) void playSfx('battleHit')
+  }, [snapshot])
 
   useEffect(() => {
     if (!snapshot || snapshot.phase !== 'intro') return
@@ -77,9 +92,9 @@ export function useBattle({ player, stageId, onComplete }: UseBattleOptions) {
 
       if (kind === 'skill' && actor.characterId) {
         const skillDef = getSkillForCharacter(actor.characterId)
-        if (skillDef?.healPercent || skillDef?.hitsAllEnemies) {
+        if (skillDef?.effect === 'heal-lowest-ally' || skillDef?.effect === 'hits-all-enemies') {
           const targets = getValidTargets(current, actor.id, kind)
-          const targetId = skillDef.healPercent ? actor.id : targets[0]?.id
+          const targetId = skillDef.effect === 'heal-lowest-ally' ? actor.id : targets[0]?.id
           if (targetId) {
             return submitAction(current, { kind, actorId: actor.id, targetId })
           }

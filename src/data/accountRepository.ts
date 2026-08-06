@@ -1,7 +1,8 @@
+import { getCharacter } from '../game/characters'
 import { getItem } from '../game/items'
 import { generateUid } from '../game/uid'
 import { TEAM_SIZE } from '../game/team'
-import { createSalt, hashPassword, verifyPassword } from '../lib/password'
+import { createSalt, hashPassword, needsRehash, verifyPassword } from '../lib/password'
 import { isStorageAvailable, readJson, removeKey, writeJson } from '../lib/storage'
 import { EMPTY_PROGRESS, type Player } from '../types/player'
 
@@ -22,14 +23,14 @@ import { EMPTY_PROGRESS, type Player } from '../types/player'
  *     — ไอเทมเพิ่มได้ผ่าน grantItem (source 'quest'/'drop') เท่านั้น กติกาเดียวกับทอง
  *   currency_transactions(id PK, uid FK, currency enum('gold','gem'),
  *     source enum('quest','drop','topup','coupon'), amount, ref_id, created_at)
- *     — ชั้นแอปบังคับว่า gold มาจาก source 'quest'/'drop' เท่านั้น
- *       และ gem มาจาก 'topup'/'coupon' เท่านั้น (ดู earnGold/topUpGems/redeemCoupon
+ *     — ชั้นแอปบังคับว่า gold มาจาก source 'quest'/'drop'/'topup' เท่านั้น
+ *       และ gem มาจาก 'topup'/'coupon' เท่านั้น (ดู earnGold/topUpGold/topUpGems/redeemCoupon
  *       ด้านล่าง — ไม่มีฟังก์ชันเซตทอง/หยกตรง ๆ ให้เรียกจากที่อื่นโดยไม่ระบุแหล่งที่มา)
  *
  * ─── ข้อจำกัดที่ต้องรู้ ────────────────────────────────────
  * ข้อมูลอยู่ในเบราว์เซอร์ของผู้เล่นเอง จึงแก้ได้ด้วย DevTools
  * ระบบนี้ใช้ "จำผู้เล่นบนเครื่องนี้" ได้ แต่ยังไม่ใช่การยืนยันตัวตนที่เชื่อถือได้
- * การ "จ่ายเงินจริง" ใน topUpGems ยังไม่ต่อ payment gateway — ถือว่าจ่ายสำเร็จเสมอ
+ * การ "จ่ายเงินจริง" ใน topUpGold/topUpGems ยังไม่ต่อ payment gateway — ถือว่าจ่ายสำเร็จเสมอ
  * (ใช้ทดสอบ/เดโมเท่านั้น ห้ามใช้ค้าจริงจนกว่าจะต่อระบบชำระเงินที่ตรวจสอบได้จริง)
  * ───────────────────────────────────────────────────────────
  */
@@ -40,8 +41,8 @@ const SESSION_KEY = 'los:session:v1'
 /** ตัวละครที่ได้ฟรีตอนสมัครบัญชีใหม่ */
 const STARTER_CHARACTER_ID = 'monkey-king'
 
-/** ทองหาได้จากการเล่นเท่านั้น — ทำเควสสำเร็จ หรือของดรอประหว่างเล่น */
-export type GoldSource = 'quest' | 'drop'
+/** ทองได้จากการเล่น (เควส/ดรอป) หรือเติมเงินจริงก็ได้ — ดู earnGold/topUpGold */
+export type GoldSource = 'quest' | 'drop' | 'topup'
 /** หยกได้จากการเติมเงินจริง หรือแลกคูปองเท่านั้น — ห้ามมีทางอื่น */
 export type GemSource = 'topup' | 'coupon'
 
@@ -130,15 +131,29 @@ const COUPONS: Record<string, CouponDefinition> = {
 
 export interface GemPackage {
   id: string
-  gem: number
+  amount: number
   /** ราคาที่แสดงผล — ยังไม่ผูกกับ payment gateway จริง */
   priceLabel: string
 }
 
 export const GEM_PACKAGES: GemPackage[] = [
-  { id: 'gem-small', gem: 60, priceLabel: '฿30' },
-  { id: 'gem-medium', gem: 320, priceLabel: '฿150' },
-  { id: 'gem-large', gem: 980, priceLabel: '฿450' },
+  { id: 'gem-small', amount: 60, priceLabel: '฿30' },
+  { id: 'gem-medium', amount: 320, priceLabel: '฿150' },
+  { id: 'gem-large', amount: 980, priceLabel: '฿450' },
+]
+
+export interface GoldPackage {
+  id: string
+  amount: number
+  /** ราคาที่แสดงผล — ยังไม่ผูกกับ payment gateway จริง */
+  priceLabel: string
+}
+
+/** ราคาต่อหน่วยถูกกว่าเติมหยก — ทองเป็นสกุลเงินพื้นฐานที่ควรหาได้ง่ายกว่า */
+export const GOLD_PACKAGES: GoldPackage[] = [
+  { id: 'gold-small', amount: 1000, priceLabel: '฿30' },
+  { id: 'gold-medium', amount: 5500, priceLabel: '฿150' },
+  { id: 'gold-large', amount: 18000, priceLabel: '฿450' },
 ]
 
 /* ---------------- ผลลัพธ์ ---------------- */
@@ -161,10 +176,21 @@ export function validateEmail(email: string): string | null {
   return null
 }
 
+// รหัสผ่านที่พบบ่อยที่สุดจนไม่ป้องกันอะไรเลย แม้ยาวพอตาม PASSWORD_MIN_LENGTH ก็ตาม
+// (รายการเล็ก ๆ พอกันกรณีชัดเจนที่สุด ไม่ใช่ dictionary attack เต็มรูปแบบ — ไม่ต้องพึ่ง library ภายนอก)
+const COMMON_PASSWORDS = new Set([
+  'password', 'password1', 'password123', '12345678', '123456789', '1234567890',
+  'qwerty123', 'qwertyui', 'letmein1', 'iloveyou', 'admin123', 'welcome1',
+  '11111111', '00000000', 'abc12345', 'changeme',
+])
+
 export function validatePassword(password: string): string | null {
   if (password.length === 0) return 'กรุณากรอกรหัสผ่าน'
   if (password.length < PASSWORD_MIN_LENGTH) {
     return `รหัสผ่านต้องมีอย่างน้อย ${PASSWORD_MIN_LENGTH} ตัวอักษร`
+  }
+  if (COMMON_PASSWORDS.has(password.toLowerCase())) {
+    return 'รหัสผ่านนี้ถูกใช้ทั่วไปมากเกินไป กรุณาตั้งรหัสอื่น'
   }
   return null
 }
@@ -198,7 +224,7 @@ function createNewPlayer(uid: string): Player {
     expToNext: 100,
     // ของขวัญตอนสมัครบัญชี — ข้อยกเว้นเดียวที่ตั้งค่าทอง/หยกตรง ๆ ได้
     // (เกิดครั้งเดียวตอนสร้างบัญชี ไม่ใช่ endpoint ที่เรียกซ้ำได้ระหว่างเล่น)
-    // หลังจากนี้ทองต้องผ่าน earnGold และหยกต้องผ่าน topUpGems/redeemCoupon เท่านั้น
+    // หลังจากนี้ทองต้องผ่าน earnGold/topUpGold และหยกต้องผ่าน topUpGems/redeemCoupon เท่านั้น
     currency: { gold: 500, gem: 20 },
     // สมัครใหม่ได้ตัวละครฟรี 1 ตัว ยืนช่องแรก อีก 3 ช่องว่าง
     ownedCharacters: [
@@ -278,6 +304,13 @@ export async function login(email: string, password: string): Promise<AuthResult
   const matched = await verifyPassword(password, account.passwordSalt, account.passwordHash)
   if (!matched) return failure
 
+  // ล็อกอินสำเร็จด้วยแฮชรอบเก่า (ITERATIONS เคยถูกปรับขึ้นทีหลัง) → รีแฮชด้วยรอบปัจจุบันทันที
+  // ผู้เล่นไม่รู้สึกอะไรเลย แต่บัญชีที่ยัง active ค่อย ๆ อัปเกรดความปลอดภัยเองทุกครั้งที่ล็อกอิน
+  if (needsRehash(account.passwordHash)) {
+    account.passwordHash = await hashPassword(password, account.passwordSalt)
+    saveDb(db)
+  }
+
   writeJson(SESSION_KEY, { uid: account.uid, email: key })
   return { ok: true, player: normalizePlayer(account.player) }
 }
@@ -299,6 +332,73 @@ export async function getSessionPlayer(): Promise<Player | null> {
   }
 
   return normalizePlayer(account.player)
+}
+
+const SAVE_EXPORT_VERSION = 1
+
+interface SaveExport {
+  exportVersion: typeof SAVE_EXPORT_VERSION
+  exportedAt: string
+  account: StoredAccount
+}
+
+/**
+ * ส่งออกบัญชีของ session ปัจจุบันเป็น JSON — ให้ผู้เล่นโหลดเก็บไว้เป็นไฟล์สำรอง/ย้ายเครื่อง
+ * ข้อมูลอยู่ใน localStorage ของเบราว์เซอร์เท่านั้น ไม่มี sync ข้ามอุปกรณ์ในตัว — ปุ่มนี้คือทางแก้
+ */
+export async function exportSave(): Promise<{ ok: true; json: string } | { ok: false; error: string }> {
+  const session = readJson<{ uid: string; email: string }>(SESSION_KEY)
+  if (!session) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' }
+
+  const account = loadDb().accounts[session.email]
+  if (!account) return { ok: false, error: 'ไม่พบบัญชี' }
+
+  const payload: SaveExport = {
+    exportVersion: SAVE_EXPORT_VERSION,
+    exportedAt: new Date().toISOString(),
+    account,
+  }
+  return { ok: true, json: JSON.stringify(payload, null, 2) }
+}
+
+/** นำเข้าไฟล์ save ที่ export ไว้ — เขียนทับบัญชีเดิมถ้าอีเมลซ้ำ (กู้คืน/ย้ายเครื่อง) แล้วล็อกอินให้ทันที */
+export async function importSave(json: string): Promise<AuthResult> {
+  let parsed: SaveExport
+  try {
+    parsed = JSON.parse(json)
+  } catch {
+    return { ok: false, error: 'ไฟล์ save เสียหายหรือไม่ใช่ไฟล์ที่ถูกต้อง' }
+  }
+
+  const account = parsed?.account
+  if (
+    parsed?.exportVersion !== SAVE_EXPORT_VERSION ||
+    !account?.uid ||
+    !account?.email ||
+    !account?.passwordHash
+  ) {
+    return { ok: false, error: 'ไฟล์ save ไม่ตรงรูปแบบที่รองรับ' }
+  }
+
+  const db = loadDb()
+  const key = normalizeEmail(account.email)
+  db.accounts[key] = account
+  if (!saveDb(db)) {
+    return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
+  }
+
+  writeJson(SESSION_KEY, { uid: account.uid, email: key })
+  return { ok: true, player: normalizePlayer(account.player) }
+}
+
+/**
+ * อีเมลของ session ที่ล็อกอินอยู่ — ใช้ตรวจสิทธิ์ผู้ดูแล (ดู src/data/admins.ts)
+ *
+ * แยกจาก getSessionPlayer เพราะ Player ไม่มีฟิลด์อีเมล (ตั้งใจ — อีเมลเป็นข้อมูลบัญชี
+ * ไม่ใช่ข้อมูลตัวละครที่ UI ทั่วไปต้องเห็น) ฟังก์ชันนี้จึงเป็นทางเดียวที่ควรใช้อ่านอีเมล
+ */
+export function getSessionEmail(): string | null {
+  return readJson<{ uid: string; email: string }>(SESSION_KEY)?.email ?? null
 }
 
 export interface FriendCandidate {
@@ -377,13 +477,35 @@ export async function topUpGems(uid: string, packageId: string): Promise<Currenc
   const updated = appendTransaction(account, {
     currency: 'gem',
     source: 'topup',
-    amount: pack.gem,
+    amount: pack.amount,
     refId: pack.id,
   })
   db.accounts[key] = updated
 
   if (!saveDb(db)) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
-  return { ok: true, player: updated.player, amount: pack.gem }
+  return { ok: true, player: updated.player, amount: pack.amount }
+}
+
+/** เติมทองด้วยเงินจริง — ยังไม่ต่อ payment gateway จริง ถือว่าจ่ายสำเร็จเสมอ (ใช้เดโม) */
+export async function topUpGold(uid: string, packageId: string): Promise<CurrencyResult> {
+  const pack = GOLD_PACKAGES.find((item) => item.id === packageId)
+  if (!pack) return { ok: false, error: 'ไม่พบแพ็กเกจทองนี้' }
+
+  const db = loadDb()
+  const entry = findAccountEntry(db, uid)
+  if (!entry) return { ok: false, error: 'ไม่พบบัญชีผู้เล่น' }
+
+  const [key, account] = entry
+  const updated = appendTransaction(account, {
+    currency: 'gold',
+    source: 'topup',
+    amount: pack.amount,
+    refId: pack.id,
+  })
+  db.accounts[key] = updated
+
+  if (!saveDb(db)) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
+  return { ok: true, player: updated.player, amount: pack.amount }
 }
 
 /** แลกโค้ดคูปองเป็นหยก — แลกได้บัญชีละ 1 ครั้งต่อโค้ด และเช็กโควตารวมถ้ากำหนดไว้ */
@@ -487,4 +609,57 @@ export async function grantItem(
 
   if (!saveDb(db)) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
   return { ok: true, player: updated.player }
+}
+
+/* ---------------- ตัวละคร ---------------- */
+
+export type CharacterGrantResult =
+  | { ok: true; player: Player; characterId: string }
+  | { ok: false; error: string }
+
+/**
+ * มอบตัวละครให้บัญชีผู้เล่น
+ *
+ * ยังไม่มีระบบกาชา/เควสที่มอบตัวละครได้จริง ฟังก์ชันนี้จึงถูกเรียกจากช่องคำสั่ง
+ * ผู้ดูแลเท่านั้นในตอนนี้ (คำสั่งลับในแชท ดู src/components/WorldChat/) — เมื่อมีระบบได้ตัวละคร
+ * ของจริงแล้ว ให้ระบบนั้นเรียกฟังก์ชันเดียวกันนี้ ไม่ต้องเขียนทางเพิ่มตัวละครเส้นใหม่
+ *
+ * ไม่แตะ teamSlots: การได้ตัวละครมากับการจัดทีมเป็นคนละเรื่อง ผู้เล่นเลือกเองในหน้าจัดทีม
+ */
+export async function grantCharacter(
+  uid: string,
+  characterId: string,
+): Promise<CharacterGrantResult> {
+  if (!getCharacter(characterId)) return { ok: false, error: `ไม่พบตัวละคร "${characterId}"` }
+
+  const db = loadDb()
+  const entry = findAccountEntry(db, uid)
+  if (!entry) return { ok: false, error: 'ไม่พบบัญชีผู้เล่น' }
+
+  const [key, account] = entry
+  const owned = account.player.ownedCharacters ?? []
+  if (owned.some((slot) => slot.characterId === characterId)) {
+    return { ok: false, error: 'ครอบครองตัวละครนี้อยู่แล้ว' }
+  }
+
+  const updated: StoredAccount = {
+    ...account,
+    player: {
+      ...account.player,
+      ownedCharacters: [
+        ...owned,
+        {
+          characterId,
+          level: 1,
+          exp: 0,
+          expToNext: 500,
+          obtainedAt: new Date().toISOString(),
+        },
+      ],
+    },
+  }
+  db.accounts[key] = updated
+
+  if (!saveDb(db)) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
+  return { ok: true, player: updated.player, characterId }
 }

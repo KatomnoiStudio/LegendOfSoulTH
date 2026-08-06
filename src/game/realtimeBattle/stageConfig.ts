@@ -10,8 +10,16 @@ import type { Vec2 } from './types'
  *
  * ค่าสถานะศัตรูตั้งต้นอ้างอิงจาก ENEMY_TEMPLATES ของระบบเทิร์นเดิม
  * (src/game/battle/stages.ts) แต่ปรับสเกลใหม่ให้เข้ากับการต่อสู้แบบเรียลไทม์:
- * เทิร์นเบสคิดดาเมจครั้งละมาก ๆ ทีละเทิร์น ส่วนเรียลไทม์ตีถี่กว่ามาก
- * HP จึงถูกลดลงราวครึ่งหนึ่ง และ atk ลดลงราว 60% เพื่อไม่ให้ผู้เล่นตายใน 2 ครั้ง
+ * เทิร์นเบสคิดดาเมจครั้งละมาก ๆ ทีละเทิร์น ส่วนเรียลไทม์ตีถี่กว่ามาก HP จึงถูกลดลง
+ *
+ * ── เรื่อง atk ที่ต้องระวัง ─────────────────────────────────
+ * สูตรดาเมจหักเกราะแบบ `atk - def * 0.42` และมีพื้นขั้นต่ำที่ 1 แปลว่าถ้า atk ของศัตรู
+ * ต่ำกว่า `def ของผู้เล่น × 0.42` **ทุกหมัดจะเข้าแค่ 1 แต้ม** ผู้เล่นจะอมตีไปตลอด
+ * เคยตั้ง atk ไว้ 22 ตอนแรกแล้วเจออาการนี้จริงตอนทดสอบในเบราว์เซอร์: สู้กับศัตรู 3 ตัว
+ * ราว 8 วินาที ผู้เล่นเสียเลือดรวม 2 แต้ม
+ * หงอคงมี def 78 → เกณฑ์ขั้นต่ำคือ ~33 ค่าที่ใช้จึงเผื่อไว้เหนือเกณฑ์นั้นพอสมควร
+ * ถ้าจะเพิ่มตัวละครที่ def สูงกว่านี้ ต้องกลับมาทบทวนตัวเลขชุดนี้ด้วย
+ * ────────────────────────────────────────────────────────────
  */
 
 /** หน่วยพิกัดของ runtime ต่อ 1 หน่วยของ Three.js */
@@ -73,7 +81,7 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     spriteKind: 'pig-warrior',
     accent: '#8b7cff',
     maxHp: 210,
-    atk: 22,
+    atk: 55,
     def: 18,
     speed: 132,
     collisionRadius: 34,
@@ -88,7 +96,7 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     spriteKind: 'pig-warrior',
     accent: '#ff6a5c',
     maxHp: 340,
-    atk: 31,
+    atk: 72,
     def: 24,
     speed: 118,
     collisionRadius: 40,
@@ -103,7 +111,7 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     spriteKind: 'pilgrim-monk',
     accent: '#6dffb8',
     maxHp: 260,
-    atk: 26,
+    atk: 62,
     def: 20,
     speed: 148,
     collisionRadius: 34,
@@ -146,7 +154,7 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
         ],
       },
     ],
-    backgroundAsset: publicUrl('ui/thai/thai-temple-lobby.png'),
+    backgroundAsset: publicUrl('ui/thai/thai-temple-lobby.webp'),
   },
   'trial-02': {
     id: 'trial-02',
@@ -172,7 +180,7 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
         ],
       },
     ],
-    backgroundAsset: publicUrl('backgrounds/wukong-vs-bull-demon-v2-game-art.png'),
+    backgroundAsset: publicUrl('backgrounds/wukong-vs-bull-demon-v2-game-art.webp'),
   },
 }
 

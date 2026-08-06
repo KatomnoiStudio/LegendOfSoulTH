@@ -40,10 +40,16 @@ export interface EnemyBrain {
    * หรือยัง — ไม่ต้องเก็บ timestamp แยกอีกตัว
    */
   stateElapsedMs: number
+  /**
+   * ผู้เล่นที่โดนท่านี้ไปแล้ว — กัน hitbox เดียวกันโดนซ้ำในท่าเดียว (§15)
+   *
+   * ล้างเมื่อออกจากสถานะ attack ไม่ใช่ตอนเข้า เพราะ active frame กินหลายเฟรมจำลอง
+   */
+  hitTargets: Set<string>
 }
 
 export function createEnemyBrain(): EnemyBrain {
-  return { state: 'idle', stateElapsedMs: 0 }
+  return { state: 'idle', stateElapsedMs: 0, hitTargets: new Set() }
 }
 
 export interface EnemyDecision {

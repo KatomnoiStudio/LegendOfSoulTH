@@ -1,6 +1,6 @@
 # Project Law: Mandatory Agent Memory & Identity Protocol
 
-> **Target Workspace**: `GameTurnBase` (LegendofSoulTH)  
+> **Target Workspace**: `LegendOfSoulTH` (LegendofSoulTH)  
 > **Operator / Human User Identity**: `HetCreep`  
 > **Scope**: Binding for ALL AI agents, subagents, and automated assistants operating on this codebase.
 
@@ -18,6 +18,10 @@
   - **Past Context & History**: High-level timeline of major milestones achieved.
   - **Present Status**: Current working state, active features, and open tasks.
   - **Architectural Learnings & Decisions**: Technical decisions, conventions, and configuration rationale.
+- **Personal/off-project content is out of scope for `MEMORY.md` entirely** — see
+  `.agents/rules/personal-scope-law.md`. It goes in the gitignored `MEMORY.local.md`
+  instead. `MEMORY.md` is mandatory reading for every future agent (§1 above); personal
+  content there is dead weight every one of those sessions pays for.
 
 ### 3. Strict Identity Stamping
 - All entries, status updates, and session summaries in `MEMORY.md` **MUST include explicit identity stamps**:

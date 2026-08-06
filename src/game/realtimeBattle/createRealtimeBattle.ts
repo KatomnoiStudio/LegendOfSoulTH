@@ -1,4 +1,5 @@
 import { getCharacter } from '../characters'
+import { reportError } from '../../lib/errors/reportError'
 import type { Player } from '../../types/player'
 import { getEnemyTemplate, getRealtimeStage, type RealtimeBattleStage } from './stageConfig'
 import type { RealtimeBattleEntity } from './types'
@@ -81,13 +82,16 @@ export function createWaveEnemies(
   return wave.enemies.flatMap((entry, index) => {
     const template = getEnemyTemplate(entry.templateId)
     if (!template) {
-      console.error(`[realtimeBattle] ไม่พบแม่แบบศัตรู "${entry.templateId}" ในด่าน ${stage.id}`)
+      reportError('BATTLE_ENEMY_TEMPLATE_MISSING', 'visible', undefined, {
+        templateId: entry.templateId,
+        stageId: stage.id,
+      })
       return []
     }
 
     const spawn = stage.enemySpawns[entry.spawnIndex] ?? stage.enemySpawns[0]
     if (!spawn) {
-      console.error(`[realtimeBattle] ด่าน ${stage.id} ไม่มีจุดเกิดศัตรูเลย`)
+      reportError('BATTLE_STAGE_NO_SPAWN', 'visible', undefined, { stageId: stage.id })
       return []
     }
 
@@ -120,13 +124,13 @@ export function createWaveEnemies(
 export function createRealtimeBattle(stageId: string, player: Player): RealtimeBattleState | null {
   const stage = getRealtimeStage(stageId)
   if (!stage) {
-    console.error(`[realtimeBattle] ไม่พบด่าน "${stageId}"`)
+    reportError('BATTLE_STAGE_NOT_FOUND', 'visible', undefined, { stageId })
     return null
   }
 
   const playerEntity = createPlayerEntity(player)
   if (!playerEntity) {
-    console.error('[realtimeBattle] ผู้เล่นไม่มีตัวละครในทีม จึงเริ่มการต่อสู้ไม่ได้')
+    reportError('BATTLE_NO_TEAM_CHARACTER', 'visible')
     return null
   }
 
