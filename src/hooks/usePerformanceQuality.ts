@@ -37,7 +37,20 @@ export function usePerformanceQuality(
   const lastTier = useRef<QualityTier>('high')
 
   useEffect(() => {
-    if (override !== 'auto') onTierChange(override)
+    // ทั้งสองทาง (ล็อก↔auto) ต้อง sync ref ภายในให้ตรงกับสิ่งที่ประกาศออกไปเสมอ — ไม่งั้นตอนกลับ
+    // จาก override เป็น auto ลูปใน useFrame จะเทียบ next กับ lastTier.current ที่ค้างจากก่อน
+    // override (เช่นยังเป็น 'high' จากตอน mount) แล้วไม่เห็นความต่างเลย เลยไม่เรียก onTierChange
+    // อีก ฉากค้างที่ระดับ override เก่าตลอดไปทั้งที่วัดผ่าน useFrame ว่าเครื่องโอเคแล้ว (rot-canary)
+    goodStreak.current = 0
+    badStreak.current = 0
+    if (override !== 'auto') {
+      tierIndex.current = TIERS.indexOf(override)
+      lastTier.current = override
+      onTierChange(override)
+    } else {
+      // กลับเป็น auto — ประกาศระดับที่ ref ภายในถืออยู่ทันที ไม่รอให้ useFrame รอบถัดไปเจอความต่าง
+      onTierChange(TIERS[tierIndex.current])
+    }
   }, [override, onTierChange])
 
   useFrame((_state, delta) => {
