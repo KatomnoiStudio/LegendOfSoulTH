@@ -77,9 +77,9 @@ export function useBattle({ player, stageId, onComplete }: UseBattleOptions) {
 
       if (kind === 'skill' && actor.characterId) {
         const skillDef = getSkillForCharacter(actor.characterId)
-        if (skillDef?.healPercent || skillDef?.hitsAllEnemies) {
+        if (skillDef?.effect === 'heal-lowest-ally' || skillDef?.effect === 'hits-all-enemies') {
           const targets = getValidTargets(current, actor.id, kind)
-          const targetId = skillDef.healPercent ? actor.id : targets[0]?.id
+          const targetId = skillDef.effect === 'heal-lowest-ally' ? actor.id : targets[0]?.id
           if (targetId) {
             return submitAction(current, { kind, actorId: actor.id, targetId })
           }

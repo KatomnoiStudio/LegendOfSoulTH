@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
+import { useModalA11y } from '../../hooks/useModalA11y'
 import { PETS } from '../../game/collection'
 import { formatUid } from '../../game/uid'
 import { clampRatio, formatNumber } from '../../lib/format'
@@ -35,17 +36,8 @@ interface ProfileModalProps {
 export function ProfileModal({ player, onClose }: ProfileModalProps) {
   const { comingSoon } = useToast()
   const [tab, setTab] = useState<TabId>('characters')
-  const dialogRef = useRef<HTMLDivElement>(null)
-
-  // ปิดด้วยปุ่ม Esc และย้ายโฟกัสเข้ามาในหน้าต่างเมื่อเปิด
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    dialogRef.current?.focus()
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
+  // Esc, backdrop-click, focus trap, คืนโฟกัสตอนปิด — รวมไว้ที่ useModalA11y ตัวเดียว
+  const { shellRef: dialogRef, backdropProps } = useModalA11y<HTMLDivElement>(onClose)
 
   const expRatio = clampRatio(player.exp, player.expToNext)
 
@@ -56,12 +48,7 @@ export function ProfileModal({ player, onClose }: ProfileModalProps) {
   ]
 
   return (
-    <div
-      className={styles.backdrop}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
-      }}
-    >
+    <div className={styles.backdrop} {...backdropProps}>
       <div
         ref={dialogRef}
         className={styles.dialog}

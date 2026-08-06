@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ master ]
     paths-ignore:
       - '**/*.md'
       - '.agents/**'
@@ -47,8 +47,9 @@ jobs:
       - name: Lint Code
         run: npm run lint
 
-      - name: Build 3D Models
-        run: npm run build:models
+      # ไม่รัน build:models ที่นี่ตั้งใจ — ไม่มีโค้ดใน src/ โหลด .glb ใช้ (เกมเรนเดอร์ sprite 2D แทน,
+      # ดู tools/build-models.mjs หัวไฟล์) การรันสคริปต์ยังตรวจสอบใน ci.yml เป็น canary อยู่
+      # รันที่นี่แล้ว copy เข้า dist/ จะสิ้นเปลือง CI minutes + ส่ง asset ที่ไม่มีใครใช้ขึ้น production เปล่า ๆ
 
       - name: Build Application
         run: npm run build

@@ -2,7 +2,7 @@ import { getCharacter } from '../game/characters'
 import { getItem } from '../game/items'
 import { generateUid } from '../game/uid'
 import { TEAM_SIZE } from '../game/team'
-import { createSalt, hashPassword, verifyPassword } from '../lib/password'
+import { createSalt, hashPassword, needsRehash, verifyPassword } from '../lib/password'
 import { isStorageAvailable, readJson, removeKey, writeJson } from '../lib/storage'
 import { EMPTY_PROGRESS, type Player } from '../types/player'
 
@@ -176,10 +176,21 @@ export function validateEmail(email: string): string | null {
   return null
 }
 
+// รหัสผ่านที่พบบ่อยที่สุดจนไม่ป้องกันอะไรเลย แม้ยาวพอตาม PASSWORD_MIN_LENGTH ก็ตาม
+// (รายการเล็ก ๆ พอกันกรณีชัดเจนที่สุด ไม่ใช่ dictionary attack เต็มรูปแบบ — ไม่ต้องพึ่ง library ภายนอก)
+const COMMON_PASSWORDS = new Set([
+  'password', 'password1', 'password123', '12345678', '123456789', '1234567890',
+  'qwerty123', 'qwertyui', 'letmein1', 'iloveyou', 'admin123', 'welcome1',
+  '11111111', '00000000', 'abc12345', 'changeme',
+])
+
 export function validatePassword(password: string): string | null {
   if (password.length === 0) return 'กรุณากรอกรหัสผ่าน'
   if (password.length < PASSWORD_MIN_LENGTH) {
     return `รหัสผ่านต้องมีอย่างน้อย ${PASSWORD_MIN_LENGTH} ตัวอักษร`
+  }
+  if (COMMON_PASSWORDS.has(password.toLowerCase())) {
+    return 'รหัสผ่านนี้ถูกใช้ทั่วไปมากเกินไป กรุณาตั้งรหัสอื่น'
   }
   return null
 }
@@ -293,6 +304,13 @@ export async function login(email: string, password: string): Promise<AuthResult
   const matched = await verifyPassword(password, account.passwordSalt, account.passwordHash)
   if (!matched) return failure
 
+  // ล็อกอินสำเร็จด้วยแฮชรอบเก่า (ITERATIONS เคยถูกปรับขึ้นทีหลัง) → รีแฮชด้วยรอบปัจจุบันทันที
+  // ผู้เล่นไม่รู้สึกอะไรเลย แต่บัญชีที่ยัง active ค่อย ๆ อัปเกรดความปลอดภัยเองทุกครั้งที่ล็อกอิน
+  if (needsRehash(account.passwordHash)) {
+    account.passwordHash = await hashPassword(password, account.passwordSalt)
+    saveDb(db)
+  }
+
   writeJson(SESSION_KEY, { uid: account.uid, email: key })
   return { ok: true, player: normalizePlayer(account.player) }
 }
@@ -314,6 +332,63 @@ export async function getSessionPlayer(): Promise<Player | null> {
   }
 
   return normalizePlayer(account.player)
+}
+
+const SAVE_EXPORT_VERSION = 1
+
+interface SaveExport {
+  exportVersion: typeof SAVE_EXPORT_VERSION
+  exportedAt: string
+  account: StoredAccount
+}
+
+/**
+ * ส่งออกบัญชีของ session ปัจจุบันเป็น JSON — ให้ผู้เล่นโหลดเก็บไว้เป็นไฟล์สำรอง/ย้ายเครื่อง
+ * ข้อมูลอยู่ใน localStorage ของเบราว์เซอร์เท่านั้น ไม่มี sync ข้ามอุปกรณ์ในตัว — ปุ่มนี้คือทางแก้
+ */
+export async function exportSave(): Promise<{ ok: true; json: string } | { ok: false; error: string }> {
+  const session = readJson<{ uid: string; email: string }>(SESSION_KEY)
+  if (!session) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' }
+
+  const account = loadDb().accounts[session.email]
+  if (!account) return { ok: false, error: 'ไม่พบบัญชี' }
+
+  const payload: SaveExport = {
+    exportVersion: SAVE_EXPORT_VERSION,
+    exportedAt: new Date().toISOString(),
+    account,
+  }
+  return { ok: true, json: JSON.stringify(payload, null, 2) }
+}
+
+/** นำเข้าไฟล์ save ที่ export ไว้ — เขียนทับบัญชีเดิมถ้าอีเมลซ้ำ (กู้คืน/ย้ายเครื่อง) แล้วล็อกอินให้ทันที */
+export async function importSave(json: string): Promise<AuthResult> {
+  let parsed: SaveExport
+  try {
+    parsed = JSON.parse(json)
+  } catch {
+    return { ok: false, error: 'ไฟล์ save เสียหายหรือไม่ใช่ไฟล์ที่ถูกต้อง' }
+  }
+
+  const account = parsed?.account
+  if (
+    parsed?.exportVersion !== SAVE_EXPORT_VERSION ||
+    !account?.uid ||
+    !account?.email ||
+    !account?.passwordHash
+  ) {
+    return { ok: false, error: 'ไฟล์ save ไม่ตรงรูปแบบที่รองรับ' }
+  }
+
+  const db = loadDb()
+  const key = normalizeEmail(account.email)
+  db.accounts[key] = account
+  if (!saveDb(db)) {
+    return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
+  }
+
+  writeJson(SESSION_KEY, { uid: account.uid, email: key })
+  return { ok: true, player: normalizePlayer(account.player) }
 }
 
 /**

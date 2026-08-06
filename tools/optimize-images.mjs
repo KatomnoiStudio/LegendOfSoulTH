@@ -50,8 +50,10 @@ async function main() {
     const topDir = rel.split(/[\\/]/)[0]
     const quality = QUALITY_BY_DIR[topDir] ?? 88
     // นามสกุลปลายทางเป็น .webp เสมอ (เว็บรองรับทุกเบราว์เซอร์ที่ project นี้ target อยู่แล้ว —
-    // ดู browserslist ใน package.json) โค้ดฝั่งเกมอ้างพาธแบบไม่มีนามสกุลผ่าน publicUrl() บวกปลาย
-    // ชื่อไฟล์เองเสมอ (ดู src/game/walkKits.ts, spriteSequences.ts) — เปลี่ยนแค่ตรงนี้ที่เดียว
+    // ดู browserslist ใน package.json) — publicUrl() ต่อ path กับ Vite base เท่านั้น
+    // ตัวชื่อไฟล์+นามสกุล .webp เป็นความรับผิดชอบของแต่ละจุดที่เรียก (walkKits.ts,
+    // spriteSequences.ts, characters.ts) เปลี่ยนที่นี่แค่กำหนด "ผลลัพธ์คือ .webp" ไม่ใช่จุดเดียว
+    // ที่ทุกโค้ดอ้างอิงนามสกุลมาจาก
     const dest = join(OUT_DIR, rel).replace(/\.png$/i, '.webp')
 
     if (!FORCE) {

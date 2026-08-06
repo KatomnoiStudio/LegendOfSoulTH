@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import type { CurrencyResult } from '../../data/accountRepository'
+import { useModalA11y } from '../../hooks/useModalA11y'
 import { GAME_INFO } from '../../game/gameInfo'
+import { type AudioChannel, type AudioSettings } from '../../lib/audio/AudioEngine'
 import {
   CouponIcon,
   InfoIcon,
@@ -23,17 +25,7 @@ const COUPON_DISALLOWED = /[^A-Z0-9]/g
 const COUPON_MIN_LENGTH = 4
 const COUPON_MAX_LENGTH = 16
 
-/** ช่องเสียงที่ปรับแยกกันได้ */
-export type AudioChannel = 'master' | 'music' | 'sfx'
-
-export interface AudioSettings {
-  /** ระดับเสียงของแต่ละช่อง 0–100 */
-  master: number
-  music: number
-  sfx: number
-  /** ปิดเสียงทั้งหมด — ทับค่าทั้งสามช่องโดยไม่ลบค่าที่ตั้งไว้ */
-  muted: boolean
-}
+export type { AudioChannel, AudioSettings }
 
 const CHANNELS: { id: AudioChannel; label: string }[] = [
   { id: 'master', label: 'เสียงหลัก' },
@@ -51,6 +43,8 @@ interface SettingsModalProps {
   /** จำนวนตัวละครที่ผู้เล่นครอบครองแล้ว — ให้ตรงกับตัวเลขใน CharacterRosterModal */
   ownedCharacterCount: number
   onClose: () => void
+  /** ส่งออก save เป็นไฟล์ JSON — คืน null เมื่อสำเร็จ (ดาวน์โหลดแล้ว) คืนข้อความเมื่อผิดพลาด */
+  onExportSave: () => Promise<string | null>
 }
 
 /**
@@ -69,20 +63,12 @@ export function SettingsModal({
   onRedeemCoupon,
   ownedCharacterCount,
   onClose,
+  onExportSave,
 }: SettingsModalProps) {
   const { showToast } = useToast()
   const [tab, setTab] = useState<TabId>('info')
-  const dialogRef = useRef<HTMLDivElement>(null)
-
-  // ปิดด้วยปุ่ม Esc และย้ายโฟกัสเข้ามาในหน้าต่างเมื่อเปิด
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    dialogRef.current?.focus()
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
+  // Esc, backdrop-click, focus trap, คืนโฟกัสตอนปิด — รวมไว้ที่ useModalA11y ตัวเดียว
+  const { shellRef: dialogRef, backdropProps } = useModalA11y<HTMLDivElement>(onClose)
 
   const setChannel = (channel: AudioChannel, value: number) => {
     const clamped = Math.min(100, Math.max(0, value))
@@ -98,12 +84,7 @@ export function SettingsModal({
   ]
 
   return (
-    <div
-      className={styles.backdrop}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
-      }}
-    >
+    <div className={styles.backdrop} {...backdropProps}>
       <div
         ref={dialogRef}
         className={styles.dialog}
@@ -138,7 +119,12 @@ export function SettingsModal({
 
         {/* key บังคับให้ animation เล่นใหม่ทุกครั้งที่สลับหมวด */}
         {tab === 'info' ? (
-          <GameInfoPanel key="info" onLogout={onLogout} ownedCharacterCount={ownedCharacterCount} />
+          <GameInfoPanel
+            key="info"
+            onLogout={onLogout}
+            ownedCharacterCount={ownedCharacterCount}
+            onExportSave={onExportSave}
+          />
         ) : null}
         {tab === 'audio' ? (
           <AudioPanel
@@ -172,10 +158,13 @@ export function SettingsModal({
 function GameInfoPanel({
   onLogout,
   ownedCharacterCount,
+  onExportSave,
 }: {
   onLogout: () => Promise<void>
   ownedCharacterCount: number
+  onExportSave: () => Promise<string | null>
 }) {
+  const { showToast } = useToast()
   const rows: { label: string; value: string }[] = [
     { label: 'ชื่อเกม', value: GAME_INFO.name },
     { label: 'ประเภท', value: GAME_INFO.genre },
@@ -206,6 +195,22 @@ function GameInfoPanel({
         ตัวละคร ไอคอน และโมเดลทั้งหมดในเกมนี้ออกแบบขึ้นเองใหม่ทั้งหมด
         ตัวละครที่อ้างอิงวรรณกรรมใช้เฉพาะเรื่องที่เป็นสมบัติสาธารณะเท่านั้น
       </p>
+
+      <p className={styles.panelNote}>
+        เกมนี้ไม่มีเซิร์ฟเวอร์ — ข้อมูลอยู่ในเบราว์เซอร์เครื่องนี้เท่านั้น เปลี่ยนเครื่อง/เบราว์เซอร์
+        ต้องส่งออกไฟล์ save ไปนำเข้าเองที่ปลายทาง (ไม่มีการ sync อัตโนมัติ)
+      </p>
+
+      <button
+        type="button"
+        className={styles.exportSave}
+        onClick={async () => {
+          const error = await onExportSave()
+          if (error) showToast(error)
+        }}
+      >
+        ส่งออก save เป็นไฟล์
+      </button>
 
       <button type="button" className={styles.logout} onClick={() => void onLogout()}>
         ออกจากบัญชี

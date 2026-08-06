@@ -12,7 +12,7 @@ interface ErrorBoundaryState {
 /**
  * ตัวจับ exception ระดับบนสุดของ React tree
  *
- * ไม่จับ error ที่เกิดนอก React render cycle (Phaser scene loop, R3F useFrame,
+ * ไม่จับ error ที่เกิดนอก React render cycle (R3F useFrame,
  * async callback) — ตัวนั้นดักด้วย window 'error'/'unhandledrejection' แยกใน main.tsx
  */
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {

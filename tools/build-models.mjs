@@ -7,6 +7,11 @@
  * แต่ละไฟล์ประกอบด้วย SkinnedMesh 1 ตัว, skeleton, และ AnimationClip ชื่อ "Idle"
  *
  * สคริปต์นี้รันตอน build asset เท่านั้น ไม่ถูกรวมเข้าไปใน bundle ของเกม
+ *
+ * สถานะ (2026-08-06): เกมจริงตอนนี้เรนเดอร์ตัวละครด้วย sprite sheet 2D ผ่าน SpriteRig
+ * (ดู src/components/LobbyScene/CharacterModel.tsx) ไม่มีจุดไหนใน src/ โหลด .glb พวกนี้ใช้
+ * (grep useGLTF/GLTFLoader/@react-three/drei = ไม่พบ) — pipeline นี้เป็น groundwork ไว้ล่วงหน้า
+ * เผื่อ migrate ไปโมเดล 3D จริงในอนาคต เก็บไว้ตั้งใจ ไม่ใช่ของค้าง/ลืมลบ
  */
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'

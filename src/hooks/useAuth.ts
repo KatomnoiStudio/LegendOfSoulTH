@@ -44,6 +44,10 @@ export interface AuthState {
   isAdmin: boolean
   /** มอบตัวละครให้บัญชีนี้ — ตอนนี้เรียกจากช่องคำสั่งผู้ดูแลเท่านั้น */
   grantCharacter: (characterId: string) => Promise<CharacterGrantResult>
+  /** ส่งออก save เป็นไฟล์ JSON ไว้สำรอง/ย้ายเครื่อง — คืน null เมื่อสำเร็จ (ไฟล์ถูกดาวน์โหลดแล้ว) */
+  exportSave: () => Promise<string | null>
+  /** นำเข้าไฟล์ save ที่ export ไว้ — คืน null เมื่อสำเร็จ คืนข้อความเมื่อผิดพลาด */
+  importSave: (json: string) => Promise<string | null>
 }
 
 export function useAuth(): AuthState {
@@ -157,6 +161,30 @@ export function useAuth(): AuthState {
     [player],
   )
 
+  const exportSave = useCallback(async () => {
+    const result = await accounts.exportSave()
+    if (!result.ok) return result.error
+
+    // ดาวน์โหลดเป็นไฟล์ .json — ไม่มี backend ให้ส่งไปเก็บ ผู้เล่นต้องเก็บไฟล์เอง
+    const blob = new Blob([result.json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `legend-of-soul-th-save-${new Date().toISOString().slice(0, 10)}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+    return null
+  }, [])
+
+  const importSave = useCallback(async (json: string) => {
+    const result = await accounts.importSave(json)
+    if (!result.ok) return result.error
+    setPlayer(result.player)
+    setEmail(accounts.getSessionEmail())
+    setStatus('signed-in')
+    return null
+  }, [])
+
   return {
     status,
     player,
@@ -171,5 +199,7 @@ export function useAuth(): AuthState {
     findFriendByUid,
     isAdmin: isAdminEmail(email),
     grantCharacter,
+    exportSave,
+    importSave,
   }
 }

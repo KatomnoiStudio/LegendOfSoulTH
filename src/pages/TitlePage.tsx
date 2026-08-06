@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react'
 import { BattleIcon } from '../components/icons/GameIcons'
 import { GAME_INFO } from '../game/gameInfo'
+import { getSynthDestination, initAudioEngine } from '../lib/audio/AudioEngine'
 import { publicUrl } from '../lib/publicUrl'
 import styles from './TitlePage.module.css'
 
@@ -19,16 +20,25 @@ interface TitlePageProps {
   onStart: () => void
 }
 
+/**
+ * เล่นผ่าน AudioContext/sfxGain ที่ใช้ร่วมกันทั้งแอป (src/lib/audio/AudioEngine.ts)
+ * แทนที่จะสร้าง/ปิด AudioContext ของตัวเองทุกครั้ง — เดิมทำแบบนั้นแล้วไม่ผูกกับค่า
+ * เสียง/ปิดเสียงที่ผู้เล่นตั้งไว้ใน SettingsModal เลย (คนละ context กันคนละโลก)
+ */
 function playLegendPortalSound() {
+  initAudioEngine()
+  const synth = getSynthDestination()
+  if (!synth) return // Web Audio ใช้ไม่ได้ หรือยังไม่ผ่าน user gesture — เงียบไปเฉย ๆ
+
   try {
-    const context = new AudioContext()
+    const { context, destination } = synth
     const now = context.currentTime
     const master = context.createGain()
 
     master.gain.setValueAtTime(0.0001, now)
     master.gain.exponentialRampToValueAtTime(0.18, now + 0.025)
     master.gain.exponentialRampToValueAtTime(0.0001, now + 0.72)
-    master.connect(context.destination)
+    master.connect(destination)
 
     const notes = [174.61, 261.63, 392]
     notes.forEach((frequency, index) => {
@@ -59,9 +69,6 @@ function playLegendPortalSound() {
     strikeGain.connect(master)
     strike.start(now)
     strike.stop(now + 0.14)
-
-    void context.resume()
-    window.setTimeout(() => void context.close(), 900)
   } catch (err) {
     // Web Audio may be unavailable; the visual response still works.
     console.debug('[TitlePage] Web Audio unavailable', err)

@@ -34,6 +34,8 @@ export default function App() {
     findFriendByUid,
     isAdmin,
     grantCharacter,
+    exportSave,
+    importSave,
   } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
 
@@ -53,6 +55,7 @@ export default function App() {
             onFindFriend={findFriendByUid}
             isAdmin={isAdmin}
             onGiveCharacter={grantCharacter}
+            onExportSave={exportSave}
           />
         </ToastProvider>
       </GameViewport>
@@ -69,7 +72,7 @@ export default function App() {
         <TitlePage onStart={() => setAuthOpen(true)} />
 
         {status === 'guest' && authOpen ? (
-          <AuthModal onRegister={register} onLogin={login} />
+          <AuthModal onRegister={register} onLogin={login} onImportSave={importSave} />
         ) : null}
 
         {needsName && player ? (

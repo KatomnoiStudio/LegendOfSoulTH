@@ -5,6 +5,9 @@
 
 ## [Unreleased]
 
+### Changed
+- Lobby arena-slot rendering (character models + idle animation, added in 0.1.0 below) switched off via `SHOW_ARENA_SLOTS = false` in `LobbyScene.tsx` — an agreed toggle, not a removal; the lobby currently shows the empty temple scene only. Flip the constant to restore it.
+
 ## [0.1.0] - 2026-08-06
 
 เวอร์ชันแรกที่ tag/release อย่างเป็นทางการ

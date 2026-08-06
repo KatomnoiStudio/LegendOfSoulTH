@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useModalA11y } from '../../hooks/useModalA11y'
 import { ROSTER } from '../../game/characters'
 import type { Player } from '../../types/player'
 import { CharacterCard } from './CharacterCard'
@@ -33,7 +34,6 @@ export function CharacterRosterModal({ player, onClose }: CharacterRosterModalPr
 
   const [selectedId, setSelectedId] = useState(ownedRoster[0]?.id ?? '')
   const [closing, setClosing] = useState(false)
-  const shellRef = useRef<HTMLDivElement>(null)
   const closeTimer = useRef<number | undefined>(undefined)
 
   const selected = ownedRoster.find((character) => character.id === selectedId) ?? ownedRoster[0]
@@ -46,29 +46,13 @@ export function CharacterRosterModal({ player, onClose }: CharacterRosterModalPr
 
   useEffect(() => () => window.clearTimeout(closeTimer.current), [])
 
-  // ปิดด้วย Esc และย้ายโฟกัสเข้ามาในหน้าต่างเมื่อเปิด
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.stopPropagation()
-        requestClose()
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    shellRef.current?.focus()
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [requestClose])
+  // Esc, backdrop-click, focus trap, คืนโฟกัสตอนปิด — รวมไว้ที่ useModalA11y ตัวเดียว
+  const { shellRef, backdropProps } = useModalA11y<HTMLDivElement>(requestClose)
 
   if (!selected) return null
 
   return (
-    <div
-      className={styles.backdrop}
-      data-closing={closing}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) requestClose()
-      }}
-    >
+    <div className={styles.backdrop} data-closing={closing} {...backdropProps}>
       <div
         ref={shellRef}
         className={styles.shell}

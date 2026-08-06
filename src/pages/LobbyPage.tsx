@@ -12,6 +12,7 @@ import {
   SettingsModal,
   type AudioSettings,
 } from '../components/SettingsModal/SettingsModal'
+import { getAudioSettings, setAudioSettings } from '../lib/audio/AudioEngine'
 import { SideActions } from '../components/SideActions/SideActions'
 import { StartAdventure } from '../components/StartAdventure/StartAdventure'
 import { TopBar } from '../components/TopBar/TopBar'
@@ -47,6 +48,8 @@ interface LobbyPageProps {
   isAdmin: boolean
   /** มอบตัวละครให้บัญชีนี้ — เรียกจากคำสั่งลับในแชท (ดู WorldChat.tsx) */
   onGiveCharacter: (characterId: string) => Promise<CharacterGrantResult>
+  /** ส่งออก save เป็นไฟล์ JSON — คืน null เมื่อสำเร็จ (ดาวน์โหลดแล้ว) คืนข้อความเมื่อผิดพลาด */
+  onExportSave: () => Promise<string | null>
 }
 
 export function LobbyPage({
@@ -59,6 +62,7 @@ export function LobbyPage({
   onFindFriend,
   isAdmin,
   onGiveCharacter,
+  onExportSave,
 }: LobbyPageProps) {
   // แจ้งเตือนจดหมาย/ภารกิจยังเป็น mock เพราะยังไม่มีระบบทั้งสองอย่าง
   const badges = MOCK_BADGES
@@ -85,13 +89,12 @@ export function LobbyPage({
   const [explorationOpen, setExplorationOpen] = useState(false)
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [itemsOpen, setItemsOpen] = useState(false)
-  // เก็บค่าเสียงไว้ที่นี่เพื่อให้ค่าคงอยู่หลังปิดหน้าต่างตั้งค่า
-  const [audio, setAudio] = useState<AudioSettings>({
-    master: 70,
-    music: 60,
-    sfx: 80,
-    muted: false,
-  })
+  // ค่าเริ่มต้นอ่านจาก engine (persist ผ่าน localStorage) — เก็บ mirror ไว้ที่นี่แค่ให้ React re-render
+  const [audio, setAudio] = useState<AudioSettings>(getAudioSettings())
+  const handleAudioChange = (next: AudioSettings) => {
+    setAudioSettings(next)
+    setAudio(next)
+  }
 
   return (
     <main className={styles.page}>
@@ -128,7 +131,12 @@ export function LobbyPage({
         onOpenItems={() => setItemsOpen(true)}
       />
 
-      {/* แชทเห็นได้ทุกบัญชี — คำสั่งลับผู้ดูแลซ่อนอยู่ข้างในโดยไม่ใบ้อะไรใน UI (ดู WorldChat.tsx) */}
+      {/*
+        แชทเห็นได้ทุกบัญชีตั้งใจ (ไม่ใช่ dev-only/admin-only gate อีกต่อไป — คำสั่งลับ
+        ผู้ดูแลซ่อนอยู่ข้างในโดยไม่ใบ้อะไรใน UI เลย ดู WorldChat.tsx). แทนที่ CommandConsole
+        เดิม (ซึ่งอีกเครื่องเพิ่งใส่ import.meta.env.DEV gate ไว้พร้อมกัน — ไม่ต้องแล้วเพราะ
+        component เปลี่ยนชื่อ/พฤติกรรมไปคนละแบบ ไม่ใช่คอนโซลลับอีกต่อไป)
+      */}
       <WorldChat playerName={player.name} isAdmin={isAdmin} onGiveCharacter={onGiveCharacter} />
 
       {explorationOpen ? (
@@ -160,11 +168,12 @@ export function LobbyPage({
       {settingsOpen ? (
         <SettingsModal
           audio={audio}
-          onAudioChange={setAudio}
+          onAudioChange={handleAudioChange}
           onLogout={onLogout}
           onRedeemCoupon={onRedeemCoupon}
           ownedCharacterCount={ownedCharacters.length}
           onClose={() => setSettingsOpen(false)}
+          onExportSave={onExportSave}
         />
       ) : null}
     </main>
