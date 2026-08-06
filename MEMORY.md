@@ -24,7 +24,7 @@
 
 ## 🎯 Current Status
 
-- **Repo**: 🟢 clean & synced. `npm run ci` (typecheck+lint+test+build) green — **176 tests / 21 files**. Coverage วัดได้แล้ว (`npm run test:coverage`) — **24.42% statements** (game logic คลุมดี, component ยังศูนย์).
+- **Repo**: 🟢 clean & synced. `npm run ci` (typecheck+lint+test+build) green — **183 tests / 22 files** · lint gate เป็น `oxlint --deny-warnings` warning เหลือศูนย์. Coverage วัดได้แล้ว (`npm run test:coverage`) — **24.42% statements** (game logic คลุมดี, component ยังศูนย์).
 - **Version**: **0.2.0** — เลขอยู่สองที่และต้องตรงกันเสมอ (`src/game/gameInfo.ts` = เลขที่ผู้เล่นเห็น + เป็นตัวสั่ง deploy, `package.json` = เลขที่ SBOM/tag ใช้) `src/game/gameInfo.test.ts` บังคับไว้
 - **Battle**: realtime action battle (`src/game/realtimeBattle/`) is the ONLY live combat path — attack, dash, 3-hit combo, one skill (Monkey King only, `skills.ts`). Old turn-based system (`src/game/battle/engine.ts` etc.) fully deleted (twice — see Lessons). `types.ts`/`formulas.ts` in that same folder are NOT dead — still imported by `BattleResultAdapter.ts`/`useGameFlow.ts`/`DamageSystem.ts`, keep them.
 - **Lobby entry**: "ต่อสู้" and "เริ่มการผจญภัย" both open `LobbyBattleSession` → `trial-01` directly, skipping exploration. Exploration/NPC/dialogue subsystem (`GameExplorationSession`, `useGameFlow`, `game/dialogue/*`, `game/npc/*`) still exists but has **zero live entry point** — deliberate per PR #11 (ask-CB flagged concerns: mislabeled "เริ่มการผจญภัย" button, `trial-02` unreachable, no exploration re-entry — HetCreep chose to merge anyway, accepting the trade-off). Files remain; wire a new entry rather than rewriting.
