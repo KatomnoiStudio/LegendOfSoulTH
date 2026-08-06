@@ -174,9 +174,9 @@ export function useRealtimeBattle({
   /*
     ส่งผลกลับเมื่อการต่อสู้จบ
 
-    ตอนนี้ runtime ยังไปไม่ถึงสถานะ victory/defeat (ยังไม่มีระบบดาเมจ) — เงื่อนไขนี้
-    ใส่ไว้ตั้งแต่ต้นเพราะมันคือ contract ของ hook และเป็นจุดที่ต้องมี guard กันเรียกซ้ำ
-    ระบบที่ทำให้สถานะไปถึงจริงจะเข้ามาในงาน Enemy AI / Damage / Battle End ถัดไป
+    runtime ตั้ง status เป็น 'victory'/'defeat' เองใน RealtimeBattleRuntime.checkBattleEnd()
+    (ผู้เล่นตาย = แพ้, ศัตรูตายหมดทุกคลื่นแล้ว = ชนะ) — completedRef กัน onComplete
+    ถูกเรียกซ้ำถ้า snapshot อัปเดตอีกครั้งหลังจบแล้ว (เช่น publish รอบสุดท้ายจาก interval)
   */
   useEffect(() => {
     if (!runtime || !snapshot) return

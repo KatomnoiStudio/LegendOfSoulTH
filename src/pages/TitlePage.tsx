@@ -111,7 +111,7 @@ export function TitlePage({ onStart }: TitlePageProps) {
       <header className={styles.topBar}>
         <span className={styles.chapter}>บทที่ ๑ · การตื่นของตำนาน</span>
         <span className={styles.topMark} aria-hidden="true">✦</span>
-        <span className={styles.genre}>MYTHIC TURN-BASED RPG</span>
+        <span className={styles.genre}>MYTHIC REAL-TIME RPG</span>
       </header>
 
       <section className={styles.brand} aria-labelledby="game-title">

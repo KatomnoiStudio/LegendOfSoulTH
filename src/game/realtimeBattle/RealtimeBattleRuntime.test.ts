@@ -147,4 +147,62 @@ describe('RealtimeBattleRuntime', () => {
     runtime.publish()
     expect(calls).toBe(0)
   })
+
+  // ask-CB retroactive audit (2026-08-06): ก่อนแก้ checkBattleEnd() ไม่มีทางไหนใน
+  // ทั้งระบบตั้ง status เป็น 'victory'/'defeat' ได้เลย — การต่อสู้จบเองไม่ได้จริง
+  // เทสต์ชุดนี้ล็อกพฤติกรรมไว้ไม่ให้เกิดซ้ำ
+  it('ผู้เล่นเลือดหมด = แพ้ทันที ไม่ต้องรอศัตรู', () => {
+    const runtime = makeRuntime()
+    runtime.step(1000) // ผ่านฉากเปิด
+
+    const state = runtime.getState()
+    state.player.state = 'dead'
+    state.player.hp = 0
+
+    runtime.step(16)
+    expect(runtime.getSnapshot().status).toBe('defeat')
+  })
+
+  it('ศัตรูตายหมดในด่านคลื่นเดียว (trial-01) = ชนะ', () => {
+    const runtime = makeRuntime()
+    runtime.step(1000)
+
+    const state = runtime.getState()
+    expect(state.enemies).toHaveLength(3)
+    for (const enemy of state.enemies) {
+      enemy.state = 'dead'
+      enemy.hp = 0
+    }
+
+    runtime.step(16)
+    expect(runtime.getSnapshot().status).toBe('victory')
+  })
+
+  it('ด่านหลายคลื่น (trial-02) — คลื่นแรกตายหมดแล้วต้องสร้างคลื่นถัดไป ไม่ใช่ชนะทันที', () => {
+    const state = createRealtimeBattle('trial-02', makePlayer())
+    if (!state) throw new Error('สร้างสถานะตั้งต้นไม่สำเร็จ')
+    const runtime = new RealtimeBattleRuntime(state)
+    runtime.step(1000)
+
+    const firstWaveCount = state.enemies.length
+    expect(firstWaveCount).toBeGreaterThan(0)
+    for (const enemy of state.enemies) {
+      enemy.state = 'dead'
+      enemy.hp = 0
+    }
+
+    runtime.step(16)
+    // คลื่นสองต้องถูกสร้างเพิ่มเข้ามา (ศัตรูคลื่นแรกที่ตายแล้วยังอยู่ในลิสต์ด้วย)
+    expect(runtime.getSnapshot().status).toBe('running')
+    expect(state.currentWaveIndex).toBe(1)
+    expect(state.enemies.length).toBeGreaterThan(firstWaveCount)
+
+    // ฆ่าที่เหลือทั้งหมด (รวมคลื่นสอง) แล้วต้องชนะจริง
+    for (const enemy of state.enemies) {
+      enemy.state = 'dead'
+      enemy.hp = 0
+    }
+    runtime.step(16)
+    expect(runtime.getSnapshot().status).toBe('victory')
+  })
 })
