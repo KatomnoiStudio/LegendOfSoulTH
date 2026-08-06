@@ -654,6 +654,36 @@
     - **ยังไม่แตะ**: combat runtime, ไฟล์ของ Agent ตัวแรก, ระบบเทิร์นเดิม, `useGameFlow` — เอกสาร + MEMORY เท่านั้น
     - **Next**: รอ Damage/Combo-Dash/Skill merge → review ต่อใบ → เมื่อ `status` จบเกมทำงาน ปลด gate PR #9
 
+65. **`base` ของ GitHub Pages ผูกกับชื่อ repo ตายตัว — fork ได้หน้าขาว** (2026-08-06T17:20+07:00, `Claude Code (cloud session, Ring 1)`):
+    - **อาการที่ผู้ใช้เจอ**: เปิด `https://nustanakritwithai.github.io/GameTurnBase/` แล้ว**ขาวสนิท**
+      ไม่มี error ให้เห็น
+    - **สาเหตุที่หนึ่ง (ตัวที่ทำให้ขาวอยู่ตอนนั้น) — Pages เสิร์ฟไฟล์ดิบจาก repo**:
+      fetch หน้าจริงมาดูได้ `<script type="module" src="/src/main.tsx">` คือ `index.html`
+      **ต้นฉบับใน repo** ไม่ใช่ไฟล์ที่ build แล้ว → เบราว์เซอร์รัน `.tsx` ไม่ได้และไฟล์นั้น 404
+      แปลว่า Settings → Pages ของ fork ตั้ง Source เป็น **"Deploy from a branch"** ไม่ใช่
+      **"GitHub Actions"** (fork ไม่ได้สืบทอด Pages settings มาจาก upstream)
+      หลักฐานประกอบ: deploy workflow รัน 2 รอบ รอบแรกถูก cancel รอบสองขึ้น
+      `##[error]Deployment cancelled.` ตอนสถานะ `deployment_queued` ซึ่งเป็นอาการของการที่
+      Pages ตั้ง source เป็น branch แล้ว Actions พยายาม deploy เข้ามา
+      **เป็น repo setting ไม่ใช่โค้ด — agent แก้ให้ไม่ได้ ต้องให้เจ้าของ repo กดเอง**
+    - **สาเหตุที่สอง (ยังไม่ระเบิด แต่จะระเบิดทันทีที่แก้ข้อแรก) — แก้แล้วในข้อนี้**:
+      `vite.config.ts` เขียน `base: '/LegendOfSoulTH/'` ตายตัว ซึ่งถูกเฉพาะ repo ต้นทาง
+      fork เสิร์ฟที่ `/GameTurnBase/` asset ทุกตัวจะยิงไป `/LegendOfSoulTH/assets/...` แล้ว 404
+      **ได้หน้าขาวแบบเดียวกัน** — เป็นความผิดพลาดที่จับยากเป็นพิเศษเพราะ HTML ตอบ 200 ปกติ
+      ไม่มี error ใน console เลย มีแต่ `<div id="root">` ว่างเปล่า
+    - **วิธีแก้**: `resolveBasePath()` อ่านชื่อ repo จาก `GITHUB_REPOSITORY` (ตัวแปรที่ GitHub
+      Actions ใส่ให้ทุก workflow อยู่แล้ว) → ถูกทั้ง repo ต้นทาง fork ปัจจุบัน และ fork ใด ๆ
+      ในอนาคตโดยไม่ต้องแก้ไฟล์นี้อีก · `BASE_PATH` เขียนทับได้สำหรับ custom domain ที่เสิร์ฟจาก
+      root · build นอก CI ยังได้ `/LegendOfSoulTH/` เหมือนเดิม ไม่เปลี่ยนพฤติกรรมของเครื่องใคร
+    - **ตรวจจริง ไม่ใช่แค่เทสต์หน่วย**: build 3 รอบด้วย env ต่างกันแล้วอ่าน path ใน
+      `dist/index.html` จริง — fork ได้ `/GameTurnBase/`, upstream ได้ `/LegendOfSoulTH/`,
+      ไม่มี env ได้ค่าเดิม · เสิร์ฟ `dist` ใต้ `/GameTurnBase/` ด้วย static server แล้วเดินเกม
+      ครบ flow ด้วย Playwright: **console error = 0, response ≥ 400 = 0** เข้าห้องต่อสู้และ
+      ตีได้จริง · แล้ว**จำลองบั๊กเดิมซ้ำเพื่อยืนยันการวินิจฉัย**: build ด้วย base เก่าแล้วเสิร์ฟ
+      ที่ path ของ fork ได้ `html = 200` แต่ `js = 404` ตรงตามอาการหน้าขาวเป๊ะ
+    - เทสต์เพิ่ม 4 ตัว (`vite.config.test.ts`, รวม 158): ชื่อ repo ต้นทาง · ชื่อ repo ของ fork ·
+      `BASE_PATH` เขียนทับ · build นอก CI ได้ค่าเดิม
+
 ---
 
 ## 🎯 Current Status (สถานะปัจจุบัน)
@@ -676,6 +706,7 @@
   ที่ `dc07289` แล้ว (ข้อ 62) รวมท่อ asset WebP ใหม่และกฎ `no-console`/`reportError`
 - **RULES_VERSION last synced: 10** (`.agents/rules/rules-freshness-check.md`)
 - **Ring**: this machine is Ring 0 (`.agents/ring0.local` present, gitignored). Any other clone is Ring 1 by default — see `.agents/rules/ring0-authority.md`.
+- **Pages base path**: `vite.config.ts`'s `resolveBasePath()` derives the Vite `base` from `GITHUB_REPOSITORY` at build time (item 65) — never hardcode a repo name there again; a wrong `base` produces a blank page with a 200 HTML response and no console error, which is very hard to spot. Override with `BASE_PATH` for a custom domain served from root.
 - **Pre-push sync**: `.agents/rules/pre-push-sync-law.md` — binding on every machine before every push.
 - **Cloud Agent env**: `.cursor/environment.json` present (item 63) — committed file is the highest-precedence environment source for Cursor Cloud Agents (`install: npm ci`, dev server via `terminals`).
 
