@@ -15,6 +15,8 @@ import {
   type AudioSettings,
 } from '../components/SettingsModal/SettingsModal'
 import { getAudioSettings, initAudioEngine, setAudioSettings } from '../lib/audio/AudioEngine'
+import { getPerformanceSettings, setPerformanceSettings } from '../lib/performanceSettings'
+import type { QualityOverride } from '../hooks/usePerformanceQuality'
 import { SideActions } from '../components/SideActions/SideActions'
 import { StartAdventure } from '../components/StartAdventure/StartAdventure'
 import { TopBar } from '../components/TopBar/TopBar'
@@ -110,6 +112,15 @@ export function LobbyPage({
     setAudioSettings(next)
     setAudio(next)
   }
+  // ยกมาไว้ที่นี่แบบเดียวกับ audio — LobbyScene (ฉาก 3D) ต้องอ่านค่านี้แบบเรียลไทม์
+  // ตอนผู้เล่นเปลี่ยนจาก SettingsModal โดยไม่ต้องปิดแล้วเปิดฉากใหม่
+  const [performanceOverride, setPerformanceOverride] = useState<QualityOverride>(
+    () => getPerformanceSettings().qualityOverride,
+  )
+  const handlePerformanceOverrideChange = (next: QualityOverride) => {
+    setPerformanceSettings({ qualityOverride: next })
+    setPerformanceOverride(next)
+  }
   /**
    * ผู้เล่นที่เคย login ไว้แล้วเข้าตรงมาที่ลอบบี้เลย ไม่ผ่าน TitlePage (ดู App.tsx)
    * ที่นั่นเป็นจุดเดียวที่เคยเรียก initAudioEngine() มาก่อน — คนกลุ่มนี้เลย
@@ -128,6 +139,7 @@ export function LobbyPage({
           teamSlots={player.teamSlots}
           selectedId={selectedId}
           onSelect={setSelectedId}
+          qualityOverride={performanceOverride}
         />
       </Suspense>
 
@@ -210,6 +222,8 @@ export function LobbyPage({
         <SettingsModal
           audio={audio}
           onAudioChange={handleAudioChange}
+          performanceOverride={performanceOverride}
+          onPerformanceOverrideChange={handlePerformanceOverrideChange}
           onLogout={onLogout}
           onRedeemCoupon={onRedeemCoupon}
           ownedCharacterCount={ownedCharacters.length}

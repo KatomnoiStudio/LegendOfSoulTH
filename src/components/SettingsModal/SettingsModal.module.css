@@ -406,6 +406,44 @@
   height: 1.05rem;
 }
 
+/* ---------- หมวดกราฟิก ---------- */
+.qualityRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-2);
+}
+
+.qualityOption {
+  padding: var(--sp-3) var(--sp-2);
+  border: 1px solid var(--c-border-arcane);
+  border-radius: var(--r-md);
+  background: rgb(109 140 255 / 12%);
+  color: var(--c-arcane-light);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-align: center;
+  transition:
+    transform var(--dur-fast) var(--ease-bounce),
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.qualityOption:hover {
+  background: rgb(109 140 255 / 26%);
+}
+
+.qualityOption:active {
+  transform: scale(0.95);
+}
+
+.qualityOption[data-active='true'] {
+  border-color: var(--c-gold);
+  color: var(--c-gold-light);
+  background: rgb(240 200 90 / 12%);
+  box-shadow: var(--glow-gold);
+}
+
 /* ---------- หมวดคูปอง ---------- */
 .couponForm {
   display: flex;
