@@ -365,3 +365,47 @@
 @media (max-height: 480px) {
   .dashBtn { width: 112px; height: 112px; font-size: 1rem; }
 }
+
+.skillBtn {
+  pointer-events: auto;
+  position: relative;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: 2px solid var(--c-gold);
+  background: radial-gradient(circle at 50% 35%, rgb(255 210 120 / 45%), rgb(90 52 10 / 88%));
+  color: var(--c-gold-light);
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  box-shadow: var(--shadow-1);
+  transition: transform 90ms var(--ease-out);
+}
+
+.skillBtn:active { transform: scale(0.94); }
+
+.skillCooldown {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 0;
+  background: rgb(0 0 0 / 62%);
+  pointer-events: none;
+}
+
+.skillLabel {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-height: 480px) {
+  /* ask-CB (2026-08-06): 96px * ~0.43 = 41.3px จริงบนจอ — ต่ำกว่าเกณฑ์ 44px ของสเปกข้อ 12/29
+     (ปุ่มโจมตี/หลบข้างบนผ่านเกณฑ์นี้แล้วตามคอมเมนต์บรรทัด 233) เพิ่มเป็น 108px ให้ scale
+     เป็น ~46.4px ผ่านเกณฑ์เหมือนปุ่มหลบ */
+  .skillBtn { width: 108px; height: 108px; font-size: 1.05rem; }
+}
