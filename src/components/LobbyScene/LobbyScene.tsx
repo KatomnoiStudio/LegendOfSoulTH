@@ -1,4 +1,4 @@
-import { Suspense, useRef, useState, type CSSProperties } from 'react'
+import { Suspense, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { WebGLRenderer, type PerspectiveCamera } from 'three'
 import WebGL from 'three/addons/capabilities/WebGL.js'
@@ -77,6 +77,38 @@ export function LobbyScene({ teamSlots, selectedId, onSelect, qualityOverride }:
   const [webglAvailable] = useState(() => WebGL.isWebGL2Available())
   const [contextLost, setContextLost] = useState(false)
   const [contextLostCode, setContextLostCode] = useState<ErrorCode | null>(null)
+  const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null)
+
+  /*
+    ผูก/ถอด listener ของ WebGL context ใน effect ไม่ใช่ผูกทิ้งไว้ตอน onCreated
+
+    เบราว์เซอร์ยิง webglcontextlost ตอนทำลาย canvas ด้วย ถ้าไม่ถอด listener ก่อน unmount
+    จะได้ error หลอก ๆ ทุกครั้งที่ผู้เล่นออกจากลอบบี้ (เช่นกดออกจากระบบ) ทั้งที่ไม่มีอะไรผิด
+    ไฟล์พี่น้อง BattleScene/RealtimeBattleRoom.tsx เจอบั๊กนี้จริงแล้วแก้ด้วยรูปแบบเดียวกันนี้
+    ตั้งแต่ก่อนหน้า — ลอบบี้เพิ่งตามมาแก้ทีหลัง
+
+    เส้นทาง WebGL2 (fallback) เท่านั้น — WebGPU ผูก onDeviceLost ไว้ในฟังก์ชัน gl ด้านบนแล้ว
+    ผูก listener นี้กับ WebGPURenderer ไม่พังอะไร แค่ไม่มี event ให้ยิงเฉย ๆ
+  */
+  useEffect(() => {
+    if (!canvasElement) return
+
+    const onLost = (event: Event) => {
+      event.preventDefault()
+      reportError('LOBBY_SCENE_WEBGL_CONTEXT_LOST', 'visible')
+      setContextLost(true)
+      setContextLostCode('LOBBY_SCENE_WEBGL_CONTEXT_LOST')
+    }
+    const onRestored = () => setContextLost(false)
+
+    canvasElement.addEventListener('webglcontextlost', onLost)
+    canvasElement.addEventListener('webglcontextrestored', onRestored)
+
+    return () => {
+      canvasElement.removeEventListener('webglcontextlost', onLost)
+      canvasElement.removeEventListener('webglcontextrestored', onRestored)
+    }
+  }, [canvasElement])
   const refreshRate = useDeviceRefreshRate()
   // เริ่มที่ 'high' มองโลกในแง่ดีไว้ก่อน — usePerformanceQuality (ใน Canvas ด้านล่าง) ปรับให้
   // ภายในไม่กี่วินาทีถ้าเครื่องรับไม่ไหวจริง (ask-CB opinion lane, 2026-08-06 — ดู CHANGELOG/MEMORY)
@@ -174,19 +206,7 @@ export function LobbyScene({ teamSlots, selectedId, onSelect, qualityOverride }:
         camera={{ position: CAM_BASE, fov: 32, near: 0.1, far: 60 }}
         // คลิกพื้นที่ว่าง = ยกเลิกการเลือก
         onPointerMissed={() => onSelect(null)}
-        onCreated={({ gl }) => {
-          // เส้นทาง WebGL2 (fallback) เท่านั้น — WebGPU ผูก onDeviceLost ไว้ในฟังก์ชัน gl ด้านบนแล้ว
-          // เรียก addEventListener ซ้ำที่นี่กับ WebGPURenderer ไม่พังอะไร แค่ไม่มี event ให้ยิงเฉย ๆ
-          gl.domElement.addEventListener('webglcontextlost', (e) => {
-            e.preventDefault()
-            reportError('LOBBY_SCENE_WEBGL_CONTEXT_LOST', 'visible')
-            setContextLost(true)
-            setContextLostCode('LOBBY_SCENE_WEBGL_CONTEXT_LOST')
-          })
-          gl.domElement.addEventListener('webglcontextrestored', () => {
-            setContextLost(false)
-          })
-        }}
+        onCreated={({ gl }) => setCanvasElement(gl.domElement)}
       >
         <Suspense fallback={null}>
           <PerformanceMonitor budgetMs={budgetMs} override={qualityOverride} onTierChange={setTier} />

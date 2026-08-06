@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { reportError } from '../lib/errors/reportError'
 
 /** เว้นระยะเช็คแต่ละรอบ — ไม่ถี่จนรบกวน GitHub Pages เปล่า ๆ */
 const CHECK_INTERVAL_MS = 5 * 60 * 1000
@@ -34,8 +35,11 @@ export function useDeployWatcher(): boolean {
         if (!res.ok) return
         const latestEntry = extractEntryScript(await res.text())
         if (latestEntry && latestEntry !== currentEntry) setHasUpdate(true)
-      } catch {
-        // เน็ตหลุดชั่วคราว/ออฟไลน์ — เงียบไว้ รอบถัดไปเช็คใหม่เอง
+      } catch (error) {
+        // เน็ตหลุดชั่วคราว/ออฟไลน์ — ไม่ต้องกวนผู้เล่น รอบถัดไปเช็คใหม่เอง
+        // แต่ยังต้องผ่าน reportError ตามกติกาใน .agents/rules/ecc/web/observability.md
+        // ("ทุก catch ต้องผ่าน reportError") จะได้ grep เจอเวลาเช็คไม่เคยสำเร็จสักรอบ
+        reportError('DEPLOY_CHECK_FAIL', 'silent', error)
       }
     }
 

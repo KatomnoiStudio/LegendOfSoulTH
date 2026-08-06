@@ -7,6 +7,8 @@ import type {
   GoldSource,
 } from '../data/accountRepository'
 import { isAdminEmail } from '../data/admins'
+import { reportError } from '../lib/errors/reportError'
+import { downloadSaveJson } from '../lib/saveFile'
 import type { Player } from '../types/player'
 
 /**
@@ -99,11 +101,36 @@ export function useAuth(): AuthState {
     setStatus('guest')
   }, [])
 
-  const updatePlayer = useCallback(async (next: Player) => {
-    // อัปเดตหน้าจอทันที แล้วค่อยเขียนลงฐานข้อมูล
-    setPlayer(next)
-    await accounts.savePlayer(next)
-  }, [])
+  /*
+    เขียนความคืบหน้าผู้เล่นลงที่เก็บข้อมูล — คืน true เมื่อบันทึกลงจริง
+
+    เดิมทิ้งค่าที่ savePlayer คืนมาโดยไม่ดู ทั้งที่ทุกฟังก์ชันพี่น้องใน accountRepository
+    (register/login/importSave/earnGold/...) เช็คค่าเดียวกันนี้แล้วขึ้นข้อความบอกผู้ใช้
+    และนี่คือเส้นทางเขียนของความคืบหน้าทั้งเกม — ทีม อัปเกรด เงิน ผลต่อสู้ เพื่อน
+    ผลคือพื้นที่เก็บข้อมูลเต็มแล้วหน้าจอยังโชว์เหมือนเซฟติด ผู้เล่นเล่นต่อจนปิดแท็บ
+    แล้วของหายทั้งหมดโดยไม่เคยมีสัญญาณอะไรเลย
+
+    ที่นี่ประกาศผลด้วยการ "ย้อนหน้าจอกลับ" ไม่ใช่ toast เพราะ useAuth ถูกเรียกเหนือ
+    ToastProvider ใน App.tsx จึงเรียก useToast ไม่ได้ และการโชว์ค่าเดิมที่เป็นความจริง
+    ดีกว่าโชว์ค่าใหม่ที่ไม่ได้ถูกบันทึก
+
+    ไม่คืนค่า boolean ออกไปทั้งที่รู้ผล เพราะยังไม่มีผู้เรียกรายไหนต้องใช้ — การเปลี่ยน
+    ชนิดที่คืนต้องไล่แก้ prop ของผู้เรียกอีกสี่ไฟล์เพื่อค่าที่ไม่มีใครอ่าน ถ้าวันหลังมีที่ที่
+    อยากบอกผู้เล่นละเอียดกว่านี้ ค่อยเปิดค่าคืนตอนนั้น
+  */
+  const updatePlayer = useCallback(
+    async (next: Player) => {
+      const previous = player
+      // อัปเดตหน้าจอทันที แล้วค่อยเขียนลงฐานข้อมูล
+      setPlayer(next)
+
+      if (!(await accounts.savePlayer(next))) {
+        reportError('PLAYER_SAVE_FAIL', 'visible')
+        setPlayer(previous)
+      }
+    },
+    [player],
+  )
 
   // สี่ฟังก์ชันด้านล่างคุยกับ accountRepository ที่บังคับระบุแหล่งที่มาของทอง/หยกเสมอ
   // (ดูคอมเมนต์หัวไฟล์ accountRepository.ts) จึงไม่มี setGold/setGem ตรง ๆ ให้เรียกจากที่อื่น
@@ -166,13 +193,7 @@ export function useAuth(): AuthState {
     if (!result.ok) return result.error
 
     // ดาวน์โหลดเป็นไฟล์ .json — ไม่มี backend ให้ส่งไปเก็บ ผู้เล่นต้องเก็บไฟล์เอง
-    const blob = new Blob([result.json], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `legend-of-soul-th-save-${new Date().toISOString().slice(0, 10)}.json`
-    link.click()
-    URL.revokeObjectURL(url)
+    downloadSaveJson(result.json)
     return null
   }, [])
 
