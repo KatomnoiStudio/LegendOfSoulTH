@@ -42,6 +42,8 @@ interface UseRealtimeBattleValue {
   requestExit: () => void
   /** จอยสติกบนจอสัมผัสส่งเวกเตอร์เดินเข้ามาทางนี้ (คีย์บอร์ดต่อตรงกับ InputSystem อยู่แล้ว) */
   setJoystick: (vector: Vec2) => void
+  /** ปุ่มโจมตีบนจอสัมผัส */
+  pressAttack: () => void
 }
 
 /** ชุดเฟรมที่ห้องนี้ต้องใช้ = ตัวละครนำของผู้เล่น + ศัตรูทุกตัวในทุกคลื่นของด่าน */
@@ -123,6 +125,7 @@ export function useRealtimeBattle({
           step: (deltaMs) => {
             // ป้อนอินพุตล่าสุดก่อนเดินการจำลองทุกก้าว — runtime ไม่รู้จักคีย์บอร์ด/จอย
             created?.setMoveInput(input.getMoveVector())
+            if (input.consumeAttack()) created?.requestAttack()
             created?.step(deltaMs)
           },
         })
@@ -187,7 +190,11 @@ export function useRealtimeBattle({
     inputRef.current?.setJoystick(vector)
   }, [])
 
+  const pressAttack = useCallback(() => {
+    inputRef.current?.pressAttack()
+  }, [])
+
   const phase: BattlePhase = errorMessage ? 'error' : runtime && snapshot ? 'ready' : 'loading'
 
-  return { phase, errorMessage, runtime, snapshot, requestExit, setJoystick }
+  return { phase, errorMessage, runtime, snapshot, requestExit, setJoystick, pressAttack }
 }
