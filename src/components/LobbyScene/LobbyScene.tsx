@@ -136,7 +136,18 @@ export function LobbyScene({ teamSlots, selectedId, onSelect, qualityOverride }:
             try {
               const { WebGPURenderer } = await import('three/webgpu')
               renderer = new WebGPURenderer(rendererProps)
-              await renderer.init()
+              // renderer.init() เรียก navigator.gpu.requestAdapter() ใต้ฝาครอบ — เจอจริงว่า
+              // driver/GPU บางตัวประกาศรองรับ WebGPU (navigator.gpu มีอยู่) แต่การเจรจา
+              // adapter ค้างตลอดกาล ไม่ resolve ไม่ reject เลย (ผู้เล่นรายงานว่าเกม "ค้างยาว"
+              // หลังล็อกอิน — เกิดตรงนี้ ไม่ใช่ตอน login จริง) กันด้วย timeout แล้วตกไป WebGL2
+              // แทนที่จะรอเฉย ๆ ไม่มีกำหนด
+              const INIT_TIMEOUT_MS = 4000
+              await Promise.race([
+                renderer.init(),
+                new Promise((_resolve, reject) => {
+                  setTimeout(() => reject(new Error('WebGPU renderer.init() timed out')), INIT_TIMEOUT_MS)
+                }),
+              ])
               // WebGPU ไม่ยิง DOM event 'webglcontextlost' (นั่นเป็นกลไกเฉพาะ WebGL) —
               // ต้องผูก onDeviceLost ของตัว renderer เองแทน ไม่งั้นการ์ดจอหลุดแล้วเงียบ
               // ไม่มี fallback UI ให้เห็นเลย (ต่างจากฝั่ง WebGL2 ด้านล่างที่ยังใช้ DOM event เดิม)

@@ -71,7 +71,13 @@
   pointer-events: auto;
 }
 
-@media (max-width: 720px) {
+/*
+  (max-width: 720px), (max-height: 560px) รวมกันด้วย OR (คอมมาใน media query) —
+  จอมือถือแนวนอน (กว้าง > 720px แต่เตี้ย) ไม่เคยเข้า max-width มาก่อน .startRow เลยค้าง
+  ตำแหน่งชิดขอบล่างแบบ desktop ทับ MainNavigation ที่ก็ขยับมาเต็มความกว้างจอที่เตี้ยเหมือนกัน
+  (พิสูจน์จริงด้วย getBoundingClientRect ที่ 900x400 ก่อนแก้บรรทัดนี้ — overlap: true)
+*/
+@media (max-width: 720px), (max-height: 560px) {
   .stage {
     padding-block: var(--sp-3);
     align-items: flex-start;
@@ -79,7 +85,10 @@
 
   .startRow {
     inset-inline-end: 12px;
-    inset-block-end: 92px;
+    /* 92px เดิมพอสำหรับเคส max-width (จอแคบแต่สูงพอ) แต่ยังทับ MainNavigation ที่เคส
+       max-height (จอเตี้ย) จริงตามที่วัดด้วย getBoundingClientRect (เหลื่อม ~7px ตอน
+       92px) เผื่อเพิ่มเป็น 106px ให้มีระยะห่างจริงในทั้งสองเคส */
+    inset-block-end: 106px;
   }
 }
 
