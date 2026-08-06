@@ -2,6 +2,7 @@ import { getCharacter } from '../game/characters'
 import { getItem } from '../game/items'
 import { generateUid } from '../game/uid'
 import { TEAM_SIZE } from '../game/team'
+import { reportError } from '../lib/errors/reportError'
 import { createSalt, hashPassword, needsRehash, verifyPassword } from '../lib/password'
 import { isStorageAvailable, readJson, removeKey, writeJson } from '../lib/storage'
 import { EMPTY_PROGRESS, type FriendCandidate, type Player } from '../types/player'
@@ -373,7 +374,8 @@ export async function importSave(json: string): Promise<AuthResult> {
   let parsed: SaveExport
   try {
     parsed = JSON.parse(json)
-  } catch {
+  } catch (error) {
+    reportError('SAVE_IMPORT_PARSE_FAIL', 'silent', error)
     return { ok: false, error: 'ไฟล์ save เสียหายหรือไม่ใช่ไฟล์ที่ถูกต้อง' }
   }
 

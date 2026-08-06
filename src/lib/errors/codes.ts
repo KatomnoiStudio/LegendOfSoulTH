@@ -25,6 +25,11 @@ export const ERROR_CODES = {
   STORAGE_WRITE_FAIL: 'บันทึกข้อมูลไม่สำเร็จ',
   STORAGE_REMOVE_FAIL: 'ลบข้อมูลที่บันทึกไว้ไม่สำเร็จ',
 
+  // นำเข้าไฟล์ save — SILENT เพราะผู้เล่นเห็นข้อความบอกสาเหตุอยู่แล้วจาก AuthModal
+  // มีรหัสไว้เพื่อให้ผู้เล่นอ้างอิงได้เวลาแจ้งปัญหา: เกมนี้ไม่ส่ง telemetry ไปไหน
+  // (ตัดสินใจไว้แล้ว ดู .agents/rules/ecc/web/observability.md) รหัสจึงทำหน้าที่แทน stack trace
+  SAVE_IMPORT_PARSE_FAIL: 'ไฟล์ save ที่เลือกไม่ใช่ JSON ที่อ่านได้',
+
   // เข้าสู่ระบบ/โปรไฟล์ — SILENT เพราะไม่ critical (last-email เป็นแค่ความสะดวก,
   // clipboard fail ผู้เล่นเห็น toast อยู่แล้วจากอีกทาง)
   AUTH_UI_READ_FAIL: 'อ่านอีเมลล่าสุดไม่สำเร็จ',
