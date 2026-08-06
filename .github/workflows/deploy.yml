@@ -1,16 +1,10 @@
 name: Deploy to GitHub Pages
 
-# Fork-only workflow (nustanakritwithai/GameTurnBase)
-# เป้าหมาย: build + publish ไป https://nustanakritwithai.github.io/GameTurnBase/
-# ไม่ดึง upstream-skill-watch / ไม่ sync CI จาก LegendofSoulTH
+# Fork-only (nustanakritwithai/GameTurnBase)
+# Deploy เฉพาะกิจ — ไม่รันตอน push อัตโนมัติ
+# อยากเทส → ให้ AI / คนกด workflow_dispatch (Actions → Deploy → Run workflow)
 
 on:
-  push:
-    branches: [ master ]
-    paths-ignore:
-      - '**/*.md'
-      - '.agents/**'
-      - '.coalmine.json'
   workflow_dispatch:
 
 permissions:
