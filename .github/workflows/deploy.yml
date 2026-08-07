@@ -168,6 +168,10 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # public site key (ไม่ใช่ secret จริง — ออกแบบมาให้ฝังใน client bundle ได้ เหมือน anon
+          # key ด้านบน) ไม่มีค่านี้ตอน build ทำให้ AuthModal.tsx ข้าม render widget ไปเงียบ ๆ
+          # ถ้า Supabase เปิด CAPTCHA บังคับไว้ real login จะพังทั้งเว็บ (เกิดจริงมาแล้ว 2026-08-08)
+          VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
         run: npm run build
 
       - name: Generate SBOM
