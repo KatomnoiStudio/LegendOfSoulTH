@@ -3,11 +3,14 @@ import { GAME_INFO } from '../game/gameInfo'
 import { getItem } from '../game/items'
 import { generateUid } from '../game/uid'
 import { TEAM_SIZE } from '../game/team'
-import { createDefaultSkillLevels } from '../game/realtimeBattle/SkillProgressionSystem'
 import { reportError } from '../lib/errors/reportError'
 import { createSalt, hashPassword, needsRehash, verifyPassword } from '../lib/password'
 import { isStorageAvailable, readJson, removeKey, writeJson } from '../lib/storage'
 import { EMPTY_PROGRESS, type FriendCandidate, type Player } from '../types/player'
+import {
+  createInitialOwnedCharacterProgress,
+  migrateOwnedCharacters,
+} from '../game/progression/progressionMigration'
 import {
   GEM_PACKAGES,
   GOLD_PACKAGES,
@@ -309,14 +312,9 @@ function normalizePlayer(player: Player): Player {
     progress: player.progress ?? EMPTY_PROGRESS,
     inventory: player.inventory ?? [],
     friends: player.friends ?? [],
-    ownedCharacters: Array.isArray(player.ownedCharacters)
-      ? player.ownedCharacters.map((owned) => ({
-          ...owned,
-          // บัญชีเก่าก่อนมีระบบเลเวลสกิลจะไม่มีฟิลด์นี้ — เติม default แทนปล่อยให้ UI ที่ deref
-          // owned.skillLevels.skill1 ตรง ๆ พังทันที (เหมือน inventory ?? [] ด้านบน)
-          skillLevels: owned.skillLevels ?? createDefaultSkillLevels(),
-        }))
-      : [],
+    ownedCharacters: migrateOwnedCharacters(
+      Array.isArray(player.ownedCharacters) ? player.ownedCharacters : [],
+    ),
     teamSlots: Array.isArray(player.teamSlots)
       ? player.teamSlots
       : Array.from({ length: TEAM_SIZE }, () => null),
@@ -343,14 +341,7 @@ function createNewPlayer(uid: string): Player {
     currency: { gold: 500, gem: 20 },
     // สมัครใหม่ได้ตัวละครฟรี 1 ตัว ยืนช่องแรก อีก 3 ช่องว่าง
     ownedCharacters: [
-      {
-        characterId: STARTER_CHARACTER_ID,
-        level: 1,
-        exp: 0,
-        expToNext: 500,
-        obtainedAt: new Date().toISOString(),
-        skillLevels: createDefaultSkillLevels(),
-      },
+      createInitialOwnedCharacterProgress(STARTER_CHARACTER_ID, new Date().toISOString()),
     ],
     teamSlots: Array.from({ length: TEAM_SIZE }, (_, index) =>
       index === 0 ? STARTER_CHARACTER_ID : null,
@@ -779,14 +770,7 @@ export async function grantCharacter(
       ...account.player,
       ownedCharacters: [
         ...owned,
-        {
-          characterId,
-          level: 1,
-          exp: 0,
-          expToNext: 500,
-          obtainedAt: new Date().toISOString(),
-          skillLevels: createDefaultSkillLevels(),
-        },
+        createInitialOwnedCharacterProgress(characterId, new Date().toISOString()),
       ],
     },
   }

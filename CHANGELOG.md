@@ -5,6 +5,30 @@
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-08-07
+
+P8 Character Progression — per-hero level/EXP, skill upgrades, talent/awakening foundation
+
+### Added
+
+- `src/game/progression/` — schema, config (NON-PRODUCTION balance), migration, EXP service, skill/talent/awakening services, stat resolver, view model, validator
+- Per-hero `skillLevels`, `talentState`, `awakeningState` on `OwnedCharacter` with save migration
+- Reward pipeline routes `heroExp` through `ProgressionService.applyHeroExpToLeadHero`; account EXP via `applyAccountExp`
+- Combat snapshot uses `resolveFinalCombatStats` from hero level progression
+- `HeroProgressionPanel` in Character Roster (พัฒนา tab) — EXP bar, skills, talent, awakening
+- Progression tests (+23 tests)
+
+### Changed
+
+- `normalizePlayer` / Supabase `loadPlayer` migrate legacy owned-character saves
+- `grantCharacter` / new-player starter uses `createInitialOwnedCharacterProgress`
+
+### Placeholder / Ring 0 TBD
+
+- EXP curve, stat growth, skill costs/max levels, awakening numerics — all labeled NON-PRODUCTION
+- Max-level EXP overflow: `clamp_zero` (reversible)
+- Supabase `owned_characters` columns for skill/talent/awakening not yet persisted server-side
+
 ## [0.11.1] - 2026-08-07
 
 Camera +30% view height fix — revert character tilt regression from v0.8.3 misinterpretation

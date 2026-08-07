@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabaseClient'
 import { generateUid } from '../game/uid'
 import { TEAM_SIZE } from '../game/team'
 import { createDefaultSkillLevels } from '../game/realtimeBattle/SkillProgressionSystem'
+import { migrateOwnedCharacters } from '../game/progression/progressionMigration'
 import {
   EMPTY_PROGRESS,
   type FriendCandidate,
@@ -126,7 +127,7 @@ async function loadPlayer(profileId: string): Promise<Player | null> {
     exp: profile.exp,
     expToNext: profile.exp_to_next,
     currency: { gold: profile.gold, gem: profile.gem },
-    ownedCharacters: (charsRes.data ?? []).map(mapOwnedCharacterRow),
+    ownedCharacters: migrateOwnedCharacters((charsRes.data ?? []).map(mapOwnedCharacterRow)),
     inventory: (itemsRes.data ?? []).map((i) => ({
       itemId: i.item_id,
       quantity: i.quantity,

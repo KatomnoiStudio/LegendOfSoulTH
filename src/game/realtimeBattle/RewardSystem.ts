@@ -88,12 +88,8 @@ export function calculateBattleReward(
   }
 }
 
-/**
- * บวก EXP ให้บัญชีผู้เล่น (และขุนพลตัวนำถ้ามี) — ขึ้นเลเวลเมื่อครบเกณฑ์
- *
- * ไม่แตะคลังทอง/ไอเทม (ทองต้องผ่าน earnGold, ไอเทมผ่าน grantItem)
- */
-export function applyBattleExp(player: Player, earnedExp: number): Player {
+/** บวก EXP ให้เลเวลบัญชีผู้เล่นเท่านั้น — hero EXP ผ่าน progression service */
+export function applyAccountExp(player: Player, earnedExp: number): Player {
   if (earnedExp <= 0) return player
 
   let { level, exp, expToNext } = player
@@ -106,23 +102,34 @@ export function applyBattleExp(player: Player, earnedExp: number): Player {
     guard += 1
   }
 
-  const leadId = player.teamSlots.find((id): id is string => id !== null) ?? null
-  const ownedCharacters = leadId
-    ? player.ownedCharacters.map((slot) => {
-        if (slot.characterId !== leadId) return slot
-        let cLevel = slot.level
-        let cExp = slot.exp + earnedExp
-        let cNext = slot.expToNext
-        let cGuard = 0
-        while (cExp >= cNext && cNext > 0 && cGuard < 20) {
-          cExp -= cNext
-          cLevel += 1
-          cNext = Math.max(1, Math.round(cNext * 1.2))
-          cGuard += 1
-        }
-        return { ...slot, level: cLevel, exp: cExp, expToNext: cNext }
-      })
-    : player.ownedCharacters
+  return { ...player, level, exp, expToNext }
+}
 
-  return { ...player, level, exp, expToNext, ownedCharacters }
+/**
+ * บวก EXP ให้บัญชีผู้เล่น (และขุนพลตัวนำถ้ามี) — legacy path สำหรับ LobbyBattleSession
+ *
+ * Dungeon rewards ใช้ applyAccountExp + progressionService.applyHeroExp แทน
+ */
+export function applyBattleExp(player: Player, earnedExp: number): Player {
+  if (earnedExp <= 0) return player
+  const withAccount = applyAccountExp(player, earnedExp)
+  const leadId = player.teamSlots.find((id): id is string => id !== null) ?? null
+  if (!leadId) return withAccount
+
+  const ownedCharacters = withAccount.ownedCharacters.map((slot) => {
+    if (slot.characterId !== leadId) return slot
+    let cLevel = slot.level
+    let cExp = slot.exp + earnedExp
+    let cNext = slot.expToNext
+    let cGuard = 0
+    while (cExp >= cNext && cNext > 0 && cGuard < 20) {
+      cExp -= cNext
+      cLevel += 1
+      cNext = Math.max(1, Math.round(cNext * 1.2))
+      cGuard += 1
+    }
+    return { ...slot, level: cLevel, exp: cExp, expToNext: cNext }
+  })
+
+  return { ...withAccount, ownedCharacters }
 }

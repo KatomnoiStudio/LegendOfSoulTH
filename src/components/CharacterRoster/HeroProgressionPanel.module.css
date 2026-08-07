@@ -1,0 +1,139 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid rgb(225 179 76 / 16%);
+  background: rgb(3 14 24 / 35%);
+}
+
+.balanceNote {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: rgb(255 196 120 / 75%);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgb(230 218 184 / 70%);
+}
+
+.expHead {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+
+.expTrack {
+  height: 8px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 35%);
+  overflow: hidden;
+}
+
+.expFill {
+  height: 100%;
+  background: linear-gradient(90deg, #c98a2e, #f7dc93);
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 10px;
+  margin: 0;
+}
+
+.statGrid dt {
+  font-size: 0.7rem;
+  color: rgb(230 218 184 / 60%);
+}
+
+.statGrid dd {
+  margin: 0;
+  font-weight: 700;
+  color: #f7dc93;
+}
+
+.skillList,
+.talentList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skillRow,
+.talentRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgb(225 179 76 / 12%);
+  background: rgb(0 0 0 / 18%);
+}
+
+.skillInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.skillName {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f7dc93;
+}
+
+.skillLevel,
+.skillCost {
+  font-size: 0.72rem;
+  color: rgb(230 218 184 / 68%);
+}
+
+.upgradeBtn {
+  flex-shrink: 0;
+  min-height: 36px;
+  min-width: 72px;
+  padding: 6px 10px;
+  border: 1px solid rgb(225 179 76 / 35%);
+  border-radius: 4px;
+  background: rgb(66 31 29 / 45%);
+  color: #f7dc93;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.upgradeBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.unlocked {
+  color: #9fd4a0;
+}
+
+.locked {
+  color: rgb(230 218 184 / 75%);
+}
+
+.awakeningSummary {
+  margin: 0;
+  font-size: 0.78rem;
+  color: rgb(230 218 184 / 75%);
+}

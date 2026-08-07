@@ -27,13 +27,13 @@
 
 ## 🎯 Current Status
 
-- **Repo**: all 5 open upstream PRs processed — #29/#28/#30/#31/#32 merged (items 109-113), #33 (P8 character progression v0.12.0) still **draft**, not merge-ready, likely conflicts with this session's own Progression system #14 — left alone until HetCreep marks it ready or asks to pull it anyway.
-- **Version**: **0.11.1** (camera fix, item 113).
+- **Repo**: upstream #29–#32 merged · **#33** (P8 v0.12.0) rebased onto `master` 2026-08-07 — integrates `SkillProgressionSystem` (#14) + `src/game/progression/` (talent/awakening/reward/combat/UI); draft, awaiting review.
+- **Version**: **0.12.0** on `cursor/p8-character-progression-35fc` · **0.11.1** on `master`.
 - **Org/Live**: `KatomnoiStudio` — https://katomnoistudio.github.io/LegendOfSoulTH/
 - **Backend**: Supabase Auth+Postgres live, wired via `useAuth.ts` (item 41/87). `accountRepository.ts` (localStorage) stays as a dormant fallback seam only.
 - **Master Blueprint v3.0**: P0–P3 DONE · §3.6/§3.7 LOCKED · mobile combat UI done (§3.3) · P4 LANDED (item 109) · P5 dungeon slice + reward pipeline LANDED (items 111-112) · P8 upstream PR (#33) queued as draft.
 - **Battle (current)**: realtime, 2.5D side-down, telegraph→hitstun→interrupt→knockdown/getUp lifecycle (P4), hard target-lock + soft-target assist, camera 30°+8-dir sprites +30% height fix (item 113), P5 dungeon run (`DungeonSession`, 4-stage vertical slice: survival→hazard→elite→boss) with its own reward pipeline (`src/game/reward/` — resolve→grant→save→result UI, independent of `StageVariationSystem.ts`) reachable via lobby "เริ่มการผจญภัย".
-- **Still open**: per-hero finisher numbers · fork gap issues [#34–#44](https://github.com/nustanakritwithai/GameTurnBase/issues/34) (not blocking) · upstream PR #33-draft (P8 Progression, needs HetCreep's call on the #14 overlap before pulling).
+- **Still open**: per-hero finisher numbers · fork gap issues [#34–#44](https://github.com/nustanakritwithai/GameTurnBase/issues/34) (not blocking) · upstream PR #33-draft (P8 — rebased, integrates #14 skill shape).
 - **Gold-standard**: current figure is item 99's **77%** (12-dim AUDIT+FILL+ADOPT). An earlier ~84% figure merged in via PR #25 is SUPERSEDED — different scoring pass/day, don't average or reconcile.
 - **UI/UX gold-standard backlog**: `.agents/rules/gold-standard-baseline.md` — MUST-HAVEs closed, EXCELLENCE-tier gaps (3D char-select keyboard path, tab-strip `aria-controls`, `AuthModal` live-validation, breakpoint tokens, some reduced-motion) tracked there, not scaffolded.
 - **Security posture**: real Supabase/RLS/RPC trust boundary (`SECURITY.md` corrected item 99). CodeQL + Dependabot + Secret Scanning + Gitleaks + NPM Audit + branch protection + SHA-pinning all on; `secret_scanning_validity_checks` needs manual toggle (Settings → Code security).

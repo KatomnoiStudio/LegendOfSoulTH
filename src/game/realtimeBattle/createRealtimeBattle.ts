@@ -11,6 +11,7 @@ import {
 import { resolveEnemyFormation, resolvePlayerSpawn } from './spawnFormation'
 import type { RealtimeBattleEntity } from './types'
 import { calcMaxHp } from '../battle/formulas'
+import { resolveFinalCombatStats } from '../progression/heroStatsResolver'
 
 /**
  * สร้างสถานะตั้งต้นของห้องต่อสู้ real-time จากข้อมูลผู้เล่นจริง
@@ -61,7 +62,8 @@ export function createPlayerEntity(player: Player): RealtimeBattleEntity | null 
 
   const owned = player.ownedCharacters.find((entry) => entry.characterId === character.id)
   const level = owned?.level ?? character.level
-  const maxHp = calcMaxHp(level, character.stats.def)
+  const combatStats = resolveFinalCombatStats({ heroId: character.id, level }) ?? character.stats
+  const maxHp = calcMaxHp(level, combatStats.def)
 
   return {
     id: 'player',
@@ -74,8 +76,8 @@ export function createPlayerEntity(player: Player): RealtimeBattleEntity | null 
     state: 'idle',
     hp: maxHp,
     maxHp,
-    atk: character.stats.atk,
-    def: character.stats.def,
+    atk: combatStats.atk,
+    def: combatStats.def,
     speed: PLAYER_BASE_SPEED,
     collisionRadius: 34,
     hurtboxRadius: 42,
