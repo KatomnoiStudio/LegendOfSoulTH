@@ -8,13 +8,13 @@
 
 **`docs/MASTER_BLUEPRINT_v3.0.md` is the Product North Star for Legend of Soul TH.**
 
-[`docs/MASTER_BLUEPRINT_v1.0.md`](../../docs/MASTER_BLUEPRINT_v1.0.md), [`docs/BLUEPRINT_GAP_ANALYSIS.md`](../../docs/BLUEPRINT_GAP_ANALYSIS.md), and any v2.0 in-flight draft are **SUPERSEDED** — historical only.
+Blueprint v1.0, the v1.0-era gap analysis, and any v2.0 in-flight draft are **SUPERSEDED** and deleted — `docs/MASTER_BLUEPRINT_v3.0.md` is the only blueprint file in the repo (2026-08-07 consolidation).
 
 Agents must treat locked decisions in v3.0 as binding product direction.
 
 ## What this means
 
-1. Before gameplay/systems work, read Master Blueprint v3.0 and [`docs/BLUEPRINT_V3_MIGRATION_AUDIT.md`](../../docs/BLUEPRINT_V3_MIGRATION_AUDIT.md).
+1. Before gameplay/systems work, read Master Blueprint v3.0 (`docs/MASTER_BLUEPRINT_v3.0.md`) in full.
 2. Conflicting code → **CURRENT / LEGACY / SUPERSEDED / DEFERRED** — document; do not silently match code to old blueprints.
 3. **Docs/audit PRs** classify only — no combat, stage, gacha, PvP, or loot implementation.
 4. Implementation PRs name blueprint section + roadmap priority (P1–P15); **one topic = one PR**.

@@ -12,11 +12,11 @@
 
 > ขอบเขตปัจจุบัน: หน้า Lobby + สมัคร/ล็อกอิน + ระบบทอง/หยกพื้นฐาน + ระบบต่อสู้เรียลไทม์ + รางวัลหลังต่อสู้จริง
 > ปุ่มเมนูส่วนใหญ่ยังเป็น placeholder — กดได้แต่แสดง toast `Coming soon`
-> ยังไม่มีเควส / backend server (ดูหัวข้อ "บัญชีผู้เล่นและทอง/หยก" ด้านล่าง) — **ระบบดรอปทองจากต่อสู้มีจริงแล้ว**
-> (`RewardSystem` ผ่าน `earnGold`/`grantItem`, ดู PR #14) โหมดเดิน/สำรวจ (`dialogue/npc/exploration/flow`)
+> ยังไม่มีเควส (ดูหัวข้อ "บัญชีผู้เล่นและทอง/หยก" ด้านล่าง) — **ระบบดรอปทองจากต่อสู้มีจริงแล้ว**
+> (`RewardSystem` ผ่าน `earnGold`/`grantItem`, ดู PR #14) **มี backend server จริงแล้ว** (Supabase Auth +
+> Postgres, ดู `src/data/accountRepository.supabase.ts`) โหมดเดิน/สำรวจ (`dialogue/npc/exploration/flow`)
 > โค้ดยังอยู่ครบแต่**ไม่มีทางเข้าในเกมตอนนี้** — LEGACY ตั้งแต่ PR #11 ไม่ใช่ขอบเขตที่ใช้งานอยู่
-> (แผนผลิตภัณฑ์เต็ม → [`docs/MASTER_BLUEPRINT_v1.0.md`](docs/MASTER_BLUEPRINT_v1.0.md), gap ต่อของจริง →
-> [`docs/BLUEPRINT_GAP_ANALYSIS.md`](docs/BLUEPRINT_GAP_ANALYSIS.md))
+> (แผนผลิตภัณฑ์เต็ม → [`docs/MASTER_BLUEPRINT_v3.0.md`](docs/MASTER_BLUEPRINT_v3.0.md))
 
 ## คำสั่ง
 

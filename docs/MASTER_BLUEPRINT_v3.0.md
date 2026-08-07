@@ -7,8 +7,7 @@
 > **Created**: 2026-08-07  
 > **Source**: HetCreep baseline refinement — supersedes v2.0 in-flight direction  
 > **Scope**: Documentation / Governance / Audit / Migration Roadmap only  
-> **Companion**: [`BLUEPRINT_V3_MIGRATION_AUDIT.md`](BLUEPRINT_V3_MIGRATION_AUDIT.md)  
-> **Supersedes**: [`MASTER_BLUEPRINT_v1.0.md`](MASTER_BLUEPRINT_v1.0.md) · v2.0 draft/PR direction · [`BLUEPRINT_GAP_ANALYSIS.md`](BLUEPRINT_GAP_ANALYSIS.md)
+> **Supersedes**: Blueprint v1.0, v2.0 draft direction, and the v1.0-era gap analysis — all deleted, this is the sole blueprint file (§14)
 
 ---
 
@@ -543,13 +542,12 @@ Before wide systems:
 
 # §13 — Source of truth
 
-| Layer             | Document                               |
-| ----------------- | -------------------------------------- |
-| Product direction | `docs/MASTER_BLUEPRINT_v3.0.md`        |
-| Migration reality | `docs/BLUEPRINT_V3_MIGRATION_AUDIT.md` |
-| Project memory    | `MEMORY.md`                            |
-| Implementation    | Source code                            |
-| Verification      | Tests                                  |
+| Layer             | Document                        |
+| ----------------- | ------------------------------- |
+| Product direction | `docs/MASTER_BLUEPRINT_v3.0.md` |
+| Project memory    | `MEMORY.md`                     |
+| Implementation    | Source code                     |
+| Verification      | Tests                           |
 
 ---
 
