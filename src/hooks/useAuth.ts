@@ -33,6 +33,10 @@ export interface AuthState {
    */
   loginWithGoogle: () => Promise<string | null>
   logout: () => Promise<void>
+  /** เชื่อมบัญชีนี้ (ไม่ว่าล็อกอินด้วย email หรือ Google) เข้ากับ Google — ต้อง signed-in อยู่แล้ว */
+  hasGoogleLinked: boolean
+  /** เริ่มเชื่อมบัญชี Google — เปลี่ยนหน้าออกไปทันทีเมื่อสำเร็จ เหมือน loginWithGoogle */
+  linkGoogleAccount: () => Promise<string | null>
   /** บันทึกความคืบหน้า เช่น ตั้งชื่อตัวละคร จัดทีม อัปเกรด */
   /** คืน true เมื่อบันทึกลงที่เก็บข้อมูลจริง — false แปลว่าหน้าจอถูกย้อนกลับแล้ว */
   updatePlayer: (next: Player) => Promise<boolean>
@@ -66,6 +70,12 @@ export function useAuth(): AuthState {
   const [player, setPlayer] = useState<Player | null>(null)
   // อีเมล/isAdmin ไม่ได้อยู่ใน Player (เป็นข้อมูลบัญชี ไม่ใช่ของตัวละคร) จึงเก็บแยก
   const [isAdmin, setIsAdmin] = useState(false)
+  const [hasGoogleLinked, setHasGoogleLinked] = useState(false)
+
+  const refreshLinkedProviders = useCallback(async () => {
+    const providers = await accounts.getLinkedProviders()
+    setHasGoogleLinked(providers.includes('google'))
+  }, [])
 
   // กู้ session ตอนเปิดเกม เพื่อไม่ต้องล็อกอินซ้ำทุกครั้ง
   useEffect(() => {
@@ -76,32 +86,41 @@ export function useAuth(): AuthState {
       setPlayer(restored)
       setIsAdmin(restored ? accounts.getSessionIsAdmin() : false)
       setStatus(restored ? 'signed-in' : 'guest')
+      if (restored) void refreshLinkedProviders()
       return undefined
     })
 
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [refreshLinkedProviders])
 
   /** คืน null เมื่อสำเร็จ คืนข้อความเมื่อผิดพลาด */
-  const register = useCallback(async (nextEmail: string, password: string) => {
-    const result = await accounts.register(nextEmail, password)
-    if (!result.ok) return result.error
-    setPlayer(result.player)
-    setIsAdmin(accounts.getSessionIsAdmin())
-    setStatus('signed-in')
-    return null
-  }, [])
+  const register = useCallback(
+    async (nextEmail: string, password: string) => {
+      const result = await accounts.register(nextEmail, password)
+      if (!result.ok) return result.error
+      setPlayer(result.player)
+      setIsAdmin(accounts.getSessionIsAdmin())
+      setStatus('signed-in')
+      void refreshLinkedProviders()
+      return null
+    },
+    [refreshLinkedProviders],
+  )
 
-  const login = useCallback(async (nextEmail: string, password: string) => {
-    const result = await accounts.login(nextEmail, password)
-    if (!result.ok) return result.error
-    setPlayer(result.player)
-    setIsAdmin(accounts.getSessionIsAdmin())
-    setStatus('signed-in')
-    return null
-  }, [])
+  const login = useCallback(
+    async (nextEmail: string, password: string) => {
+      const result = await accounts.login(nextEmail, password)
+      if (!result.ok) return result.error
+      setPlayer(result.player)
+      setIsAdmin(accounts.getSessionIsAdmin())
+      setStatus('signed-in')
+      void refreshLinkedProviders()
+      return null
+    },
+    [refreshLinkedProviders],
+  )
 
   const loginWithGoogle = useCallback(async () => {
     const result = await accounts.signInWithGoogle()
@@ -110,10 +129,18 @@ export function useAuth(): AuthState {
     return result.error ?? 'เข้าสู่ระบบด้วย Google ไม่สำเร็จ'
   }, [])
 
+  const linkGoogleAccount = useCallback(async () => {
+    const result = await accounts.linkGoogleIdentity()
+    if (result.ok) return null
+    reportError('AUTH_OAUTH_FAIL', 'silent')
+    return result.error ?? 'เชื่อมบัญชี Google ไม่สำเร็จ'
+  }, [])
+
   const logout = useCallback(async () => {
     await accounts.logout()
     setPlayer(null)
     setIsAdmin(false)
+    setHasGoogleLinked(false)
     setStatus('guest')
   }, [])
 
@@ -230,6 +257,8 @@ export function useAuth(): AuthState {
     login,
     loginWithGoogle,
     logout,
+    hasGoogleLinked,
+    linkGoogleAccount,
     updatePlayer,
     earnGold,
     topUpGold,

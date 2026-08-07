@@ -222,6 +222,32 @@ export async function signInWithGoogle(): Promise<{ ok: boolean; error?: string 
   return { ok: true }
 }
 
+/**
+ * ผู้ให้บริการที่บัญชีนี้ล็อกอินได้ตอนนี้ — ใช้โชว์ "เชื่อมบัญชี Google แล้ว" ใน SettingsModal
+ * ต้องล็อกอินอยู่ก่อน (getUserIdentities อ่านจาก session ปัจจุบัน) — ยังไม่ล็อกอิน = อาร์เรย์ว่าง
+ */
+export async function getLinkedProviders(): Promise<string[]> {
+  const { data } = await supabase.auth.getUserIdentities()
+  return (data?.identities ?? []).map((identity) => identity.provider)
+}
+
+/**
+ * เชื่อมบัญชี Google เข้ากับบัญชีที่ล็อกอินอยู่ตอนนี้ (email/password หรือ Google อีกบัญชีก็ได้)
+ * ต้องเปิด "Manual Linking" ที่ Supabase Dashboard ไว้ก่อน (ปิดเป็นค่าเริ่มต้น) — ต่างจาก
+ * signInWithGoogle() ตรงที่นี่ "ผูกเพิ่ม" ไม่ใช่ "ล็อกอินใหม่" ต้องมี session อยู่แล้วเท่านั้น
+ *
+ * เปลี่ยนหน้าออกไปยัง Google ทันทีเหมือน signInWithGoogle() — คืนค่าแค่ตอนยิง redirect
+ * เองไม่สำเร็จ
+ */
+export async function linkGoogleIdentity(): Promise<{ ok: boolean; error?: string }> {
+  const { error } = await supabase.auth.linkIdentity({
+    provider: 'google',
+    options: { redirectTo: window.location.origin },
+  })
+  if (error) return { ok: false, error: 'เชื่อมบัญชี Google ไม่สำเร็จ ลองใหม่อีกครั้ง' }
+  return { ok: true }
+}
+
 export async function logout(): Promise<void> {
   await supabase.auth.signOut()
   cachedSessionEmail = null

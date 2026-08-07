@@ -26,6 +26,8 @@ export default function App() {
     login,
     loginWithGoogle,
     logout,
+    hasGoogleLinked,
+    linkGoogleAccount,
     updatePlayer,
     earnGold,
     topUpGold,
@@ -58,6 +60,8 @@ export default function App() {
             isAdmin={isAdmin}
             onGiveCharacter={grantCharacter}
             onExportSave={exportSave}
+            hasGoogleLinked={hasGoogleLinked}
+            onLinkGoogleAccount={linkGoogleAccount}
           />
         </ToastProvider>
       </GameViewport>

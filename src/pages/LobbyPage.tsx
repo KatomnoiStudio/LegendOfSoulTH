@@ -59,6 +59,10 @@ interface LobbyPageProps {
   onGiveCharacter: (characterId: string) => Promise<CharacterGrantResult>
   /** ส่งออก save เป็นไฟล์ JSON — คืน null เมื่อสำเร็จ (ดาวน์โหลดแล้ว) คืนข้อความเมื่อผิดพลาด */
   onExportSave: () => Promise<string | null>
+  /** บัญชีนี้เชื่อมกับ Google ไว้แล้วหรือยัง — โชว์ใน SettingsModal */
+  hasGoogleLinked: boolean
+  /** เริ่มเชื่อมบัญชีนี้กับ Google — เปลี่ยนหน้าออกไปทันทีเมื่อสำเร็จ */
+  onLinkGoogleAccount: () => Promise<string | null>
 }
 
 export function LobbyPage({
@@ -74,6 +78,8 @@ export function LobbyPage({
   isAdmin,
   onGiveCharacter,
   onExportSave,
+  hasGoogleLinked,
+  onLinkGoogleAccount,
 }: LobbyPageProps) {
   // แจ้งเตือนจดหมาย/ภารกิจยังเป็น mock เพราะยังไม่มีระบบทั้งสองอย่าง
   const badges = MOCK_BADGES
@@ -264,6 +270,8 @@ export function LobbyPage({
           ownedCharacterCount={ownedCharacters.length}
           onClose={() => setSettingsOpen(false)}
           onExportSave={onExportSave}
+          hasGoogleLinked={hasGoogleLinked}
+          onLinkGoogleAccount={onLinkGoogleAccount}
         />
       ) : null}
     </main>

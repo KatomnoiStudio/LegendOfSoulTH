@@ -21,6 +21,8 @@ function renderModal(overrides: Partial<Parameters<typeof SettingsModal>[0]> = {
     ownedCharacterCount: 3,
     onClose: vi.fn(),
     onExportSave: vi.fn().mockResolvedValue(null),
+    hasGoogleLinked: false,
+    onLinkGoogleAccount: vi.fn().mockResolvedValue(null),
     ...overrides,
   }
   render(
@@ -132,5 +134,35 @@ describe('SettingsModal', () => {
     await user.click(screen.getByRole('button', { name: 'ออกจากบัญชี' }))
 
     expect(props.onLogout).toHaveBeenCalledTimes(1)
+  })
+
+  test('ยังไม่เชื่อม Google — กดปุ่มแล้วเรียก onLinkGoogleAccount', async () => {
+    const user = userEvent.setup()
+    const props = renderModal({ hasGoogleLinked: false })
+
+    const linkButton = screen.getByRole('button', { name: 'เชื่อมบัญชี Google' })
+    expect(linkButton).not.toBeDisabled()
+    await user.click(linkButton)
+
+    expect(props.onLinkGoogleAccount).toHaveBeenCalledTimes(1)
+  })
+
+  test('เชื่อม Google ไว้แล้ว — ปุ่มขึ้นข้อความยืนยันและกดไม่ได้', () => {
+    renderModal({ hasGoogleLinked: true })
+
+    const linkButton = screen.getByRole('button', { name: 'เชื่อมบัญชี Google แล้ว' })
+    expect(linkButton).toBeDisabled()
+  })
+
+  test('onLinkGoogleAccount คืนข้อความ error — โชว์ toast และปุ่มกลับมากดได้', async () => {
+    const user = userEvent.setup()
+    const onLinkGoogleAccount = vi.fn().mockResolvedValue('เชื่อมบัญชี Google ไม่สำเร็จ')
+    renderModal({ hasGoogleLinked: false, onLinkGoogleAccount })
+
+    const linkButton = screen.getByRole('button', { name: 'เชื่อมบัญชี Google' })
+    await user.click(linkButton)
+
+    expect(await screen.findByText('เชื่อมบัญชี Google ไม่สำเร็จ')).toBeInTheDocument()
+    expect(linkButton).not.toBeDisabled()
   })
 })

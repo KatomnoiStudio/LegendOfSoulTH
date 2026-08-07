@@ -60,6 +60,10 @@ interface SettingsModalProps {
   onClose: () => void
   /** ส่งออก save เป็นไฟล์ JSON — คืน null เมื่อสำเร็จ (ดาวน์โหลดแล้ว) คืนข้อความเมื่อผิดพลาด */
   onExportSave: () => Promise<string | null>
+  /** บัญชีนี้เชื่อมกับ Google ไว้แล้วหรือยัง */
+  hasGoogleLinked: boolean
+  /** เริ่มเชื่อมบัญชีนี้กับ Google — เปลี่ยนหน้าออกไปทันทีเมื่อสำเร็จ */
+  onLinkGoogleAccount: () => Promise<string | null>
 }
 
 /**
@@ -81,6 +85,8 @@ export function SettingsModal({
   ownedCharacterCount,
   onClose,
   onExportSave,
+  hasGoogleLinked,
+  onLinkGoogleAccount,
 }: SettingsModalProps) {
   const { showToast } = useToast()
   const [tab, setTab] = useState<TabId>('info')
@@ -151,6 +157,8 @@ export function SettingsModal({
             onLogout={onLogout}
             ownedCharacterCount={ownedCharacterCount}
             onExportSave={onExportSave}
+            hasGoogleLinked={hasGoogleLinked}
+            onLinkGoogleAccount={onLinkGoogleAccount}
           />
         ) : null}
         {tab === 'audio' ? (
@@ -200,12 +208,28 @@ function GameInfoPanel({
   onLogout,
   ownedCharacterCount,
   onExportSave,
+  hasGoogleLinked,
+  onLinkGoogleAccount,
 }: {
   onLogout: () => Promise<void>
   ownedCharacterCount: number
   onExportSave: () => Promise<string | null>
+  hasGoogleLinked: boolean
+  onLinkGoogleAccount: () => Promise<string | null>
 }) {
   const { showToast } = useToast()
+  const [linking, setLinking] = useState(false)
+
+  const handleLinkGoogle = async () => {
+    if (linking) return
+    setLinking(true)
+    // สำเร็จแล้วหน้าเปลี่ยนไปทันที (redirect ออกจากแอป) — ไม่ต้องเคลียร์ linking ในเคสนั้น
+    const error = await onLinkGoogleAccount()
+    if (error) {
+      showToast(error, 'error')
+      setLinking(false)
+    }
+  }
   const rows: { label: string; value: string }[] = [
     { label: 'ชื่อเกม', value: GAME_INFO.name },
     { label: 'ประเภท', value: GAME_INFO.genre },
@@ -238,10 +262,22 @@ function GameInfoPanel({
       </p>
 
       <p className={styles.panelNote}>
-        เกมนี้ไม่มีเซิร์ฟเวอร์ — ข้อมูลอยู่ในเบราว์เซอร์เครื่องนี้เท่านั้น
-        เปลี่ยนเครื่อง/เบราว์เซอร์ ต้องส่งออกไฟล์ save ไปนำเข้าเองที่ปลายทาง (ไม่มีการ sync
-        อัตโนมัติ)
+        บัญชีนี้ผูกกับอีเมลและเก็บบนเซิร์ฟเวอร์แล้ว ล็อกอินจากเครื่อง/เบราว์เซอร์ไหนก็ได้ ข้อมูล
+        sync ให้อัตโนมัติ — ปุ่มส่งออก save ด้านล่างมีไว้สำรองไฟล์เก็บเอง ไม่ใช่วิธีย้ายเครื่องหลัก
       </p>
+
+      <button
+        type="button"
+        className={styles.exportSave}
+        onClick={() => void handleLinkGoogle()}
+        disabled={hasGoogleLinked || linking}
+      >
+        {hasGoogleLinked
+          ? 'เชื่อมบัญชี Google แล้ว'
+          : linking
+            ? 'กำลังเชื่อมต่อ...'
+            : 'เชื่อมบัญชี Google'}
+      </button>
 
       <button
         type="button"
