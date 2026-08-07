@@ -330,12 +330,9 @@ export async function grantCharacter(
   return { ok: true, player, characterId }
 }
 
-/** exportSave/importSave: ยังไม่มีความหมายเดิมกับ Supabase (ไม่มี localStorage ให้ย้ายออก/เข้า) */
+/** exportSave: ยังไม่มีความหมายเดิมกับ Supabase (ไม่มี localStorage ให้ย้ายออก) */
 export async function exportSave(): Promise<
   { ok: true; json: string } | { ok: false; error: string }
 > {
   return { ok: false, error: 'ฟีเจอร์นี้ใช้กับบัญชี Supabase ไม่ได้ — ข้อมูลอยู่บนเซิร์ฟเวอร์แล้ว' }
-}
-export async function importSave(_json: string): Promise<AuthResult> {
-  return { ok: false, error: 'ฟีเจอร์นี้ใช้กับบัญชี Supabase ไม่ได้ — สมัคร/ล็อกอินตามปกติแทน' }
 }

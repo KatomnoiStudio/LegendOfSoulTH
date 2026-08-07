@@ -35,7 +35,6 @@ export default function App() {
     grantCharacter,
     grantItem,
     exportSave,
-    importSave,
   } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
 
@@ -74,7 +73,7 @@ export default function App() {
         <TitlePage onStart={() => setAuthOpen(true)} />
 
         {status === 'guest' && authOpen ? (
-          <AuthModal onRegister={register} onLogin={login} onImportSave={importSave} />
+          <AuthModal onRegister={register} onLogin={login} />
         ) : null}
 
         {needsName && player ? (
