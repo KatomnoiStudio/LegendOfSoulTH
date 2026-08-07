@@ -9,7 +9,7 @@
 
 ## [0.5.0] - 2026-08-07
 
-Combat Foundation — Blueprint v3 P1 + P2
+Combat Foundation (Blueprint v3 P0–P2) + Supabase backend live
 
 ### Added
 
@@ -21,6 +21,8 @@ Combat Foundation — Blueprint v3 P1 + P2
 
 - คอมโบผู้เล่นและ melee ศัตรูใช้ hit model แนวนอน (ไม่ใช่กรวย 360°)
 - สกิลหมุนกระบวนทองคำยังเป็น radial 360° ชั่วคราว (รอ P3)
+- **ย้ายระบบบัญชี/ทอง/หยกไป Supabase จริง** — `useAuth.ts` wired; กติกา ledger บังคับที่ Postgres
+- **⚠️ Breaking**: บัญชี/เซฟเก่าใน localStorage ใช้ต่อไม่ได้ ต้องสมัครใหม่
 
 ## [0.4.0] - 2026-08-07
 
@@ -141,7 +143,8 @@ Combat Foundation — Blueprint v3 P1 + P2
 - ภาพทั้งหมดแปลงเป็น WebP ผ่าน pipeline `assets/raw/` → `npm run build:images`
 - Governance: `AGENTS.md`, `MEMORY.md`, `.agents/rules/**`, `SECURITY.md`
 
-[Unreleased]: https://github.com/KatomnoiStudio/LegendOfSoulTH/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/KatomnoiStudio/LegendOfSoulTH/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/KatomnoiStudio/LegendOfSoulTH/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/KatomnoiStudio/LegendOfSoulTH/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/KatomnoiStudio/LegendOfSoulTH/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/KatomnoiStudio/LegendOfSoulTH/compare/v0.3.0...v0.3.1

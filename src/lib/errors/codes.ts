@@ -86,6 +86,10 @@ export const ERROR_CODES = {
   BATTLE_ASSET_LOAD_FAIL: 'โหลดภาพตัวละครไม่สำเร็จ', // VISIBLE — โยน error ต่อจริง กระทบผู้เล่นเห็นชัด
   BATTLE_DEFERRED_ASSET_FAIL: 'โหลดเฟรมส่วนที่เหลือไม่ครบ', // SILENT — preload พื้นหลัง ไม่บล็อกการเล่น
   BATTLE_WEBGL_CONTEXT_LOST: 'การ์ดจอขาดการเชื่อมต่อระหว่างต่อสู้', // VISIBLE
+
+  // src/main.tsx — โหลด App.tsx แบบ dynamic import ไม่สำเร็จ (เช่น env ของ Supabase หาย)
+  // VISIBLE — เกิดก่อน React ขึ้นจอเลย ผู้เล่นเห็นแค่ innerHTML สำรองที่ main.tsx เขียนเอง
+  APP_BOOTSTRAP_FAIL: 'โหลดแอปไม่สำเร็จ',
 } as const
 
 export type ErrorCode = keyof typeof ERROR_CODES
