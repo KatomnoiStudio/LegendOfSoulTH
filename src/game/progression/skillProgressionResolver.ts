@@ -77,5 +77,5 @@ export function resolveSkillDamageMultiplier(
 ): number {
   const definition = getSkillProgressionDefinition(heroId, slot)
   if (!definition) return 1
-  return getSkillModifierAtLevel(definition, skillLevel)?.damageMultiplier ?? 1
+  return getSkillModifierAtLevel(definition, skillLevel)?.damageScale ?? 1
 }

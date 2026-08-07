@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`
 > **Repository**: `KatomnoiStudio/LegendOfSoulTH`
 > **Default Branch**: `master`
-> **Last Updated**: 2026-08-08T (this session) by `Claude Code` — merged upstream PR #29 (P4 combat core, item 109), #28 (camera+sprites, item 110), #30 (P5 dungeon vertical slice, item 111), #31 (reward pipeline, item 112); MEMORY.md itself surgically shrunk same session (see 2026-08-08 note below)
+> **Last Updated**: 2026-08-08T by `Cursor Agent` — P8 #33 rebased onto latest upstream `master` (`ea525af`); post-rebase CI fixes (roster test `onPlayerChange`, progression `damageScale` rename vs attacks.ts guard).
 > **RULES_VERSION last synced: 23** (local `master`, this session) — bumped 17→18 (multi-dev task queue law) →19 (Agent Blueprint execution-order rule) →20 (Ring 0 traffic control law) →21 (claim protocol made Ring-0-locked) →22 (break-glass claim fallback for repo-admin devs) →23 (security doc sync law, from a `/gold-standard` AUDIT) within this same session. **Unrelated note carried forward**: an earlier version of this line read "19" citing a pending fork PR #59 (Cursor Agent, cloud) that was never found merged to `origin/master` — this session passed through 19 independently via 17→18→19→20→21→22→23, not a confirmation of that PR landing. Still worth reconciling numbering with PR #59 if/when it lands.
 
 > **2026-08-06 overhaul**: this file had grown to 65+ interleaved, verbose items (two colliding numbering
@@ -27,7 +27,7 @@
 
 ## 🎯 Current Status
 
-- **Repo**: upstream #29–#32 merged · **#33** (P8 v0.12.0) rebased onto `master` 2026-08-07 — integrates `SkillProgressionSystem` (#14) + `src/game/progression/` (talent/awakening/reward/combat/UI); draft, awaiting review.
+- **Repo**: upstream #29–#32 merged · **#33** (P8 v0.12.0) rebased onto `upstream/master` @ `ea525af` (2026-08-08) — integrates `SkillProgressionSystem` (#14) + `src/game/progression/`; CI green (497 tests); draft, awaiting review.
 - **Version**: **0.12.0** on `cursor/p8-character-progression-35fc` · **0.11.1** on `master`.
 - **Org/Live**: `KatomnoiStudio` — https://katomnoistudio.github.io/LegendOfSoulTH/
 - **Backend**: Supabase Auth+Postgres live, wired via `useAuth.ts` (item 41/87). `accountRepository.ts` (localStorage) stays as a dormant fallback seam only.

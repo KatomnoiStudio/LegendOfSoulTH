@@ -9,7 +9,6 @@ import type {
 } from './progressionSchema'
 import { applyHeroExpToProgress } from './heroExpService'
 import {
-  createInitialOwnedCharacterProgress,
   getSkillSlotLevel,
   migrateOwnedCharacters,
   sanitizeOwnedCharacter,

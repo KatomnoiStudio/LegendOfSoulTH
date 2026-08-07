@@ -26,7 +26,7 @@ export function validateProgressionConfig(): string[] {
         errors.push(`${heroId}.${slot} upgradeCosts length mismatch`)
       }
       for (const mod of definition.levelModifiers) {
-        if (mod.damageMultiplier !== undefined && mod.damageMultiplier < 0) {
+        if (mod.damageScale !== undefined && mod.damageScale < 0) {
           errors.push(`${heroId}.${slot} negative damage multiplier`)
         }
       }

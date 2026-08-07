@@ -72,7 +72,7 @@ export interface HeroCombatStats {
 
 export interface SkillLevelModifier {
   level: number
-  damageMultiplier?: number
+  damageScale?: number
   healMultiplier?: number
   cooldownOverride?: number
   effectOverrides?: Record<string, unknown>
