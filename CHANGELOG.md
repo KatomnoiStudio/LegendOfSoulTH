@@ -7,6 +7,15 @@
 
 ยังไม่มี
 
+## [0.5.0] - 2026-08-07
+
+### Changed
+
+- **ย้ายระบบบัญชี/ทอง/หยกไป Supabase จริง** — เดิมเก็บใน localStorage ของเครื่องผู้เล่นเอง
+  ตอนนี้เป็นเซิร์ฟเวอร์จริง (Postgres + Auth) เข้าเล่นข้ามเครื่องได้แล้ว กติกาทอง/หยก
+  (ที่มาต้องระบุ ห้ามเซตตรง) บังคับที่ฐานข้อมูลจริงแล้ว ไม่ใช่แค่โค้ดฝั่งเครื่อง
+- **⚠️ Breaking**: บัญชี/เซฟเก่าที่อยู่ใน localStorage ใช้ต่อไม่ได้ ต้องสมัครใหม่
+
 ## [0.4.0] - 2026-08-07
 
 รวม PR #14 (`cursor/submit-homework-e117`) เข้า master — งานที่ยังไม่เคยขึ้น upstream มาก่อน
@@ -126,7 +135,8 @@
 - ภาพทั้งหมดแปลงเป็น WebP ผ่าน pipeline `assets/raw/` → `npm run build:images`
 - Governance: `AGENTS.md`, `MEMORY.md`, `.agents/rules/**`, `SECURITY.md`
 
-[Unreleased]: https://github.com/KatomnoiStudio/LegendOfSoulTH/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/KatomnoiStudio/LegendOfSoulTH/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/KatomnoiStudio/LegendOfSoulTH/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/KatomnoiStudio/LegendOfSoulTH/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/KatomnoiStudio/LegendOfSoulTH/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/KatomnoiStudio/LegendOfSoulTH/compare/v0.3.0...v0.3.1

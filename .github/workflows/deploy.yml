@@ -158,6 +158,9 @@ jobs:
       # รันที่นี่แล้ว copy เข้า dist/ จะสิ้นเปลือง CI minutes + ส่ง asset ที่ไม่มีใครใช้ขึ้น production เปล่า ๆ
 
       - name: Build Application
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
       - name: Generate SBOM

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import * as accounts from '../data/accountRepository'
+import * as accounts from '../data/accountRepository.supabase'
 import type {
   CharacterGrantResult,
   CurrencyResult,
@@ -7,7 +7,7 @@ import type {
   GoldSource,
   ItemResult,
   ItemSource,
-} from '../data/accountRepository'
+} from '../data/accountRepository.supabase'
 import { isAdminEmail } from '../data/admins'
 import { reportError } from '../lib/errors/reportError'
 import { downloadSaveJson } from '../lib/saveFile'
