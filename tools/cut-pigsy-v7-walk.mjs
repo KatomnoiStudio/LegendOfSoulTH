@@ -60,7 +60,7 @@ const FILLED_BG_LIMIT = 12
    ถ้าใช้เกณฑ์เดิมจะเจาะเงาในตัวละครเป็นรูพรุนทั้งตัว เหลือเจาะเฉพาะช่องว่างจริง ๆ
    ที่ใหญ่มากพอ เช่นช่องระหว่างขากับผ้าคลุม
 */
-const FILLED_BG_MIN_AREA = 400
+const FILLED_BG_MIN_AREA = 100000
 
 const CANVAS_W = 640
 const CANVAS_H = 512
