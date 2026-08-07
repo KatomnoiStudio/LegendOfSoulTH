@@ -27,6 +27,11 @@ export interface AuthState {
   player: Player | null
   register: (email: string, password: string) => Promise<string | null>
   login: (email: string, password: string) => Promise<string | null>
+  /**
+   * เริ่ม OAuth flow กับ Google — เปลี่ยนหน้าออกไปทันทีเมื่อสำเร็จ (ไม่มีทาง resolve กลับมา
+   * ที่นี่ในเคสนั้น) คืนข้อความเฉพาะตอนยิง redirect เองไม่สำเร็จ (เช่น provider ปิดอยู่)
+   */
+  loginWithGoogle: () => Promise<string | null>
   logout: () => Promise<void>
   /** บันทึกความคืบหน้า เช่น ตั้งชื่อตัวละคร จัดทีม อัปเกรด */
   /** คืน true เมื่อบันทึกลงที่เก็บข้อมูลจริง — false แปลว่าหน้าจอถูกย้อนกลับแล้ว */
@@ -96,6 +101,13 @@ export function useAuth(): AuthState {
     setIsAdmin(accounts.getSessionIsAdmin())
     setStatus('signed-in')
     return null
+  }, [])
+
+  const loginWithGoogle = useCallback(async () => {
+    const result = await accounts.signInWithGoogle()
+    if (result.ok) return null
+    reportError('AUTH_OAUTH_FAIL', 'silent')
+    return result.error ?? 'เข้าสู่ระบบด้วย Google ไม่สำเร็จ'
   }, [])
 
   const logout = useCallback(async () => {
@@ -216,6 +228,7 @@ export function useAuth(): AuthState {
     player,
     register,
     login,
+    loginWithGoogle,
     logout,
     updatePlayer,
     earnGold,

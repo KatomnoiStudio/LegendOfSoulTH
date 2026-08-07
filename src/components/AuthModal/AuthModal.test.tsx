@@ -22,7 +22,7 @@ describe('AuthModal', () => {
     const user = userEvent.setup()
     const onLogin = vi.fn().mockRejectedValue(new Error('WebCrypto ใช้ไม่ได้'))
 
-    render(<AuthModal onRegister={vi.fn()} onLogin={onLogin} />)
+    render(<AuthModal onRegister={vi.fn()} onLogin={onLogin} onLoginWithGoogle={vi.fn()} />)
 
     await user.click(screen.getByRole('tab', { name: 'เข้าสู่ระบบ' }))
     await user.type(screen.getByLabelText('อีเมล'), 'player@example.com')
@@ -42,7 +42,7 @@ describe('AuthModal', () => {
     const user = userEvent.setup()
     const onLogin = vi.fn().mockResolvedValue('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
 
-    render(<AuthModal onRegister={vi.fn()} onLogin={onLogin} />)
+    render(<AuthModal onRegister={vi.fn()} onLogin={onLogin} onLoginWithGoogle={vi.fn()} />)
     await user.click(screen.getByRole('tab', { name: 'เข้าสู่ระบบ' }))
     await user.type(screen.getByLabelText('อีเมล'), 'player@example.com')
     await user.type(screen.getByLabelText('รหัสผ่าน'), 'wrongpass')
@@ -58,7 +58,7 @@ describe('AuthModal', () => {
     const user = userEvent.setup()
     const onRegister = vi.fn()
 
-    render(<AuthModal onRegister={onRegister} onLogin={vi.fn()} />)
+    render(<AuthModal onRegister={onRegister} onLogin={vi.fn()} onLoginWithGoogle={vi.fn()} />)
 
     await user.type(screen.getByLabelText('อีเมล'), 'player@example.com')
     await user.type(screen.getByLabelText('รหัสผ่าน'), 'password123')
@@ -69,5 +69,41 @@ describe('AuthModal', () => {
 
     expect(onRegister).not.toHaveBeenCalled()
     expect(screen.getByText('รหัสผ่านทั้งสองช่องไม่ตรงกัน')).toBeInTheDocument()
+  })
+
+  test('กด Google แล้วเรียก onLoginWithGoogle, ไม่แตะ onRegister/onLogin เลย', async () => {
+    const user = userEvent.setup()
+    const onLoginWithGoogle = vi.fn().mockResolvedValue(null)
+    const onRegister = vi.fn()
+    const onLogin = vi.fn()
+
+    render(
+      <AuthModal onRegister={onRegister} onLogin={onLogin} onLoginWithGoogle={onLoginWithGoogle} />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'เข้าสู่ระบบด้วย Google' }))
+
+    await waitFor(() => expect(onLoginWithGoogle).toHaveBeenCalledTimes(1))
+    expect(onRegister).not.toHaveBeenCalled()
+    expect(onLogin).not.toHaveBeenCalled()
+  })
+
+  test('onLoginWithGoogle คืนข้อความ error ก็แสดงข้อความนั้น และปุ่มกลับมากดได้', async () => {
+    const user = userEvent.setup()
+    const onLoginWithGoogle = vi
+      .fn()
+      .mockResolvedValue('เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง')
+
+    render(
+      <AuthModal onRegister={vi.fn()} onLogin={vi.fn()} onLoginWithGoogle={onLoginWithGoogle} />,
+    )
+
+    const googleButton = screen.getByRole('button', { name: 'เข้าสู่ระบบด้วย Google' })
+    await user.click(googleButton)
+
+    expect(
+      await screen.findByText('เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง'),
+    ).toBeInTheDocument()
+    expect(googleButton).not.toBeDisabled()
   })
 })

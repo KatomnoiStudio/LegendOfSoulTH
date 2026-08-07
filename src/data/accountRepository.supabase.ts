@@ -200,6 +200,28 @@ export async function login(email: string, password: string): Promise<AuthResult
   return { ok: true, player }
 }
 
+/**
+ * เริ่ม OAuth flow กับ Google — เปลี่ยนหน้าออกไปยัง Google ทันที (ไม่ใช่ popup)
+ * แล้ว Google ส่งกลับมาที่ redirectTo พร้อม session ใน URL fragment ซึ่ง supabase-js
+ * ดักจับเองอัตโนมัติ (ค่าเริ่มต้น detectSessionInUrl: true) — useAuth's getSessionPlayer()/
+ * onAuthStateChange ที่มีอยู่แล้วจะเห็น session นี้เหมือน login ปกติทุกประการ ไม่ต้องเพิ่ม
+ * โค้ดฝั่งรับ callback เอง
+ *
+ * handle_new_user() trigger (0001_init.sql) สร้าง profile/starter character ให้อัตโนมัติ
+ * เหมือน register() ทุกประการ — ไม่สนใจว่าผู้ใช้เข้ามาทาง email/password หรือ OAuth
+ *
+ * คืนค่าแค่ตอนยิง redirect ไม่สำเร็จ (เช่น provider ยังไม่เปิดใน Supabase Dashboard) —
+ * ตอนสำเร็จหน้าเปลี่ยนไปแล้ว ไม่มีทางกลับมา return ที่นี่ได้ทัน
+ */
+export async function signInWithGoogle(): Promise<{ ok: boolean; error?: string }> {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin },
+  })
+  if (error) return { ok: false, error: 'เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง' }
+  return { ok: true }
+}
+
 export async function logout(): Promise<void> {
   await supabase.auth.signOut()
   cachedSessionEmail = null

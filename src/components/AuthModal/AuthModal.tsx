@@ -11,6 +11,8 @@ interface AuthModalProps {
   /** คืน null เมื่อสำเร็จ คืนข้อความเมื่อผิดพลาด */
   onRegister: (email: string, password: string) => Promise<string | null>
   onLogin: (email: string, password: string) => Promise<string | null>
+  /** เข้าสู่ระบบด้วย Google — สำเร็จแล้วหน้าเปลี่ยนไปทันที ไม่กลับมา resolve ที่นี่ */
+  onLoginWithGoogle: () => Promise<string | null>
 }
 
 /**
@@ -20,7 +22,7 @@ interface AuthModalProps {
  * ตัวฟอร์มไม่รู้จัก localStorage เลย คุยผ่าน callback เท่านั้น
  * เปลี่ยนหลังบ้านเป็นเซิร์ฟเวอร์จริงเมื่อไหร่ ไฟล์นี้ไม่ต้องแก้
  */
-export function AuthModal({ onRegister, onLogin }: AuthModalProps) {
+export function AuthModal({ onRegister, onLogin, onLoginWithGoogle }: AuthModalProps) {
   const [lastEmail] = useState(() => getLastEmail())
   // เคยล็อกอินเครื่องนี้มาก่อน (มีอีเมลจำไว้) → เปิดแท็บเข้าสู่ระบบให้เลย ไม่ต้องเดา
   const [mode, setMode] = useState<Mode>(() => (lastEmail ? 'login' : 'register'))
@@ -88,6 +90,18 @@ export function AuthModal({ onRegister, onLogin }: AuthModalProps) {
     }
   }
 
+  const handleGoogleLogin = async () => {
+    if (busy) return
+    setBusy(true)
+    setError(null)
+    // สำเร็จแล้วหน้าเปลี่ยนไปทันที (redirect ออกจากแอป) — ไม่ต้อง setBusy(false) ในเคสนั้น
+    const message = await onLoginWithGoogle()
+    if (message) {
+      setError(message)
+      setBusy(false)
+    }
+  }
+
   const isRegister = mode === 'register'
 
   return (
@@ -126,6 +140,39 @@ export function AuthModal({ onRegister, onLogin }: AuthModalProps) {
           >
             เข้าสู่ระบบ
           </button>
+        </div>
+
+        <div className={styles.oauth}>
+          <button
+            type="button"
+            className={styles.googleButton}
+            onClick={() => void handleGoogleLogin()}
+            disabled={busy}
+          >
+            <svg className={styles.googleIcon} viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="#4285F4"
+                d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.58-5.17 3.58-8.82Z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.87-3c-1.08.72-2.46 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11A12 12 0 0 0 12 24Z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.27 14.28A7.2 7.2 0 0 1 4.89 12c0-.79.14-1.56.38-2.28V6.61H1.27A12 12 0 0 0 0 12c0 1.94.46 3.77 1.27 5.39l4-3.11Z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.23 0 12 0A12 12 0 0 0 1.27 6.61l4 3.11C6.22 6.86 8.87 4.75 12 4.75Z"
+              />
+            </svg>
+            เข้าสู่ระบบด้วย Google
+          </button>
+
+          <div className={styles.divider}>
+            <span>หรือ</span>
+          </div>
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit}>

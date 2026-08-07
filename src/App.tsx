@@ -24,6 +24,7 @@ export default function App() {
     player,
     register,
     login,
+    loginWithGoogle,
     logout,
     updatePlayer,
     earnGold,
@@ -73,7 +74,7 @@ export default function App() {
         <TitlePage onStart={() => setAuthOpen(true)} />
 
         {status === 'guest' && authOpen ? (
-          <AuthModal onRegister={register} onLogin={login} />
+          <AuthModal onRegister={register} onLogin={login} onLoginWithGoogle={loginWithGoogle} />
         ) : null}
 
         {needsName && player ? (
