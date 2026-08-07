@@ -1,0 +1,18 @@
+# prettier (.prettierrc.json) คุมรูปแบบไฟล์ ts/tsx/json/css/md ที่ผ่าน lint-staged แล้ว —
+# ไฟล์นี้ยังจำเป็นอยู่สำหรับ editor เปล่า ๆ ที่ยังไม่รัน prettier (เช่นเปิดไฟล์ config เอง)
+# และเป็นสิ่งเดียวที่คุมไฟล์ประเภทที่ prettier ไม่รู้จัก
+#
+# ค่าที่เลือกมาจากของที่โค้ดในรีโปใช้อยู่จริงแล้ว ไม่ได้ตั้งมาตรฐานใหม่ทับของเดิม
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Markdown ใช้ช่องว่างท้ายบรรทัดสองตัวเป็นการขึ้นบรรทัดใหม่ ตัดทิ้งไม่ได้
+[*.md]
+trim_trailing_whitespace = false

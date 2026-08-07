@@ -10,13 +10,13 @@ real bugs on a real backend are expected, documented limitations here (see **Out
 
 Use GitHub private vulnerability reporting — it goes straight to the maintainer, not a public issue:
 
-- <https://github.com/LegendofSoulTH/LegendOfSoulTH/security/advisories/new>
+- <https://github.com/KatomnoiStudio/LegendOfSoulTH/security/advisories/new>
 
 **Do not** open a public GitHub issue for a security report.
 
 Include:
 
-- affected file/commit and the URL or build you tested (production `https://legendofsoulth.github.io/LegendOfSoulTH/` vs. a local dev build)
+- affected file/commit and the URL or build you tested (production `https://katomnoistudio.github.io/LegendOfSoulTH/` vs. a local dev build)
 - steps to reproduce from a clean browser profile
 - what trust boundary is actually crossed (see Scope below — this app has very few)
 - any logs/screenshots with tokens, emails, or other real data redacted
@@ -30,8 +30,8 @@ Expected response:
 
 In scope:
 
-- the `LegendofSoulTH/LegendOfSoulTH` repository and its GitHub Actions workflows (`.github/workflows/`)
-- the deployed site at `https://legendofsoulth.github.io/LegendOfSoulTH/`
+- the `KatomnoiStudio/LegendOfSoulTH` repository and its GitHub Actions workflows (`.github/workflows/`)
+- the deployed site at `https://katomnoistudio.github.io/LegendOfSoulTH/`
 - anything that lets one player's browser affect **another** player's account/data, or that
   exfiltrates data the app didn't already hand to the page itself (real XSS, real CSRF-equivalent,
   supply-chain compromise of a dependency actually shipped in the built bundle)

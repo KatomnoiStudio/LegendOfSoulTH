@@ -20,6 +20,12 @@ concurrency:
   group: codeql-fork-${{ github.ref }}
   cancel-in-progress: true
 
+# ตั้งเพดานสิทธิ์ระดับ workflow เหมือนอีกสามไฟล์ (ci/deploy/security-scan)
+# ไฟล์นี้เคยเป็นไฟล์เดียวที่ไม่มีบล็อกนี้ — job ที่เพิ่มเข้ามาทีหลังจะได้สิทธิ์
+# ตามค่าเริ่มต้นของ repo แทนที่จะเป็นอ่านอย่างเดียว โดยไม่มีใครสังเกต
+permissions:
+  contents: read
+
 jobs:
   analyze:
     name: Analyze

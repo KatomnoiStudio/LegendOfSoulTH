@@ -5,6 +5,9 @@
     "lib": ["ES2023"],
     "types": ["node"],
     "skipLibCheck": true,
+    // ให้เข้มเท่า tsconfig.app.json — ไฟล์ในขอบเขตนี้มีแค่ vite config สองตัว
+    // แต่ config ที่พังคือเว็บพังทั้งเว็บ ไม่มีเหตุผลให้ตรวจหลวมกว่าโค้ดแอป
+    "strict": true,
 
     /* Bundler mode */
     "module": "nodenext",

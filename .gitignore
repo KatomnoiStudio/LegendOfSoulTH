@@ -40,3 +40,4 @@ MEMORY.local.md
 *.njsproj
 *.sln
 *.sw?
+coverage/

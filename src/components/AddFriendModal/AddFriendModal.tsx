@@ -7,8 +7,8 @@ import styles from './AddFriendModal.module.css'
 
 interface AddFriendModalProps {
   player: Player
-  /** บันทึกรายชื่อเพื่อนกลับลงฐานข้อมูล */
-  onPlayerChange: (next: Player) => Promise<void>
+  /** บันทึกรายชื่อเพื่อนกลับลงฐานข้อมูล — คืน true เมื่อลงจริง, false แปลว่าหน้าจอถูกย้อนกลับแล้ว */
+  onPlayerChange: (next: Player) => Promise<boolean>
   /** ค้นหาผู้เล่นจาก UID — คืน null ถ้าไม่พบ */
   onSearch: (uid: string) => Promise<FriendCandidate | null>
   onClose: () => void
@@ -30,9 +30,10 @@ export function AddFriendModal({ player, onPlayerChange, onSearch, onClose }: Ad
   // เมื่อมีระบบแล้วให้เก็บ blockedUids บน Player แบบเดียวกับ friends แล้วเติมรายชื่อจริงตรงนี้
   const blockedPlayers: FriendCandidate[] = []
 
-  const handleAddFriend = (candidate: FriendCandidate) => {
-    void onPlayerChange({ ...player, friends: [...friendsList, candidate] })
-  }
+  // คืน promise ให้ผู้เรียกรอได้ ไม่ใช่ยิงทิ้ง — ปุ่มเพิ่มเพื่อนต้องรู้ว่าเขียนเสร็จแล้ว
+  // ค่อยบอกผู้เล่นว่าสำเร็จ (ดูคอมเมนต์ใน AddFriendPanel.handleAdd)
+  const handleAddFriend = (candidate: FriendCandidate) =>
+    onPlayerChange({ ...player, friends: [...friendsList, candidate] })
 
   const tabs: { id: TabId; label: string; icon: typeof AddFriendIcon }[] = [
     { id: 'friend', label: 'เพิ่มเพื่อน', icon: AddFriendIcon },
@@ -93,12 +94,12 @@ export function AddFriendModal({ player, onPlayerChange, onSearch, onClose }: Ad
           <section className={styles.panel} role="tabpanel" aria-label="รายชื่อเพื่อน" key="list">
             {friendsList.length > 0 ? (
               <div className={styles.block}>
-                {friendsList.map((player) => (
-                  <div key={player.uid} className={styles.resultCard}>
+                {friendsList.map((friend) => (
+                  <div key={friend.uid} className={styles.resultCard}>
                     <div className={styles.resultInfo}>
-                      <strong className={styles.resultName}>{player.name}</strong>
+                      <strong className={styles.resultName}>{friend.name}</strong>
                       <span className={styles.resultMeta}>
-                        เลเวล {player.level} · {player.title}
+                        เลเวล {friend.level} · {friend.title}
                       </span>
                     </div>
                   </div>
@@ -112,12 +113,12 @@ export function AddFriendModal({ player, onPlayerChange, onSearch, onClose }: Ad
           <section className={styles.panel} role="tabpanel" aria-label="บล็อค" key="block">
             {blockedPlayers.length > 0 ? (
               <div className={styles.block}>
-                {blockedPlayers.map((player) => (
-                  <div key={player.uid} className={styles.resultCard}>
+                {blockedPlayers.map((blocked) => (
+                  <div key={blocked.uid} className={styles.resultCard}>
                     <div className={styles.resultInfo}>
-                      <strong className={styles.resultName}>{player.name}</strong>
+                      <strong className={styles.resultName}>{blocked.name}</strong>
                       <span className={styles.resultMeta}>
-                        เลเวล {player.level} · {player.title}
+                        เลเวล {blocked.level} · {blocked.title}
                       </span>
                     </div>
                   </div>

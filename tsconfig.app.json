@@ -6,6 +6,9 @@
     "module": "esnext",
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
+    // Vite รองรับ import JSON อยู่แล้ว เปิดฝั่ง TS ให้ตรงกัน — ใช้โดย
+    // src/game/gameInfo.test.ts ที่เทียบเวอร์ชันเกมกับ package.json
+    "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
 

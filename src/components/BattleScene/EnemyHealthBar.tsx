@@ -20,8 +20,15 @@ export function EnemyHealthBar({
 }) {
   const wraps = useRef<(HTMLDivElement | null)[]>([])
   const fills = useRef<(HTMLDivElement | null)[]>([])
+  /*
+    รวมทุกคลื่น ไม่ใช่เอาคลื่นที่ใหญ่ที่สุด
+
+    runtime ต่อศัตรูคลื่นใหม่ท้ายรายการเดิมโดยไม่ลบศพออก (`state.enemies = [...state.enemies,
+    ...nextWaveEnemies]`) ความยาวของรายการจึงเป็นผลรวมสะสม ถ้ากันช่องไว้แค่เท่าคลื่นที่ใหญ่สุด
+    ลูปด้านล่างจะวนถึงแค่ศพของคลื่นก่อน ศัตรูที่ยังมีชีวิตในคลื่นหลังจะไม่มีหลอดเลือดเลย
+  */
   const capacity = runtime.getState().stage.waves.reduce(
-    (max, wave) => Math.max(max, wave.enemies.length),
+    (total, wave) => total + wave.enemies.length,
     0,
   )
 

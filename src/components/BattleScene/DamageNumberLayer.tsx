@@ -44,7 +44,22 @@ export function DamageNumberLayer({
       const state = runtime.getState()
       const project = projection.current.project
 
-      for (const event of runtime.getSnapshot().damageEvents) {
+      const events = runtime.getSnapshot().damageEvents
+
+      /*
+        ลืม id ที่หลุดจากรายการไปแล้ว
+
+        runtime ทิ้ง event หลัง EVENT_TTL_MS และ id ไม่ซ้ำกันเลย id ที่ไม่อยู่ในรายการแล้ว
+        จึงไม่มีทางกลับมาอีก ถ้าไม่ตัดทิ้ง Set นี้จะโตตามจำนวนครั้งที่ตีตลอดการต่อสู้
+        ทั้งที่พูลตัวเลขนี้ตั้งใจออกแบบให้ใช้หน่วยความจำคงที่
+      */
+      if (seen.size > events.length) {
+        for (const id of seen) {
+          if (!events.some((event) => event.id === id)) seen.delete(id)
+        }
+      }
+
+      for (const event of events) {
         if (seen.has(event.id)) continue
         seen.add(event.id)
 

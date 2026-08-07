@@ -49,11 +49,8 @@
   z-index: 2;
   /* ให้คลิกทะลุไปที่ฉากได้ ยกเว้นตัวปุ่มเอง */
   pointer-events: none;
-  padding:
-    max(var(--sp-3), env(safe-area-inset-top))
-    max(var(--sp-3), env(safe-area-inset-right))
-    max(var(--sp-3), env(safe-area-inset-bottom))
-    max(var(--sp-3), env(safe-area-inset-left));
+  padding: max(var(--sp-3), env(safe-area-inset-top)) max(var(--sp-3), env(safe-area-inset-right))
+    max(var(--sp-3), env(safe-area-inset-bottom)) max(var(--sp-3), env(safe-area-inset-left));
 }
 
 .hudTop {
@@ -139,7 +136,9 @@
   font-size: 0.875rem;
   font-weight: 700;
   cursor: pointer;
-  transition: border-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
+  transition:
+    border-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out);
 }
 
 .exitBtn:hover {
@@ -166,14 +165,27 @@
 }
 
 @keyframes introFade {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
-  30% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.04); }
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+  30% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .introBanner { animation-duration: 1ms; }
-  .hpFill { transition: none; }
+  .introBanner {
+    animation-duration: 1ms;
+  }
+  .hpFill {
+    transition: none;
+  }
 }
 
 /* ── ปุ่มควบคุมบนจอ ─────────────────────────────────────── */
@@ -184,11 +196,8 @@
   z-index: 4;
   /* ให้เห็นฉากได้เต็ม ๆ — เฉพาะตัวควบคุมเท่านั้นที่รับการแตะ */
   pointer-events: none;
-  padding:
-    max(var(--sp-4), env(safe-area-inset-top))
-    max(var(--sp-4), env(safe-area-inset-right))
-    max(var(--sp-4), env(safe-area-inset-bottom))
-    max(var(--sp-4), env(safe-area-inset-left));
+  padding: max(var(--sp-4), env(safe-area-inset-top)) max(var(--sp-4), env(safe-area-inset-right))
+    max(var(--sp-4), env(safe-area-inset-bottom)) max(var(--sp-4), env(safe-area-inset-left));
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -233,17 +242,26 @@
 /*
   จอเตี้ยแบบมือถือแนวนอน — ปุ่มต้อง "ใหญ่ขึ้น" ไม่ใช่เล็กลง
 
-  ฟังดูกลับหัว แต่ GameViewport ย่อทั้งเวทีด้วย transform: scale() ตามด้านที่คับที่สุด
-  บนจอ 844x390 ตัวคูณคือ ~0.43 แปลว่าปุ่มขนาด 96px ในโค้ดจะกลายเป็น 42px จริงบนจอ
-  ซึ่งต่ำกว่าเกณฑ์เป้าแตะ 44px ของสเปกข้อ 12/29
+  เคยตั้งค่าชุดนี้ให้เล็กลงเพื่อประหยัดพื้นที่ แล้ววัดจริงในเบราว์เซอร์ได้ปุ่มโจมตี 42px
+  และปุ่มหลบ 28px — ต่ำกว่าเกณฑ์เป้าแตะ 44px ของสเปกข้อ 12/29 ทั้งคู่ ค่าปัจจุบันตั้งจาก
+  การวัดสดในเบราว์เซอร์ที่ 844x390 ไม่ใช่จากการคำนวณ ถ้าจะแก้ตัวเลขพวกนี้ให้วัดใหม่ด้วย
+  getBoundingClientRect บนจอมือถือแนวนอนที่เล็กที่สุดที่รองรับ อย่าคำนวณเอาเอง
 
-  เคยตั้งค่าชุดนี้ให้เล็กลงเพื่อประหยัดพื้นที่ แล้ววัดจริงในเบราว์เซอร์ได้
-  ปุ่มโจมตี 42px และปุ่มหลบ 28px — ผิดเกณฑ์ทั้งคู่
-  ค่าปัจจุบันเผื่อไว้ให้หลังคูณย่อแล้วยังเกิน 44px บนจอมือถือแนวนอนที่เล็กที่สุดที่รองรับ
+  หมายเหตุ: คอมเมนต์เดิมตรงนี้อธิบายว่าต้องเผื่อขนาดเพราะ GameViewport ย่อทั้งเวทีด้วย
+  transform: scale() ตัวคูณ ~0.43 — เหตุผลนั้นใช้ไม่ได้แล้ว GameViewport ไม่ย่ออะไรอีก
+  (ดู GameViewport.module.css: .stage เป็น inset: 0 เต็มกรอบ ไม่มี scale) ค่าที่เห็นในโค้ด
+  จึงเป็นพิกเซลจริงบนจอตรง ๆ ไม่ต้องคูณกลับ
 */
 @media (max-height: 480px) {
-  .joystickBase { width: 132px; height: 132px; }
-  .joystickKnob { width: 58px; height: 58px; margin: -29px 0 0 -29px; }
+  .joystickBase {
+    width: 132px;
+    height: 132px;
+  }
+  .joystickKnob {
+    width: 58px;
+    height: 58px;
+    margin: -29px 0 0 -29px;
+  }
 }
 
 .controlsRight {
@@ -277,7 +295,11 @@
 }
 
 @media (max-height: 480px) {
-  .attackBtn { width: 148px; height: 148px; font-size: 1.15rem; }
+  .attackBtn {
+    width: 148px;
+    height: 148px;
+    font-size: 1.15rem;
+  }
 }
 
 /* ── ชั้นข้อมูลที่ลอยทับฉาก ─────────────────────────────── */
@@ -345,7 +367,9 @@
   transition: transform 90ms var(--ease-out);
 }
 
-.dashBtn:active { transform: scale(0.94); }
+.dashBtn:active {
+  transform: scale(0.94);
+}
 
 /* วงคูลดาวน์ไล่จากล่างขึ้นบน — เต็ม = เพิ่งกด, ว่าง = พร้อมใช้ */
 .dashCooldown {
@@ -363,7 +387,11 @@
 }
 
 @media (max-height: 480px) {
-  .dashBtn { width: 112px; height: 112px; font-size: 1rem; }
+  .dashBtn {
+    width: 112px;
+    height: 112px;
+    font-size: 1rem;
+  }
 }
 
 .skillBtn {
@@ -387,7 +415,9 @@
   transition: transform 90ms var(--ease-out);
 }
 
-.skillBtn:active { transform: scale(0.94); }
+.skillBtn:active {
+  transform: scale(0.94);
+}
 
 .skillCooldown {
   position: absolute;
@@ -407,5 +437,106 @@
   /* ask-CB (2026-08-06): 96px * ~0.43 = 41.3px จริงบนจอ — ต่ำกว่าเกณฑ์ 44px ของสเปกข้อ 12/29
      (ปุ่มโจมตี/หลบข้างบนผ่านเกณฑ์นี้แล้วตามคอมเมนต์บรรทัด 233) เพิ่มเป็น 108px ให้ scale
      เป็น ~46.4px ผ่านเกณฑ์เหมือนปุ่มหลบ */
-  .skillBtn { width: 108px; height: 108px; font-size: 1.05rem; }
+  .skillBtn {
+    width: 108px;
+    height: 108px;
+    font-size: 1.05rem;
+  }
+}
+
+/* ── แผงผลหลังจบ ───────────────────────────────────────── */
+
+.resultBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: calc(var(--z-scene-battle) + 20);
+  display: grid;
+  place-items: center;
+  padding: var(--sp-4);
+  background:
+    radial-gradient(ellipse at 50% 30%, rgb(40 28 12 / 55%), transparent 55%), rgb(4 5 10 / 78%);
+  pointer-events: auto;
+}
+
+.resultPanel {
+  width: min(420px, 100%);
+  padding: var(--sp-5) var(--sp-4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--c-border);
+  background:
+    linear-gradient(160deg, rgb(28 24 18 / 96%), rgb(12 11 16 / 96%)), var(--c-panel-solid);
+  color: var(--c-text);
+  text-align: center;
+  box-shadow: var(--shadow-2);
+}
+
+.resultEyebrow {
+  margin: 0 0 var(--sp-2);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--c-text-dim);
+}
+
+.resultWin,
+.resultLose {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 5vw, 2.4rem);
+  letter-spacing: 0.06em;
+}
+
+.resultWin {
+  color: var(--c-gold-light);
+}
+.resultLose {
+  color: #e08a7a;
+}
+
+.resultMeta {
+  margin: var(--sp-2) 0 var(--sp-4);
+  font-size: 0.85rem;
+  color: var(--c-text-dim);
+}
+
+.resultRewards {
+  list-style: none;
+  margin: 0 0 var(--sp-4);
+  padding: 0;
+  display: grid;
+  gap: var(--sp-2);
+  text-align: start;
+}
+
+.resultRewards li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  background: rgb(255 255 255 / 4%);
+  border: 1px solid rgb(240 200 90 / 18%);
+}
+
+.resultRewards strong {
+  color: var(--c-gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.resultHint {
+  margin: 0 0 var(--sp-3);
+  font-size: 0.8rem;
+  color: var(--c-text-dim);
+}
+
+.resultContinue {
+  min-height: 44px;
+  min-width: 160px;
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--c-gold);
+  background: linear-gradient(180deg, rgb(240 200 90 / 22%), rgb(156 116 24 / 18%));
+  color: var(--c-gold-light);
+  font-weight: 800;
+  cursor: pointer;
 }

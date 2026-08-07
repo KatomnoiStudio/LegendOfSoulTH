@@ -46,7 +46,11 @@ export function isStorageAvailable(): boolean {
     window.localStorage.setItem(probe, '1')
     window.localStorage.removeItem(probe)
     return true
-  } catch {
+  } catch (error) {
+    // ฟังก์ชันพี่น้องในไฟล์นี้รายงานกันหมด ตัวนี้เคยเป็นตัวเดียวที่เงียบสนิท
+    // ผู้เรียกแสดงข้อความให้ผู้เล่นอยู่แล้ว แต่ไม่มีอะไรบอกว่าพังเพราะโหมดส่วนตัว
+    // คุกกี้ถูกปิด หรือโควตาเต็ม ซึ่งสามอย่างนี้แก้คนละทาง
+    reportError('STORAGE_PROBE_FAIL', 'silent', error)
     return false
   }
 }

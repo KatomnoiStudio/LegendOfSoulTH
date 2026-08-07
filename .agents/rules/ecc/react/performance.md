@@ -4,7 +4,7 @@ paths:
   - "**/*.jsx"
   - "tools/**/*.mjs"
 ---
-<!-- coalmine: verified 2026-08-05 · exemplar pmndrs/react-three-fiber "Performance Pitfalls" docs + Phaser 4 official performance guide + Khronos glTF-Transform Draco/Meshopt convention · revalidate 90d -->
+<!-- coalmine: verified 2026-08-07 · exemplar pmndrs/react-three-fiber "Performance Pitfalls" docs + excalidraw vite.config.mts manual-chunking + Vite build-options defaults + Khronos glTF-Transform Draco/Meshopt convention · revalidate 90d -->
 # React Three Fiber / Phaser Performance
 
 > Project-authored — not part of the upstream [affaan-m/ECC](https://github.com/affaan-m/ECC) import. No `react/performance.md` exists upstream; `common/performance.md` and `web/performance.md` don't cover this stack's actual bottleneck surface (see [PROJECT-OVERRIDES.md](../PROJECT-OVERRIDES.md)). Written for this repo's dependencies: `@react-three/fiber`, `three`, `phaser`.
@@ -20,10 +20,14 @@ paths:
 - Prefer `<Instances>`/`InstancedMesh` for repeated geometry (character roster slots, tile grids) over N separate `<mesh>` components.
 - Dispose geometries/materials/textures on unmount (`geometry.dispose()`, `material.dispose()`, `texture.dispose()`) — R3F doesn't do this automatically for objects you construct manually outside its declarative tree.
 
-## GLB / asset pipeline (`tools/build-models.mjs`)
+## GLB / asset pipeline (`tools/build-models.mjs`) — dev tooling only, not page weight
 
-- Models are exported via `GLTFExporter` with no compression today. Add Draco or Meshopt compression (`glTF-Transform`'s `draco()`/`meshopt()` transforms, or `GLTFExporter`'s built-in Draco option) before shipping — uncompressed GLBs bloat both the repo and initial load.
+**Nothing in `src/` loads a `.glb`.** Characters render as 2D sprites; `public/models/` is gitignored and `deploy.yml` deliberately skips `build:models` for exactly this reason. This section therefore governs the weight of a *development* pipeline, not anything a player downloads — read it that way, and do not cite it as a page-performance rule.
+
+- If that pipeline is ever wired into the shipped game, compress before shipping: Draco or Meshopt (`glTF-Transform`'s `draco()`/`meshopt()` transforms, or `GLTFExporter`'s built-in Draco option). Uncompressed GLBs bloat both the repo and initial load.
 - Reuse textures/materials across character variants where visually identical; don't bake duplicate texture atlases per model.
+
+> Corrected 2026-08-07: this section previously read as though it governed shipped asset weight. It never has — the pipeline's own header says nothing loads its output, and the deploy workflow skips it.
 
 ## Phaser (`WukongAdventure` / tile-based scenes)
 

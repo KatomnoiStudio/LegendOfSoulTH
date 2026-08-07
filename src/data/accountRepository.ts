@@ -1,7 +1,9 @@
 import { getCharacter } from '../game/characters'
+import { GAME_INFO } from '../game/gameInfo'
 import { getItem } from '../game/items'
 import { generateUid } from '../game/uid'
 import { TEAM_SIZE } from '../game/team'
+import { reportError } from '../lib/errors/reportError'
 import { createSalt, hashPassword, needsRehash, verifyPassword } from '../lib/password'
 import { isStorageAvailable, readJson, removeKey, writeJson } from '../lib/storage'
 import { EMPTY_PROGRESS, type FriendCandidate, type Player } from '../types/player'
@@ -38,6 +40,63 @@ import { EMPTY_PROGRESS, type FriendCandidate, type Player } from '../types/play
 const DB_KEY = 'los:db:v1'
 const SESSION_KEY = 'los:session:v1'
 
+/** อายุ session ก่อนหมดอายุถ้าไม่มีการใช้งานเลย — sliding window ต่ออายุทุกครั้งที่อ่านสำเร็จ */
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
+
+interface SessionRecord {
+  uid: string
+  email: string
+  expiresAt: string
+  /** เลขเวอร์ชันเกม (GAME_INFO.version) ตอนเขียน session นี้ — ดู readActiveSession */
+  appVersion: string
+}
+
+function createSession(uid: string, email: string): SessionRecord {
+  return {
+    uid,
+    email,
+    expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString(),
+    appVersion: GAME_INFO.version,
+  }
+}
+
+/*
+  ผู้เรียกทุกรายต้องอ่าน session ผ่านฟังก์ชันนี้เท่านั้น ห้าม readJson(SESSION_KEY) ตรง ๆ
+
+  เดิม session ไม่มีวันหมดอายุเลย (เขียนแค่ uid/email ไม่มี timestamp) — เข้าเกมครั้งเดียว
+  ค้าง login ตลอดไปจนกว่าจะกด logout เอง ต่อให้ปิดแท็บทิ้งไปเป็นปี ผู้เล่นเจอเข้าเกมได้ทันที
+  โดยไม่มีการันตีว่ายังเป็นเจ้าของอุปกรณ์จริง ๆ
+
+  sliding window (ต่ออายุทุกครั้งที่อ่านสำเร็จ) แทนวันหมดอายุตายตัว เพราะผู้เล่นที่เล่นต่อเนื่อง
+  ไม่ควรถูกเตะกลางเกมแค่เพราะ session อายุครบตามนาฬิกา — หมดอายุเฉพาะแท็บที่ปิดทิ้งไว้จริง ๆ
+  เกิน 30 วันเท่านั้น
+
+  session ยังหมดอายุทันทีถ้า appVersion ไม่ตรงกับ build ปัจจุบันด้วย (HetCreep 2026-08-07) —
+  อัปเดตเกมแล้ว session เก่าใช้ต่อไม่ได้ ต้องล็อกอินใหม่เสมอ ไม่ใช่แค่ตอนแท็บที่เปิดค้างเห็น
+  UpdateBanner แล้วกดรีเฟรชเอง แต่รวมถึงแท็บใหม่ที่เปิดขึ้นมาทีหลังด้วย (localStorage เดิม
+  ยังอยู่แต่เป็นของ build เก่า) — กันข้อมูล Player รูปแบบเก่าที่อาจไม่ตรงกับโค้ดใหม่หลุดเข้าเกม
+*/
+function readActiveSession(): SessionRecord | null {
+  const session = readJson<SessionRecord>(SESSION_KEY)
+  if (!session) return null
+
+  // session เก่าก่อนมีฟิลด์นี้ (เขียนไว้ตอนยังไม่มี expiry) — ถือว่าหมดอายุทันที
+  // ปลอดภัยกว่าปล่อยให้ใช้ต่อแบบไม่มีเวลาจำกัดเงียบ ๆ
+  if (!session.expiresAt || new Date(session.expiresAt).getTime() <= Date.now()) {
+    removeKey(SESSION_KEY)
+    return null
+  }
+
+  if (session.appVersion !== GAME_INFO.version) {
+    removeKey(SESSION_KEY)
+    return null
+  }
+
+  const renewed = createSession(session.uid, session.email)
+  writeJson(SESSION_KEY, renewed)
+  return renewed
+}
+
 /** ตัวละครที่ได้ฟรีตอนสมัครบัญชีใหม่ */
 const STARTER_CHARACTER_ID = 'monkey-king'
 
@@ -69,20 +128,79 @@ interface StoredAccount {
 
 interface Database {
   version: 1
+  /**
+   * ตัวนับรุ่นการเขียน — ไม่ใช่เลข schema version ด้านบน คนละเรื่องกัน
+   * saveDb ใช้เทียบว่ามีแท็บอื่นเขียนแซงไปตั้งแต่ตอน loadDb หรือยัง (ดู saveDb)
+   */
+  rev: number
   /** คีย์เป็นอีเมลตัวพิมพ์เล็ก — บังคับความไม่ซ้ำของอีเมลโดยตัวโครงสร้างเอง */
   accounts: Record<string, StoredAccount>
 }
 
-const EMPTY_DB: Database = { version: 1, accounts: {} }
+/*
+  มีข้อมูลเก็บอยู่จริงแต่อ่านไม่ออก (เช่น version เป็นเลขอื่น หรือไฟล์เสีย)
 
+  ต่างจาก "ยังไม่มีอะไรเลย" คนละเรื่องกันโดยสิ้นเชิง และการแยกสองอย่างนี้เป็นเรื่องเป็นตาย:
+  ถ้าไม่แยก loadDb จะคืนฐานข้อมูลเปล่าให้ แล้วการเขียนครั้งถัดไป — savePlayer ที่ยิงทุกครั้ง
+  ที่ผู้เล่นทำอะไรก็ตาม — จะทับข้อมูลจริงทิ้งทั้งหมดโดยไม่มีอะไรบอก บัญชีทุกบัญชีในเบราว์เซอร์
+  นั้นหายถาวรเพราะเลข version ตัวเดียวไม่ตรง ซึ่งเป็นสิ่งที่จะเกิดวันที่มีคนขึ้น version เป็น 2
+  พอดี — คือวันที่ฟิลด์นี้ถูกใช้งานตามที่มันมีไว้
+*/
+let unreadableDb = false
+
+/**
+ * ต้องคืนอ็อบเจ็กต์ใหม่ทุกครั้ง ห้ามคืนค่าคงที่ตัวเดียวร่วมกัน
+ *
+ * ผู้เรียกทุกรายแก้ผลลัพธ์ตรง ๆ (`db.accounts[key] = ...` แล้วค่อย saveDb) ถ้าคืนตัวคงที่
+ * ตัวเดิม การสมัครตอนพื้นที่เก็บข้อมูลเต็มจะแจ้งผู้ใช้ว่าบันทึกไม่สำเร็จ แต่บัญชีนั้นค้าง
+ * อยู่ในตัวคงที่แล้ว — login ครั้งถัดไปในแท็บเดิมจึงผ่านได้ทั้งที่ไม่มีอะไรถูกบันทึกจริง
+ */
 function loadDb(): Database {
-  const db = readJson<Database>(DB_KEY)
-  if (!db || db.version !== 1 || typeof db.accounts !== 'object') return EMPTY_DB
-  return db
+  const raw = readJson<Database>(DB_KEY)
+
+  if (!raw) {
+    // ไม่มีอะไรเก็บไว้ — เบราว์เซอร์ใหม่ เขียนทับได้ตามปกติ
+    unreadableDb = false
+    return { version: 1, rev: 0, accounts: {} }
+  }
+
+  if (raw.version !== 1 || typeof raw.accounts !== 'object') {
+    unreadableDb = true
+    reportError('DB_VERSION_UNSUPPORTED', 'visible', undefined, { version: raw.version })
+    return { version: 1, rev: 0, accounts: {} }
+  }
+
+  unreadableDb = false
+  // ข้อมูลเก่าก่อนมีฟิลด์นี้ไม่มี rev เลย — ถือเป็น 0 (เข้ากันได้กับของเดิมโดยไม่ต้อง migrate)
+  return { ...raw, rev: raw.rev ?? 0 }
 }
 
+/**
+ * บันทึกทับ localStorage — ปฏิเสธการเขียนถ้าอ่านฐานข้อมูลไม่ออก หรือมีแท็บอื่นเขียนแซงไปแล้ว
+ *
+ * ผู้เล่นเปิดเกมพร้อมกันหลายแท็บได้ (localStorage ใช้ร่วมกันทั้งเบราว์เซอร์) ทุกฟังก์ชัน
+ * ในไฟล์นี้ทำ loadDb → แก้สำเนา → saveDb แบบ synchronous ไม่มีช่องให้แท็บอื่นแทรกระหว่างนั้น
+ * ในแท็บเดียว แต่ "ระหว่างแท็บ" คือคนละ thread ของ JS กันเลย — แท็บ A loadDb ตอน rev=5,
+ * แท็บ B ก็ loadDb ตอน rev=5 เหมือนกัน แก้แล้ว save ก่อน (rev กลายเป็น 6) แท็บ A save ทีหลัง
+ * ด้วยข้อมูลที่คำนวณจาก rev=5 เดิม จะทับการเขียนของแท็บ B ทิ้งเงียบ ๆ ถ้าไม่เช็ค
+ *
+ * เทียบ rev ปัจจุบันในสตอเรจกับ rev ที่ db ก้อนนี้เคย loadDb มา — ตรงกันแปลว่าไม่มีใครแซง
+ * เขียนได้ปกติแล้วขยับ rev ขึ้นหนึ่ง ไม่ตรง = แพ้การแข่ง คืน false เข้าช่องทางเดิมที่ผู้เรียก
+ * ทุกรายเช็คอยู่แล้ว (register/login/importSave/savePlayer/earnGold/... ล้วนแปลง false
+ * เป็นข้อความ "บันทึกข้อมูลไม่สำเร็จ") ผู้เล่นเห็นว่าบันทึกไม่ผ่าน แทนที่จะเห็นว่าสำเร็จ
+ * แล้วข้อมูลของแท็บอื่นหายไปเงียบ ๆ — กด "ลองใหม่" (ซึ่งจะ loadDb รุ่นล่าสุดจริง) แก้ได้เอง
+ */
 function saveDb(db: Database): boolean {
-  return writeJson(DB_KEY, db)
+  if (unreadableDb) return false
+
+  const current = readJson<Database>(DB_KEY)
+  const currentRev = current?.rev ?? 0
+  if (db.rev !== currentRev) {
+    reportError('DB_WRITE_CONFLICT', 'silent', undefined, { expected: db.rev, actual: currentRev })
+    return false
+  }
+
+  return writeJson(DB_KEY, { ...db, rev: db.rev + 1 })
 }
 
 function normalizeEmail(email: string): string {
@@ -158,9 +276,7 @@ export const GOLD_PACKAGES: GoldPackage[] = [
 
 /* ---------------- ผลลัพธ์ ---------------- */
 
-export type AuthResult =
-  | { ok: true; player: Player }
-  | { ok: false; error: string }
+export type AuthResult = { ok: true; player: Player } | { ok: false; error: string }
 
 /* ---------------- ตรวจข้อมูลก่อนบันทึก ---------------- */
 
@@ -179,9 +295,22 @@ export function validateEmail(email: string): string | null {
 // รหัสผ่านที่พบบ่อยที่สุดจนไม่ป้องกันอะไรเลย แม้ยาวพอตาม PASSWORD_MIN_LENGTH ก็ตาม
 // (รายการเล็ก ๆ พอกันกรณีชัดเจนที่สุด ไม่ใช่ dictionary attack เต็มรูปแบบ — ไม่ต้องพึ่ง library ภายนอก)
 const COMMON_PASSWORDS = new Set([
-  'password', 'password1', 'password123', '12345678', '123456789', '1234567890',
-  'qwerty123', 'qwertyui', 'letmein1', 'iloveyou', 'admin123', 'welcome1',
-  '11111111', '00000000', 'abc12345', 'changeme',
+  'password',
+  'password1',
+  'password123',
+  '12345678',
+  '123456789',
+  '1234567890',
+  'qwerty123',
+  'qwertyui',
+  'letmein1',
+  'iloveyou',
+  'admin123',
+  'welcome1',
+  '11111111',
+  '00000000',
+  'abc12345',
+  'changeme',
 ])
 
 export function validatePassword(password: string): string | null {
@@ -205,11 +334,40 @@ export function validatePassword(password: string): string | null {
  * ทุกทางที่อ่านผู้เล่นออกจากฐานข้อมูลต้องผ่านฟังก์ชันนี้เสมอ
  */
 function normalizePlayer(player: Player): Player {
+  /*
+    ต้องเติมทุกฟิลด์ที่หน้าจอ deref ตรง ๆ ไม่ใช่แค่ฟิลด์ที่เพิ่มมาทีหลัง
+
+    LobbyPage อ่าน `player.ownedCharacters.flatMap(...)` และ `player.teamSlots` ส่วน TopBar
+    อ่าน `player.currency.gold` โดยไม่มี guard สักตัว ข้อมูลที่ขาดฟิลด์พวกนี้ (ไฟล์ save
+    ที่ถูกแก้มา หรือข้อมูลใน localStorage ที่เสีย) จึงทำให้จอพังทันทีที่เรนเดอร์ และพังซ้ำ
+    ทุกครั้งที่โหลดหน้าใหม่ เพราะ getSessionPlayer อ่านผ่านฟังก์ชันนี้เหมือนกัน — วนไม่จบ
+    จนกว่าผู้เล่นจะล้าง localStorage เอง ซึ่งเป็นอาการเดียวกับบั๊กที่เพิ่งแก้ไปเรื่อง `player`
+    หายทั้งก้อน แค่คนละระดับของโครงสร้าง
+
+    เติมค่าว่างแล้วรายงาน ไม่ใช่เติมเงียบ ๆ — ผู้เล่นที่ตัวละครหายควรได้รู้ว่าเกิดอะไรขึ้น
+    และยังเข้าเกมได้เพื่อกดนำเข้าไฟล์สำรอง ดีกว่าเจอจอพังที่ทำอะไรต่อไม่ได้เลย
+  */
+  const missing: string[] = []
+  if (!Array.isArray(player.ownedCharacters)) missing.push('ownedCharacters')
+  if (!Array.isArray(player.teamSlots)) missing.push('teamSlots')
+  if (!player.currency || typeof player.currency !== 'object') missing.push('currency')
+  if (missing.length > 0) {
+    reportError('PLAYER_DATA_INCOMPLETE', 'visible', undefined, { missing })
+  }
+
   return {
     ...player,
     progress: player.progress ?? EMPTY_PROGRESS,
     inventory: player.inventory ?? [],
     friends: player.friends ?? [],
+    ownedCharacters: Array.isArray(player.ownedCharacters) ? player.ownedCharacters : [],
+    teamSlots: Array.isArray(player.teamSlots)
+      ? player.teamSlots
+      : Array.from({ length: TEAM_SIZE }, () => null),
+    currency:
+      player.currency && typeof player.currency === 'object'
+        ? player.currency
+        : { gold: 0, gem: 0 },
   }
 }
 
@@ -289,7 +447,25 @@ export async function register(email: string, password: string): Promise<AuthRes
     return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
   }
 
-  writeJson(SESSION_KEY, { uid, email: key })
+  /*
+    ต้องเช็คค่าที่คืนมาเหมือน saveDb ไม่ใช่ยิงทิ้ง
+
+    บัญชีเขียนลงแล้วแต่ session เขียนไม่ลง (พื้นที่พอสำหรับก้อนใหญ่แต่ไม่พอสำหรับก้อนเล็ก
+    ที่ตามมา) ให้ผลประหลาดที่สุด: หน้าจอเข้าเกมได้ตามปกติ แต่พอโหลดหน้าใหม่ getSessionPlayer
+    หา session ไม่เจอแล้วเด้งกลับหน้าล็อกอิน ทั้งที่บัญชีถูกบันทึกไว้เรียบร้อยแล้วจริง ๆ
+  */
+  if (!writeJson(SESSION_KEY, createSession(uid, key))) {
+    /*
+      ถอนบัญชีที่เพิ่งสร้างออกด้วย
+
+      บอกว่าสมัครไม่สำเร็จแต่ทิ้งบัญชีไว้ในฐานข้อมูล จะทำให้ผู้เล่นสมัครอีเมลเดิมซ้ำไม่ได้
+      (เจอ "อีเมลนี้ถูกใช้สมัครไปแล้ว") ทั้งที่ระบบเพิ่งบอกเองว่าไม่สำเร็จ — ทางตันที่งงกว่า
+      ปัญหาเดิมอีก ถอนออกให้สถานะกลับไปเหมือนก่อนกดสมัคร
+    */
+    delete db.accounts[key]
+    saveDb(db)
+    return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
+  }
   return { ok: true, player: normalizePlayer(account.player) }
 }
 
@@ -313,7 +489,10 @@ export async function login(email: string, password: string): Promise<AuthResult
     saveDb(db)
   }
 
-  writeJson(SESSION_KEY, { uid: account.uid, email: key })
+  // เช็คค่าที่คืนมาด้วยเหตุผลเดียวกับใน register (ดูคอมเมนต์ที่นั่น)
+  if (!writeJson(SESSION_KEY, createSession(account.uid, key))) {
+    return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
+  }
   return { ok: true, player: normalizePlayer(account.player) }
 }
 
@@ -323,7 +502,7 @@ export async function logout(): Promise<void> {
 
 /** อ่านผู้เล่นของ session ที่ค้างอยู่ — ใช้ตอนเปิดเกมเพื่อไม่ต้องล็อกอินซ้ำ */
 export async function getSessionPlayer(): Promise<Player | null> {
-  const session = readJson<{ uid: string; email: string }>(SESSION_KEY)
+  const session = readActiveSession()
   if (!session) return null
 
   const account = loadDb().accounts[session.email]
@@ -348,8 +527,10 @@ interface SaveExport {
  * ส่งออกบัญชีของ session ปัจจุบันเป็น JSON — ให้ผู้เล่นโหลดเก็บไว้เป็นไฟล์สำรอง/ย้ายเครื่อง
  * ข้อมูลอยู่ใน localStorage ของเบราว์เซอร์เท่านั้น ไม่มี sync ข้ามอุปกรณ์ในตัว — ปุ่มนี้คือทางแก้
  */
-export async function exportSave(): Promise<{ ok: true; json: string } | { ok: false; error: string }> {
-  const session = readJson<{ uid: string; email: string }>(SESSION_KEY)
+export async function exportSave(): Promise<
+  { ok: true; json: string } | { ok: false; error: string }
+> {
+  const session = readActiveSession()
   if (!session) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' }
 
   const account = loadDb().accounts[session.email]
@@ -368,7 +549,8 @@ export async function importSave(json: string): Promise<AuthResult> {
   let parsed: SaveExport
   try {
     parsed = JSON.parse(json)
-  } catch {
+  } catch (error) {
+    reportError('SAVE_IMPORT_PARSE_FAIL', 'silent', error)
     return { ok: false, error: 'ไฟล์ save เสียหายหรือไม่ใช่ไฟล์ที่ถูกต้อง' }
   }
 
@@ -377,7 +559,12 @@ export async function importSave(json: string): Promise<AuthResult> {
     parsed?.exportVersion !== SAVE_EXPORT_VERSION ||
     !account?.uid ||
     !account?.email ||
-    !account?.passwordHash
+    !account?.passwordHash ||
+    // ต้องเช็ค player ด้วย ไม่ใช่แค่ฟิลด์บัญชี: ด้านล่างเขียน account ลง localStorage และตั้ง
+    // session ให้เรียบร้อยก่อน แล้วค่อยเรียก normalizePlayer() ซึ่งจะ throw ถ้า player หายไป
+    // ผลคือไฟล์ที่ไม่มี player ทำให้เกมเปิดไม่ได้ถาวร (getSessionPlayer เจอ throw เดิมทุกครั้ง
+    // ที่โหลดหน้า) แก้ได้ทางเดียวคือให้ผู้เล่นล้าง localStorage เอง — ต้องกันตั้งแต่ตรงนี้
+    typeof account.player?.name !== 'string'
   ) {
     return { ok: false, error: 'ไฟล์ save ไม่ตรงรูปแบบที่รองรับ' }
   }
@@ -389,7 +576,10 @@ export async function importSave(json: string): Promise<AuthResult> {
     return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
   }
 
-  writeJson(SESSION_KEY, { uid: account.uid, email: key })
+  // เช็คค่าที่คืนมาด้วยเหตุผลเดียวกับใน register (ดูคอมเมนต์ที่นั่น)
+  if (!writeJson(SESSION_KEY, createSession(account.uid, key))) {
+    return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
+  }
   return { ok: true, player: normalizePlayer(account.player) }
 }
 
@@ -400,7 +590,7 @@ export async function importSave(json: string): Promise<AuthResult> {
  * ไม่ใช่ข้อมูลตัวละครที่ UI ทั่วไปต้องเห็น) ฟังก์ชันนี้จึงเป็นทางเดียวที่ควรใช้อ่านอีเมล
  */
 export function getSessionEmail(): string | null {
-  return readJson<{ uid: string; email: string }>(SESSION_KEY)?.email ?? null
+  return readActiveSession()?.email ?? null
 }
 
 export type { FriendCandidate } from '../types/player'
@@ -435,8 +625,7 @@ export async function savePlayer(player: Player): Promise<boolean> {
 /* ---------------- ทอง/หยก — ต้องผ่านฟังก์ชันที่ระบุแหล่งที่มาเท่านั้น ---------------- */
 
 export type CurrencyResult =
-  | { ok: true; player: Player; amount: number }
-  | { ok: false; error: string }
+  { ok: true; player: Player; amount: number } | { ok: false; error: string }
 
 /** ให้ทองจากการเล่นเท่านั้น — ทำเควสสำเร็จ หรือของดรอประหว่างเล่น */
 export async function earnGold(
@@ -528,7 +717,8 @@ export async function redeemCoupon(uid: string, code: string): Promise<CurrencyR
     const totalRedeemed = Object.values(db.accounts).reduce(
       (count, other) =>
         count +
-        (other.transactions ?? []).filter((tx) => tx.source === 'coupon' && tx.refId === normalized).length,
+        (other.transactions ?? []).filter((tx) => tx.source === 'coupon' && tx.refId === normalized)
+          .length,
       0,
     )
     if (totalRedeemed >= coupon.maxRedemptions) {
@@ -560,9 +750,7 @@ export async function getTransactions(uid: string): Promise<CurrencyTransaction[
 /** ไอเทมได้จากการเล่นเท่านั้น — ทำเควสสำเร็จ หรือของดรอป (กติกาเดียวกับทอง) */
 export type ItemSource = GoldSource
 
-export type ItemResult =
-  | { ok: true; player: Player }
-  | { ok: false; error: string }
+export type ItemResult = { ok: true; player: Player } | { ok: false; error: string }
 
 /**
  * เพิ่มไอเทมเข้ากระเป๋าผู้เล่น — มีอยู่แล้วให้บวกจำนวน ไม่มีให้สร้างช่องใหม่
@@ -611,8 +799,7 @@ export async function grantItem(
 /* ---------------- ตัวละคร ---------------- */
 
 export type CharacterGrantResult =
-  | { ok: true; player: Player; characterId: string }
-  | { ok: false; error: string }
+  { ok: true; player: Player; characterId: string } | { ok: false; error: string }
 
 /**
  * มอบตัวละครให้บัญชีผู้เล่น

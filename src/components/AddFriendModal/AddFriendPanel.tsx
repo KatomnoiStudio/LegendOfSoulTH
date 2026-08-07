@@ -11,7 +11,8 @@ interface AddFriendPanelProps {
   /** true ถ้า uid นี้อยู่ในรายชื่อเพื่อนอยู่แล้ว — กันเพิ่มซ้ำ */
   isFriend: (uid: string) => boolean
   /** เพิ่มเข้ารายชื่อเพื่อนจริง (บันทึกลง player.friends) */
-  onAddFriend: (candidate: FriendCandidate) => void
+  /** คืน true เมื่อบันทึกลงจริง — false แปลว่าถูกย้อนกลับแล้ว อย่าบอกผู้เล่นว่าสำเร็จ */
+  onAddFriend: (candidate: FriendCandidate) => Promise<boolean>
 }
 
 type SearchState =
@@ -48,10 +49,26 @@ export function AddFriendPanel({ onSearch, isFriend, onAddFriend }: AddFriendPan
       showToast(`${player.name}อยู่ในรายชื่อเพื่อนอยู่แล้ว`)
       return
     }
-    onAddFriend(player)
-    showToast(`เพิ่ม${player.name}เป็นเพื่อนแล้ว`)
-    setUidInput('')
-    setSearch({ status: 'idle' })
+    /*
+      บอกว่าสำเร็จก็ต่อเมื่อเขียนลงจริง
+
+      เดิมยิง toast "เพิ่มเป็นเพื่อนแล้ว" ในบรรทัดถัดจากการสั่งเขียนทันที ถ้าเขียนไม่ผ่าน
+      (พื้นที่เต็ม/โหมดส่วนตัว) useAuth.updatePlayer จะย้อนรายชื่อกลับ ผู้เล่นจึงเห็นข้อความ
+      ว่าสำเร็จ แล้วเพื่อนหายไปเองสักพักโดยไม่มีอะไรเชื่อมสองเหตุการณ์เข้าด้วยกัน
+
+      แค่ await เฉย ๆ ไม่พอ — มันบอกแค่ว่า "พยายามเขียนจบแล้ว" ไม่ได้บอกว่าสำเร็จ
+      ต้องดูค่าที่คืนมาด้วย
+    */
+    void (async () => {
+      if (await onAddFriend(player)) {
+        showToast(`เพิ่ม${player.name}เป็นเพื่อนแล้ว`)
+        setUidInput('')
+        setSearch({ status: 'idle' })
+      } else {
+        // คงคำค้นไว้ให้ลองใหม่ได้เลย ไม่ต้องพิมพ์ UID ซ้ำ
+        showToast('บันทึกไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม', 'error')
+      }
+    })()
   }
 
   return (

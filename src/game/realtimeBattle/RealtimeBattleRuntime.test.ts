@@ -179,6 +179,22 @@ describe('RealtimeBattleRuntime', () => {
     expect(runtime.getSnapshot().status).toBe('victory')
   })
 
+  it('requestExit หลังผลตัดสินแล้ว (victory/defeat) ต้องไม่ทับสถานะเป็น exiting', () => {
+    const runtime = makeRuntime()
+    runtime.step(1000)
+
+    const state = runtime.getState()
+    for (const enemy of state.enemies) {
+      enemy.state = 'dead'
+      enemy.hp = 0
+    }
+    runtime.step(16)
+    expect(runtime.getSnapshot().status).toBe('victory')
+
+    runtime.requestExit()
+    expect(runtime.getSnapshot().status).toBe('victory')
+  })
+
   it('ด่านหลายคลื่น (trial-02) — คลื่นแรกตายหมดแล้วต้องสร้างคลื่นถัดไป ไม่ใช่ชนะทันที', () => {
     const state = createRealtimeBattle('trial-02', makePlayer())
     if (!state) throw new Error('สร้างสถานะตั้งต้นไม่สำเร็จ')

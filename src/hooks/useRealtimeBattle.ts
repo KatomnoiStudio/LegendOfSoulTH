@@ -150,8 +150,14 @@ export function useRealtimeBattle({
         })
       } catch (cause: unknown) {
         if (cancelled) return
+        /*
+          บล็อกนี้ครอบมากกว่าการโหลดภาพ — สร้าง runtime, ผูกคีย์บอร์ด, เริ่มลูป ก็ตกมาที่นี่
+          ทั้งนั้น แต่เดิมไม่ผ่าน reportError เลย สามอย่างหลังจึงไม่มีร่องรอยอะไรทิ้งไว้เลย
+          (ส่วน BattleAssetError รายงานไปแล้วที่ต้นทาง ตัวนี้จึงเป็นชั้นดักซ้ำของมัน)
+        */
+        reportError('BATTLE_INIT_FAIL', 'silent', cause)
         const detail = cause instanceof Error ? cause.message : String(cause)
-        setErrorMessage(`โหลดภาพของห้องต่อสู้ไม่สำเร็จ — ${detail}`)
+        setErrorMessage(`เตรียมห้องต่อสู้ไม่สำเร็จ — ${detail}`)
       }
     }
 

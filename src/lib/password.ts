@@ -81,8 +81,12 @@ export async function verifyPassword(
   expectedHash: string,
 ): Promise<boolean> {
   const separator = expectedHash.indexOf(':')
-  const iterations = separator === -1 ? 120_000 : Number(expectedHash.slice(0, separator))
+  const iterations = parseIterations(expectedHash, separator)
   const expectedDigest = separator === -1 ? expectedHash : expectedHash.slice(separator + 1)
+
+  // แฮชที่เก็บไว้เป็นข้อมูลที่ผู้เล่นแก้เองได้ (localStorage + ไฟล์ save ที่นำเข้ามา)
+  // จำนวนรอบจึงไม่ใช่ค่าที่เชื่อได้ ต้องตรวจก่อนส่งเข้า deriveBits เสมอ
+  if (iterations === null) return false
 
   const actual = await derive(password, salt, iterations)
   if (actual.length !== expectedDigest.length) return false
@@ -94,9 +98,25 @@ export async function verifyPassword(
   return diff === 0
 }
 
+/** จำนวนรอบของแฮชรุ่นแรกที่ยังไม่ได้เขียนจำนวนรอบนำหน้าไว้ในสตริง */
+const LEGACY_ITERATIONS = 120_000
+
+/**
+ * จำนวนรอบที่ปลอดภัยพอจะส่งให้ WebCrypto — คืน null ถ้าแฮชที่เก็บไว้ใช้ไม่ได้
+ *
+ * ค่านี้มาจากข้อมูลที่ผู้เล่นแก้ได้ ถ้าปล่อยผ่านตรง ๆ จะได้สองแบบ: NaN/0 ทำให้ deriveBits
+ * โยนข้อผิดพลาดออกมาเป็น unhandled rejection และตัวเลขมหาศาลทำให้เบราว์เซอร์ค้างทั้งแท็บ
+ * เพดานตั้งไว้ที่ 4 เท่าของค่าปัจจุบัน — พอให้รองรับการขยับค่าในอนาคตโดยไม่ต้องแก้ตรงนี้
+ */
+function parseIterations(hash: string, separator: number): number | null {
+  if (separator === -1) return LEGACY_ITERATIONS
+  const parsed = Number(hash.slice(0, separator))
+  if (!Number.isInteger(parsed) || parsed <= 0 || parsed > ITERATIONS * 4) return null
+  return parsed
+}
+
 /** true เมื่อแฮชที่เก็บไว้ใช้รอบน้อยกว่าค่าปัจจุบัน — เรียกหลัง verifyPassword ผ่านเพื่อรีแฮชอัปเกรด */
 export function needsRehash(storedHash: string): boolean {
-  const separator = storedHash.indexOf(':')
-  const iterations = separator === -1 ? 120_000 : Number(storedHash.slice(0, separator))
-  return iterations < ITERATIONS
+  const iterations = parseIterations(storedHash, storedHash.indexOf(':'))
+  return iterations !== null && iterations < ITERATIONS
 }

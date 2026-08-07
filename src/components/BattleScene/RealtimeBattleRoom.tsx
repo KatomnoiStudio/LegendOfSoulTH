@@ -97,8 +97,8 @@ export function RealtimeBattleRoom({
       <Canvas
         className={styles.canvas}
         dpr={[1, 2]}
-        // GameViewport ย่อเวทีด้วย transform: scale() ทำให้ getBoundingClientRect() คืนขนาดหลังย่อ
-        // (เหตุผลเดียวกับ LobbyScene — ดูคอมเมนต์ในไฟล์นั้น)
+        // วัดขนาดจาก offsetWidth/Height แทน getBoundingClientRect เพื่อไม่ให้ transform ใด ๆ
+        // ที่ครอบอยู่ทำให้ขนาด canvas เพี้ยน (เหตุผลเดียวกับ LobbyScene — ดูคอมเมนต์ในไฟล์นั้น)
         resize={{ offsetSize: true }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
         camera={{ fov: 42, near: 0.1, far: 200 }}

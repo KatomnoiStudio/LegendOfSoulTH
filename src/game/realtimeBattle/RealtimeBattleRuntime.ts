@@ -421,7 +421,15 @@ export class RealtimeBattleRuntime {
       return
     }
 
-    if (state.enemies.length === 0 || !state.enemies.every((enemy) => enemy.state === 'dead')) return
+    /*
+      รายการว่างต้องไหลต่อไปหาคลื่นถัดไป ไม่ใช่ return ทิ้ง
+
+      createWaveEnemies ข้ามศัตรูที่หา template หรือจุดเกิดไม่เจอแบบเงียบ ๆ (ดู codes.ts)
+      ถ้าทั้งคลื่นข้ามหมดจะได้รายการว่าง แล้วเงื่อนไขเดิมทำให้ที่นี่ return ทุกเฟรมตลอดไป
+      ห้องนั้นจึงชนะไม่ได้ แพ้ก็ไม่ได้ ค้างอยู่อย่างนั้นโดยไม่มีข้อผิดพลาดใด ๆ ขึ้นมาบอก
+      (every() บนรายการว่างคืน true อยู่แล้ว จึงตกไปเข้าตรรกะขึ้นคลื่นถัดไปได้ตามปกติ)
+    */
+    if (!state.enemies.every((enemy) => enemy.state === 'dead')) return
 
     const nextWaveIndex = state.currentWaveIndex + 1
     const nextWaveEnemies = createWaveEnemies(state.stage, nextWaveIndex)
@@ -474,9 +482,18 @@ export class RealtimeBattleRuntime {
     this.moveInput = vector
   }
 
-  /** ขอออกจากห้องต่อสู้ — หยุดจำลองทันที ไม่ให้ระบบใดเดินต่อ */
+  /**
+   * ขอออกจากห้องต่อสู้ — หยุดจำลองทันที ไม่ให้ระบบใดเดินต่อ
+   *
+   * ถ้าผลการต่อสู้ตัดสินแล้ว ('victory'/'defeat') ห้ามทับด้วย 'exiting' — ปุ่มออกยังกดได้
+   * อยู่ระหว่างเฟรมที่ onComplete (useRealtimeBattle) กำลังจะยิง ถ้าทับสถานะตอนนั้น
+   * โค้ดปลายทางที่อ่าน getState().status ซ้ำ (ไม่ใช่แค่ค่าที่ onComplete ส่งไปตอนแรก)
+   * จะเห็น 'exiting' แทนผลจริง
+   */
   requestExit(): void {
-    if (this.state.status === 'exiting') return
+    if (this.state.status === 'exiting' || this.state.status === 'victory' || this.state.status === 'defeat') {
+      return
+    }
     this.state.status = 'exiting'
     this.publish()
   }

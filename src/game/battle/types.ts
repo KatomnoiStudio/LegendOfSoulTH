@@ -1,11 +1,6 @@
 import type { Character } from '../characters'
 
-export type BattlePhase =
-  | 'intro'
-  | 'awaiting_input'
-  | 'resolving'
-  | 'victory'
-  | 'defeat'
+export type BattlePhase = 'intro' | 'awaiting_input' | 'resolving' | 'victory' | 'defeat'
 
 export type ActionKind = 'attack' | 'defend' | 'skill'
 
@@ -70,6 +65,9 @@ export interface BattleResult {
   outcome: 'victory' | 'defeat'
   stageId: string
   stageName: string
-  turns: number
+  /** มรดกเทิร์นเบส — บัญชีเก่าอาจยังมี; realtime ไม่ส่งค่านี้ */
+  turns?: number
+  /** ระยะเวลาต่อสู้จริง (ms) — ใช้กับ realtime */
+  durationMs?: number
   finishedAt: string
 }

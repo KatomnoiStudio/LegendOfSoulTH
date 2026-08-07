@@ -25,8 +25,16 @@ permissions:
 
 jobs:
   ci:
-    name: Continuous Integration
+    name: Continuous Integration (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+
+    # engines.node ใน package.json บังคับ >=22 — matrix นี้เช็คว่าโค้ดยังรันได้จริงบน LTS
+    # ปัจจุบัน (22) และ LTS ถัดไปที่กำลังจะมาแทน (24) ไม่ใช่แค่เวอร์ชันเดียวที่ dev เครื่องนี้ใช้
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [22, 24]
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -34,8 +42,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -51,3 +59,48 @@ jobs:
 
       - name: Build Application
         run: npm run build
+
+      - name: Report bundle size
+        # ไม่ต้องสมัคร external service — แค่ print ขนาด chunk ทุก build ลง log
+        # เทียบ trend เองได้จาก run history (Actions > this workflow > ผลลัพธ์ย้อนหลัง)
+        run: |
+          set -o pipefail
+          echo "### Bundle size (dist/assets)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          du -h dist/assets/*.js dist/assets/*.css | sort -rh >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+  ci-status:
+    name: Continuous Integration
+    needs: ci
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: ตรวจว่าทุกเวอร์ชันใน matrix ผ่านหมด
+        run: |
+          if [ "${{ contains(needs.ci.result, 'failure') || contains(needs.ci.result, 'cancelled') }}" = "true" ]; then
+            echo "อย่างน้อยหนึ่ง Node version ใน matrix ไม่ผ่าน" >&2
+            exit 1
+          fi
+
+  dependency-review:
+    name: Dependency Review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: always

@@ -5,8 +5,12 @@ import type {
   CurrencyResult,
   FriendCandidate,
   GoldSource,
+  ItemResult,
+  ItemSource,
 } from '../data/accountRepository'
 import { isAdminEmail } from '../data/admins'
+import { reportError } from '../lib/errors/reportError'
+import { downloadSaveJson } from '../lib/saveFile'
 import type { Player } from '../types/player'
 
 /**
@@ -26,7 +30,8 @@ export interface AuthState {
   login: (email: string, password: string) => Promise<string | null>
   logout: () => Promise<void>
   /** บันทึกความคืบหน้า เช่น ตั้งชื่อตัวละคร จัดทีม อัปเกรด */
-  updatePlayer: (next: Player) => Promise<void>
+  /** คืน true เมื่อบันทึกลงที่เก็บข้อมูลจริง — false แปลว่าหน้าจอถูกย้อนกลับแล้ว */
+  updatePlayer: (next: Player) => Promise<boolean>
   /** ให้ทองจากการเล่นเท่านั้น — ทำเควสสำเร็จหรือของดรอป (ดู accountRepository.earnGold) */
   earnGold: (source: GoldSource, amount: number, refId?: string) => Promise<CurrencyResult>
   /** เติมทองด้วยเงินจริง (ดู accountRepository.topUpGold) */
@@ -44,6 +49,8 @@ export interface AuthState {
   isAdmin: boolean
   /** มอบตัวละครให้บัญชีนี้ — ตอนนี้เรียกจากช่องคำสั่งผู้ดูแลเท่านั้น */
   grantCharacter: (characterId: string) => Promise<CharacterGrantResult>
+  /** ให้ไอเทมจากการเล่น (ดรอป/เควส) — ดู accountRepository.grantItem */
+  grantItem: (itemId: string, quantity: number, source: ItemSource) => Promise<ItemResult>
   /** ส่งออก save เป็นไฟล์ JSON ไว้สำรอง/ย้ายเครื่อง — คืน null เมื่อสำเร็จ (ไฟล์ถูกดาวน์โหลดแล้ว) */
   exportSave: () => Promise<string | null>
   /** นำเข้าไฟล์ save ที่ export ไว้ — คืน null เมื่อสำเร็จ คืนข้อความเมื่อผิดพลาด */
@@ -99,11 +106,36 @@ export function useAuth(): AuthState {
     setStatus('guest')
   }, [])
 
-  const updatePlayer = useCallback(async (next: Player) => {
-    // อัปเดตหน้าจอทันที แล้วค่อยเขียนลงฐานข้อมูล
-    setPlayer(next)
-    await accounts.savePlayer(next)
-  }, [])
+  /*
+    เขียนความคืบหน้าผู้เล่นลงที่เก็บข้อมูล — คืน true เมื่อบันทึกลงจริง
+
+    เดิมทิ้งค่าที่ savePlayer คืนมาโดยไม่ดู ทั้งที่ทุกฟังก์ชันพี่น้องใน accountRepository
+    (register/login/importSave/earnGold/...) เช็คค่าเดียวกันนี้แล้วขึ้นข้อความบอกผู้ใช้
+    และนี่คือเส้นทางเขียนของความคืบหน้าทั้งเกม — ทีม อัปเกรด เงิน ผลต่อสู้ เพื่อน
+    ผลคือพื้นที่เก็บข้อมูลเต็มแล้วหน้าจอยังโชว์เหมือนเซฟติด ผู้เล่นเล่นต่อจนปิดแท็บ
+    แล้วของหายทั้งหมดโดยไม่เคยมีสัญญาณอะไรเลย
+
+    ที่นี่ประกาศผลด้วยการ "ย้อนหน้าจอกลับ" ไม่ใช่ toast เพราะ useAuth ถูกเรียกเหนือ
+    ToastProvider ใน App.tsx จึงเรียก useToast ไม่ได้ และการโชว์ค่าเดิมที่เป็นความจริง
+    ดีกว่าโชว์ค่าใหม่ที่ไม่ได้ถูกบันทึก
+
+    คืน boolean ให้ผู้เรียกตัดสินใจต่อได้ — ปุ่มเพิ่มเพื่อนเป็นรายแรกที่ต้องใช้จริง
+    (ก่อนหน้านี้ตัดค่าคืนทิ้งเพราะยังไม่มีใครใช้ แล้วผู้ใช้ก็โผล่มาจริงในวันเดียวกัน)
+  */
+  const updatePlayer = useCallback(
+    async (next: Player): Promise<boolean> => {
+      const previous = player
+      // อัปเดตหน้าจอทันที แล้วค่อยเขียนลงฐานข้อมูล
+      setPlayer(next)
+
+      if (await accounts.savePlayer(next)) return true
+
+      reportError('PLAYER_SAVE_FAIL', 'visible')
+      setPlayer(previous)
+      return false
+    },
+    [player],
+  )
 
   // สี่ฟังก์ชันด้านล่างคุยกับ accountRepository ที่บังคับระบุแหล่งที่มาของทอง/หยกเสมอ
   // (ดูคอมเมนต์หัวไฟล์ accountRepository.ts) จึงไม่มี setGold/setGem ตรง ๆ ให้เรียกจากที่อื่น
@@ -161,18 +193,22 @@ export function useAuth(): AuthState {
     [player],
   )
 
+  const grantItem = useCallback(
+    async (itemId: string, quantity: number, source: ItemSource) => {
+      if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
+      const result = await accounts.grantItem(player.uid, itemId, quantity, source)
+      if (result.ok) setPlayer(result.player)
+      return result
+    },
+    [player],
+  )
+
   const exportSave = useCallback(async () => {
     const result = await accounts.exportSave()
     if (!result.ok) return result.error
 
     // ดาวน์โหลดเป็นไฟล์ .json — ไม่มี backend ให้ส่งไปเก็บ ผู้เล่นต้องเก็บไฟล์เอง
-    const blob = new Blob([result.json], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `legend-of-soul-th-save-${new Date().toISOString().slice(0, 10)}.json`
-    link.click()
-    URL.revokeObjectURL(url)
+    downloadSaveJson(result.json)
     return null
   }, [])
 
@@ -199,6 +235,7 @@ export function useAuth(): AuthState {
     findFriendByUid,
     isAdmin: isAdminEmail(email),
     grantCharacter,
+    grantItem,
     exportSave,
     importSave,
   }

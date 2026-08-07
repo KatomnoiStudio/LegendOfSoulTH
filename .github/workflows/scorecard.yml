@@ -1,0 +1,68 @@
+name: OpenSSF Scorecard
+
+# ให้เครื่องตรวจสุขภาพ supply chain ของ repo ทุกสัปดาห์แทนการตรวจด้วยมือ
+#
+# gold-standard AUDIT (2026-08-07) ตรวจ 18 ข้อของ Scorecard ด้วยมือครั้งหนึ่งแล้ว ผลออกมาดี
+# หลายข้อ (action ปัก SHA ครบ, dependabot, SECURITY.md, ไม่มี dangerous workflow, token
+# สิทธิ์น้อยสุด) แต่การตรวจด้วยมือกันการถอยหลังไม่ได้ — พอมีคนเพิ่ม workflow ใหม่แล้วลืมใส่
+# permissions หรือปัก action ด้วย tag แทน SHA จะไม่มีอะไรส่งเสียง ตัวนี้ทำหน้าที่นั้น
+#
+# ผลไปโผล่ที่ Security → Code scanning ที่เดียวกับ CodeQL
+
+on:
+  branch_protection_rule:
+  schedule:
+    - cron: '0 4 * * 1' # ทุกวันจันทร์ 04:00 UTC (คนละชั่วโมงกับ upstream-skill-watch)
+  push:
+    branches: [ master ]
+    paths:
+      # รันเฉพาะตอนแตะของที่ Scorecard ตรวจจริง ๆ ไม่ใช่ทุก commit
+      - '.github/workflows/**'
+      - '.github/dependabot.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions: read-all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      # อัปผลขึ้น Code scanning
+      security-events: write
+      # Scorecard ใช้ OIDC ยืนยันตัวตนตอนเผยแพร่ผล ไม่ต้องเก็บ token ไว้ใน secret
+      id-token: write
+      contents: read
+      actions: read
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Run analysis
+        uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          # เผยแพร่ผลขึ้น OpenSSF API — repo นี้เป็น public อยู่แล้ว ทุกอย่างที่ Scorecard
+          # ตรวจ (workflow, permissions, action pin, dependabot, branch protection) เปิดให้
+          # ใครก็อ่านได้จาก repo ตรง ๆ อยู่แล้ว การเผยแพร่จึงไม่ได้เปิดเผยอะไรใหม่ แต่ได้
+          # badge ที่ทำให้คะแนนตกแล้วมีคนเห็น ไม่ใช่ตกเงียบ ๆ ใน Security tab ที่ไม่มีใครเปิด
+          publish_results: true
+
+      - name: Upload results to Code scanning
+        uses: github/codeql-action/upload-sarif@c4dd10e44af883a891fe31ced449bcb4a6728b9b # v3
+        with:
+          sarif_file: results.sarif

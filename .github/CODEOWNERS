@@ -1,0 +1,18 @@
+# ใครควรถูกขอรีวิวเมื่อมีคนแตะไฟล์ไหน
+#
+# ตอนนี้ยังไม่ได้เปิด "require review from Code Owners" ใน branch protection ไฟล์นี้จึงเป็น
+# แค่คำใบ้ให้ GitHub เสนอชื่อผู้รีวิวเอง ไม่ได้บังคับอะไร — ถ้าเปิดวันหลังค่อยกลายเป็นข้อบังคับ
+# (ดู MEMORY.md หัวข้อ Branch protection ว่าทำไมยังไม่เปิด)
+
+*                       @HetCreep
+
+# กฎที่ผูกพัน agent ทุกตัว — แก้ผิดที่นี่กระทบทุก session ทุกเครื่อง
+/AGENTS.md              @HetCreep
+/.agents/               @HetCreep
+
+# ทางที่โค้ดออกสู่ผู้เล่นจริง + สิทธิ์ที่ workflow ถืออยู่
+/.github/workflows/     @HetCreep
+
+# บัญชี รหัสผ่าน สิทธิ์ผู้ดูแล
+/src/data/              @HetCreep
+/src/lib/password.ts    @HetCreep

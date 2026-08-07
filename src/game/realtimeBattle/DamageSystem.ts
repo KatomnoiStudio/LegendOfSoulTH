@@ -50,10 +50,12 @@ export function calcDamage({ attacker, target, attack, random }: DamageContext):
   const mitigated = base - target.def * ARMOR_MITIGATION
   const withCritical = critical ? mitigated * CRITICAL_MULTIPLIER : mitigated
 
+  const amount = Math.max(MINIMUM_DAMAGE, Math.floor(withCritical))
+
   return {
-    amount: Math.max(MINIMUM_DAMAGE, Math.floor(withCritical)),
+    amount,
     critical,
-    defeated: target.hp - Math.max(MINIMUM_DAMAGE, Math.floor(withCritical)) <= 0,
+    defeated: target.hp - amount <= 0,
   }
 }
 
