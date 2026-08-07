@@ -5,6 +5,35 @@
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-07
+
+P4 Combat Production Core — telegraph, hit reaction, interrupt, knockdown, AI baseline
+
+### Added
+
+- `combatMoveSchema` — move phases, telegraph/hitstun defaults (200ms), `phaseOverrides`, multi-strike
+- `combatReaction` — hitstun/knockback/knockdown→getUp lifecycle (elite/boss only for knockdown)
+- `combatInterrupt` — data-driven interrupt per phase
+- `softTarget` — nearest-enemy assist + ultimate `targetLock: 'nearest'`
+- Enemy telegraph AI loop + ground telegraph markers (`TelegraphMarkers.tsx`)
+- Per-enemy attack data (`attackId`, `combatTier`, `aiRole`) in `stageConfig`
+
+### Changed
+
+- `EnemyAISystem`: idle→chase→telegraph→execute→recover
+- `DamageSystem`: delegates to `applyCombatReaction`
+- Ultimate setup uninterruptible via `phaseOverrides`
+
+## [0.8.3] - 2026-08-07
+
+Combat camera ~30° pitch + battle sprite sheets wired (presentation only)
+
+### Changed
+
+- `combatCameraConfig`: pitch **30°**, distance **5.0**, screen character height ratio **0.36**
+- `battleSpriteSequences`: monkey-king + pig-warrior walk/dash use full 8-dir sheet frames (`monkey-walk` / `pigsy-walk`)
+- `EntitySprite`: Y-axis billboard toward camera (replaces fixed plane tilt)
+
 ## [0.8.2] - 2026-08-07
 
 Combat camera pitch tuning — slightly higher vantage (presentation only)

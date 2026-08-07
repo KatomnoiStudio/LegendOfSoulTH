@@ -6,7 +6,7 @@
  */
 
 export interface CombatCameraConfig {
-  /** Downward pitch from horizontal plane (degrees). Target ~10–20°. */
+  /** Downward pitch from horizontal plane (degrees). ~30° elevated action framing. */
   pitchDeg: number
   /** Base camera distance from look target (world units). */
   distance: number
@@ -51,20 +51,20 @@ export interface CombatCameraConfig {
 
 /** Elevated side-down action camera — presentation baseline. */
 export const DEFAULT_COMBAT_CAMERA_CONFIG: CombatCameraConfig = {
-  pitchDeg: 18,
-  distance: 5.5,
+  pitchDeg: 30,
+  distance: 5.0,
   fovDeg: 38,
   heightOffset: 0.58,
   targetHeightOffset: 0,
-  minZoom: 0.88,
-  maxZoom: 1.22,
+  minZoom: 0.9,
+  maxZoom: 1.26,
   followSmoothing: 0.12,
   zoomSmoothing: 0.14,
   playerScreenBias: -0.06,
   depthCompositionBias: 0.35,
   horizontalViewMargin: 0.9,
   referenceCharacterHeight: 1.6,
-  targetCharacterScreenHeightRatio: 0.3,
+  targetCharacterScreenHeightRatio: 0.36,
   minCombatSpanWorld: 2.8,
   maxCombatSpanWorld: 7.5,
   bossDistanceModifier: 0.92,

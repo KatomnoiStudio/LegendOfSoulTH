@@ -1,10 +1,19 @@
-import { ENEMY_ATTACK, isActiveWindow } from './attacks'
+import { ENEMY_ATTACK_MELEE } from './attacks'
+import { applyCombatReaction, tickKnockdownState } from './combatReaction'
 import { createWaveEnemies, type RealtimeBattleState } from './createRealtimeBattle'
 import { combatFacingFromVector } from './combatFacing'
-import { applyDamage, type RandomFn } from './DamageSystem'
-import { createEnemyBrain, stepEnemyAI, type EnemyBrain } from './EnemyAISystem'
+import type { RandomFn } from './DamageSystem'
+import {
+  createEnemyBrain,
+  getEnemySelectedAttack,
+  isEnemyAttackDamageWindow,
+  isEnemyTelegraphing,
+  stepEnemyAI,
+  type EnemyBrain,
+} from './EnemyAISystem'
 import { findHitTargets } from './HitboxSystem'
 import { clampToArena, resolveCircleOverlap, stepMovement } from './MovementSystem'
+import { assistCombatFacing, findNearestLivingEnemy, resolveLockedTarget } from './softTarget'
 import {
   applyHitStop,
   cancelCombo,
@@ -159,6 +168,7 @@ export class RealtimeBattleRuntime {
 
     if (this.attackRequested) {
       this.attackRequested = false
+      assistCombatFacing(state.player, state.enemies)
       state.player.combatFacing = combatFacingFromVector(this.moveInput, state.player.combatFacing)
       pressAttack(state.player, this.playerCombat)
     }
@@ -175,7 +185,7 @@ export class RealtimeBattleRuntime {
 
     for (const target of targets) {
       this.playerCombat.hitTargets.add(target.id)
-      const outcome = applyDamage({
+      const outcome = applyCombatReaction({
         attacker: state.player,
         target,
         attack: tick.attack,
@@ -229,7 +239,17 @@ export class RealtimeBattleRuntime {
     }
 
     cancelCombo(state.player, this.playerCombat)
-    startSkill(state.player, this.playerSkill, definition, state.elapsedMs)
+
+    let lockedTargetId: string | null = null
+    if (definition.targetLock === 'nearest') {
+      const nearest = findNearestLivingEnemy(state.player.position, state.enemies)
+      lockedTargetId = nearest?.id ?? null
+      if (nearest) {
+        state.player.combatFacing = nearest.position.x >= state.player.position.x ? 'right' : 'left'
+      }
+    }
+
+    startSkill(state.player, this.playerSkill, definition, state.elapsedMs, lockedTargetId)
     this.pushEffectEvent('skill-spin', state.player.position, 700)
     this.publish()
   }
@@ -240,16 +260,30 @@ export class RealtimeBattleRuntime {
     const tick = stepSkill(state.player, this.playerSkill, deltaMs)
     if (!tick.hitboxActive || !tick.attack) return
 
-    const targets = findHitTargets(state.enemies, {
+    let candidateTargets = state.enemies
+    const locked = resolveLockedTarget(this.playerSkill.lockedTargetId, state.enemies)
+    if (locked) candidateTargets = [locked]
+
+    const alreadyHit =
+      tick.strikeIndex >= 0 ? this.playerSkill.strikeHits : this.playerSkill.hitTargets
+
+    const targets = findHitTargets(candidateTargets, {
       attacker: state.player,
       attack: tick.attack,
-      alreadyHit: this.playerSkill.hitTargets,
+      alreadyHit,
       elapsedMs: state.elapsedMs,
     })
 
     for (const target of targets) {
-      this.playerSkill.hitTargets.add(target.id)
-      const outcome = applyDamage({
+      if (tick.strikeIndex >= 0) {
+        const strikeKey = `${target.id}:${tick.strikeIndex}`
+        if (this.playerSkill.strikeHits.has(strikeKey)) continue
+        this.playerSkill.strikeHits.add(strikeKey)
+      } else {
+        this.playerSkill.hitTargets.add(target.id)
+      }
+
+      const outcome = applyCombatReaction({
         attacker: state.player,
         target,
         attack: tick.attack,
@@ -291,27 +325,28 @@ export class RealtimeBattleRuntime {
   /** ศัตรูลงดาเมจใส่ผู้เล่นเมื่อท่าของมันเข้าสู่ active frame */
   private resolveEnemyAttack(enemy: RealtimeBattleEntity, brain: EnemyBrain): void {
     const state = this.state
+    const attack = getEnemySelectedAttack(brain) ?? ENEMY_ATTACK_MELEE
 
-    if (brain.state !== 'attack') {
-      brain.hitTargets.clear()
+    if (brain.state === 'telegraph' || !isEnemyAttackDamageWindow(brain)) {
+      if (brain.state !== 'attack' && brain.state !== 'telegraph') {
+        brain.hitTargets.clear()
+      }
       return
     }
 
-    if (!isActiveWindow(ENEMY_ATTACK, brain.stateElapsedMs)) return
-
     const targets = findHitTargets([state.player], {
       attacker: enemy,
-      attack: ENEMY_ATTACK,
+      attack,
       alreadyHit: brain.hitTargets,
       elapsedMs: state.elapsedMs,
     })
 
     for (const target of targets) {
       brain.hitTargets.add(target.id)
-      const outcome = applyDamage({
+      const outcome = applyCombatReaction({
         attacker: enemy,
         target,
-        attack: ENEMY_ATTACK,
+        attack,
         elapsedMs: state.elapsedMs,
         random: this.random,
       })
@@ -462,6 +497,31 @@ export class RealtimeBattleRuntime {
     entity.skillCooldownsMs.skill2 = Math.max(0, entity.skillCooldownsMs.skill2 - deltaMs)
     entity.skillCooldownsMs.skill3 = Math.max(0, entity.skillCooldownsMs.skill3 - deltaMs)
     entity.hitStunRemainingMs = Math.max(0, entity.hitStunRemainingMs - deltaMs)
+    tickKnockdownState(entity, deltaMs, this.state.elapsedMs)
+
+    if (entity.hitStunRemainingMs <= 0 && entity.state === 'hit') {
+      entity.state = 'idle'
+    }
+  }
+
+  /** Telegraph markers for presentation layer */
+  getTelegraphMarkers(): Array<{
+    enemyId: string
+    position: Vec2
+    attackId: string
+  }> {
+    const markers: Array<{ enemyId: string; position: Vec2; attackId: string }> = []
+    for (const enemy of this.state.enemies) {
+      const brain = this.brains.get(enemy.id)
+      if (!brain || !isEnemyTelegraphing(brain)) continue
+      const attack = getEnemySelectedAttack(brain)
+      markers.push({
+        enemyId: enemy.id,
+        position: { ...enemy.position },
+        attackId: attack?.id ?? ENEMY_ATTACK_MELEE.id,
+      })
+    }
+    return markers
   }
 
   private pruneEvents(): void {

@@ -10,14 +10,14 @@ import type { Direction8 } from './realtimeBattle/types'
  * แถมสเปกสั่งชัดว่าห้ามแก้ระบบ sprite ของ Lobby จนพัง (§10)
  *
  * ── Fallback ที่ประกาศไว้ชัดเจน ────────────────────────────
- * asset ที่มีจริงในโปรเจกต์ตอนนี้มีแค่ idle / walk 8 ทิศ (เฉพาะหงอคง) / attack ของหงอคง
+ * asset ที่มีจริงในโปรเจกต์ตอนนี้มี idle / walk 8 ทิศ (หงอคง + ตือโป๊ยก่าย) / attack ของหงอคง
  * ท่าที่เหลือจึงถูก map ไปยังเฟรมที่ใกล้เคียงที่สุดอย่างจงใจ ไม่ปล่อยภาพหาย:
  *   attack-2 / attack-3 → ชุด attack เดียวกัน (ต่างที่จังหวะและ knockback ไม่ใช่ที่ภาพ)
  *   dash                → เฟรม walk ของทิศนั้น (เอฟเฟกต์เส้นลากทำด้วย effect layer)
  *   skill-1             → ชุด action ของตัวละคร (หงอคง = monkey-v2 10 เฟรม)
  *   hit / death         → เฟรม idle แรก แล้วให้ material จัดการ flash/fade
  *   victory             → ชุด pose ของหงอคง, ตัวอื่นใช้ idle
- * ตัวละครที่ไม่มีชุดเดิน (ตือโป๊ยก่าย/พระถัง) ใช้ idle เป็นเฟรมเดิน — ประกาศไว้ตรงนี้
+ * ตัวละครที่ไม่มีชุดเดิน (พระถัง) ใช้ idle เป็นเฟรมเดิน — ประกาศไว้ตรงนี้
  * เพื่อให้รู้ว่าเป็นการตัดสินใจ ไม่ใช่ asset หาย
  * ───────────────────────────────────────────────────────────
  *
@@ -44,12 +44,23 @@ export type BattleAnimationId =
   | 'death'
   | 'victory'
 
-/** ทิศที่มีเฟรมภาพจริง — เวอร์ชันแรกใช้ 4 ทิศตามสเปก (§10) */
+/** ทิศที่มีเฟรมภาพจริง — walk/dash ใช้ 8 ทิศจากชีต, ท่าอื่นใช้ 4 ทิศหรือชุดเดียว */
 export type SpriteDirection4 = 'up' | 'down' | 'left' | 'right'
 
+const DIRECTIONS_8: Direction8[] = [
+  'up',
+  'up-right',
+  'right',
+  'down-right',
+  'down',
+  'down-left',
+  'left',
+  'up-left',
+]
+
 export interface BattleAnimation {
-  /** เฟรมต่อทิศ — ถ้าไม่มีเฟรมแยกทิศจะเป็นชุดเดียวกันทั้ง 4 ทิศ */
-  frames: Record<SpriteDirection4, string[]>
+  /** เฟรมต่อทิศ — walk/dash มีครบ 8 ทิศ, ท่าอื่นมักใช้ชุดเดียวทุกทิศ */
+  frames: Partial<Record<Direction8, string[]>>
   /** เฟรมต่อวินาที */
   rate: number
   /** เล่นวนหรือเล่นจบแล้วค้างเฟรมสุดท้าย */
@@ -64,15 +75,23 @@ function frames(prefix: string, count: number, start = 0): string[] {
   )
 }
 
-function walkFrames(dir: 'up' | 'down' | 'left' | 'right'): string[] {
-  return Array.from({ length: 8 }, (_, index) =>
-    publicUrl(`characters/walk/monkey-walk-${dir}-${index}.webp`),
-  )
+function walkFrames8(prefix: 'monkey-walk' | 'pigsy-walk'): Partial<Record<Direction8, string[]>> {
+  const result: Partial<Record<Direction8, string[]>> = {}
+  for (const direction of DIRECTIONS_8) {
+    result[direction] = Array.from({ length: 8 }, (_, index) =>
+      publicUrl(`characters/walk/${prefix}-${direction}-${index}.webp`),
+    )
+  }
+  return result
 }
 
-/** ชุดเฟรมเดียวใช้ทุกทิศ */
-function allDirections(urls: string[]): Record<SpriteDirection4, string[]> {
-  return { up: urls, down: urls, left: urls, right: urls }
+/** ชุดเฟรมเดียวใช้ทุกทิศ (idle / attack / skill ฯลฯ) */
+function allDirections(urls: string[]): Partial<Record<Direction8, string[]>> {
+  const result: Partial<Record<Direction8, string[]>> = {}
+  for (const direction of DIRECTIONS_8) {
+    result[direction] = urls
+  }
+  return result
 }
 
 const MONKEY_IDLE = frames('monkey-v2-idle', 24)
@@ -87,29 +106,11 @@ const TRIPITAKA_IDLE = frames('tripitaka-idle', 24)
 
 const MONKEY_KING_SET: BattleSpriteSet = {
   idle: { frames: allDirections(MONKEY_IDLE), rate: 8, loop: true },
-  walk: {
-    frames: {
-      up: walkFrames('up'),
-      down: walkFrames('down'),
-      left: walkFrames('left'),
-      right: walkFrames('right'),
-    },
-    rate: 12,
-    loop: true,
-  },
+  walk: { frames: walkFrames8('monkey-walk'), rate: 12, loop: true },
   'attack-1': { frames: allDirections(MONKEY_ATTACK), rate: 16, loop: false },
   'attack-2': { frames: allDirections(MONKEY_ATTACK), rate: 18, loop: false },
   'attack-3': { frames: allDirections(MONKEY_ATTACK), rate: 14, loop: false },
-  dash: {
-    frames: {
-      up: walkFrames('up'),
-      down: walkFrames('down'),
-      left: walkFrames('left'),
-      right: walkFrames('right'),
-    },
-    rate: 20,
-    loop: false,
-  },
+  dash: { frames: walkFrames8('monkey-walk'), rate: 20, loop: false },
   'skill-1': { frames: allDirections(MONKEY_ACTION), rate: 16, loop: false },
   hit: { frames: allDirections([MONKEY_IDLE[0]]), rate: 1, loop: false },
   death: { frames: allDirections([MONKEY_IDLE[0]]), rate: 1, loop: false },
@@ -118,12 +119,11 @@ const MONKEY_KING_SET: BattleSpriteSet = {
 
 const PIG_WARRIOR_SET: BattleSpriteSet = {
   idle: { frames: allDirections(PIGSY_IDLE), rate: 8, loop: true },
-  // ไม่มีชุดเดินของตือโป๊ยก่าย — ใช้ idle เร็วขึ้นแทน (fallback ที่ประกาศไว้)
-  walk: { frames: allDirections(PIGSY_IDLE), rate: 12, loop: true },
+  walk: { frames: walkFrames8('pigsy-walk'), rate: 12, loop: true },
   'attack-1': { frames: allDirections(PIGSY_ACTION), rate: 12, loop: false },
   'attack-2': { frames: allDirections(PIGSY_ACTION), rate: 12, loop: false },
   'attack-3': { frames: allDirections(PIGSY_ACTION), rate: 12, loop: false },
-  dash: { frames: allDirections(PIGSY_IDLE), rate: 16, loop: false },
+  dash: { frames: walkFrames8('pigsy-walk'), rate: 16, loop: false },
   'skill-1': { frames: allDirections(PIGSY_ACTION), rate: 12, loop: false },
   hit: { frames: allDirections([PIGSY_IDLE[0]]), rate: 1, loop: false },
   death: { frames: allDirections([PIGSY_IDLE[0]]), rate: 1, loop: false },
@@ -157,7 +157,7 @@ export function getBattleSpriteSet(kind: CharacterModelKind): BattleSpriteSet {
   return BATTLE_SPRITE_SETS[kind]
 }
 
-/** ย่อ 8 ทิศของ runtime ให้เหลือ 4 ทิศที่มีเฟรมภาพจริง */
+/** ย่อ 8 ทิศของ runtime ให้เหลือ 4 ทิศเมื่อไม่มีเฟรมเฉียง */
 export function toSpriteDirection(facing: Direction8): SpriteDirection4 {
   switch (facing) {
     case 'up':
@@ -175,13 +175,22 @@ export function toSpriteDirection(facing: Direction8): SpriteDirection4 {
   }
 }
 
+/** เลือกเฟรมตามทิศ — ใช้เฟรมเฉียงจากชีตก่อน แล้วค่อย fallback เป็น 4 ทิศ */
+export function resolveBattleFrames(animation: BattleAnimation, facing: Direction8): string[] {
+  const direct = animation.frames[facing]
+  if (direct && direct.length > 0) return direct
+  const fallback = animation.frames[toSpriteDirection(facing)]
+  return fallback ?? []
+}
+
 function urlsFor(kinds: CharacterModelKind[], animations: BattleAnimationId[]): string[] {
   const urls = new Set<string>()
   for (const kind of kinds) {
     const set = getBattleSpriteSet(kind)
     for (const animationId of animations) {
-      for (const direction of Object.values(set[animationId].frames)) {
-        for (const url of direction) urls.add(url)
+      for (const directionFrames of Object.values(set[animationId].frames)) {
+        if (!directionFrames) continue
+        for (const url of directionFrames) urls.add(url)
       }
     }
   }

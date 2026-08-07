@@ -1,4 +1,5 @@
 import { applyCombatFacingFromMovement } from './combatFacing'
+import { isControlLocked } from './combatReaction'
 import type { RealtimeBattleStage } from './stageConfig'
 import type { Direction8, RealtimeBattleEntity, Vec2 } from './types'
 
@@ -93,8 +94,7 @@ export function stepMovement(
   deltaMs: number,
   { stage, blockers }: MovementContext,
 ): boolean {
-  // ตายแล้ว หรือกำลังเซจากการโดนตี = ขยับไม่ได้ (§11)
-  if (entity.state === 'dead' || entity.hitStunRemainingMs > 0) {
+  if (isControlLocked(entity)) {
     entity.velocity = { x: 0, y: 0 }
     return false
   }
