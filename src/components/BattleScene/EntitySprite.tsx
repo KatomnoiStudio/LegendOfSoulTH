@@ -44,8 +44,6 @@ function animationForState(state: EntityState): BattleAnimationId {
       return 'attack-1'
     case 'skill':
       return 'skill-1'
-    case 'dash':
-      return 'dash'
     case 'hit':
       return 'hit'
     case 'dead':

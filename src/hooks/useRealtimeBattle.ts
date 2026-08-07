@@ -13,7 +13,12 @@ import { InputSystem } from '../game/realtimeBattle/InputSystem'
 import { startBattleLoop, type BattleLoopHandle } from '../game/realtimeBattle/RealtimeBattleLoop'
 import { RealtimeBattleRuntime } from '../game/realtimeBattle/RealtimeBattleRuntime'
 import { getEnemyTemplate, getRealtimeStage } from '../game/realtimeBattle/stageConfig'
-import type { RealtimeBattleResult, RealtimeBattleSnapshot, Vec2 } from '../game/realtimeBattle/types'
+import type {
+  RealtimeBattleResult,
+  RealtimeBattleSnapshot,
+  Vec2,
+} from '../game/realtimeBattle/types'
+import type { SkillSlot } from '../game/realtimeBattle/skills'
 import type { Player } from '../types/player'
 
 /**
@@ -45,10 +50,8 @@ interface UseRealtimeBattleValue {
   setJoystick: (vector: Vec2) => void
   /** ปุ่มโจมตีบนจอสัมผัส */
   pressAttack: () => void
-  /** ปุ่มพุ่งหลบบนจอสัมผัส */
-  pressDash: () => void
-  /** ปุ่มสกิลบนจอสัมผัส */
-  pressSkill: () => void
+  /** ปุ่มสกิลบนจอสัมผัส (ช่อง 1–3 หรือ ultimate) */
+  pressSkill: (slot: SkillSlot) => void
 }
 
 /** ชุดเฟรมที่ห้องนี้ต้องใช้ = ตัวละครนำของผู้เล่น + ศัตรูทุกตัวในทุกคลื่นของด่าน */
@@ -131,8 +134,8 @@ export function useRealtimeBattle({
             // ป้อนอินพุตล่าสุดก่อนเดินการจำลองทุกก้าว — runtime ไม่รู้จักคีย์บอร์ด/จอย
             created?.setMoveInput(input.getMoveVector())
             if (input.consumeAttack()) created?.requestAttack()
-            if (input.consumeDash()) created?.requestDash()
-            if (input.consumeSkill()) created?.requestSkill()
+            const skillSlot = input.consumeSkill()
+            if (skillSlot) created?.requestSkill(skillSlot)
             created?.step(deltaMs)
           },
         })
@@ -207,15 +210,20 @@ export function useRealtimeBattle({
     inputRef.current?.pressAttack()
   }, [])
 
-  const pressDash = useCallback(() => {
-    inputRef.current?.pressDash()
-  }, [])
-
-  const pressSkill = useCallback(() => {
-    inputRef.current?.pressSkill()
+  const pressSkill = useCallback((slot: SkillSlot) => {
+    inputRef.current?.pressSkill(slot)
   }, [])
 
   const phase: BattlePhase = errorMessage ? 'error' : runtime && snapshot ? 'ready' : 'loading'
 
-  return { phase, errorMessage, runtime, snapshot, requestExit, setJoystick, pressAttack, pressDash, pressSkill }
+  return {
+    phase,
+    errorMessage,
+    runtime,
+    snapshot,
+    requestExit,
+    setJoystick,
+    pressAttack,
+    pressSkill,
+  }
 }

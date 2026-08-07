@@ -5,9 +5,29 @@
 
 ## [Unreleased]
 
+ยังไม่มี
+
+## [0.7.0] - 2026-08-07
+
+Blueprint v3 P3 — 3 Skills + Ultimate framework, ตัด dash button + Combat Foundation Design Lock §3.6
+
 ### Added
 
-- **Blueprint §3.6 Combat Foundation Design Lock** — controls, basic attack lunge/multi-target, cast interrupt, hit reaction, boss telegraph SM, phase transition (HetCreep Ring 0, 2026-08-07)
+- **Skill kit** — 3 skills + 1 ultimate ต่อฮีโร่ (`skills.ts`, `RealtimeSkillKit`)
+- **Ultimate gauge** — เติมจากการต่อสู้, ใช้เมื่อเต็ม (`ultimateGauge.ts`)
+- **Skill bar UI** — ปุ่ม S1/S2/S3/U แทนปุ่มสกิลเดียว (`SkillBar.tsx`)
+- **Blueprint §3.6 Combat Foundation Design Lock** (docs, ไม่แตะโค้ด) — controls, basic attack
+  lunge/multi-target, cast interrupt, hit reaction, boss telegraph SM, phase transition
+  (HetCreep Ring 0, 2026-08-07) — ปิด fork gap #33
+
+### Removed
+
+- **Dash button + DashSystem** — ตาม Blueprint v3 (mobility ย้ายเข้าสกิลได้ทีหลัง)
+
+### Changed
+
+- คีย์บอร์ด: 1/E, 2/R, 3/F, 4/Q สำหรับสกิล; ไม่มี Shift/K หลบแล้ว
+- `skillCooldownsMs` แยกตามช่อง (skill1–3)
 
 ## [0.6.0] - 2026-08-07
 

@@ -14,8 +14,7 @@ import {
   stepCombo,
   type ComboState,
 } from './ComboSystem'
-import { createDashState, isDashing, startDash, stepDash, type DashState } from './DashSystem'
-import { getRealtimeSkillForCharacter } from './skills'
+import { getSkillFromKit, getRealtimeSkillKit, type SkillSlot } from './skills'
 import {
   canStartSkill,
   createSkillState,
@@ -31,6 +30,7 @@ import type {
   RealtimeBattleSnapshot,
   Vec2,
 } from './types'
+import { addUltimateGauge, ULTIMATE_GAUGE_CONFIG } from './ultimateGauge'
 
 /**
  * หัวใจของห้องต่อสู้ real-time — ถือสถานะทั้งหมดไว้ "นอก React state"
@@ -74,14 +74,10 @@ export class RealtimeBattleRuntime {
   private brains = new Map<string, EnemyBrain>()
   /** สถานะคอมโบของผู้เล่น */
   private playerCombat: ComboState = createComboState()
-  /** สถานะการพุ่งหลบของผู้เล่น */
-  private playerDash: DashState = createDashState()
   /** สถานะสกิลของผู้เล่น */
   private playerSkill: SkillState = createSkillState()
-  /** ผู้เล่นสั่งโจมตี/พุ่ง/สกิลค้างไว้ รอให้เฟรมจำลองถัดไปหยิบไปใช้ */
   private attackRequested = false
-  private dashRequested = false
-  private skillRequested = false
+  private skillSlotRequested: SkillSlot | null = null
   /** ตัวสุ่มที่ระบบดาเมจใช้ — เทสต์ป้อนค่าคงที่เข้ามาแทนได้ */
   private random: RandomFn
   private eventCounter = 0
@@ -115,9 +111,10 @@ export class RealtimeBattleRuntime {
 
     const castingSkill = isCastingSkill(this.playerSkill)
 
-    if (this.skillRequested) {
-      this.skillRequested = false
-      this.tryStartPlayerSkill()
+    if (this.skillSlotRequested) {
+      const slot = this.skillSlotRequested
+      this.skillSlotRequested = null
+      this.tryStartPlayerSkill(slot)
     }
 
     this.stepPlayerSkill(deltaMs)
@@ -125,25 +122,12 @@ export class RealtimeBattleRuntime {
     if (!castingSkill && !isCastingSkill(this.playerSkill)) {
       this.stepPlayerAttack(deltaMs)
 
-      if (this.dashRequested) {
-        this.dashRequested = false
-        startDash(state.player, this.playerDash, this.moveInput, state.elapsedMs)
-      }
-
-      /*
-        ลำดับความสำคัญของการเคลื่อนที่: พุ่ง > โจมตี > เดินปกติ
-
-        การพุ่งกินสิทธิ์เหนือทุกอย่างเพราะมันคือท่าหลบ ถ้ายอมให้การเดินหรือท่าโจมตี
-        มาแทรกกลางคัน ระยะพุ่งจะสั้นลงแบบเดาไม่ได้ และ i-frame จะไม่คุ้มกับคูลดาวน์
-      */
-      const dashing = stepDash(state.player, this.playerDash, deltaMs, state.stage)
-      const moved =
-        dashing || isAttacking(this.playerCombat)
-          ? false
-          : stepMovement(state.player, this.moveInput, deltaMs, {
-              stage: state.stage,
-              blockers: state.enemies,
-            })
+      const moved = isAttacking(this.playerCombat)
+        ? false
+        : stepMovement(state.player, this.moveInput, deltaMs, {
+            stage: state.stage,
+            blockers: state.enemies,
+          })
 
       // สถานะเดิน/ยืน คุมจากผลของระบบเดินจุดเดียว ไม่ให้ component เดาเอง
       if (state.player.state === 'idle' && moved) state.player.state = 'walk'
@@ -208,6 +192,7 @@ export class RealtimeBattleRuntime {
       }
 
       this.pushDamageEvent(target, outcome.amount, outcome.critical)
+      this.grantUltimateGaugeOnHit(outcome.defeated, 'basic')
       this.publish()
     }
 
@@ -215,18 +200,30 @@ export class RealtimeBattleRuntime {
     if (targets.length > 0) applyHitStop(this.playerCombat)
   }
 
-  private tryStartPlayerSkill(): void {
+  private grantUltimateGaugeOnHit(defeated: boolean, source: 'basic' | 'skill'): void {
+    const player = this.state.player
+    const gain =
+      source === 'basic'
+        ? ULTIMATE_GAUGE_CONFIG.gainOnBasicHit
+        : ULTIMATE_GAUGE_CONFIG.gainOnSkillHit
+    player.ultimateGauge = addUltimateGauge(player.ultimateGauge, gain)
+    if (defeated) {
+      player.ultimateGauge = addUltimateGauge(
+        player.ultimateGauge,
+        ULTIMATE_GAUGE_CONFIG.gainOnKill,
+      )
+    }
+  }
+
+  private tryStartPlayerSkill(slot: SkillSlot): void {
     const state = this.state
-    const definition = getRealtimeSkillForCharacter(state.player.characterId)
-    if (!definition) return
+    const kit = getRealtimeSkillKit(state.player.characterId)
+    if (!kit) return
+
+    const definition = getSkillFromKit(kit, slot)
 
     if (
-      !canStartSkill(
-        state.player,
-        this.playerSkill,
-        isAttacking(this.playerCombat),
-        isDashing(this.playerDash),
-      )
+      !canStartSkill(state.player, this.playerSkill, definition, isAttacking(this.playerCombat))
     ) {
       return
     }
@@ -268,6 +265,7 @@ export class RealtimeBattleRuntime {
       }
 
       this.pushDamageEvent(target, outcome.amount, outcome.critical)
+      this.grantUltimateGaugeOnHit(outcome.defeated, 'skill')
       this.publish()
     }
   }
@@ -345,14 +343,9 @@ export class RealtimeBattleRuntime {
     this.attackRequested = true
   }
 
-  /** สั่งให้ผู้เล่นพุ่งหลบในเฟรมจำลองถัดไป */
-  requestDash(): void {
-    this.dashRequested = true
-  }
-
-  /** สั่งให้ผู้เล่นใช้สกิลในเฟรมจำลองถัดไป */
-  requestSkill(): void {
-    this.skillRequested = true
+  /** สั่งให้ผู้เล่นใช้สกิลช่องที่ระบุในเฟรมจำลองถัดไป */
+  requestSkill(slot: SkillSlot): void {
+    this.skillSlotRequested = slot
   }
 
   /**
@@ -465,8 +458,9 @@ export class RealtimeBattleRuntime {
   private tickTimers(entity: RealtimeBattleEntity, deltaMs: number): void {
     if (entity.state === 'dead') return
     entity.attackCooldownRemainingMs = Math.max(0, entity.attackCooldownRemainingMs - deltaMs)
-    entity.skillCooldownRemainingMs = Math.max(0, entity.skillCooldownRemainingMs - deltaMs)
-    entity.dashCooldownRemainingMs = Math.max(0, entity.dashCooldownRemainingMs - deltaMs)
+    entity.skillCooldownsMs.skill1 = Math.max(0, entity.skillCooldownsMs.skill1 - deltaMs)
+    entity.skillCooldownsMs.skill2 = Math.max(0, entity.skillCooldownsMs.skill2 - deltaMs)
+    entity.skillCooldownsMs.skill3 = Math.max(0, entity.skillCooldownsMs.skill3 - deltaMs)
     entity.hitStunRemainingMs = Math.max(0, entity.hitStunRemainingMs - deltaMs)
   }
 
@@ -542,6 +536,7 @@ export class RealtimeBattleRuntime {
         ...state.player,
         position: { ...state.player.position },
         velocity: { ...state.player.velocity },
+        skillCooldownsMs: { ...state.player.skillCooldownsMs },
       },
       enemies: state.enemies.map((enemy) => ({
         ...enemy,
