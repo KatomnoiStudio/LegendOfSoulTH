@@ -1,82 +1,84 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useMemo } from 'react'
+import { useRef } from 'react'
 import type { PerspectiveCamera } from 'three'
 import {
-  BATTLE_CAMERA_DISTANCE,
-  BATTLE_CAMERA_FOLLOW_RATE,
-  BATTLE_CAMERA_HEIGHT_BIAS,
-  BATTLE_CAMERA_PITCH_DEG,
-  runtimeToWorldXZ,
-} from '../../game/realtimeBattle/battleCoordinates'
+  DEFAULT_COMBAT_CAMERA_CONFIG,
+  type CombatCameraConfig,
+} from '../../game/realtimeBattle/combatCameraConfig'
+import {
+  clampLookTarget,
+  computeCameraPose,
+  computeCameraRigLimits,
+  computeCombatSpan,
+  computeDesiredZoom,
+  computeEnemyGroupFocus,
+  computeLookTarget,
+  smoothToward,
+} from '../../game/realtimeBattle/combatCameraFraming'
+import { runtimeToWorldXZ } from '../../game/realtimeBattle/battleCoordinates'
 import { WORLD_SCALE } from '../../game/realtimeBattle/stageConfig'
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
 
 /**
- * กล้องห้องต่อสู้ — 2.5D side-down (Blueprint v3 P1)
+ * Combat camera — elevated side / 2.5D action framing (presentation only).
  *
- * มองจากด้านหน้าสนาม (+Z) เฉียงลงเล็กน้อย ไล่ตามผู้เล่นบนแกน X (ซ้าย–ขวา)
- * และ Z (depth) — ไม่ใช่ top-down อีกต่อไป
+ * Frames the fight area between player and relevant enemies with dynamic zoom,
+ * smoothing, and aspect-aware limits. Does not alter battle coordinates.
  */
 
-/** สัดส่วนของความกว้างห้องที่ยอมให้เห็นนอกขอบเล็กน้อย */
-const HORIZONTAL_VIEW_MARGIN = 0.92
-
-export function BattleCamera({ runtime }: { runtime: RealtimeBattleRuntime }) {
+export function BattleCamera({
+  runtime,
+  config = DEFAULT_COMBAT_CAMERA_CONFIG,
+}: {
+  runtime: RealtimeBattleRuntime
+  config?: CombatCameraConfig
+}) {
   const { camera, size } = useThree()
   const stage = runtime.getState().stage
+  const zoomRef = useRef(1)
 
   const worldWidth = stage.width * WORLD_SCALE
   const worldDepth = stage.height * WORLD_SCALE
-
-  const rig = useMemo(() => {
-    const cam = camera as PerspectiveCamera
-    const aspect = size.width / Math.max(1, size.height)
-    const pitch = (BATTLE_CAMERA_PITCH_DEG * Math.PI) / 180
-    const halfFov = (cam.fov * Math.PI) / 180 / 2
-
-    const height = BATTLE_CAMERA_DISTANCE * Math.sin(pitch) + BATTLE_CAMERA_HEIGHT_BIAS
-    const back = BATTLE_CAMERA_DISTANCE * Math.cos(pitch)
-
-    // ครึ่งความกว้างที่มองเห็น ณ ระยะของจุดเล็ง (พื้น y=0)
-    const viewDistance = height / Math.sin(pitch)
-    const halfWidth = Math.tan(halfFov) * aspect * viewDistance * HORIZONTAL_VIEW_MARGIN
-
-    return {
-      height,
-      back,
-      limitX: Math.max(0, worldWidth / 2 - halfWidth),
-      limitZ: Math.max(0, worldDepth / 2 - worldDepth * 0.08),
-    }
-  }, [camera, size.width, size.height, worldWidth, worldDepth])
+  const aspect = size.width / Math.max(1, size.height)
 
   useFrame((_, delta) => {
     const cam = camera as PerspectiveCamera
-    const state = runtime.getState()
-    const player = state.player
-    const world = runtimeToWorldXZ(player.position, stage)
-
-    let lookX = world.x
-
-    // Intro framing: show player + enemy group + center fight space (presentation only).
-    if (state.status === 'intro' && state.enemies.length > 0) {
-      const enemyWorldX =
-        state.enemies.reduce((sum, enemy) => sum + runtimeToWorldXZ(enemy.position, stage).x, 0) /
-        state.enemies.length
-      lookX = (world.x + enemyWorldX) / 2
+    if (Math.abs(cam.fov - config.fovDeg) > 0.01) {
+      cam.fov = config.fovDeg
+      cam.updateProjectionMatrix()
     }
 
-    lookX = Math.min(Math.max(lookX, -rig.limitX), rig.limitX)
-    const lookZ = Math.min(Math.max(world.z, -rig.limitZ), rig.limitZ)
+    const state = runtime.getState()
+    const playerWorld = runtimeToWorldXZ(state.player.position, stage)
 
-    const targetX = lookX
-    const targetY = rig.height
-    const targetZ = lookZ + rig.back
+    const enemySamples = state.enemies.map((enemy) => ({
+      world: runtimeToWorldXZ(enemy.position, stage),
+      hp: enemy.hp,
+      entityType: enemy.entityType,
+    }))
 
-    const k = Math.min(1, delta * BATTLE_CAMERA_FOLLOW_RATE)
-    cam.position.x += (targetX - cam.position.x) * k
-    cam.position.y += (targetY - cam.position.y) * k
-    cam.position.z += (targetZ - cam.position.z) * k
-    cam.lookAt(lookX, 0, lookZ)
+    const enemyFocus = computeEnemyGroupFocus(playerWorld, enemySamples, config)
+    const hasBoss = enemySamples.some((enemy) => enemy.hp > 0 && enemy.entityType === 'boss')
+
+    const lookRaw = computeLookTarget(playerWorld, enemyFocus, config)
+    const combatSpan = enemyFocus
+      ? computeCombatSpan(playerWorld, enemyFocus)
+      : config.minCombatSpanWorld
+    const desiredZoom = computeDesiredZoom(combatSpan, aspect, config, hasBoss)
+
+    zoomRef.current = smoothToward(zoomRef.current, desiredZoom, config.zoomSmoothing, delta)
+
+    const limits = computeCameraRigLimits(config, aspect, worldWidth, worldDepth, zoomRef.current)
+    const look = clampLookTarget(lookRaw, limits)
+    const pose = computeCameraPose(look, zoomRef.current, config)
+
+    const followK = (value: number, target: number) =>
+      smoothToward(value, target, config.followSmoothing, delta)
+
+    cam.position.x = followK(cam.position.x, pose.positionX)
+    cam.position.y = followK(cam.position.y, pose.positionY)
+    cam.position.z = followK(cam.position.z, pose.positionZ)
+    cam.lookAt(pose.lookX, pose.lookY, pose.lookZ)
   })
 
   return null

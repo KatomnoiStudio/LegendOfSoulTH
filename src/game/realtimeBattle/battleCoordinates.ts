@@ -17,17 +17,17 @@ import type { Vec2 } from './types'
  * กล้องมองจากด้านหน้าสนาม (+Z) เฉียงลงเล็กน้อย — ไม่ใช่ top-down
  */
 
-/** มุมก้มของกล้องจากแนวระนาบ (องศา) — side-down brawler */
-export const BATTLE_CAMERA_PITCH_DEG = 22
+/** @deprecated Use `combatCameraConfig.ts` — kept for imports that only need coordinate helpers. */
+export const BATTLE_CAMERA_PITCH_DEG = 15
 
-/** ระยะถอยกล้องจากจุดที่เล็ง (หน่วย world) */
-export const BATTLE_CAMERA_DISTANCE = 7.2
+/** @deprecated Use `combatCameraConfig.ts`. */
+export const BATTLE_CAMERA_DISTANCE = 5.4
 
-/** ยกกล้องเพิ่มจากสูตร pitch เพื่อไม่ให้ตัวละครถูกบัง */
-export const BATTLE_CAMERA_HEIGHT_BIAS = 1.15
+/** @deprecated Use `combatCameraConfig.ts`. */
+export const BATTLE_CAMERA_HEIGHT_BIAS = 0.42
 
-/** ความไวตามผู้เล่น (ต่อวินาที) */
-export const BATTLE_CAMERA_FOLLOW_RATE = 4.5
+/** @deprecated Use `combatCameraConfig.ts`. */
+export const BATTLE_CAMERA_FOLLOW_RATE = 8
 
 /** จำนวนแถบ depth ที่วาดบนพื้น (visual guide) */
 export const BATTLE_DEPTH_LANE_COUNT = 5
