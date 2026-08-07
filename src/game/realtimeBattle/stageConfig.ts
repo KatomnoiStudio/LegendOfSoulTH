@@ -367,6 +367,107 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
     stageType: 'wave',
   },
   /**
+   * P5 dungeon vertical slice arenas (PR #30) — เก็บแค่รูปร่างสนาม/waves ให้ createRealtimeBattle
+   * อ่าน. เงื่อนไขแพ้ชนะจริงของดันเจี้ยนอยู่ที่ dungeonConfig.ts/dungeonOrchestrator.ts (schema
+   * ของตัวเอง แยกจาก StageVariationSystem.ts) — RealtimeBattleRuntime นี้แค่ autoWaveAdvance:false
+   * แล้วปล่อยให้ dungeon orchestrator ตัดสินแพ้ชนะแทน stageType/params ด้านล่างจึงไม่ถูกอ่านจริง
+   * ใส่ค่า default ที่ compile ผ่านเฉยๆ (chapterId แยกจาก chapter-1 ปกติ กันชนกับระบบ Adventure)
+   */
+  'p5-survival-arena': {
+    id: 'p5-survival-arena',
+    name: 'ดันเจี้ยนทดสอบ — เอาชีวิตรอด',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'w1',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 1 },
+        ],
+      },
+      {
+        id: 'w2',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'spirit-guardian', spawnIndex: 2 },
+        ],
+      },
+      {
+        id: 'w3',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 1 },
+          { templateId: 'shadow-soldier', spawnIndex: 3 },
+        ],
+      },
+    ],
+    backgroundAsset: TEMPLE_LOBBY_BG,
+    chapterId: 'dungeon-p5-test',
+    order: 1,
+    stageType: 'wave',
+  },
+  'p5-hazard-arena': {
+    id: 'p5-hazard-arena',
+    name: 'ดันเจี้ยนทดสอบ — อันตราย',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'w1',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 2 },
+        ],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'dungeon-p5-test',
+    order: 2,
+    stageType: 'wave',
+  },
+  'p5-elite-arena': {
+    id: 'p5-elite-arena',
+    name: 'ดันเจี้ยนทดสอบ — มินิบอส',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'w1',
+        enemies: [{ templateId: 'demon-captain', spawnIndex: 1 }],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'dungeon-p5-test',
+    order: 3,
+    stageType: 'wave',
+  },
+  'p5-boss-arena': {
+    id: 'p5-boss-arena',
+    name: 'ดันเจี้ยนทดสอบ — บอส',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'w1',
+        enemies: [{ templateId: 'spirit-guardian-boss', spawnIndex: 1 }],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'dungeon-p5-test',
+    order: 4,
+    isBoss: true,
+    stageType: 'wave',
+  },
+  /**
    * ด่าน Survival (§5.2/§17) — ไม่ต้องฆ่าศัตรูให้หมด แค่รอดให้ครบเวลา
    * ศัตรูคลื่นเดียวคอยกดดัน แต่ผลแพ้ชนะดูจากนาฬิกา ไม่ใช่จำนวนศัตรูที่เหลือ
    */

@@ -1,6 +1,6 @@
 import { ENEMY_ATTACK_MELEE } from './attacks'
 import { applyCombatReaction, tickKnockdownState } from './combatReaction'
-import type { RealtimeBattleState } from './createRealtimeBattle'
+import { createWaveEnemies, type RealtimeBattleState } from './createRealtimeBattle'
 import { resolveStageOutcome } from './StageVariationSystem'
 import { combatFacingFromVector } from './combatFacing'
 import type { RandomFn } from './DamageSystem'
@@ -91,6 +91,9 @@ export class RealtimeBattleRuntime {
   /** ตัวสุ่มที่ระบบดาเมจใช้ — เทสต์ป้อนค่าคงที่เข้ามาแทนได้ */
   private random: RandomFn
   private eventCounter = 0
+  /** When false, Stage Runtime owns wave advance and victory (P5 dungeon orchestration). */
+  private autoWaveAdvance = true
+  private externalVictoryBlocked = false
 
   constructor(state: RealtimeBattleState, random: RandomFn = Math.random) {
     this.state = state
@@ -461,7 +464,7 @@ export class RealtimeBattleRuntime {
    * ก่อนแก้ไฟล์นี้ (ask-CB retroactive audit, 2026-08-06) status ไม่เคยกลายเป็น
    * 'victory'/'defeat' เลยสักที่ในทั้งระบบ — การต่อสู้จบเองไม่ได้ ค้างวนไปเรื่อย ๆ
    */
-  private checkBattleEnd(deltaMs: number): void {
+  private checkBattleEnd(deltaMs: number = 0): void {
     const state = this.state
     if (state.status !== 'running') return
 
@@ -470,6 +473,10 @@ export class RealtimeBattleRuntime {
       this.publish()
       return
     }
+
+    // P5 dungeon orchestrator (Stage Runtime) ตัดสินแพ้ชนะเองผ่านสคีมาของตัวเอง
+    // (dungeonConfig.ts/dungeonOrchestrator.ts) — ปิดเส้นทาง auto-wave-clear ปกติทิ้งไป
+    if (!this.autoWaveAdvance || this.externalVictoryBlocked) return
 
     const enemiesBefore = state.enemies
     const outcome = resolveStageOutcome(state, deltaMs)
@@ -567,6 +574,62 @@ export class RealtimeBattleRuntime {
     }
     this.state.status = 'exiting'
     this.publish()
+  }
+
+  /** P5 — Stage Runtime controls wave advance instead of auto checkBattleEnd */
+  setAutoWaveAdvance(enabled: boolean): void {
+    this.autoWaveAdvance = enabled
+  }
+
+  setExternalVictoryBlocked(blocked: boolean): void {
+    this.externalVictoryBlocked = blocked
+  }
+
+  /** Spawn a wave by index; returns count spawned. Used by Stage Runtime (survival etc.). */
+  spawnWaveAt(waveIndex: number): number {
+    const state = this.state
+    if (state.status !== 'running' && state.status !== 'intro') return 0
+    const spawned = createWaveEnemies(state.stage, waveIndex)
+    if (spawned.length === 0) return 0
+    state.currentWaveIndex = waveIndex
+    state.enemies = [...state.enemies, ...spawned]
+    for (const enemy of spawned) {
+      this.brains.set(enemy.id, createEnemyBrain())
+    }
+    this.publish()
+    return spawned.length
+  }
+
+  forceVictory(): void {
+    if (this.state.status !== 'running') return
+    this.state.status = 'victory'
+    this.publish()
+  }
+
+  forceDefeat(): void {
+    if (this.state.status !== 'running') return
+    this.state.status = 'defeat'
+    this.publish()
+  }
+
+  /** Environmental hazard damage — goes through HP, not UI */
+  applyEnvironmentalDamage(amount: number): void {
+    const player = this.state.player
+    if (player.state === 'dead') return
+    player.hp = Math.max(0, player.hp - amount)
+    this.state.damageTaken += amount
+    if (player.hp <= 0) {
+      player.state = 'dead'
+      this.checkBattleEnd()
+    }
+  }
+
+  moveEntityTo(entityId: string, x: number, y: number): void {
+    const entity =
+      entityId === 'player' ? this.state.player : this.state.enemies.find((e) => e.id === entityId)
+    if (!entity || entity.state === 'dead') return
+    entity.position.x = x
+    entity.position.y = y
   }
 
   /** อ่านสถานะภายในตรง ๆ สำหรับชั้นวาดที่ต้องอัปเดตทุกเฟรมผ่าน ref (ห้ามแก้ค่า) */

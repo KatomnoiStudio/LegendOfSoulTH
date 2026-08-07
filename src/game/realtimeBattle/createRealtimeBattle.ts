@@ -138,7 +138,7 @@ export function createWaveEnemies(
     const stats = resolveTierStats(template)
     const enemy: RealtimeBattleEntity = {
       id: `enemy-${waveIndex}-${index}`,
-      entityType: 'enemy',
+      entityType: template.combatTier === 'boss' ? 'boss' : 'enemy',
       name: template.name,
       position: { x: spawn.x, y: spawn.y },
       velocity: { x: 0, y: 0 },
@@ -167,7 +167,11 @@ export function createWaveEnemies(
   })
 }
 
-export function createRealtimeBattle(stageId: string, player: Player): RealtimeBattleState | null {
+export function createRealtimeBattle(
+  stageId: string,
+  player: Player,
+  options?: { skipInitialWave?: boolean },
+): RealtimeBattleState | null {
   const stage = getRealtimeStage(stageId)
   if (!stage) {
     reportError('BATTLE_STAGE_NOT_FOUND', 'visible', undefined, { stageId })
@@ -187,8 +191,8 @@ export function createRealtimeBattle(stageId: string, player: Player): RealtimeB
     status: 'intro',
     elapsedMs: 0,
     player: playerEntity,
-    enemies: createWaveEnemies(stage, 0),
-    currentWaveIndex: 0,
+    enemies: options?.skipInitialWave ? [] : createWaveEnemies(stage, 0),
+    currentWaveIndex: options?.skipInitialWave ? -1 : 0,
     defeatedEnemyIds: [],
     damageDealt: 0,
     damageTaken: 0,
