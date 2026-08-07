@@ -2,6 +2,7 @@ import { getCharacter } from '../characters'
 import { reportError } from '../../lib/errors/reportError'
 import type { Player } from '../../types/player'
 import { getEnemyTemplate, getRealtimeStage, type RealtimeBattleStage } from './stageConfig'
+import { resolveEnemyFormation, resolvePlayerSpawn } from './spawnFormation'
 import type { RealtimeBattleEntity } from './types'
 import { calcMaxHp } from '../battle/formulas'
 
@@ -43,7 +44,7 @@ export function createPlayerEntity(player: Player): RealtimeBattleEntity | null 
     name: character.name,
     position: { x: 0, y: 0 },
     velocity: { x: 0, y: 0 },
-    facing: 'up',
+    facing: 'right',
     combatFacing: 'right',
     state: 'idle',
     hp: maxHp,
@@ -70,17 +71,37 @@ export function createWaveEnemies(
   const wave = stage.waves[waveIndex]
   if (!wave) return []
 
-  return wave.enemies.flatMap((entry, index) => {
-    const template = getEnemyTemplate(entry.templateId)
-    if (!template) {
+  const resolved = wave.enemies.map((entry) => ({
+    entry,
+    template: getEnemyTemplate(entry.templateId),
+  }))
+
+  const valid = resolved.filter(
+    (
+      item,
+    ): item is {
+      entry: (typeof wave.enemies)[number]
+      template: NonNullable<ReturnType<typeof getEnemyTemplate>>
+    } => item.template !== null,
+  )
+
+  for (const item of resolved) {
+    if (!item.template) {
       reportError('BATTLE_ENEMY_TEMPLATE_MISSING', 'silent', undefined, {
-        templateId: entry.templateId,
+        templateId: item.entry.templateId,
         stageId: stage.id,
       })
-      return []
     }
+  }
 
-    const spawn = stage.enemySpawns[entry.spawnIndex] ?? stage.enemySpawns[0]
+  const formationPositions = resolveEnemyFormation(
+    stage,
+    valid.map((item) => ({ collisionRadius: item.template.collisionRadius })),
+  )
+
+  return valid.flatMap((item, index) => {
+    const { template } = item
+    const spawn = formationPositions[index]
     if (!spawn) {
       reportError('BATTLE_STAGE_NO_SPAWN', 'silent', undefined, { stageId: stage.id })
       return []
@@ -92,7 +113,7 @@ export function createWaveEnemies(
       name: template.name,
       position: { x: spawn.x, y: spawn.y },
       velocity: { x: 0, y: 0 },
-      facing: 'down',
+      facing: 'left',
       combatFacing: 'left',
       state: 'idle',
       hp: template.maxHp,
@@ -126,7 +147,7 @@ export function createRealtimeBattle(stageId: string, player: Player): RealtimeB
     return null
   }
 
-  playerEntity.position = { x: stage.playerSpawn.x, y: stage.playerSpawn.y }
+  playerEntity.position = resolvePlayerSpawn(stage)
 
   return {
     stage,

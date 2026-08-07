@@ -51,10 +51,21 @@ export function BattleCamera({ runtime }: { runtime: RealtimeBattleRuntime }) {
 
   useFrame((_, delta) => {
     const cam = camera as PerspectiveCamera
-    const player = runtime.getState().player
+    const state = runtime.getState()
+    const player = state.player
     const world = runtimeToWorldXZ(player.position, stage)
 
-    const lookX = Math.min(Math.max(world.x, -rig.limitX), rig.limitX)
+    let lookX = world.x
+
+    // Intro framing: show player + enemy group + center fight space (presentation only).
+    if (state.status === 'intro' && state.enemies.length > 0) {
+      const enemyWorldX =
+        state.enemies.reduce((sum, enemy) => sum + runtimeToWorldXZ(enemy.position, stage).x, 0) /
+        state.enemies.length
+      lookX = (world.x + enemyWorldX) / 2
+    }
+
+    lookX = Math.min(Math.max(lookX, -rig.limitX), rig.limitX)
     const lookZ = Math.min(Math.max(world.z, -rig.limitZ), rig.limitZ)
 
     const targetX = lookX

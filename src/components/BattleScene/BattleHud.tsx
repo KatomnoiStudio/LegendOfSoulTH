@@ -39,7 +39,7 @@ export function BattleHud({
         <div className={styles.stageInfo}>
           <span className={styles.stageName}>{snapshot.stageName}</span>
           <span className={styles.waveText}>
-            คลื่น {snapshot.currentWave}/{snapshot.totalWaves} · เหลือศัตรู {enemiesLeft}
+            Wave {snapshot.currentWave}/{snapshot.totalWaves} · ศัตรู {enemiesLeft}
           </span>
         </div>
 

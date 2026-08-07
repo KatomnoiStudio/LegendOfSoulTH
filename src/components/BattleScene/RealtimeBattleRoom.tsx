@@ -6,12 +6,15 @@ import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBa
 import type { MovementInput } from '../../game/realtimeBattle/playerInput'
 import type { RealtimeBattleSnapshot } from '../../game/realtimeBattle/types'
 import type { SkillSlot } from '../../game/realtimeBattle/skills'
+import { layoutCssVars } from '../../game/realtimeBattle/combatUILayout'
 import { BattleArena } from './BattleArena'
 import { BattleControls } from './BattleControls'
 import { BattleHud } from './BattleHud'
 import { DamageNumberLayer } from './DamageNumberLayer'
 import { EnemyHealthBar } from './EnemyHealthBar'
 import { ScreenProjector, type ScreenProjection } from './ScreenProjector'
+import { BattleFullscreenPrompt, BattlePortraitOverlay } from './BattleViewportOverlays'
+import { useBattleViewport } from '../../hooks/useBattleViewport'
 import styles from './BattleScene.module.css'
 
 /**
@@ -35,6 +38,7 @@ export function RealtimeBattleRoom({
   onAttack: () => void
   onSkill: (slot: SkillSlot) => void
 }) {
+  const viewport = useBattleViewport(true)
   const [webglAvailable] = useState(() => WebGL.isWebGL2Available())
   const [contextLost, setContextLost] = useState(false)
   const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null)
@@ -87,7 +91,7 @@ export function RealtimeBattleRoom({
   }
 
   return (
-    <section className={styles.scene} aria-label="ห้องต่อสู้">
+    <section className={styles.scene} style={layoutCssVars()} aria-label="ห้องต่อสู้">
       {contextLost ? (
         <div className={styles.fallback}>
           <p>การ์ดจอขาดการเชื่อมต่อ — กำลังลองใหม่</p>
@@ -112,7 +116,18 @@ export function RealtimeBattleRoom({
       <DamageNumberLayer runtime={runtime} projection={projection} />
 
       <BattleHud snapshot={snapshot} onExit={onExit} />
-      <BattleControls runtime={runtime} onMove={onMove} onAttack={onAttack} onSkill={onSkill} />
+      <BattleControls
+        runtime={runtime}
+        onMove={onMove}
+        onAttack={onAttack}
+        onSkill={onSkill}
+        inputBlocked={viewport.inputBlocked}
+      />
+
+      {viewport.showFullscreenPrompt ? (
+        <BattleFullscreenPrompt onActivate={() => void viewport.requestFullscreenFromGesture()} />
+      ) : null}
+      {viewport.isPortrait ? <BattlePortraitOverlay /> : null}
 
       {snapshot.status === 'intro' ? (
         <div className={styles.introBanner} aria-live="polite">

@@ -5,14 +5,39 @@
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-08-07
+
+Battlefield spawn composition — player left / enemy right / formation spacing (presentation only)
+
 ### Added
 
-- **Blueprint §3.8 Archetype targeting & non-melee resolution** (docs) — Support/Ranged/Summoner/
-  Control/Mini-boss/PvP-level-normalization, gold-standard exemplar-grounded (Guardian Tales,
-  Genshin, Summoners War) — closes gaps found by a 5-round ask-CB rescan loop; fixed a knockdown-rule
-  self-contradiction (§3.6.5 vs §3.6.12) and two dangling §3.9 references (now point to §3.7)
+- **`battlePresentation.ts`** — normalized spawn presentation config
+- **`spawnFormation.ts`** — formation resolver + overlap separation pass (+ tests)
 
-## [0.7.1] - 2026-08-07
+### Changed
+
+- Player spawns ~22% X (left), enemies ~76% X (right) with depth formation
+- Initial facing: player `right`, enemies `left` (spawn presentation)
+- Intro camera frames player + enemy group midpoint
+- `stageConfig` enemy spawns delegated to formation resolver
+
+## [0.7.2] - 2026-08-07
+
+Combat UI layout fix — arc cluster, compact HUD, fullscreen + landscape guard (Blueprint §3.3 UI pass)
+
+### Added
+
+- **`battleViewport.ts`** + **`useBattleViewport`** — fullscreen request, landscape lock, portrait guard
+- **`BattleViewportOverlays`** — rotate-device overlay + tap-for-fullscreen fallback prompt
+
+### Changed
+
+- Combat cluster repositioned to diagonal arc (S1→S2→S3→ULT) anchored on ATK bottom-right
+- Player/Enemy vitals HUD scaled to ~75%; center stage info ~65% (2-line compact format)
+- Relative cluster offsets via attack-size multipliers (no per-resolution pixel hardcoding)
+- Safe-area insets on combat cluster anchor; viewport resize/orientation/fullscreen listeners
+
+### [0.7.1] - 2026-08-07
 
 Mobile combat control UI redesign (Naruto-mobile-inspired ergonomics) — Blueprint v3 §3.3
 
