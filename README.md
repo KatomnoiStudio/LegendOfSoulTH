@@ -1,11 +1,11 @@
 # Legend of Soul-TH — Lobby
 
-[![Build, Typecheck and Lint](https://github.com/LegendofSoulTH/LegendOfSoulTH/actions/workflows/ci.yml/badge.svg)](https://github.com/LegendofSoulTH/LegendOfSoulTH/actions/workflows/ci.yml)
-[![Deploy to GitHub Pages](https://github.com/LegendofSoulTH/LegendOfSoulTH/actions/workflows/deploy.yml/badge.svg)](https://github.com/LegendofSoulTH/LegendOfSoulTH/actions/workflows/deploy.yml)
-[![CodeQL Analysis](https://github.com/LegendofSoulTH/LegendOfSoulTH/actions/workflows/codeql.yml/badge.svg)](https://github.com/LegendofSoulTH/LegendOfSoulTH/actions/workflows/codeql.yml)
-[![Security & Secret Scan](https://github.com/LegendofSoulTH/LegendOfSoulTH/actions/workflows/security-scan.yml/badge.svg)](https://github.com/LegendofSoulTH/LegendOfSoulTH/actions/workflows/security-scan.yml)
+[![Build, Typecheck and Lint](https://github.com/KatomnoiStudio/LegendOfSoulTH/actions/workflows/ci.yml/badge.svg)](https://github.com/KatomnoiStudio/LegendOfSoulTH/actions/workflows/ci.yml)
+[![Deploy to GitHub Pages](https://github.com/KatomnoiStudio/LegendOfSoulTH/actions/workflows/deploy.yml/badge.svg)](https://github.com/KatomnoiStudio/LegendOfSoulTH/actions/workflows/deploy.yml)
+[![CodeQL Analysis](https://github.com/KatomnoiStudio/LegendOfSoulTH/actions/workflows/codeql.yml/badge.svg)](https://github.com/KatomnoiStudio/LegendOfSoulTH/actions/workflows/codeql.yml)
+[![Security & Secret Scan](https://github.com/KatomnoiStudio/LegendOfSoulTH/actions/workflows/security-scan.yml/badge.svg)](https://github.com/KatomnoiStudio/LegendOfSoulTH/actions/workflows/security-scan.yml)
 
-**เล่นได้ที่**: https://legendofsoulth.github.io/LegendOfSoulTH/
+**เล่นได้ที่**: https://katomnoistudio.github.io/LegendOfSoulTH/
 
 หน้า Lobby ของเกม Real-time Action **2.5D** แนว _"รวมเหล่านักรบจากตำนานและประวัติศาสตร์"_
 สร้างด้วย **React 19 + TypeScript + Vite**, ฉาก 3D ด้วย **three.js + React Three Fiber**, สไตล์ด้วย **CSS Modules**

@@ -657,7 +657,7 @@ Rules:
 
 ## 31.4 Upstream vs fork
 
-- Canonical product repository: `LegendofSoulTH/LegendOfSoulTH`
+- Canonical product repository: `KatomnoiStudio/LegendOfSoulTH`
 - Practice fork (if used): `nustanakritwithai/GameTurnBase` — not the product baseline remote
 - Homework / product delivery targets **upstream**
 

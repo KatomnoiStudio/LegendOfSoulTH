@@ -37,7 +37,7 @@ npm run ci        # typecheck + lint + test + build — รันให้ผ่
    ทั้งชุด (ปลอดภัยสำหรับ push ปกติที่ไม่ตั้งใจ release), ถ้าเปลี่ยนจะ build → test → deploy
    ขึ้น GitHub Pages → ตัด GitHub Release ให้อัตโนมัติ (แนบ SBOM, ดึง release note จากหัวข้อ
    CHANGELOG ที่ตรงกัน)
-4. ยืนยันที่ [Releases](https://github.com/LegendofSoulTH/LegendOfSoulTH/releases) ว่าขึ้นจริง
+4. ยืนยันที่ [Releases](https://github.com/KatomnoiStudio/LegendOfSoulTH/releases) ว่าขึ้นจริง
 
 รัน workflow มือได้ผ่าน "Run workflow" บนแท็บ Actions เสมอ (ไม่สนว่าเวอร์ชันเปลี่ยนไหม)
 ใช้ตอนต้องการ deploy ซ้ำโดยไม่ผูกกับ commit ใหม่

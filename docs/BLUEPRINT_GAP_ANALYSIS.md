@@ -3,7 +3,7 @@
 > **Against**: [`MASTER_BLUEPRINT_v1.0.md`](MASTER_BLUEPRINT_v1.0.md)  
 > **Audit date**: 2026-08-07  
 > **Auditor**: Cursor Agent (cloud), Ring 1  
-> **Working tree**: branch `cursor/master-blueprint-v1-e117` @ upstream `LegendofSoulTH/LegendOfSoulTH`  
+> **Working tree**: branch `cursor/master-blueprint-v1-e117` @ upstream `KatomnoiStudio/LegendOfSoulTH`  
 > **Scope**: Facts from the repository only. **No gameplay changes** in the adopting PR.  
 > **Labels**: PRESENT · PARTIAL · ABSENT · LEGACY · CONFLICT
 
@@ -13,10 +13,10 @@
 
 | Item              | Fact                                                   | Label                        |
 | ----------------- | ------------------------------------------------------ | ---------------------------- |
-| Canonical remote  | `upstream` → `LegendofSoulTH/LegendOfSoulTH`           | PRESENT                      |
+| Canonical remote  | `upstream` → `KatomnoiStudio/LegendOfSoulTH`           | PRESENT                      |
 | This agent origin | `origin` → `nustanakritwithai/GameTurnBase` (fork)     | PRESENT                      |
 | Fork name         | Still encodes “TurnBase” while live combat is realtime | CONFLICT (naming vs product) |
-| Live site         | https://legendofsoulth.github.io/LegendOfSoulTH/       | PRESENT                      |
+| Live site         | https://katomnoistudio.github.io/LegendOfSoulTH/       | PRESENT                      |
 | Game version      | `GAME_INFO.version` + `package.json` = **0.4.0**       | PRESENT                      |
 
 ---
