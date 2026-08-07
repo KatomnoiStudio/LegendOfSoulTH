@@ -80,7 +80,10 @@ export interface BattleRecord {
   opponent: string
   result: 'win' | 'lose'
   finishedAt: string
-  turns: number
+  /** มรดกเทิร์นเบส — บัญชีเก่าใน localStorage ยังมี; realtime ไม่เขียน */
+  turns?: number
+  /** ระยะเวลาต่อสู้จริง (ms) — realtime */
+  durationMs?: number
 }
 
 export interface PlayerProgress {

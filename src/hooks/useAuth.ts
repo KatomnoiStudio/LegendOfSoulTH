@@ -5,6 +5,8 @@ import type {
   CurrencyResult,
   FriendCandidate,
   GoldSource,
+  ItemResult,
+  ItemSource,
 } from '../data/accountRepository'
 import { isAdminEmail } from '../data/admins'
 import { reportError } from '../lib/errors/reportError'
@@ -47,6 +49,8 @@ export interface AuthState {
   isAdmin: boolean
   /** มอบตัวละครให้บัญชีนี้ — ตอนนี้เรียกจากช่องคำสั่งผู้ดูแลเท่านั้น */
   grantCharacter: (characterId: string) => Promise<CharacterGrantResult>
+  /** ให้ไอเทมจากการเล่น (ดรอป/เควส) — ดู accountRepository.grantItem */
+  grantItem: (itemId: string, quantity: number, source: ItemSource) => Promise<ItemResult>
   /** ส่งออก save เป็นไฟล์ JSON ไว้สำรอง/ย้ายเครื่อง — คืน null เมื่อสำเร็จ (ไฟล์ถูกดาวน์โหลดแล้ว) */
   exportSave: () => Promise<string | null>
   /** นำเข้าไฟล์ save ที่ export ไว้ — คืน null เมื่อสำเร็จ คืนข้อความเมื่อผิดพลาด */
@@ -189,6 +193,16 @@ export function useAuth(): AuthState {
     [player],
   )
 
+  const grantItem = useCallback(
+    async (itemId: string, quantity: number, source: ItemSource) => {
+      if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
+      const result = await accounts.grantItem(player.uid, itemId, quantity, source)
+      if (result.ok) setPlayer(result.player)
+      return result
+    },
+    [player],
+  )
+
   const exportSave = useCallback(async () => {
     const result = await accounts.exportSave()
     if (!result.ok) return result.error
@@ -221,6 +235,7 @@ export function useAuth(): AuthState {
     findFriendByUid,
     isAdmin: isAdminEmail(email),
     grantCharacter,
+    grantItem,
     exportSave,
     importSave,
   }

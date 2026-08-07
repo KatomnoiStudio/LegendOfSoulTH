@@ -15,3 +15,13 @@ export function clampRatio(current: number, total: number): number {
   if (!Number.isFinite(total) || total <= 0) return 0
   return Math.min(1, Math.max(0, current / total))
 }
+
+/** แปลง ms เป็นข้อความสั้นสำหรับประวัติ/แผงผล — เช่น "45 วินาที" หรือ "1:05" */
+export function formatDurationMs(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return '—'
+  const totalSec = Math.round(ms / 1000)
+  const minutes = Math.floor(totalSec / 60)
+  const seconds = totalSec % 60
+  if (minutes <= 0) return `${seconds} วินาที`
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
+}
