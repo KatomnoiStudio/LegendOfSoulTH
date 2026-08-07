@@ -14,6 +14,8 @@ export interface SkillState {
   definition: RealtimeSkillDefinition | null
   sinceStartMs: number
   hitTargets: Set<string>
+  /** เป้าที่ถูกล็อกไว้ตอนเริ่มร่าย — ใช้เฉพาะท่าที่มี attack.targetLock (ระบบ #8) */
+  lockedTargetId: string | undefined
 }
 
 export function createSkillState(): SkillState {
@@ -21,7 +23,31 @@ export function createSkillState(): SkillState {
     definition: null,
     sinceStartMs: 0,
     hitTargets: new Set(),
+    lockedTargetId: undefined,
   }
+}
+
+/** ศัตรูที่ใกล้ผู้ร่ายที่สุด (ตัวเป็น ๆ เท่านั้น) — เดียวกับ pattern ที่ EnemyAISystem.ts ใช้ */
+function nearestEnemyId(
+  caster: RealtimeBattleEntity,
+  enemies: RealtimeBattleEntity[],
+): string | undefined {
+  let closestId: string | undefined
+  let closestDistance = Infinity
+
+  for (const enemy of enemies) {
+    if (enemy.state === 'dead' || enemy.hp <= 0) continue
+    const distance = Math.hypot(
+      enemy.position.x - caster.position.x,
+      enemy.position.y - caster.position.y,
+    )
+    if (distance < closestDistance) {
+      closestDistance = distance
+      closestId = enemy.id
+    }
+  }
+
+  return closestId
 }
 
 export function isCastingSkill(skill: SkillState): boolean {
@@ -60,10 +86,14 @@ export function startSkill(
   skill: SkillState,
   definition: RealtimeSkillDefinition,
   elapsedMs: number,
+  enemies: RealtimeBattleEntity[] = [],
 ): boolean {
   skill.definition = definition
   skill.sinceStartMs = 0
   skill.hitTargets.clear()
+  // ล็อกเป้าครั้งเดียวตอนเริ่มร่าย คงไว้ตลอด active window นี้ (ระบบ #8) — ไม่ query ซ้ำระหว่างท่า
+  skill.lockedTargetId =
+    definition.attack.targetLock === 'nearest' ? nearestEnemyId(player, enemies) : undefined
 
   player.state = 'skill'
   player.velocity = { x: 0, y: 0 }
@@ -101,6 +131,7 @@ export function stepSkill(
     skill.definition = null
     skill.hitTargets.clear()
     skill.sinceStartMs = 0
+    skill.lockedTargetId = undefined
     return { hitboxActive: false, attack: null }
   }
 
@@ -111,6 +142,7 @@ export function stepSkill(
     skill.definition = null
     skill.hitTargets.clear()
     skill.sinceStartMs = 0
+    skill.lockedTargetId = undefined
     if (player.state === 'skill') player.state = 'idle'
     return { hitboxActive: false, attack: null }
   }

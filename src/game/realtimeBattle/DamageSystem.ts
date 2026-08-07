@@ -27,6 +27,27 @@ const HIT_STUN_MS = 180
 /** เวลาที่เป้าหมายอยู่ยงคงกระพันหลังโดนตี — กันโดนรัวจนขยับไม่ได้เลย */
 const HIT_INVULNERABLE_MS = 120
 
+/**
+ * Knockdown/GetUp (§3.6.8/§3.6.12, §3.8.4) — ค่าเริ่มต้น เล่นทดสอบแล้วปรับ (ตามธรรมเนียมไฟล์นี้)
+ *
+ * KNOCKDOWN_DURATION_MS  : เวลานอนพื้นก่อนเริ่มลุก — สเปกไม่ได้ล็อกตัวเลข ใช้ค่าเริ่มต้นที่นี่
+ * GET_UP_IFRAME_MS       : "getUp i-frames" — ล็อกไว้ที่ 200ms (§3.6.12 line 304)
+ *
+ * ผู้เล่นได้ invulnerable ตลอดสองช่วงนี้ต่อกันตั้งแต่โดนตี (ตั้งค่าเดียวจบใน applyDamage
+ * ไม่ต้องมีจุดที่สองใน EnemyAISystem มาคอยแก้ invulnerableUntilMs ซ้ำ — one shared gate)
+ */
+export const KNOCKDOWN_DURATION_MS = 700
+export const GET_UP_IFRAME_MS = 200
+
+/**
+ * เป้าหมายนี้โดน Knockdown ได้ไหม — ยืมกันระหว่าง elite และ boss ไม่มี branch แยกต่อ tier
+ * (Done-criterion #1) เช็คแค่ tier/entityType ไม่เช็คตัวเลขสเตตัส (กันเคส data-entry ที่ค่า
+ * flat ของ normal สูงกว่า elite แล้วดันมี knockdown ทั้งที่ไม่ควร — ดู "Related caveat" ในสเปก)
+ */
+export function isKnockdownEligible(entity: RealtimeBattleEntity): boolean {
+  return entity.tier === 'elite' || entity.entityType === 'boss'
+}
+
 export interface DamageOutcome {
   amount: number
   critical: boolean
@@ -78,9 +99,14 @@ export function applyDamage(context: DamageContext): DamageOutcome {
     return { ...outcome, defeated: true }
   }
 
-  target.state = 'hit'
-  target.hitStunRemainingMs = HIT_STUN_MS
-  target.invulnerableUntilMs = elapsedMs + HIT_INVULNERABLE_MS
+  // ท่านี้ทำ knockdown ได้และเป้าหมาย eligible (elite/boss) = ล้มแทนที่จะแค่เซ (§3.6.8/§3.8.4)
+  const knockedDown = Boolean(attack.knockdown) && isKnockdownEligible(target)
+
+  target.state = knockedDown ? 'knockdown' : 'hit'
+  target.hitStunRemainingMs = knockedDown ? KNOCKDOWN_DURATION_MS : HIT_STUN_MS
+  target.invulnerableUntilMs = knockedDown
+    ? elapsedMs + KNOCKDOWN_DURATION_MS + GET_UP_IFRAME_MS
+    : elapsedMs + HIT_INVULNERABLE_MS
 
   // กระเด็นแนวนอนตาม combatFacing สำหรับ basic attack (P2) — radial ยังใช้ทิศ facing เดิม
   const push =

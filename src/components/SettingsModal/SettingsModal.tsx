@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import type { CurrencyResult } from '../../data/accountRepository'
+import type { CurrencyResult } from '../../data/accountRepository.shared'
 import { useModalA11y } from '../../hooks/useModalA11y'
 import { GAME_INFO } from '../../game/gameInfo'
 import { getA11ySettings, setA11ySettings, type A11ySettings } from '../../lib/a11ySettings'
@@ -238,8 +238,9 @@ function GameInfoPanel({
       </p>
 
       <p className={styles.panelNote}>
-        เกมนี้ไม่มีเซิร์ฟเวอร์ — ข้อมูลอยู่ในเบราว์เซอร์เครื่องนี้เท่านั้น เปลี่ยนเครื่อง/เบราว์เซอร์
-        ต้องส่งออกไฟล์ save ไปนำเข้าเองที่ปลายทาง (ไม่มีการ sync อัตโนมัติ)
+        เกมนี้ไม่มีเซิร์ฟเวอร์ — ข้อมูลอยู่ในเบราว์เซอร์เครื่องนี้เท่านั้น
+        เปลี่ยนเครื่อง/เบราว์เซอร์ ต้องส่งออกไฟล์ save ไปนำเข้าเองที่ปลายทาง (ไม่มีการ sync
+        อัตโนมัติ)
       </p>
 
       <button

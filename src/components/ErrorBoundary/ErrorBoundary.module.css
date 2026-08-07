@@ -68,3 +68,14 @@
   color: var(--c-text-dim);
   font-size: 0.875rem;
 }
+
+/* จอ crash ระดับฉาก (LobbyScene/BattleScene) — เติมเต็มแค่กล่องของฉากที่พัง
+   ไม่ใช่ position:fixed เต็มจอแบบ .screen เพื่อให้ TopBar/nav รอบข้างยังใช้งานได้ */
+.sceneScreen {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--c-void);
+  color: var(--c-text);
+}

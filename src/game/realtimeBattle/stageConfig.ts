@@ -1,7 +1,8 @@
 import { TEMPLE_LOBBY_BG, BATTLE_ART_BG } from '../backgroundAssets'
+import type { AttackDefinition } from './attacks'
 import type { CharacterModelKind } from '../characters'
 import { resolvePlayerSpawn } from './spawnFormation'
-import type { Vec2 } from './types'
+import type { EnemyTier, Vec2 } from './types'
 
 /**
  * ข้อมูลด่านของห้องต่อสู้ real-time — แหล่งความจริงจุดเดียว
@@ -52,11 +53,131 @@ export interface RealtimeEnemyTemplate {
   /** ระยะที่เข้าโจมตีได้ */
   attackRange: number
   attackCooldownMs: number
+  /**
+   * ระดับความแรง (§3.8.4) — 'elite' โดน ELITE_STAT_MULTIPLIER คูณสเตตัสตอนสร้าง entity จริง
+   * (createWaveEnemies) ค่าด้านบนในนี้ยังเป็นสเตตัส "ฐาน" ก่อนคูณเสมอ ไม่ใช่ค่าที่คูณแล้ว
+   */
+  tier: EnemyTier
+}
+
+/**
+ * ตัวคูณสเตตัสของ Elite tier เหนือสเตตัสฐานใน template (§3.8.4, world-class bar — Genshin
+ * Mitachurl/Samachurl: AI/move-data เดิม + ตัวคูณสเตตัส ไม่ใช่ kit ใหม่)
+ *
+ * data-driven จุดเดียว — ห้าม hard-code ตัวเลขนี้ซ้ำใน EnemyAISystem/DamageSystem (Done-criterion #5)
+ */
+export const ELITE_STAT_MULTIPLIER = {
+  maxHp: 2.4,
+  atk: 1.5,
+  def: 1.3,
+} as const
+
+/**
+ * ท่าโจมตีของบอส — เหมือน AttackDefinition ปกติทุกอย่าง บวก telegraphMs (#11 Boss System)
+ *
+ * §3.6.7: "Boss/enemy attacks additionally define: telegraphMs, attackShape, phase eligibility"
+ * — attackShape คือ hitShape ที่มีอยู่แล้วใน AttackDefinition (ไม่ต้องมีฟิลด์ซ้ำ), phase
+ * eligibility คือ "ท่านี้อยู่ใน phases[].attacks ไหน" (ตำแหน่งในตารางคือ eligibility อยู่แล้ว
+ * ไม่ต้องมีฟิลด์แยก) เหลือแค่ telegraphMs ที่ต้องเพิ่มจริง ๆ
+ */
+export interface BossAttackRow extends AttackDefinition {
+  /** เวลาที่อยู่ในสถานะ Telegraph ก่อนเข้า AttackActive — baseline 800–1200ms (§3.6.12) */
+  telegraphMs: number
+}
+
+export interface BossPhaseTemplate {
+  /** พูลท่าของเฟสนี้ — เลือกวนตามลำดับ (round-robin) ใน EnemyAISystem */
+  attacks: BossAttackRow[]
+}
+
+/**
+ * แม่แบบบอส — สเตตัสฐานชุดเดียวกับ RealtimeEnemyTemplate (ตั้งใจไม่ extend ตรง ๆ เพราะบอส
+ * ไม่มี `tier: EnemyTier` แบบ enemy ปกติ — 'boss' คือ entityType ของตัวเองอยู่แล้ว ไม่ใช่ elite)
+ * บวกค่าเฉพาะของ phase-transition (§3.6.9) — baseline 2 เฟส เปลี่ยนที่ 50% HP (§3.6.12)
+ */
+export interface BossTemplate {
+  id: string
+  name: string
+  spriteKind: CharacterModelKind
+  accent: string
+  maxHp: number
+  atk: number
+  def: number
+  speed: number
+  collisionRadius: number
+  hurtboxRadius: number
+  detectRange: number
+  attackRange: number
+  attackCooldownMs: number
+  /** สัดส่วน HP (0–1) ที่ข้ามแล้วเปลี่ยนเฟส — baseline 0.5 */
+  phaseHpThreshold: number
+  /** ระยะเวลาที่บอสอยู่ยงคงกระพันระหว่างเปลี่ยนเฟส (state: 'phase-transition', §3.6.9) */
+  phaseTransitionMs: number
+  /** เฟส 1 และเฟส 2 — baseline 2 เฟสตาม §3.6.12 ยังไม่รองรับ N เฟส (สเปกยังไม่ต้องการ) */
+  phases: [BossPhaseTemplate, BossPhaseTemplate]
+}
+
+/**
+ * เนื้อหาบอสจริง (วางลงด่านไหน ตอนไหน) เป็นงานของ #16/#17 Stage/Adventure System — ตารางนี้
+ * เตรียมโครงไว้ให้ agent ถัดไปเติมข้อมูล ไม่ใช่ scope ของ Boss System เอง (ดู contract §Scope)
+ */
+export const BOSS_TEMPLATES: Record<string, BossTemplate> = {}
+
+export function getBossTemplate(id: string): BossTemplate | null {
+  return BOSS_TEMPLATES[id] ?? null
 }
 
 export interface BattleWaveDefinition {
   id: string
   enemies: Array<{ templateId: string; spawnIndex: number }>
+}
+
+/**
+ * ประเภทด่าน (§5.2 ล็อกไว้ — "ไม่ใช่ Wave → Wave → Elite ทุกด่าน")
+ *
+ * แต่ละประเภทมีเงื่อนไขแพ้ชนะของตัวเอง — ดู StageVariationSystem.ts เป็นจุดเดียวที่มี
+ * branch ต่อ stageType ทั้งระบบ (§9: ห้าม hard-code ข้อมูลด่านไว้ใน Component ขยายมาถึง
+ * "ห้าม branch ต่อประเภทด่านไว้ใน Component" ด้วยเหตุผลเดียวกัน)
+ */
+export type StageType =
+  'wave' | 'survival' | 'defend' | 'chase' | 'hazard' | 'mini-boss' | 'time-attack' | 'custom'
+
+export interface SurvivalStageParams {
+  /** ต้องรอดให้ครบเวลานี้ (ms) ถึงจะชนะ — ไม่ต้องฆ่าศัตรูให้หมด */
+  durationMs: number
+}
+
+export interface DefendStageParams {
+  /** เลือดของเป้าหมายที่ต้องป้องกัน — หมด = แพ้ทันที (ดู RealtimeBattleState.objectiveHp) */
+  objectiveHp: number
+  /** ตำแหน่งเป้าหมาย — ข้อมูลสำหรับชั้นวาด/ด่านในอนาคต ไม่ถูกใช้คำนวณแพ้ชนะเอง (เหมือน enemySpawns) */
+  position: Vec2
+}
+
+export interface TimeAttackStageParams {
+  /** ต้องเคลียร์ทุกคลื่นก่อนเวลานี้หมด ไม่งั้นแพ้ */
+  timeBudgetMs: number
+}
+
+export interface MiniBossStageParams {
+  /** ศัตรู Elite-tier ตัวเดียวที่เป็นเป้าหมายของด่าน (§3.8.4 — ไม่มี phase-transition) */
+  templateId: string
+}
+
+export interface ChaseStageParams {
+  /** ตำแหน่งที่ต้องไปให้ถึง */
+  targetPosition: Vec2
+  /** ระยะที่ถือว่า "ถึง" แล้ว */
+  arrivalRadius: number
+  /** ต้องถึงก่อนเวลานี้หมด ไม่งั้นแพ้ */
+  timeBudgetMs: number
+}
+
+export interface HazardStageParams {
+  /** เลือดของกลไกอันตรายที่ไหลลงเรื่อย ๆ (เช่น โครงสร้างทรุด/ไฟไหม้ลาม) — หมด = แพ้ */
+  hazardHp: number
+  /** อัตราไหลของ hazardHp ต่อวินาที */
+  decayPerSecond: number
 }
 
 export interface RealtimeBattleStage {
@@ -74,6 +195,23 @@ export interface RealtimeBattleStage {
 
   backgroundAsset?: string
   musicAsset?: string
+
+  /** กลุ่มแชปเตอร์ที่ด่านนี้อยู่ — ใช้จัดลำดับ Chapter→Stage→Boss (§5.1 ล็อกไว้) */
+  chapterId: string
+  /** ลำดับด่านในแชปเตอร์ (เริ่มที่ 1) — ตัวปลดล็อกด่านถัดไปอ้างลำดับนี้ ไม่ใช่ตำแหน่งใน object */
+  order: number
+  /** ด่านบอสปิดท้ายแชปเตอร์ — ใช้แค่ติดป้ายในหน้าเลือกด่าน ไม่มีผลต่อ gating */
+  isBoss?: boolean
+
+  /** ประเภทด่าน (§17 Stage Variation System) — กำหนดเงื่อนไขแพ้ชนะที่ StageVariationSystem.ts ใช้ */
+  stageType: StageType
+  /** พารามิเตอร์เฉพาะ stageType — มีเฉพาะเมื่อ stageType ตรงกับชนิดนั้น */
+  survival?: SurvivalStageParams
+  defend?: DefendStageParams
+  timeAttack?: TimeAttackStageParams
+  miniBoss?: MiniBossStageParams
+  chase?: ChaseStageParams
+  hazard?: HazardStageParams
 }
 
 export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
@@ -91,6 +229,7 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     detectRange: 1600,
     attackRange: 74,
     attackCooldownMs: 1500,
+    tier: 'normal',
   },
   'demon-captain': {
     id: 'demon-captain',
@@ -106,6 +245,7 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     detectRange: 1700,
     attackRange: 86,
     attackCooldownMs: 1700,
+    tier: 'normal',
   },
   'spirit-guardian': {
     id: 'spirit-guardian',
@@ -121,6 +261,28 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     detectRange: 1600,
     attackRange: 78,
     attackCooldownMs: 1300,
+    tier: 'normal',
+  },
+  /**
+   * ขุนศึกปีศาจ — ตัวอย่าง Elite/mini-boss (§3.8.4/§5.2): สเตตัสฐานเท่า demon-captain
+   * แล้วโดน ELITE_STAT_MULTIPLIER คูณตอนสร้าง entity จริง (createRealtimeBattle.ts)
+   * ยืม AI/ท่าโจมตีชุดเดียวกับศัตรูทั่วไป ไม่มี kit พิเศษ ตาม world-class bar ของสเปกนี้
+   */
+  'demon-warlord': {
+    id: 'demon-warlord',
+    name: 'ขุนศึกปีศาจ',
+    spriteKind: 'pig-warrior',
+    accent: '#ff2e2e',
+    maxHp: 340,
+    atk: 72,
+    def: 24,
+    speed: 118,
+    collisionRadius: 40,
+    hurtboxRadius: 48,
+    detectRange: 1700,
+    attackRange: 86,
+    attackCooldownMs: 1700,
+    tier: 'elite',
   },
 }
 
@@ -153,6 +315,9 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
       },
     ],
     backgroundAsset: TEMPLE_LOBBY_BG,
+    chapterId: 'chapter-1',
+    order: 1,
+    stageType: 'wave',
   },
   'trial-02': {
     id: 'trial-02',
@@ -179,6 +344,63 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
       },
     ],
     backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'chapter-1',
+    order: 2,
+    isBoss: true,
+    stageType: 'wave',
+  },
+  /**
+   * ด่าน Survival (§5.2/§17) — ไม่ต้องฆ่าศัตรูให้หมด แค่รอดให้ครบเวลา
+   * ศัตรูคลื่นเดียวคอยกดดัน แต่ผลแพ้ชนะดูจากนาฬิกา ไม่ใช่จำนวนศัตรูที่เหลือ
+   */
+  'trial-03': {
+    id: 'trial-03',
+    name: 'ทุ่งรอคอย',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'wave-1',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 1 },
+        ],
+      },
+    ],
+    backgroundAsset: TEMPLE_LOBBY_BG,
+    chapterId: 'chapter-1',
+    order: 3,
+    stageType: 'survival',
+    survival: { durationMs: 60_000 },
+  },
+  /**
+   * ด่าน Defend (§5.2/§17) — เคลียร์ทุกคลื่นเหมือน wave แต่แพ้ทันทีถ้า objectiveHp หมดก่อน
+   * (ดู StageVariationSystem.ts's resolveDefendOutcome + RealtimeBattleState.objectiveHp)
+   */
+  'trial-04': {
+    id: 'trial-04',
+    name: 'ปกป้องศาลเจ้า',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'wave-1',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 1 },
+          { templateId: 'spirit-guardian', spawnIndex: 2 },
+        ],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'chapter-1',
+    order: 4,
+    stageType: 'defend',
+    defend: { objectiveHp: 300, position: { x: ARENA_SIZE.width / 2, y: ARENA_SIZE.height / 2 } },
   },
 }
 
@@ -188,4 +410,31 @@ export function getRealtimeStage(id: string): RealtimeBattleStage | null {
 
 export function getEnemyTemplate(id: string): RealtimeEnemyTemplate | null {
   return ENEMY_TEMPLATES[id] ?? null
+}
+
+/** ด่านทั้งหมด (หรือของแชปเตอร์เดียว) เรียงตาม `order` — ใช้ทั้ง gating และหน้าเลือกด่าน */
+export function getOrderedStages(chapterId?: string): RealtimeBattleStage[] {
+  return Object.values(REALTIME_STAGES)
+    .filter((stage) => !chapterId || stage.chapterId === chapterId)
+    .toSorted((a, b) => a.order - b.order)
+}
+
+/**
+ * ด่านแรกของแชปเตอร์ปลดล็อกเสมอ ด่านถัดไปต้องเคลียร์ด่านก่อนหน้าก่อน (clear-gate only)
+ *
+ * ระบบ stamina/energy ที่ล็อกไว้เป็น "โครงสร้าง" ใน MASTER_BLUEPRINT_v3.0.md:419 ยังไม่ถูกสร้าง
+ * ที่นี่โดยตั้งใจ — ตัวเลข (pool/regen/cost) ถูกเลื่อนไป P7/P11 และตัวนับฝั่ง client
+ * โกงได้ตรง ๆ ตราบใดที่ Backend/Server-Authority (#25) ยังเป็นแค่ "early seam" (§8)
+ * ดู docs/agent-blueprint/16-stage-adventure-system.md § Stay-current note
+ */
+export function isStageUnlocked(stageId: string, flags: Record<string, boolean>): boolean {
+  const stage = REALTIME_STAGES[stageId]
+  if (!stage) return false
+
+  const ordered = getOrderedStages(stage.chapterId)
+  const index = ordered.findIndex((s) => s.id === stageId)
+  if (index <= 0) return true
+
+  const previous = ordered[index - 1]
+  return flags[`trial_cleared_${previous.id}`] === true
 }

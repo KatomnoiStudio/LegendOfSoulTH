@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ErrorBoundary } from './ErrorBoundary'
+import { ErrorBoundary, SceneCrashFallback } from './ErrorBoundary'
 
 /*
   จอ crash ต้องแสดงรหัสจริง และปุ่มสำรองข้อมูลต้องทำงานจริง
@@ -102,5 +102,30 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     )
     expect(screen.getByText('เนื้อหาปกติ')).toBeInTheDocument()
+  })
+
+  test('boundary ระดับฉาก crash แล้ว — เปลือกแอปรอบข้าง (nav) ไม่ถูกถอดไปด้วย', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const onBack = vi.fn()
+    const user = userEvent.setup()
+
+    render(
+      <>
+        <nav>เมนูหลัก</nav>
+        <ErrorBoundary
+          fallback={<SceneCrashFallback message="ฉากพัง" onBack={onBack} backLabel="กลับล็อบบี้" />}
+        >
+          <Bomb />
+        </ErrorBoundary>
+      </>,
+    )
+
+    expect(screen.getByText('เมนูหลัก')).toBeInTheDocument()
+    expect(screen.getByText('ฉากพัง')).toBeInTheDocument()
+    // fallback ของฉาก ไม่ใช่จอเต็มแอป — ปุ่มโหลดใหม่ทั้งหน้าต้องไม่ปรากฏ
+    expect(screen.queryByText('โหลดใหม่')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'กลับล็อบบี้' }))
+    expect(onBack).toHaveBeenCalledTimes(1)
   })
 })

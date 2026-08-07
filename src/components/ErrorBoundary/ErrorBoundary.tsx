@@ -7,6 +7,8 @@ import styles from './ErrorBoundary.module.css'
 
 interface ErrorBoundaryProps {
   children: ReactNode
+  /** จอสำรองเมื่อ crash — ไม่ใส่ = จอเต็มจอปกติ (ใช้ที่จุดครอบทั้งแอปใน main.tsx) */
+  fallback?: ReactNode
 }
 
 interface ErrorBoundaryState {
@@ -59,13 +61,15 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   render() {
     if (this.state.error) {
+      if (this.props.fallback) return this.props.fallback
+
       return (
         <div className={styles.screen}>
           <div className={styles.panel}>
             <h1 className={styles.title}>เกิดข้อผิดพลาด</h1>
             <p className={styles.message}>
-              เกมพบปัญหาที่ไม่คาดคิด ลองโหลดหน้าใหม่อีกครั้ง
-              หากพังซ้ำทุกครั้ง ให้กดสำรองข้อมูลเก็บไฟล์ไว้ก่อน แล้วแจ้งปัญหาพร้อมรหัสด้านล่าง
+              เกมพบปัญหาที่ไม่คาดคิด ลองโหลดหน้าใหม่อีกครั้ง หากพังซ้ำทุกครั้ง
+              ให้กดสำรองข้อมูลเก็บไฟล์ไว้ก่อน แล้วแจ้งปัญหาพร้อมรหัสด้านล่าง
             </p>
             <ErrorCodeTag code="BOUNDARY_RENDER_CRASH" />
             <div className={styles.actions}>
@@ -88,4 +92,33 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
     return this.props.children
   }
+}
+
+/**
+ * fallback ระดับฉาก — ให้ boundary ที่ครอบ LobbyScene/BattleScene ใช้ผ่าน prop `fallback`
+ * ต่างจากจอ crash เต็มแอป (ปุ่มโหลดใหม่ทั้งหน้า) ตรงที่พาผู้เล่นถอยกลับในแอปแทน
+ */
+export function SceneCrashFallback({
+  message,
+  onBack,
+  backLabel,
+}: {
+  message: string
+  onBack: () => void
+  backLabel: string
+}) {
+  return (
+    <div className={styles.sceneScreen}>
+      <div className={styles.panel}>
+        <h2 className={styles.title}>เกิดข้อผิดพลาด</h2>
+        <p className={styles.message}>{message}</p>
+        <ErrorCodeTag code="BOUNDARY_RENDER_CRASH" />
+        <div className={styles.actions}>
+          <button className={styles.reload} onClick={onBack}>
+            {backLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }

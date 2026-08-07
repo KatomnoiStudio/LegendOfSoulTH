@@ -36,6 +36,8 @@ export interface HitboxQuery {
   alreadyHit: ReadonlySet<string>
   /** เวลาปัจจุบันของ runtime ใช้ตรวจ invulnerability */
   elapsedMs: number
+  /** เป้าที่ถูกล็อกไว้ตอนเริ่มร่าย — ใช้แทนการกวาด hitShape ปกติเมื่อ attack.targetLock ตั้งไว้ (ระบบ #8) */
+  lockedTargetId?: string
 }
 
 function hitsHorizontal(
@@ -83,8 +85,21 @@ function hitsRadial(
  */
 export function findHitTargets(
   targets: RealtimeBattleEntity[],
-  { attacker, attack, alreadyHit, elapsedMs }: HitboxQuery,
+  { attacker, attack, alreadyHit, elapsedMs, lockedTargetId }: HitboxQuery,
 ): RealtimeBattleEntity[] {
+  if (attack.targetLock === 'nearest') {
+    // ท่าล็อกเป้า: เช็คเฉพาะเป้าที่ล็อกไว้ตอนเริ่มร่าย ไม่กวาด hitShape ปกติ (ระบบ #8)
+    // 0 ศัตรูตอนเริ่มร่าย หรือเป้าที่ล็อกตายไปแล้ว/หลุดออกจากลิสต์ = ไม่มีเป้า ไม่ crash
+    if (!lockedTargetId) return []
+    const target = targets.find((candidate) => candidate.id === lockedTargetId)
+    if (!target) return []
+    if (target.id === attacker.id) return []
+    if (target.state === 'dead' || target.hp <= 0) return []
+    if (alreadyHit.has(target.id)) return []
+    if (target.invulnerableUntilMs > elapsedMs) return []
+    return [target]
+  }
+
   return targets.filter((target) => {
     if (target.id === attacker.id) return false
     if (target.state === 'dead' || target.hp <= 0) return false

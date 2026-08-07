@@ -1,7 +1,13 @@
 import { getCharacter } from '../characters'
 import { reportError } from '../../lib/errors/reportError'
 import type { Player } from '../../types/player'
-import { getEnemyTemplate, getRealtimeStage, type RealtimeBattleStage } from './stageConfig'
+import {
+  ELITE_STAT_MULTIPLIER,
+  getEnemyTemplate,
+  getRealtimeStage,
+  type RealtimeBattleStage,
+  type RealtimeEnemyTemplate,
+} from './stageConfig'
 import { resolveEnemyFormation, resolvePlayerSpawn } from './spawnFormation'
 import type { RealtimeBattleEntity } from './types'
 import { calcMaxHp } from '../battle/formulas'
@@ -24,10 +30,29 @@ export interface RealtimeBattleState {
   defeatedEnemyIds: string[]
   damageDealt: number
   damageTaken: number
+  /** เลือดเป้าหมายที่ต้องป้องกัน (stageType: 'defend' เท่านั้น) — null สำหรับด่านชนิดอื่น */
+  objectiveHp: number | null
+  /** เลือดกลไกอันตรายที่ไหลลงเรื่อย ๆ (stageType: 'hazard' เท่านั้น) — null สำหรับด่านชนิดอื่น */
+  hazardHp: number | null
 }
 
 /** ความเร็วเดินของผู้เล่นในห้องต่อสู้ (หน่วย runtime ต่อวินาที) */
 const PLAYER_BASE_SPEED = 275
+
+/**
+ * สเตตัสจริงของศัตรูตัวหนึ่ง — สเตตัสฐานจาก template คูณ ELITE_STAT_MULTIPLIER ถ้า tier เป็น elite
+ * (§3.8.4) จุดเดียวที่คูณตัวเลขนี้ — ห้ามมี branch ตัวคูณซ้ำใน EnemyAISystem/DamageSystem
+ */
+function resolveTierStats(template: RealtimeEnemyTemplate) {
+  if (template.tier !== 'elite') {
+    return { maxHp: template.maxHp, atk: template.atk, def: template.def }
+  }
+  return {
+    maxHp: Math.round(template.maxHp * ELITE_STAT_MULTIPLIER.maxHp),
+    atk: Math.round(template.atk * ELITE_STAT_MULTIPLIER.atk),
+    def: Math.round(template.def * ELITE_STAT_MULTIPLIER.def),
+  }
+}
 
 export function createPlayerEntity(player: Player): RealtimeBattleEntity | null {
   const leadId = player.teamSlots.find((id): id is string => id !== null) ?? null
@@ -107,6 +132,7 @@ export function createWaveEnemies(
       return []
     }
 
+    const stats = resolveTierStats(template)
     const enemy: RealtimeBattleEntity = {
       id: `enemy-${waveIndex}-${index}`,
       entityType: 'enemy',
@@ -116,10 +142,10 @@ export function createWaveEnemies(
       facing: 'left',
       combatFacing: 'left',
       state: 'idle',
-      hp: template.maxHp,
-      maxHp: template.maxHp,
-      atk: template.atk,
-      def: template.def,
+      hp: stats.maxHp,
+      maxHp: stats.maxHp,
+      atk: stats.atk,
+      def: stats.def,
       speed: template.speed,
       collisionRadius: template.collisionRadius,
       hurtboxRadius: template.hurtboxRadius,
@@ -129,6 +155,7 @@ export function createWaveEnemies(
       invulnerableUntilMs: 0,
       hitStunRemainingMs: 0,
       enemyId: template.id,
+      tier: template.tier,
     }
     return [enemy]
   })
@@ -159,5 +186,7 @@ export function createRealtimeBattle(stageId: string, player: Player): RealtimeB
     defeatedEnemyIds: [],
     damageDealt: 0,
     damageTaken: 0,
+    objectiveHp: stage.stageType === 'defend' ? (stage.defend?.objectiveHp ?? null) : null,
+    hazardHp: stage.stageType === 'hazard' ? (stage.hazard?.hazardHp ?? null) : null,
   }
 }

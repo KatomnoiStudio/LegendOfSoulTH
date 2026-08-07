@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { PASSWORD_MIN_LENGTH } from '../../data/accountRepository'
+import { PASSWORD_MIN_LENGTH } from '../../data/accountRepository.shared'
 import { useModalA11y } from '../../hooks/useModalA11y'
 import { getLastEmail, setLastEmail } from '../../lib/authUi'
 import { reportError } from '../../lib/errors/reportError'

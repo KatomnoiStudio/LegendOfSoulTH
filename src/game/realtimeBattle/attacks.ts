@@ -12,6 +12,8 @@
  * ────────────────────────────────────────────────────────────
  */
 
+import type { EffectDefinition } from './EffectsSystem'
+
 export interface AttackDefinition {
   id: string
   /** ชุดเฟรมที่จะเล่น (ดู src/game/battleSpriteSequences.ts) */
@@ -39,6 +41,22 @@ export interface AttackDefinition {
   /** ระยะ depth ที่ยังโดนได้ (runtime y) — ใช้เมื่อ hitShape = horizontal */
   depthTolerance: number
   knockback: number
+  /**
+   * ล็อกเป้าหมายที่ใกล้สุดตอนเริ่มร่าย แล้วคงเป้านั้นไว้ตลอดช่วง active window เดียว
+   * (ระบบ #8 Skill-Targeting) — ไม่ใส่ = พฤติกรรมเดิม (กวาด hitShape ตามปกติ)
+   */
+  targetLock?: 'nearest'
+  /**
+   * เอฟเฟกต์ที่ไม่ใช่ดาเมจ (heal/buff/cc/summon) — ระบบ #7 Effects System
+   * ไม่ใส่ = ท่าดาเมจล้วน พฤติกรรมเดิมทุกประการ (ดู EffectsSystem.ts)
+   */
+  effects?: EffectDefinition[]
+  /**
+   * ท่านี้ทำ Knockdown ได้ (§3.6.12: elite/boss + heavy move/combo finisher) — DamageSystem
+   * เป็นคนเช็คว่าเป้าหมาย eligible ไหม (tier elite/entityType boss) ไม่ใช่ท่านี้เอง
+   * ไม่ใส่ = ท่าปกติ ไม่ทำ knockdown (พฤติกรรมเดิม)
+   */
+  knockdown?: boolean
 }
 
 /**
@@ -93,6 +111,8 @@ export const PLAYER_ATTACK_CHAIN: AttackDefinition[] = [
     arcDegrees: 0,
     depthTolerance: 105,
     knockback: 210,
+    // ไม้จบคอมโบ = combo finisher ตาม §3.6.12 (knockdown เฉพาะเป้าหมาย elite/boss เท่านั้น)
+    knockdown: true,
   },
 ]
 
@@ -165,7 +185,12 @@ export const MONKEY_STAFF_SWEEP: AttackDefinition = {
   knockback: 160,
 }
 
-/** อัลติเมท — กระบวนทองคำรุนแรง (placeholder content, P3 framework) */
+/**
+ * อัลติเมท — กระบวนทองคำรุนแรง (placeholder content, P3 framework)
+ *
+ * targetLock: 'nearest' — ล็อกศัตรูที่ใกล้สุดตอนเริ่มร่าย คงเป้านั้นไว้ตลอด active window
+ * เดียวที่มีตอนนี้ (ระบบ #8, ดู docs/agent-blueprint/08-skill-targeting-system.md)
+ */
 export const MONKEY_GOLDEN_FURY: AttackDefinition = {
   id: 'monkey-golden-fury',
   animationId: 'skill-1',
@@ -180,6 +205,7 @@ export const MONKEY_GOLDEN_FURY: AttackDefinition = {
   arcDegrees: 360,
   depthTolerance: 0,
   knockback: 200,
+  targetLock: 'nearest',
 }
 
 /** ค่าจังหวะของสกิล (Blueprint v3 P3) — อยู่ที่เดียว ห้าม hard-code กระจายหลายไฟล์ */

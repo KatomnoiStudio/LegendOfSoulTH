@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createRealtimeBattle, createWaveEnemies } from './createRealtimeBattle'
 import { RealtimeBattleRuntime } from './RealtimeBattleRuntime'
 import { getRealtimeStage } from './stageConfig'
+import { createDefaultSkillLevels } from './SkillProgressionSystem'
 import type { Player } from '../../types/player'
 import { EMPTY_PROGRESS } from '../../types/player'
 
@@ -29,6 +30,7 @@ function makePlayer(): Player {
         exp: 0,
         expToNext: 100,
         obtainedAt: '2026-01-01T00:00:00.000Z',
+        skillLevels: createDefaultSkillLevels(),
       },
     ],
     inventory: [],

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getCharacter } from '../../game/characters'
-import type { CharacterGrantResult } from '../../data/accountRepository'
+import type { CharacterGrantResult } from '../../data/accountRepository.shared'
 import { COMMAND_HELP, resolveCommandForSender } from './commands'
 import { loadWorldChat, postWorldChatMessage, subscribeToWorldChat } from './chatStorage'
 import type { ChatMessage } from './chatStorage'

@@ -46,6 +46,11 @@ function animationForState(state: EntityState): BattleAnimationId {
       return 'skill-1'
     case 'hit':
       return 'hit'
+    // Knockdown/GetUp (§3.8.4) — ยืมแอนิเมชัน hit ไปก่อน ยังไม่มีเฟรมภาพเฉพาะ
+    // (ponytail: อัปเกรดตอนมีชุดเฟรมล้ม/ลุกจริงจากทีมอาร์ต ไม่ใช่ตอนนี้)
+    case 'knockdown':
+    case 'getup':
+      return 'hit'
     case 'dead':
       return 'death'
     case 'idle':

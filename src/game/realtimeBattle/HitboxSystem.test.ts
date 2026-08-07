@@ -139,3 +139,70 @@ describe('findHitTargets (P2 horizontal + depth)', () => {
     expect(findHitTargets([a, b], query())).toHaveLength(2)
   })
 })
+
+describe('findHitTargets — targetLock: nearest (ระบบ #8 Skill-Targeting System)', () => {
+  const LOCKED_ATTACK = { ...PLAYER_ATTACK, targetLock: 'nearest' as const }
+
+  it('ไม่มี lockedTargetId (0 ศัตรูตอนเริ่มร่าย) = ไม่โดนใคร ไม่ crash (done-criterion #1)', () => {
+    const target = entity({ id: 'e1', position: { x: 100, y: 0 } })
+    expect(
+      findHitTargets([target], query({ attack: LOCKED_ATTACK, lockedTargetId: undefined })),
+    ).toEqual([])
+    expect(findHitTargets([], query({ attack: LOCKED_ATTACK, lockedTargetId: undefined }))).toEqual(
+      [],
+    )
+  })
+
+  it('โดนเฉพาะเป้าที่ล็อกไว้ ข้าม hitShape/range ปกติไปเลย', () => {
+    // อยู่นอกระยะโจมตีปกติของ PLAYER_ATTACK มาก — ถ้าไม่ bypass hitShape จะไม่โดน
+    const locked = entity({ id: 'locked', position: { x: PLAYER_ATTACK.range + 500, y: 0 } })
+    const hits = findHitTargets(
+      [locked],
+      query({ attack: LOCKED_ATTACK, lockedTargetId: 'locked' }),
+    )
+    expect(hits.map((t) => t.id)).toEqual(['locked'])
+  })
+
+  it('คงเป้าที่ล็อกไว้แม้มีเป้าที่ใกล้กว่าอยู่ในลิสต์ (done-criterion #2)', () => {
+    const lockedFar = entity({ id: 'locked-far', position: { x: 900, y: 0 } })
+    const closer = entity({ id: 'closer', position: { x: 30, y: 0 } })
+    const hits = findHitTargets(
+      [closer, lockedFar],
+      query({ attack: LOCKED_ATTACK, lockedTargetId: 'locked-far' }),
+    )
+    expect(hits.map((t) => t.id)).toEqual(['locked-far'])
+  })
+
+  it('เป้าที่ล็อกไว้หลุดออกจากลิสต์ศัตรู (ตาย/ถูกลบ) ก่อนหน้าต่าง active ปิด = ไม่โดนใคร ไม่ crash (done-criterion #3)', () => {
+    const other = entity({ id: 'still-here', position: { x: 50, y: 0 } })
+    const hits = findHitTargets([other], query({ attack: LOCKED_ATTACK, lockedTargetId: 'gone' }))
+    expect(hits).toEqual([])
+  })
+
+  it('เป้าที่ล็อกไว้ตายในลิสต์แล้ว = ไม่โดน ไม่ใช่ silent hit ที่ไม่มีดาเมจ (done-criterion #3, Argenti scar)', () => {
+    const deadLocked = entity({
+      id: 'locked',
+      position: { x: 100, y: 0 },
+      hp: 0,
+      state: 'dead',
+    })
+    const hits = findHitTargets(
+      [deadLocked],
+      query({ attack: LOCKED_ATTACK, lockedTargetId: 'locked' }),
+    )
+    expect(hits).toEqual([])
+  })
+
+  it('ยังเคารพ alreadyHit เดิม (dedup ไม่ถูกแตะต้องโดยการล็อกเป้า)', () => {
+    const locked = entity({ id: 'locked', position: { x: 100, y: 0 } })
+    const hits = findHitTargets(
+      [locked],
+      query({
+        attack: LOCKED_ATTACK,
+        lockedTargetId: 'locked',
+        alreadyHit: new Set(['locked']),
+      }),
+    )
+    expect(hits).toEqual([])
+  })
+})

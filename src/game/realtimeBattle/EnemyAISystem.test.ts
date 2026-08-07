@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { createEnemyBrain, ENEMY_ATTACK_TIMING, stepEnemyAI } from './EnemyAISystem'
 import { createRealtimeBattle } from './createRealtimeBattle'
 import { RealtimeBattleRuntime } from './RealtimeBattleRuntime'
-import { getEnemyTemplate } from './stageConfig'
+import { findHitTargets } from './HitboxSystem'
+import {
+  BOSS_TEMPLATES,
+  getEnemyTemplate,
+  type BossAttackRow,
+  type BossTemplate,
+} from './stageConfig'
+import { createDefaultSkillLevels } from './SkillProgressionSystem'
 import type { RealtimeBattleEntity } from './types'
 import type { Player } from '../../types/player'
 import { EMPTY_PROGRESS } from '../../types/player'
@@ -27,6 +34,7 @@ function makePlayer(): Player {
         exp: 0,
         expToNext: 100,
         obtainedAt: '2026-01-01T00:00:00.000Z',
+        skillLevels: createDefaultSkillLevels(),
       },
     ],
     inventory: [],
@@ -189,6 +197,249 @@ describe('stepEnemyAI', () => {
     expect(brain.state).toBe('chase')
     expect(enemy.state).toBe('idle')
     expect(decision.move).toEqual({ x: 0, y: 0 })
+  })
+})
+
+/** ท่าโจมตีบอสสำหรับเทสต์ — module scope เพราะไม่ผูกกับ closure ใด ๆ (ไม่มี state จับ) */
+function testBossAttackRow(overrides: Partial<BossAttackRow> = {}): BossAttackRow {
+  return {
+    id: 'boss-test-attack',
+    animationId: 'attack-1',
+    startupMs: 30,
+    activeMs: 20,
+    recoveryMs: 30,
+    comboWindowStartMs: 0,
+    comboWindowEndMs: 0,
+    damageMultiplier: 1,
+    range: 120,
+    hitShape: 'horizontal',
+    arcDegrees: 0,
+    depthTolerance: 90,
+    knockback: 100,
+    telegraphMs: 900, // baseline บอส 800–1200ms (§3.6.12)
+    ...overrides,
+  }
+}
+
+/** #11 Boss System — HP-threshold phase-transition state machine (docs/agent-blueprint/11-boss-system.md) */
+describe('stepEnemyAI — บอส (#11 Boss System)', () => {
+  const TEST_BOSS_ID = 'test-boss'
+
+  /** ลงทะเบียนแม่แบบบอสทดสอบใน BOSS_TEMPLATES ตรง ๆ — เหมือน ENEMY_TEMPLATES ที่เทสต์อื่นอ่านอยู่แล้ว */
+  function registerTestBoss(overrides: Partial<BossTemplate> = {}): BossTemplate {
+    const bossTemplate: BossTemplate = {
+      id: TEST_BOSS_ID,
+      name: 'บอสทดสอบ',
+      spriteKind: 'pig-warrior',
+      accent: '#ffffff',
+      maxHp: 1000,
+      atk: 80,
+      def: 30,
+      speed: 100,
+      collisionRadius: 50,
+      hurtboxRadius: 60,
+      detectRange: 2000,
+      attackRange: 100,
+      attackCooldownMs: 0,
+      phaseHpThreshold: 0.5,
+      phaseTransitionMs: 1000,
+      phases: [
+        { attacks: [testBossAttackRow({ id: 'phase-1-attack' })] },
+        { attacks: [testBossAttackRow({ id: 'phase-2-attack' })] },
+      ],
+      ...overrides,
+    }
+    BOSS_TEMPLATES[TEST_BOSS_ID] = bossTemplate
+    return bossTemplate
+  }
+
+  function bossEntity(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEntity {
+    return entity({
+      id: 'boss1',
+      entityType: 'boss',
+      enemyId: TEST_BOSS_ID,
+      collisionRadius: 50,
+      hurtboxRadius: 60,
+      ...overrides,
+    })
+  }
+
+  it('Done-criterion 1: HP ข้ามเกณฑ์ระหว่างท่าโจมตี/พักท่า ไม่ตัดท่าปัจจุบัน รอจนจบก่อนค่อยเปลี่ยนเฟส', () => {
+    const bossTemplate = registerTestBoss()
+    const boss = bossEntity({
+      position: { x: 0, y: 0 },
+      hp: bossTemplate.maxHp,
+      maxHp: bossTemplate.maxHp,
+    })
+    const player = entity({
+      id: 'player',
+      entityType: 'player',
+      position: { x: bossTemplate.attackRange - 10, y: 0 },
+    })
+    const brain = createEnemyBrain()
+
+    stepEnemyAI(boss, brain, player, 16, 0) // idle → chase
+    stepEnemyAI(boss, brain, player, 16, 16) // chase → telegraph (เลือกท่าเฟส 1)
+    expect(brain.state).toBe('telegraph')
+    const row = brain.bossAttackRow
+    if (!row) throw new Error('ควรมี bossAttackRow แล้ว')
+
+    stepEnemyAI(boss, brain, player, row.telegraphMs, 100) // telegraph → attack
+    expect(brain.state).toBe('attack')
+
+    // HP ลดต่ำกว่า threshold ระหว่างอยู่ในท่าโจมตี (mid-AttackActive)
+    boss.hp = bossTemplate.maxHp * 0.4
+
+    const attackTotalMs = row.startupMs + row.activeMs + row.recoveryMs
+    stepEnemyAI(boss, brain, player, attackTotalMs - 1, 1000) // ยังไม่จบท่า
+    expect(brain.state).toBe('attack') // ยังไม่ถูกตัดท่า
+
+    stepEnemyAI(boss, brain, player, 2, 2000) // ท่าจบพอดี → recover
+    expect(brain.state).toBe('recover')
+
+    // ยังอยู่กลาง recover (mid-Recovery) — ก็ยังไม่สลับเฟสจนกว่าจะจบ
+    stepEnemyAI(boss, brain, player, 10, 2010)
+    expect(brain.state).toBe('recover')
+
+    // recover จบแล้ว (RECOVER_MS = 260) — ติ๊กนี้ recover ส่งตรงเข้า chase ก่อน (จุดปลอดภัย
+    // เดียวกับที่ enemy ทั่วไปกลับไปไล่ต่อ) แล้วเกตของบอสจะตัดเข้า phase-transition ในติ๊กถัดไปทันที
+    // (ยังไม่มี hitbox/ท่าใดเกิดขึ้นระหว่างนั้น — ล่าช้าแค่ 1 ติ๊กจำลอง ไม่กระทบ Done-criterion 1)
+    stepEnemyAI(boss, brain, player, 260, 3000)
+    expect(brain.state).toBe('chase')
+    stepEnemyAI(boss, brain, player, 0, 3001)
+    expect(brain.state).toBe('phase-transition')
+  })
+
+  it('Done-criterion 2: ระหว่าง PhaseTransition invulnerableUntilMs ยาวเกินระยะเปลี่ยนเฟส และ HitboxSystem ปฏิเสธทุกฮิต', () => {
+    const bossTemplate = registerTestBoss({ phaseTransitionMs: 1000 })
+    const boss = bossEntity({
+      position: { x: 0, y: 0 },
+      hp: bossTemplate.maxHp * 0.4,
+      maxHp: bossTemplate.maxHp,
+    })
+    const player = entity({ id: 'player', entityType: 'player', position: { x: 9000, y: 9000 } })
+    const brain = createEnemyBrain()
+
+    stepEnemyAI(boss, brain, player, 16, 1000)
+
+    expect(brain.state).toBe('phase-transition')
+    expect(boss.invulnerableUntilMs).toBe(1000 + bossTemplate.phaseTransitionMs)
+
+    const attacker = entity({ id: 'attacker', entityType: 'player' })
+    const targets = findHitTargets([boss], {
+      attacker,
+      attack: testBossAttackRow(),
+      alreadyHit: new Set(),
+      elapsedMs: 1000 + bossTemplate.phaseTransitionMs - 1, // ยังอยู่ในช่วงคุ้มกัน
+    })
+
+    expect(targets).toHaveLength(0)
+  })
+
+  it('Done-criterion 3: พูลท่าหลังเปลี่ยนเฟสต้องต่างจากพูลก่อนเปลี่ยนเฟสจริง', () => {
+    const bossTemplate = registerTestBoss()
+    const boss = bossEntity({
+      position: { x: 0, y: 0 },
+      hp: bossTemplate.maxHp,
+      maxHp: bossTemplate.maxHp,
+    })
+    const player = entity({
+      id: 'player',
+      entityType: 'player',
+      position: { x: bossTemplate.attackRange - 10, y: 0 },
+    })
+    const brain = createEnemyBrain()
+
+    stepEnemyAI(boss, brain, player, 16, 0) // → chase
+    stepEnemyAI(boss, brain, player, 16, 16) // → telegraph เฟส 1
+    const phase1Row = brain.bossAttackRow
+    if (!phase1Row) throw new Error('ควรมี bossAttackRow แล้ว')
+    expect(phase1Row).toBe(bossTemplate.phases[0].attacks[0])
+
+    boss.hp = bossTemplate.maxHp * 0.4 // ข้าม threshold
+    stepEnemyAI(boss, brain, player, phase1Row.telegraphMs, 100) // telegraph → attack
+    const attackTotalMs = phase1Row.startupMs + phase1Row.activeMs + phase1Row.recoveryMs
+    stepEnemyAI(boss, brain, player, attackTotalMs, 200) // attack → recover
+    stepEnemyAI(boss, brain, player, 260, 300) // recover → chase (จุดปลอดภัย)
+    stepEnemyAI(boss, brain, player, 0, 301) // เกตบอสตัดเข้า phase-transition ติ๊กถัดไป
+    expect(brain.state).toBe('phase-transition')
+    stepEnemyAI(boss, brain, player, bossTemplate.phaseTransitionMs, 400) // phase-transition → chase
+    expect(brain.state).toBe('chase')
+    expect(brain.bossPhaseIndex).toBe(1)
+
+    boss.attackCooldownRemainingMs = 0 // จำลอง tickTimers ของ runtime นับถอยหลังจนพ้นคูลดาวน์แล้ว
+    stepEnemyAI(boss, brain, player, 16, 500) // → telegraph เฟส 2
+    expect(brain.state).toBe('telegraph')
+    const phase2Row = brain.bossAttackRow
+    expect(phase2Row).toBe(bossTemplate.phases[1].attacks[0])
+    expect(phase2Row).not.toBe(phase1Row)
+  })
+
+  it('Done-criterion 4: Telegraph ค้างตาม telegraphMs ของท่า (baseline 800–1200ms) แล้วยิง ground-marker ก่อนเข้า AttackActive', () => {
+    const bossTemplate = registerTestBoss()
+    const boss = bossEntity({
+      position: { x: 0, y: 0 },
+      hp: bossTemplate.maxHp,
+      maxHp: bossTemplate.maxHp,
+    })
+    const player = entity({
+      id: 'player',
+      entityType: 'player',
+      position: { x: bossTemplate.attackRange - 10, y: 0 },
+    })
+    const brain = createEnemyBrain()
+
+    stepEnemyAI(boss, brain, player, 16, 0) // → chase
+    const decision = stepEnemyAI(boss, brain, player, 16, 16) // → telegraph
+
+    expect(brain.state).toBe('telegraph')
+    const row = brain.bossAttackRow
+    if (!row) throw new Error('ควรมี bossAttackRow แล้ว')
+    expect(row.telegraphMs).toBeGreaterThanOrEqual(800)
+    expect(row.telegraphMs).toBeLessThanOrEqual(1200)
+    expect(decision.telegraph).toBeDefined()
+    expect(decision.telegraph?.durationMs).toBe(row.telegraphMs)
+
+    // ยังไม่ครบ telegraphMs → ยังไม่เข้า AttackActive
+    stepEnemyAI(boss, brain, player, row.telegraphMs - 10, 100)
+    expect(brain.state).toBe('telegraph')
+
+    // ครบแล้ว → attack (ท่าเดียวกับที่เทเลกราฟไว้ — กันสลับท่า, scar #2)
+    stepEnemyAI(boss, brain, player, 10, 1000)
+    expect(brain.state).toBe('attack')
+    expect(brain.bossAttackRow).toBe(row)
+  })
+
+  it('Done-criterion 5: เปลี่ยนเฟสได้ครั้งเดียวต่อบอสหนึ่งตัว แม้ HP แกว่งกลับข้าม threshold ซ้ำหลังเฟส 2', () => {
+    const bossTemplate = registerTestBoss({ phaseTransitionMs: 50 })
+    const boss = bossEntity({
+      position: { x: 9000, y: 9000 },
+      hp: bossTemplate.maxHp * 0.4,
+      maxHp: bossTemplate.maxHp,
+    })
+    // ผู้เล่นอยู่ไกลนอกระยะตรวจจับ กัน AI ไปวุ่นกับ chase/attack ระหว่างทดสอบ HP แกว่ง
+    const player = entity({ id: 'player', entityType: 'player', position: { x: 90000, y: 90000 } })
+    const brain = createEnemyBrain()
+
+    stepEnemyAI(boss, brain, player, 16, 0)
+    expect(brain.state).toBe('phase-transition')
+
+    stepEnemyAI(boss, brain, player, 60, 100) // ครบ phaseTransitionMs → idle, เฟส 2 แล้ว
+    expect(brain.bossPhaseIndex).toBe(1)
+    expect(brain.state).toBe('idle')
+
+    // HP แกว่งข้าม threshold ไปมาหลายรอบ
+    boss.hp = bossTemplate.maxHp * 0.6
+    stepEnemyAI(boss, brain, player, 16, 200)
+    boss.hp = bossTemplate.maxHp * 0.3
+    stepEnemyAI(boss, brain, player, 16, 300)
+    boss.hp = bossTemplate.maxHp * 0.6
+    stepEnemyAI(boss, brain, player, 16, 400)
+    boss.hp = bossTemplate.maxHp * 0.2
+    stepEnemyAI(boss, brain, player, 16, 500)
+
+    expect(brain.state).not.toBe('phase-transition')
+    expect(brain.bossPhaseIndex).toBe(1)
   })
 })
 

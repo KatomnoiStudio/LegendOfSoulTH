@@ -1,23 +1,23 @@
-import { Suspense, lazy, useCallback, useRef } from 'react'
-import type { CurrencyResult, GoldSource, ItemResult } from '../../data/accountRepository'
+import { Suspense, lazy, useCallback, useRef, useState } from 'react'
+import type { CurrencyResult, GoldSource, ItemResult } from '../../data/accountRepository.shared'
+import { ErrorBoundary, SceneCrashFallback } from '../ErrorBoundary/ErrorBoundary'
 import { appendBattleHistory } from '../../game/dialogue/actions'
 import { applyBattleExp } from '../../game/realtimeBattle/RewardSystem'
+import { isStageUnlocked } from '../../game/realtimeBattle/stageConfig'
 import { toLegacyBattleResult } from '../../game/realtimeBattle/BattleResultAdapter'
 import type { RealtimeBattleResult } from '../../game/realtimeBattle/types'
 import type { Player } from '../../types/player'
+import { StageSelect } from '../StageSelect/StageSelect'
 
 /**
- * ทางเข้าห้องต่อสู้จากล็อบบี้ — กดปุ่มแล้วเข้าห้องเลย ไม่ผ่านโหมดสำรวจ
+ * ทางเข้าห้องต่อสู้จากล็อบบี้ — กดปุ่มแล้วเลือกด่านก่อนเข้าห้อง
  *
- * ไฟล์นี้ตั้งใจให้บางที่สุด: เตรียมด่าน → เปิดห้อง → แสดงผล → บันทึกรางวัล/ประวัติ → ปิด
+ * ไฟล์นี้ตั้งใจให้บางที่สุด: เลือกด่าน → เปิดห้อง → แสดงผล → บันทึกรางวัล/ประวัติ → ปิด
  */
 
 const BattleScene = lazy(() =>
   import('../BattleScene/BattleScene').then((m) => ({ default: m.BattleScene })),
 )
-
-/** ด่านที่ปุ่มในล็อบบี้พาเข้า — ด่านแรกของเกม */
-export const LOBBY_BATTLE_STAGE_ID = 'trial-01'
 
 export function LobbyBattleSession({
   player,
@@ -42,6 +42,8 @@ export function LobbyBattleSession({
     แต่ตัวนี้เขียนลงข้อมูลผู้เล่นจริง จึงกันไว้อีกชั้น
   */
   const savedRef = useRef(false)
+  /** ยังไม่เลือกด่าน = null → แสดงหน้าเลือกด่านก่อน ยังไม่ mount BattleScene */
+  const [stageId, setStageId] = useState<string | null>(null)
 
   const handleComplete = useCallback(
     (result: RealtimeBattleResult) => {
@@ -94,14 +96,30 @@ export function LobbyBattleSession({
     [onEarnGold, onExit, onGrantItem, onPlayerChange, player],
   )
 
+  // เช็คซ้ำก่อน mount เสมอ (ไม่ใช่แค่ตอนแสดงรายการ) — กันด่านล็อกหลุดเข้าห้องต่อสู้แม้ผ่าน
+  // ทางที่ไม่ได้กดจากรายการนี้ตรง ๆ (เช่น state ค้างจาก re-render)
+  if (!stageId || !isStageUnlocked(stageId, player.progress.flags)) {
+    return <StageSelect progress={player.progress} onSelect={setStageId} onClose={onExit} />
+  }
+
   return (
-    <Suspense fallback={null}>
-      <BattleScene
-        player={player}
-        stageId={LOBBY_BATTLE_STAGE_ID}
-        onComplete={handleComplete}
-        onExit={onExit}
-      />
-    </Suspense>
+    <ErrorBoundary
+      fallback={
+        <SceneCrashFallback
+          message="ห้องต่อสู้ขัดข้อง กลับล็อบบี้แล้วลองใหม่"
+          onBack={onExit}
+          backLabel="กลับล็อบบี้"
+        />
+      }
+    >
+      <Suspense fallback={null}>
+        <BattleScene
+          player={player}
+          stageId={stageId}
+          onComplete={handleComplete}
+          onExit={onExit}
+        />
+      </Suspense>
+    </ErrorBoundary>
   )
 }

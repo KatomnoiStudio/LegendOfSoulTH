@@ -45,6 +45,16 @@ function player(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
   }
 }
 
+function enemy(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEntity {
+  return {
+    ...player({ characterId: undefined }),
+    id: 'enemy',
+    entityType: 'enemy',
+    name: 'ศัตรู',
+    ...overrides,
+  }
+}
+
 describe('skills registry', () => {
   it('หงอคงมี kit 3 สกิล + อัลติเมท', () => {
     const kit = getRealtimeSkillKit('monkey-king')
@@ -155,5 +165,82 @@ describe('SkillSystem', () => {
     stepSkill(unit, skill, 16)
 
     expect(isCastingSkill(skill)).toBe(false)
+  })
+})
+
+describe('targetLock: nearest (ระบบ #8 Skill-Targeting System)', () => {
+  const kit = getRealtimeSkillKit('monkey-king')
+  if (!kit) throw new Error('ไม่พบ kit หงอคง')
+  const ultimate = getSkillFromKit(kit, 'ultimate') // attack.targetLock === 'nearest'
+  const skill1 = getSkillFromKit(kit, 'skill1') // ไม่มี targetLock
+
+  function readyUltimate(): RealtimeBattleEntity {
+    return player({ ultimateGauge: ULTIMATE_GAUGE_CONFIG.max })
+  }
+
+  it('ล็อกศัตรูที่ใกล้ผู้ร่ายที่สุดตอนเริ่มร่าย (done-criterion #2)', () => {
+    const unit = readyUltimate()
+    const skill = createSkillState()
+    const near = enemy({ id: 'near', position: { x: 950, y: 550 } })
+    const far = enemy({ id: 'far', position: { x: 1400, y: 550 } })
+
+    startSkill(unit, skill, ultimate, 0, [far, near])
+
+    expect(skill.lockedTargetId).toBe('near')
+  })
+
+  it('0 ศัตรูตอนเริ่มร่าย = ไม่ล็อกเป้า ไม่ crash (done-criterion #1)', () => {
+    const unit = readyUltimate()
+    const skill = createSkillState()
+
+    expect(() => startSkill(unit, skill, ultimate, 0, [])).not.toThrow()
+    expect(skill.lockedTargetId).toBeUndefined()
+    expect(isCastingSkill(skill)).toBe(true)
+  })
+
+  it('ไม่นับศัตรูที่ตายแล้วเป็นเป้าที่ล็อกได้', () => {
+    const unit = readyUltimate()
+    const skill = createSkillState()
+    const dead = enemy({ id: 'dead', position: { x: 901, y: 550 }, state: 'dead', hp: 0 })
+    const alive = enemy({ id: 'alive', position: { x: 1300, y: 550 } })
+
+    startSkill(unit, skill, ultimate, 0, [dead, alive])
+
+    expect(skill.lockedTargetId).toBe('alive')
+  })
+
+  it('ท่าไม่มี targetLock ไม่ตั้ง lockedTargetId แม้มีศัตรูอยู่ (done-criterion #4)', () => {
+    const unit = player({ skillCooldownsMs: { skill1: 0, skill2: 0, skill3: 0 } })
+    const skill = createSkillState()
+    const near = enemy({ id: 'near', position: { x: 950, y: 550 } })
+
+    startSkill(unit, skill, skill1, 0, [near])
+
+    expect(skill.lockedTargetId).toBeUndefined()
+  })
+
+  it('เป้าที่ล็อกไว้ยังคงเดิมแม้รายชื่อศัตรูที่ส่งเข้ามาเปลี่ยนหลังเริ่มร่าย (done-criterion #2)', () => {
+    const unit = readyUltimate()
+    const skill = createSkillState()
+    const original = enemy({ id: 'original', position: { x: 950, y: 550 } })
+
+    startSkill(unit, skill, ultimate, 0, [original])
+    expect(skill.lockedTargetId).toBe('original')
+
+    // ศัตรูใหม่ที่ใกล้กว่าปรากฏหลังเริ่มร่าย — lockedTargetId ต้องไม่เปลี่ยนเพราะ
+    // resolve เกิดครั้งเดียวตอน startSkill เท่านั้น (stepSkill ไม่ query ซ้ำ)
+    stepSkill(unit, skill, 16)
+    expect(skill.lockedTargetId).toBe('original')
+  })
+
+  it('จบท่าแล้วเคลียร์ lockedTargetId เหมือน hitTargets', () => {
+    const unit = readyUltimate()
+    const skill = createSkillState()
+    const near = enemy({ id: 'near', position: { x: 950, y: 550 } })
+
+    startSkill(unit, skill, ultimate, 0, [near])
+    stepSkill(unit, skill, totalDurationMs(ultimate.attack) + 1)
+
+    expect(skill.lockedTargetId).toBeUndefined()
   })
 })

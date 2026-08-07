@@ -82,6 +82,7 @@ export const ERROR_CODES = {
   BATTLE_NO_TEAM_CHARACTER: 'ทีมของคุณไม่มีตัวละคร', // VISIBLE — เข้าห้องต่อสู้ไม่ได้เลย
   BATTLE_ENEMY_TEMPLATE_MISSING: 'ไม่พบแม่แบบศัตรู', // SILENT — ข้ามศัตรูตัวนั้นไป ต่อสู้ต่อได้
   BATTLE_STAGE_NO_SPAWN: 'ด่านไม่มีจุดเกิดศัตรู', // SILENT — ข้ามศัตรูตัวนั้นไป ต่อสู้ต่อได้
+  BATTLE_SUMMON_TEMPLATE_MISSING: 'ไม่พบแม่แบบหน่วยเรียก', // SILENT — เอฟเฟกต์ summon นี้ไม่เกิดหน่วยแค่ตัวเดียว
   BATTLE_ASSET_LOAD_FAIL: 'โหลดภาพตัวละครไม่สำเร็จ', // VISIBLE — โยน error ต่อจริง กระทบผู้เล่นเห็นชัด
   BATTLE_DEFERRED_ASSET_FAIL: 'โหลดเฟรมส่วนที่เหลือไม่ครบ', // SILENT — preload พื้นหลัง ไม่บล็อกการเล่น
   BATTLE_WEBGL_CONTEXT_LOST: 'การ์ดจอขาดการเชื่อมต่อระหว่างต่อสู้', // VISIBLE

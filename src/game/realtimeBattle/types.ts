@@ -22,13 +22,44 @@ export type Direction8 =
 /** ทิศโจมตีพื้นฐาน — ซ้าย/ขวาเท่านั้น (Blueprint v3 P2) */
 export type CombatFacing = 'left' | 'right'
 
-export type EntityState = 'idle' | 'walk' | 'attack' | 'skill' | 'hit' | 'dead'
+/**
+ * knockdown/getup ต่อจาก hit ตามลำดับ Hit → Knockdown → GetUp → Chase (§3.6.8)
+ * ใช้ร่วมกันทั้ง elite และ boss ไม่มี state แยกต่อ tier (§3.8.4)
+ */
+export type EntityState =
+  'idle' | 'walk' | 'attack' | 'skill' | 'hit' | 'dead' | 'knockdown' | 'getup'
+
+/** ระดับความแรงของศัตรู — elite ยืมสเตตัสจากตัวคูณในข้อมูล ไม่มี kit พิเศษ (§3.8.4) */
+export type EnemyTier = 'normal' | 'elite'
 
 /** ช่องสกิล 1–3 (ultimate ใช้ gauge แยก — ดู ultimateGauge.ts) */
 export type SkillCooldownSlot = 'skill1' | 'skill2' | 'skill3'
 
-/** ฝ่ายของหน่วย — ใช้ตรวจว่า hitbox ทำอันตรายใครได้บ้าง */
-export type EntityType = 'player' | 'enemy' | 'boss'
+/**
+ * ฝ่ายของหน่วย — ใช้ตรวจว่า hitbox ทำอันตรายใครได้บ้าง
+ *
+ * 'ally' = หน่วยที่เกิดจากเอฟเฟกต์ summon (§3.8.3) — วิ่งสมองเดียวกับ EnemyAISystem
+ * แต่ธงฝ่ายตรงข้าม (เล็งศัตรู ไม่ใช่เล็งผู้เล่น)
+ */
+export type EntityType = 'player' | 'enemy' | 'boss' | 'ally'
+
+/** สถานะ buff ที่ยังค้างเวลาอยู่บนหน่วยหนึ่งตัว (Effects System §7 — kind 'buff') */
+export interface ActiveBuff {
+  buffType: string
+  magnitude: number
+  remainingMs: number
+}
+
+/**
+ * สถานะ CC (stun/root/silence) ที่ยังค้างเวลาอยู่บนหน่วยหนึ่งตัว (Effects System §7 — kind 'cc')
+ *
+ * เป็นสถานะแยกจาก hit-reaction/knockdown โดยเจตนา (§3.8.6) — ระบบนี้แค่เขียน record ไว้
+ * ให้ Hit Reaction System (#6, ยังไม่ทำ) เป็นคนอ่านไปกันไม่ให้ขยับ/ร่ายท่าในอนาคต
+ */
+export interface ActiveCc {
+  ccType: string
+  remainingMs: number
+}
 
 export interface RealtimeBattleEntity {
   id: string
@@ -64,8 +95,18 @@ export interface RealtimeBattleEntity {
 
   /** id ตัวละครผู้เล่น (ดู src/game/characters.ts) — มีเฉพาะฝ่ายผู้เล่น */
   characterId?: string
-  /** id แม่แบบศัตรู (ดู stageConfig.ts) — มีเฉพาะฝ่ายศัตรู */
+  /** id แม่แบบศัตรู (ดู stageConfig.ts) — มีเฉพาะฝ่ายศัตรูและฝ่าย ally ที่เกิดจาก summon */
   enemyId?: string
+  /**
+   * ระดับความแรง — resolve มาจาก RealtimeEnemyTemplate.tier ตอนสร้าง entity (§3.8.4)
+   * ไม่มี = ฝ่ายผู้เล่น หรือศัตรูที่ไม่ผ่าน createWaveEnemies (fallback ปฏิบัติเหมือน 'normal')
+   */
+  tier?: EnemyTier
+
+  /** buff ที่กำลังค้างเวลาอยู่ (Effects System §7) — ไม่มี = ไม่มี buff ใด ๆ อยู่ */
+  activeBuffs?: ActiveBuff[]
+  /** CC ที่กำลังค้างเวลาอยู่ (Effects System §7) — ไม่มี = ไม่ติด CC ใด ๆ */
+  activeCc?: ActiveCc[]
 }
 
 export interface DamageEvent {
@@ -77,7 +118,7 @@ export interface DamageEvent {
   createdAtMs: number
 }
 
-export type BattleEffectKind = 'hit-spark' | 'skill-spin' | 'death' | 'spawn'
+export type BattleEffectKind = 'hit-spark' | 'skill-spin' | 'death' | 'spawn' | 'ground-marker'
 
 export interface BattleEffectEvent {
   id: string

@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
-import type { CurrencyResult } from '../../data/accountRepository'
+import type { CurrencyResult } from '../../data/accountRepository.shared'
 import type { Player } from '../../types/player'
 import { getCombatPower } from '../../game/characters'
 import { clampRatio, formatNumber } from '../../lib/format'
@@ -81,7 +81,14 @@ export function TopBar({ player, onOpenProfile, onTopUpGold, onTopUpGems }: TopB
         <span className={styles.walletLabel}>คลังสมบัติ</span>
         <CurrencyPill
           tone={styles.gold}
-          icon={<img className={styles.currencyIcon} src={publicUrl('ui/thai/gold-ingot.webp')} alt="" draggable={false} />}
+          icon={
+            <img
+              className={styles.currencyIcon}
+              src={publicUrl('ui/thai/gold-ingot.webp')}
+              alt=""
+              draggable={false}
+            />
+          }
           label="ทอง"
           value={player.currency.gold}
           addLabel="เติมทอง"
@@ -89,7 +96,14 @@ export function TopBar({ player, onOpenProfile, onTopUpGold, onTopUpGems }: TopB
         />
         <CurrencyPill
           tone={styles.gem}
-          icon={<img className={styles.currencyIcon} src={publicUrl('ui/thai/jade.webp')} alt="" draggable={false} />}
+          icon={
+            <img
+              className={styles.currencyIcon}
+              src={publicUrl('ui/thai/jade.webp')}
+              alt=""
+              draggable={false}
+            />
+          }
           label="หยก"
           value={player.currency.gem}
           addLabel="เติมหยก"

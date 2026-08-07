@@ -3,6 +3,7 @@ import { getCharacter } from '../game/characters'
 import { hasWalkFrames } from '../game/walkKits'
 import { AddFriendModal } from '../components/AddFriendModal/AddFriendModal'
 import { WukongAdventure } from '../components/AdventureScene/WukongAdventure'
+import { ErrorBoundary, SceneCrashFallback } from '../components/ErrorBoundary/ErrorBoundary'
 import { LoadingScreen } from '../components/LoadingScreen/LoadingScreen'
 import { WorldChat } from '../components/WorldChat/WorldChat'
 import { LobbyBattleSession } from '../components/LobbyBattleSession/LobbyBattleSession'
@@ -21,11 +22,10 @@ import { MOCK_BADGES } from '../data/mockPlayer'
 import type {
   CharacterGrantResult,
   CurrencyResult,
-  FriendCandidate,
   GoldSource,
   ItemResult,
-} from '../data/accountRepository'
-import type { Player } from '../types/player'
+} from '../data/accountRepository.shared'
+import type { FriendCandidate, Player } from '../types/player'
 import styles from './LobbyPage.module.css'
 
 /** โหลดฉาก 3D แยก chunk เพื่อให้ HUD ขึ้นก่อน (three.js มีขนาดใหญ่) */
@@ -139,14 +139,24 @@ export function LobbyPage({
 
   return (
     <main className={styles.page}>
-      <Suspense fallback={<LoadingScreen label="กำลังเข้าสู่ลานประลอง…" />}>
-        <LobbyScene
-          teamSlots={player.teamSlots}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-          qualityOverride={performanceOverride}
-        />
-      </Suspense>
+      <ErrorBoundary
+        fallback={
+          <SceneCrashFallback
+            message="ฉากลอบบี้ขัดข้อง ลองกลับหน้าเริ่มเกมแล้วเข้าใหม่"
+            onBack={() => void onLogout()}
+            backLabel="กลับหน้าเริ่มเกม"
+          />
+        }
+      >
+        <Suspense fallback={<LoadingScreen label="กำลังเข้าสู่ลานประลอง…" />}>
+          <LobbyScene
+            teamSlots={player.teamSlots}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            qualityOverride={performanceOverride}
+          />
+        </Suspense>
+      </ErrorBoundary>
 
       <TopBar
         player={player}

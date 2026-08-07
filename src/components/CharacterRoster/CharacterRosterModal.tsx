@@ -23,12 +23,21 @@ interface CharacterRosterModalProps {
  */
 export function CharacterRosterModal({ player, onClose }: CharacterRosterModalProps) {
   const ownedRoster = useMemo(
-    () => player.ownedCharacters.flatMap((owned) => {
-      const character = ROSTER.find((entry) => entry.id === owned.characterId)
-      return character
-        ? [{ ...character, level: owned.level, exp: owned.exp, expToNext: owned.expToNext }]
-        : []
-    }),
+    () =>
+      player.ownedCharacters.flatMap((owned) => {
+        const character = ROSTER.find((entry) => entry.id === owned.characterId)
+        return character
+          ? [
+              {
+                ...character,
+                level: owned.level,
+                exp: owned.exp,
+                expToNext: owned.expToNext,
+                skillLevels: owned.skillLevels,
+              },
+            ]
+          : []
+      }),
     [player.ownedCharacters],
   )
 
@@ -150,9 +159,22 @@ function KranokCorner() {
 function ThaiRoofCrest() {
   return (
     <svg viewBox="0 0 360 54" fill="none" aria-hidden="true" focusable="false">
-      <path d="M18 45c46-3 82-14 112-34 15 17 32 27 50 32 18-5 35-15 50-32 30 20 66 31 112 34" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M82 38c25-7 42-17 52-30 4 15 14 27 29 35M278 38c-25-7-42-17-52-30-4 15-14 27-29 35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M180 4c4 10 11 18 21 24-9 0-16 3-21 10-5-7-12-10-21-10 10-6 17-14 21-24Z" fill="currentColor" fillOpacity=".9" />
+      <path
+        d="M18 45c46-3 82-14 112-34 15 17 32 27 50 32 18-5 35-15 50-32 30 20 66 31 112 34"
+        stroke="currentColor"
+        strokeWidth="1.4"
+      />
+      <path
+        d="M82 38c25-7 42-17 52-30 4 15 14 27 29 35M278 38c-25-7-42-17-52-30-4 15-14 27-29 35"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M180 4c4 10 11 18 21 24-9 0-16 3-21 10-5-7-12-10-21-10 10-6 17-14 21-24Z"
+        fill="currentColor"
+        fillOpacity=".9"
+      />
       <path d="M180 15c2 5 5 9 10 12-5 1-8 3-10 7-2-4-5-6-10-7 5-3 8-7 10-12Z" fill="#24120c" />
       <path d="M18 45h324" stroke="currentColor" strokeWidth="1" strokeOpacity=".42" />
     </svg>
@@ -162,9 +184,18 @@ function ThaiRoofCrest() {
 /** เส้นคั่นลายกนก มีเพชรตรงกลาง */
 function KranokDivider() {
   return (
-    <svg viewBox="0 0 600 12" preserveAspectRatio="none" fill="none" aria-hidden="true" focusable="false">
+    <svg
+      viewBox="0 0 600 12"
+      preserveAspectRatio="none"
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+    >
       <path d="M0 6h258M342 6h258" stroke="currentColor" strokeWidth="1" strokeOpacity="0.55" />
-      <path d="M258 6c8-4 14-4 20 0-6 4-12 4-20 0zM342 6c-8-4-14-4-20 0 6 4 12 4 20 0z" fill="currentColor" />
+      <path
+        d="M258 6c8-4 14-4 20 0-6 4-12 4-20 0zM342 6c-8-4-14-4-20 0 6 4 12 4 20 0z"
+        fill="currentColor"
+      />
       <path d="M300 0.5 306.5 6 300 11.5 293.5 6z" fill="currentColor" />
       <path d="M300 3.2 303.6 6 300 8.8 296.4 6z" fill="#0b1b28" />
     </svg>
@@ -173,7 +204,16 @@ function KranokDivider() {
 
 function BackIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
       <path d="M14.5 5.5 8 12l6.5 6.5" />
     </svg>
   )
@@ -181,7 +221,15 @@ function BackIcon() {
 
 function CloseIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" aria-hidden="true" focusable="false">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      aria-hidden="true"
+      focusable="false"
+    >
       <path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5" />
     </svg>
   )

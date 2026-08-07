@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import type { Player } from '../../types/player'
 import { createRealtimeBattle } from './createRealtimeBattle'
 import { applyBattleExp, calculateBattleReward } from './RewardSystem'
+import { createDefaultSkillLevels } from './SkillProgressionSystem'
 
 function stubPlayer(): Player {
   return {
@@ -20,6 +21,7 @@ function stubPlayer(): Player {
         exp: 0,
         expToNext: 500,
         obtainedAt: '2026-01-01T00:00:00.000Z',
+        skillLevels: createDefaultSkillLevels(),
       },
     ],
     inventory: [],

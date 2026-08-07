@@ -8,6 +8,21 @@ export interface PlayerCurrency {
   gem: number
 }
 
+/** ความคืบหน้าเลเวลของสกิลหนึ่งช่อง — รูปแบบเดียวกับ level/exp/expToNext ของตัวละคร/บัญชี */
+export interface SkillProgress {
+  level: number
+  exp: number
+  expToNext: number
+}
+
+/**
+ * เลเวลสกิลทั้ง 4 ช่องต่อฮีโร่หนึ่งตัว — คีย์ตรงกับ SkillSlot ใน
+ * src/game/realtimeBattle/skills.ts (skill1-3 + ultimate)
+ * สร้างค่าเริ่มต้นผ่าน createDefaultSkillLevels() (SkillProgressionSystem.ts) เท่านั้น
+ * เพื่อให้ shape ตรงกันทั้ง accountRepository.ts และ accountRepository.supabase.ts
+ */
+export type SkillLevels = Record<'skill1' | 'skill2' | 'skill3' | 'ultimate', SkillProgress>
+
 /** ตัวละครหนึ่งตัวที่บัญชีผู้เล่นครอบครองจริง */
 export interface OwnedCharacter {
   characterId: string
@@ -15,6 +30,13 @@ export interface OwnedCharacter {
   exp: number
   expToNext: number
   obtainedAt: string
+  /**
+   * เลเวลสกิล 4 ช่อง (work contract #14 — Progression System)
+   * บัญชีเก่าก่อนมีฟิลด์นี้ไม่มีใน localStorage/Supabase แถวเก่า — อ่านผ่าน
+   * normalizePlayer (accountRepository.ts) / mapOwnedCharacterRow (accountRepository.supabase.ts)
+   * เสมอ อย่า derefตรง ๆ จากข้อมูลดิบ
+   */
+  skillLevels: SkillLevels
 }
 
 /** ไอเทมหนึ่งช่องในกระเป๋าผู้เล่น — itemId ต้องมีอยู่ใน ITEMS (ดู src/game/items.ts) */

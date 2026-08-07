@@ -1,5 +1,6 @@
 import { ENEMY_ATTACK, isActiveWindow } from './attacks'
-import { createWaveEnemies, type RealtimeBattleState } from './createRealtimeBattle'
+import type { RealtimeBattleState } from './createRealtimeBattle'
+import { resolveStageOutcome } from './StageVariationSystem'
 import { combatFacingFromVector } from './combatFacing'
 import { applyDamage, type RandomFn } from './DamageSystem'
 import { createEnemyBrain, stepEnemyAI, type EnemyBrain } from './EnemyAISystem'
@@ -136,7 +137,7 @@ export class RealtimeBattleRuntime {
 
     this.stepEnemies(deltaMs)
     this.separateEnemies()
-    this.checkBattleEnd()
+    this.checkBattleEnd(deltaMs)
 
     this.pruneEvents()
 
@@ -229,7 +230,7 @@ export class RealtimeBattleRuntime {
     }
 
     cancelCombo(state.player, this.playerCombat)
-    startSkill(state.player, this.playerSkill, definition, state.elapsedMs)
+    startSkill(state.player, this.playerSkill, definition, state.elapsedMs, state.enemies)
     this.pushEffectEvent('skill-spin', state.player.position, 700)
     this.publish()
   }
@@ -245,6 +246,7 @@ export class RealtimeBattleRuntime {
       attack: tick.attack,
       alreadyHit: this.playerSkill.hitTargets,
       elapsedMs: state.elapsedMs,
+      lockedTargetId: this.playerSkill.lockedTargetId,
     })
 
     for (const target of targets) {
@@ -288,7 +290,13 @@ export class RealtimeBattleRuntime {
     ]
   }
 
-  /** ศัตรูลงดาเมจใส่ผู้เล่นเมื่อท่าของมันเข้าสู่ active frame */
+  /**
+   * ศัตรูลงดาเมจใส่ผู้เล่นเมื่อท่าของมันเข้าสู่ active frame
+   *
+   * บอส (brain.bossAttackRow ไม่ null) ใช้ท่าที่ล็อกไว้ตอน Telegraph แทน ENEMY_ATTACK ทั่วไป
+   * นี่คือ "attack-set swap ตามเฟส" (#11) ที่ใช้งานจริง — พูลถูกเลือกใน EnemyAISystem แล้ว
+   * ที่นี่แค่หยิบท่าที่เลือกไว้มาลงดาเมจ ไม่ตัดสินใจเลือกเองอีกชั้น
+   */
   private resolveEnemyAttack(enemy: RealtimeBattleEntity, brain: EnemyBrain): void {
     const state = this.state
 
@@ -297,11 +305,12 @@ export class RealtimeBattleRuntime {
       return
     }
 
-    if (!isActiveWindow(ENEMY_ATTACK, brain.stateElapsedMs)) return
+    const attack = brain.bossAttackRow ?? ENEMY_ATTACK
+    if (!isActiveWindow(attack, brain.stateElapsedMs)) return
 
     const targets = findHitTargets([state.player], {
       attacker: enemy,
-      attack: ENEMY_ATTACK,
+      attack,
       alreadyHit: brain.hitTargets,
       elapsedMs: state.elapsedMs,
     })
@@ -311,7 +320,7 @@ export class RealtimeBattleRuntime {
       const outcome = applyDamage({
         attacker: enemy,
         target,
-        attack: ENEMY_ATTACK,
+        attack,
         elapsedMs: state.elapsedMs,
         random: this.random,
       })
@@ -359,7 +368,15 @@ export class RealtimeBattleRuntime {
 
     for (const enemy of state.enemies) {
       const brain = this.brainFor(enemy.id)
-      const decision = stepEnemyAI(enemy, brain, state.player, deltaMs)
+      const decision = stepEnemyAI(enemy, brain, state.player, deltaMs, state.elapsedMs)
+      if (decision.telegraph) {
+        // ground marker ต้องยิงก่อน AttackActive เสมอ (§3.6.8 telegraph feedback layer)
+        this.pushEffectEvent(
+          'ground-marker',
+          decision.telegraph.position,
+          decision.telegraph.durationMs,
+        )
+      }
       this.resolveEnemyAttack(enemy, brain)
 
       if (decision.move.x === 0 && decision.move.y === 0) {
@@ -402,17 +419,15 @@ export class RealtimeBattleRuntime {
   /**
    * เช็คว่าจบการต่อสู้หรือยัง — ต้องเรียกทุกเฟรมหลังลงดาเมจ ไม่ใช่แค่ตอน publish
    *
-   * ผู้เล่นตาย = แพ้ทันที ไม่ต้องรอศัตรู
-   * ศัตรูตายหมดในคลื่นปัจจุบัน + มีคลื่นถัดไป = สร้างศัตรูคลื่นใหม่ต่อ (ask-CB retroactive
-   * audit, 2026-08-06: เจอว่า currentWaveIndex ไม่เคยขยับเลย ตอนแรก merge มามีแต่คลื่นเดียว
-   * ใช้งานจริง แต่ trial-02 นิยามไว้ 2 คลื่นแล้วไม่มีทางไปถึงคลื่นที่สอง)
-   * ศัตรูตายหมด + ไม่มีคลื่นถัดไปแล้ว = ชนะ
+   * ผู้เล่นตาย = แพ้ทันที ไม่ต้องรอศัตรู — กฎนี้เหมือนกันทุก stageType จึงอยู่ตรงนี้ตรง ๆ
+   * ไม่ใช่ branch ต่อประเภทด่าน ส่วนเงื่อนไขแพ้ชนะที่ต่างกันไปตาม stageType ทั้งหมด (รวมตรรกะ
+   * เคลียร์คลื่น/สร้างคลื่นถัดไปของ 'wave' เดิม) ย้ายไป resolveStageOutcome() ใน
+   * StageVariationSystem.ts แล้ว — ที่นี่ไม่รู้จัก stageType เลยสักตัว (§17, §9)
    *
-   * ก่อนแก้ไฟล์นี้ status ไม่เคยกลายเป็น 'victory'/'defeat' เลยสักที่ในทั้งระบบ —
-   * การต่อสู้จบเองไม่ได้ ค้างวนไปเรื่อย ๆ (เจอจาก ask-CB retroactive audit ของระบบทั้งชุด
-   * ที่ cherry-pick มาจาก fork โดยไม่ผ่าน ask-CB ก่อน)
+   * ก่อนแก้ไฟล์นี้ (ask-CB retroactive audit, 2026-08-06) status ไม่เคยกลายเป็น
+   * 'victory'/'defeat' เลยสักที่ในทั้งระบบ — การต่อสู้จบเองไม่ได้ ค้างวนไปเรื่อย ๆ
    */
-  private checkBattleEnd(): void {
+  private checkBattleEnd(deltaMs: number): void {
     const state = this.state
     if (state.status !== 'running') return
 
@@ -422,27 +437,18 @@ export class RealtimeBattleRuntime {
       return
     }
 
-    /*
-      รายการว่างต้องไหลต่อไปหาคลื่นถัดไป ไม่ใช่ return ทิ้ง
+    const enemiesBefore = state.enemies
+    const outcome = resolveStageOutcome(state, deltaMs)
 
-      createWaveEnemies ข้ามศัตรูที่หา template หรือจุดเกิดไม่เจอแบบเงียบ ๆ (ดู codes.ts)
-      ถ้าทั้งคลื่นข้ามหมดจะได้รายการว่าง แล้วเงื่อนไขเดิมทำให้ที่นี่ return ทุกเฟรมตลอดไป
-      ห้องนั้นจึงชนะไม่ได้ แพ้ก็ไม่ได้ ค้างอยู่อย่างนั้นโดยไม่มีข้อผิดพลาดใด ๆ ขึ้นมาบอก
-      (every() บนรายการว่างคืน true อยู่แล้ว จึงตกไปเข้าตรรกะขึ้นคลื่นถัดไปได้ตามปกติ)
-    */
-    if (!state.enemies.every((enemy) => enemy.state === 'dead')) return
-
-    const nextWaveIndex = state.currentWaveIndex + 1
-    const nextWaveEnemies = createWaveEnemies(state.stage, nextWaveIndex)
-    if (nextWaveEnemies.length > 0) {
-      state.currentWaveIndex = nextWaveIndex
-      state.enemies = [...state.enemies, ...nextWaveEnemies]
+    if (outcome === 'victory' || outcome === 'defeat') {
+      state.status = outcome
       this.publish()
       return
     }
 
-    state.status = 'victory'
-    this.publish()
+    // ยังไม่จบ แต่ resolveStageOutcome อาจ mutate รายชื่อศัตรู (เช่นสร้างคลื่นถัดไป) — publish
+    // ทันทีถ้าเปลี่ยนจริง ไม่ต้องรอรอบ publish ตามช่วงเวลา (เทียบ reference พอ ไม่ต้อง deep-equal)
+    if (state.enemies !== enemiesBefore) this.publish()
   }
 
   private brainFor(enemyId: string): EnemyBrain {

@@ -65,6 +65,44 @@ describe('importSave', () => {
     expect(result.ok).toBe(true)
     expect((await getSessionPlayer())?.name).toBe('ผู้ทดสอบ')
   })
+
+  /*
+    work contract #14 (Progression System) done-criterion #4: บัญชีเก่าก่อนมีระบบเลเวลสกิล
+    ไม่มีฟิลด์ skillLevels บน ownedCharacters เลย — เหมือน inventory ?? []/friends ?? []
+    ด้านบน ต้องเติม default ให้ ไม่ใช่ปล่อยให้ UI ที่ deref owned.skillLevels.skill1 พังตอนเรนเดอร์
+  */
+  test('บัญชีเก่าก่อนมีระบบเลเวลสกิล — ownedCharacters ไม่มี skillLevels ก็ยังโหลดได้ ไม่พัง', async () => {
+    const result = await importSave(
+      saveFile({
+        uid: '1234567890',
+        email: 'legacy-skill@b.co',
+        passwordHash: '600000:AAAA',
+        player: {
+          ...VALID_PLAYER,
+          ownedCharacters: [
+            {
+              characterId: 'monkey-king',
+              level: 5,
+              exp: 0,
+              expToNext: 100,
+              obtainedAt: '2026-01-01T00:00:00.000Z',
+              // ไม่มี skillLevels — จำลองข้อมูลเก่าจริง
+            },
+          ],
+        },
+      }),
+    )
+
+    expect(result.ok).toBe(true)
+    const player = await getSessionPlayer()
+    const owned = player?.ownedCharacters[0]
+    expect(owned?.skillLevels).toEqual({
+      skill1: { level: 1, exp: 0, expToNext: 200 },
+      skill2: { level: 1, exp: 0, expToNext: 200 },
+      skill3: { level: 1, exp: 0, expToNext: 200 },
+      ultimate: { level: 1, exp: 0, expToNext: 200 },
+    })
+  })
 })
 
 /*

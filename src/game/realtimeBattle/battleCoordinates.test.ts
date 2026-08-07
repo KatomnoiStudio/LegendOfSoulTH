@@ -11,6 +11,9 @@ describe('battleCoordinates (P1 side-down 2.5D)', () => {
     playerSpawn: { x: 900, y: 550 },
     enemySpawns: [],
     waves: [],
+    chapterId: 'test-chapter',
+    order: 1,
+    stageType: 'wave',
   }
 
   it('maps arena center to world origin on XZ', () => {
