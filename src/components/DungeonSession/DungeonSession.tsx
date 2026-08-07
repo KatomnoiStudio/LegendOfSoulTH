@@ -1,9 +1,13 @@
 import { useCallback, useRef, useState } from 'react'
-import type { CurrencyResult, GoldSource } from '../../data/accountRepository'
+import type { CurrencyResult, GoldSource, ItemResult } from '../../data/accountRepository'
 import { appendBattleHistory } from '../../game/dialogue/actions'
 import { P5_TEST_DUNGEON } from '../../game/dungeon/dungeonConfig'
 import type { DungeonResult } from '../../game/dungeon/dungeonSchema'
-import { applyBattleExp } from '../../game/realtimeBattle/RewardSystem'
+import {
+  grantAndFinalizeDungeonRewards,
+  resolveDungeonRewards,
+} from '../../game/reward/dungeonRewardPipeline'
+import type { ResultViewModel } from '../../game/reward/rewardSchema'
 import { useDungeonStageBattle } from '../../hooks/useDungeonStageBattle'
 import type { Player } from '../../types/player'
 import { RealtimeBattleRoom } from '../BattleScene/RealtimeBattleRoom'
@@ -25,19 +29,27 @@ export function DungeonSession({
   player,
   onPlayerChange,
   onEarnGold,
+  onGrantItem,
   onExit,
 }: {
   player: Player
   onPlayerChange: (next: Player) => Promise<boolean>
   onEarnGold: (source: GoldSource, amount: number, refId?: string) => Promise<CurrencyResult>
+  onGrantItem: (itemId: string, quantity: number, source: GoldSource) => Promise<ItemResult>
   onExit: () => void
 }) {
+  const [resultViewModel, setResultViewModel] = useState<ResultViewModel | null>(null)
   const [pendingResult, setPendingResult] = useState<DungeonResult | null>(null)
   const savedRef = useRef(false)
 
-  const handleDungeonComplete = useCallback((result: DungeonResult) => {
-    setPendingResult(result)
-  }, [])
+  const handleDungeonComplete = useCallback(
+    (result: DungeonResult) => {
+      setPendingResult(result)
+      const presentation = resolveDungeonRewards(result, P5_TEST_DUNGEON, player.progress.flags)
+      setResultViewModel(presentation.viewModel)
+    },
+    [player.progress.flags],
+  )
 
   const {
     phase,
@@ -61,36 +73,39 @@ export function DungeonSession({
   }, [onExit, requestExit])
 
   const handleContinue = useCallback(() => {
-    if (!pendingResult || savedRef.current) return
+    if (!pendingResult || !resultViewModel || savedRef.current) return
     savedRef.current = true
 
     void (async () => {
-      let next: Player = player
-      const reward = pendingResult.rewardPlaceholder
-      if (reward && pendingResult.success && reward.gold > 0) {
-        const gold = await onEarnGold('drop', reward.gold, pendingResult.dungeonId)
-        if (gold.ok) next = gold.player
-      }
-      if (reward && pendingResult.success) {
-        next = applyBattleExp(next, reward.exp)
+      const pipeline = await grantAndFinalizeDungeonRewards({
+        result: pendingResult,
+        dungeon: P5_TEST_DUNGEON,
+        player,
+        deps: { onEarnGold, onGrantItem },
+      })
+
+      if (!pipeline.grant.success) {
+        savedRef.current = false
+        return
       }
 
-      const won = pendingResult.success
+      let next = pipeline.player
       const progress = appendBattleHistory(next.progress, {
-        id: `dungeon-${Date.now()}`,
+        id: `dungeon-${pendingResult.runId}`,
         opponent: P5_TEST_DUNGEON.metadata?.name ?? pendingResult.dungeonId,
-        result: won ? 'win' : 'lose',
-        finishedAt: new Date().toISOString(),
+        result: pendingResult.success ? 'win' : 'lose',
+        finishedAt: new Date(pendingResult.completedAt).toISOString(),
         durationMs: pendingResult.clearTimeMs,
       })
 
-      const flags = { ...progress.flags }
-      if (won) flags[`dungeon_cleared_${pendingResult.dungeonId}`] = true
-
-      await onPlayerChange({ ...next, progress: { ...progress, flags } })
+      const saved = await onPlayerChange({ ...next, progress })
+      if (!saved) {
+        savedRef.current = false
+        return
+      }
       onExit()
     })()
-  }, [onEarnGold, onExit, onPlayerChange, pendingResult, player])
+  }, [onEarnGold, onExit, onGrantItem, onPlayerChange, pendingResult, player, resultViewModel])
 
   if (phase === 'error') {
     return (
@@ -120,12 +135,8 @@ export function DungeonSession({
         onSkill={pressSkill}
         overlay={<StageObjectiveHud snapshot={stageSnapshot} />}
       />
-      {pendingResult ? (
-        <DungeonResultPanel
-          result={pendingResult}
-          dungeonName={P5_TEST_DUNGEON.metadata?.name ?? 'ดันเจี้ยน'}
-          onContinue={handleContinue}
-        />
+      {resultViewModel ? (
+        <DungeonResultPanel viewModel={resultViewModel} onContinue={handleContinue} />
       ) : null}
     </>
   )

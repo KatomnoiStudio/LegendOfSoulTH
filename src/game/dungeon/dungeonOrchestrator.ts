@@ -4,17 +4,18 @@ import type {
   DungeonRunState,
   StageDefinition,
 } from './dungeonSchema'
-import {
-  advanceDungeonRun,
-  buildDungeonResult,
-  createDungeonRun,
-  getCurrentStage,
-} from './dungeonRuntime'
+import { advanceDungeonRun, createDungeonRun, getCurrentStage } from './dungeonRuntime'
 import { StageRuntime } from './stageRuntime'
 import { createStageBattleBridge } from './stageBattleBridge'
 import { createRealtimeBattle } from '../realtimeBattle/createRealtimeBattle'
 import { RealtimeBattleRuntime } from '../realtimeBattle/RealtimeBattleRuntime'
 import type { Player } from '../../types/player'
+import {
+  createCombatAccumulator,
+  mergeBattleStateIntoAccumulator,
+  type CombatAccumulator,
+} from '../reward/combatSummary'
+import { finalizeDungeonResult } from '../reward/resultFinalizer'
 
 export type DungeonOrchestratorPhase =
   'idle' | 'stage_active' | 'stage_transition' | 'dungeon_complete' | 'dungeon_failed'
@@ -39,8 +40,10 @@ export class DungeonOrchestrator {
   private readonly startedAtMs: number
   private dungeon: DungeonDefinition
   private player: Player
+  private combatAccumulator: CombatAccumulator = createCombatAccumulator()
+  private resultFinalized = false
 
-  constructor(dungeon: DungeonDefinition, player: Player, startedAtMs = 0) {
+  constructor(dungeon: DungeonDefinition, player: Player, startedAtMs = Date.now()) {
     this.dungeon = dungeon
     this.player = player
     this.startedAtMs = startedAtMs
@@ -89,8 +92,29 @@ export class DungeonOrchestrator {
     }
   }
 
+  private absorbCombatStats(): void {
+    if (!this.runtime) return
+    this.combatAccumulator = mergeBattleStateIntoAccumulator(
+      this.combatAccumulator,
+      this.runtime.getState(),
+    )
+  }
+
+  private finalizeResult(): void {
+    if (this.resultFinalized) return
+    this.resultFinalized = true
+    this.result = finalizeDungeonResult({
+      dungeon: this.dungeon,
+      run: this.run,
+      clearTimeMs: Date.now() - this.startedAtMs,
+      combatAccumulator: this.combatAccumulator,
+    })
+  }
+
   private finishStage(success: boolean): void {
     if (!this.stageRuntime || this.phase !== 'stage_active') return
+
+    this.absorbCombatStats()
     const stageResult = { ...this.stageRuntime.getResult(), success }
     this.run = advanceDungeonRun(this.run, this.dungeon, success, stageResult)
     this.stageRuntime.cleanup()
@@ -98,13 +122,13 @@ export class DungeonOrchestrator {
 
     if (!success) {
       this.phase = 'dungeon_failed'
-      this.result = buildDungeonResult(this.dungeon, this.run, Date.now() - this.startedAtMs)
+      this.finalizeResult()
       return
     }
 
     if (this.run.status === 'cleared') {
       this.phase = 'dungeon_complete'
-      this.result = buildDungeonResult(this.dungeon, this.run, Date.now() - this.startedAtMs)
+      this.finalizeResult()
       this.runtime?.dispose()
       this.runtime = null
       return
@@ -114,7 +138,7 @@ export class DungeonOrchestrator {
     const next = getCurrentStage(this.dungeon, this.run)
     if (!next) {
       this.phase = 'dungeon_complete'
-      this.result = buildDungeonResult(this.dungeon, this.run, Date.now() - this.startedAtMs)
+      this.finalizeResult()
       return
     }
     this.loadStage(next)

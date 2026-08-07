@@ -33,6 +33,8 @@ export class StageRuntime {
   private timer = new StageTimer()
   private cleanedUp = false
   private won = false
+  private failureReason?: string
+  private enemiesDefeated = 0
   private definition: StageDefinition
   private bridge: StageBattleBridge
 
@@ -59,11 +61,16 @@ export class StageRuntime {
     this.stageElapsedMs += deltaMs
     this.timer.tick(deltaMs)
     this.encounter.update(deltaMs)
+    const aliveBefore = this.bridge.getAliveEnemies().length
     this.objective.update({
       bridge: this.bridge,
       deltaMs,
       stageElapsedMs: this.stageElapsedMs,
     })
+    const aliveAfter = this.bridge.getAliveEnemies().length
+    if (aliveAfter < aliveBefore) {
+      this.enemiesDefeated += aliveBefore - aliveAfter
+    }
 
     const playerDead = this.bridge.isPlayerDead()
     const objectiveWin = this.objective.isComplete()
@@ -77,15 +84,36 @@ export class StageRuntime {
     }
 
     if (resolution === 'win' || resolution === 'lose') {
-      this.resolve(resolution === 'win')
+      const failureReason = this.inferFailureReason(
+        resolution === 'win',
+        playerDead,
+        objectiveFail,
+        timerExpired,
+      )
+      this.resolve(resolution === 'win', failureReason)
     }
 
     return resolution
   }
 
-  private resolve(won: boolean): void {
+  private inferFailureReason(
+    won: boolean,
+    playerDead: boolean,
+    objectiveFail: boolean,
+    timerExpired: boolean,
+  ): string | undefined {
+    if (won) return undefined
+    if (playerDead) return 'playerDefeated'
+    if (timerExpired) return 'timeout'
+    if (objectiveFail) return 'objectiveFailed'
+    if (this.definition.stageType === 'chase') return 'targetEscaped'
+    return 'objectiveFailed'
+  }
+
+  private resolve(won: boolean, failureReason?: string): void {
     if (this.lifecycle !== 'active') return
     this.won = won
+    this.failureReason = won ? undefined : failureReason
     this.lifecycle = 'resolving'
     this.timer.stop()
     this.lifecycle = won ? 'cleared' : 'failed'
@@ -115,11 +143,18 @@ export class StageRuntime {
   }
 
   getResult(): StageResult {
+    const progress = this.objective.getProgress()
+    const objectiveProgress =
+      progress.target > 0 ? Math.min(1, progress.current / progress.target) : undefined
+
     return {
       stageId: this.definition.id,
       stageType: this.definition.stageType,
       success: this.won,
-      elapsedMs: this.stageElapsedMs,
+      clearTimeMs: this.stageElapsedMs,
+      objectiveProgress,
+      enemiesDefeated: this.enemiesDefeated,
+      failureReason: this.failureReason,
     }
   }
 

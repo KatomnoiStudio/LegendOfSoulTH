@@ -137,21 +137,41 @@ export interface ObjectiveProgress {
 
 export type StageResolution = 'continue' | 'win' | 'lose'
 
+export type DungeonFailureReason =
+  'playerDefeated' | 'objectiveFailed' | 'timeout' | 'targetEscaped' | 'aborted' | 'invalidState'
+
+export type ResultLifecycle =
+  'running' | 'resolving' | 'finalized' | 'rewarded' | 'presented' | 'exited'
+
+export interface CombatSummary {
+  enemiesDefeated: number
+  elitesDefeated: number
+  bossesDefeated: number
+  damageDealt: number
+  damageTaken: number
+}
+
 export interface StageResult {
   stageId: string
   stageType: StageType
   success: boolean
-  elapsedMs: number
-  wavesCleared?: number
+  clearTimeMs: number
+  objectiveProgress?: number
+  enemiesDefeated?: number
+  score?: number
+  failureReason?: string
 }
 
 export interface DungeonResult {
   dungeonId: string
+  runId: string
   success: boolean
   clearTimeMs: number
   stageResults: StageResult[]
-  /** Placeholder reward hook — no P8/P9 economy */
-  rewardPlaceholder?: { gold: number; exp: number }
+  combatSummary?: CombatSummary
+  failureReason?: DungeonFailureReason
+  completedAt: number
+  lifecycle: ResultLifecycle
 }
 
 export interface DungeonRunState {

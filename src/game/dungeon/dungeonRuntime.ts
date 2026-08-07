@@ -1,6 +1,5 @@
 import type {
   DungeonDefinition,
-  DungeonResult,
   DungeonRunState,
   StageDefinition,
   StageResult,
@@ -21,24 +20,6 @@ export function createDungeonRun(dungeon: DungeonDefinition, startedAtMs = 0): D
     status: 'active',
     stageResults: [],
     startedAtMs,
-  }
-}
-
-export function buildDungeonResult(
-  dungeon: DungeonDefinition,
-  run: DungeonRunState,
-  clearTimeMs: number,
-): DungeonResult {
-  const success = run.status === 'cleared'
-  const stagesCleared = run.stageResults.filter((r) => r.success).length
-  return {
-    dungeonId: dungeon.id,
-    success,
-    clearTimeMs,
-    stageResults: run.stageResults,
-    rewardPlaceholder: success
-      ? { gold: 50 + stagesCleared * 25, exp: 30 + stagesCleared * 15 }
-      : { gold: 10, exp: 5 },
   }
 }
 
