@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-08-08
+
+"Continue with Google" sign-in
+
+### Added
+
+- `signInWithOAuth('google')` via Supabase Auth, wired through `useAuth`/`App.tsx` into `AuthModal`
+- Reuses existing session-detection flow (`detectSessionInUrl`) and `handle_new_user()` trigger — no new callback code, OAuth accounts get the same starter profile/character as email/password
+
 ## [0.11.1] - 2026-08-07
 
 Camera +30% view height fix — revert character tilt regression from v0.8.3 misinterpretation
