@@ -114,7 +114,11 @@ Do **not** plan or implement these until HetCreep reopens them:
 |                  | **Skill 3**      |
 |                  | **Ultimate**     |
 
+**Layout (LOCKED 2026-08-07):** joystick **bottom-left**; **S1 · S2 · S3 · Ultimate** in a row **above** the attack button; **Basic Attack** = **largest button, bottom-right**. Walk and press Attack/Skill simultaneously (separate pointer ids).
+
 **No separate Dash button.**
+
+**No soft-target, no auto-snap, no hard lock-on UI.** See §3.6.
 
 PC: keyboard/mouse/controller-ready; same action layer.
 
@@ -129,6 +133,149 @@ PC: keyboard/mouse/controller-ready; same action layer.
 - Combat facing: **LEFT / RIGHT**
 - **RIGHT master sprite** → horizontal flip for LEFT when symmetric
 - Movement sprites: L/R/U/D; diagonal optional
+
+## 3.6 Combat Foundation Design Lock (LOCKED — HetCreep Ring 0, 2026-08-07)
+
+> **Status:** Design contract for P4 (Enemy AI) and P6 (Boss).  
+> **Closes gap:** fork issue [#33](https://github.com/nustanakritwithai/GameTurnBase/issues/33) (boss telegraph/state-machine + soft-target).  
+> **Implementation:** separate PRs only — this section is documentation, not gameplay code.
+
+### 3.6.1 Controls & targeting
+
+| Rule                                | Decision                                                      |
+| ----------------------------------- | ------------------------------------------------------------- |
+| Mobile layout                       | Joystick left + S1/S2/S3/U + large Attack bottom-right (§3.3) |
+| Dash button                         | **CUT** — not in UI                                           |
+| Soft-target / auto-snap / hard lock | **CUT** — player positions depth + L/R facing manually        |
+| `combatFacing` source               | Movement / joystick vector                                    |
+| Vertical-only movement              | **Keep previous facing** (no auto flip)                       |
+| Walk + Attack/Skill                 | **Allowed** simultaneously                                    |
+
+### 3.6.2 Basic attack
+
+- **Multi-target:** every enemy inside the active hitbox takes damage — **not** single-target selection.
+- **No target magnet:** attacks do not pull the player toward enemies.
+- **Attack lunge:** on press, character moves **slightly forward** along `combatFacing`. This is **lunge**, not magnet.
+- **Flow:** `Movement → Attack Wind-up/Lunge → AttackActive → Recovery`
+
+### 3.6.3 Movement during combat
+
+- Player may **press Attack while walking**.
+- During **AttackActive**, **no 100% free movement** — attack animation/lunge drives position to prevent unnatural hitbox dragging through enemies.
+
+### 3.6.4 Skill casting
+
+- Skills support **cast delay / wind-up** before AttackActive.
+- **Flow:** `Input → Cast/Wind-up → AttackActive → Recovery`
+- During cast/wind-up: if hit by an **interruptible** attack → **cancel cast** → `Casting → Interrupted → Hit Reaction`
+- **Do not** hard-code “every skill interrupts the same.” Per-move properties govern behavior.
+
+### 3.6.5 Normal hit reaction
+
+When hit by a **normal/basic** attack:
+
+`Hit → Small Knockback → Short Hitstun → Resume`
+
+- Small backward push + brief stun.
+- **Knockdown is NOT** the default for every normal hit.
+
+**Knockdown reserved for:** heavy attacks, specific skills, combo finishers, elite/boss rules.
+
+### 3.6.6 Interrupt rules
+
+Interrupt capability is a **per-attack property**, not a global rule.
+
+**Forbidden:** “getting hit always cancels everything.”
+
+Future **hyper armor / uninterruptible** windows are allowed per move design.
+
+### 3.6.7 Per-move property contract (LOCKED schema)
+
+Every attack/skill definition should carry its own data (extend `AttackDefinition` / skill defs in implementation PRs):
+
+| Property                                | Purpose                                                               |
+| --------------------------------------- | --------------------------------------------------------------------- |
+| `startupMs` / `activeMs` / `recoveryMs` | Phase timing (existing)                                               |
+| `castDelayMs`                           | Wind-up before active (skills; basic may be 0 or folded into startup) |
+| `interruptible`                         | Can this phase be cancelled by incoming hit?                          |
+| `movementDuringCast`                    | Allowed movement while casting (usually none or reduced)              |
+| `lungeDistance`                         | Forward displacement on attack (basic attack lunge)                   |
+| `hitstunMs`                             | Stun applied to target on hit                                         |
+| `knockback`                             | Push distance (existing)                                              |
+| `knockdown`                             | Whether this move can knock down                                      |
+| `multiTarget`                           | Hit all in box vs single target (basic = true)                        |
+| `hitShape` / `range` / `depthTolerance` | Hit geometry (existing P2 model)                                      |
+
+Boss/enemy attacks additionally define: `telegraphMs`, `attackShape`, phase eligibility.
+
+### 3.6.8 Enemy & boss state machine (LOCKED)
+
+Core loop:
+
+`Idle → Chase → Telegraph → AttackActive → Recovery → Chase`
+
+Interruption states:
+
+`Hit → (Knockdown → GetUp → Chase)` when rules allow
+
+| State                 | Notes                                                             |
+| --------------------- | ----------------------------------------------------------------- |
+| **Telegraph**         | Wind-up; player reads danger before damage                        |
+| **AttackActive**      | Damage window                                                     |
+| **Recovery**          | Punish window                                                     |
+| **Knockdown / GetUp** | Elite/boss (and specific moves) — not default for normal mob hits |
+
+**Telegraph feedback layers:**
+
+1. **Ground marker** (required) — on 2.5D floor plane
+2. **Cast bar** (boss / elite)
+3. **Sprite tint** (wind-up → active)
+4. **SFX / screen edge** (optional later; respect `prefers-reduced-motion`)
+
+Each boss attack is its own data row: telegraph/active/recovery duration, shape, interruptible, damage, knockback, knockdown.
+
+### 3.6.9 Boss phase transition (LOCKED)
+
+When HP crosses a threshold (e.g. 50%):
+
+**Do not** cut the current action immediately.
+
+**Flow:** `Current Action → Finish Current Action → PhaseTransition → Invulnerable → Phase 2`
+
+During **PhaseTransition:**
+
+- Boss stops attacking
+- Plays transition animation
+- **Invulnerable**
+- Swaps attack set for new phase
+- Enters Phase 2 only after transition completes
+
+Prevents state-machine collisions between Telegraph/AttackActive/Recovery and phase change.
+
+### 3.6.10 Explicitly OUT of this foundation
+
+Do **not** add while implementing P4/P6 foundation:
+
+- Dash button
+- Soft-target / auto-target / lock-on UI
+- QTE dodge
+- Heavy 3D telegraph VFX (markers + tint first)
+
+Combat remains a **2.5D positioning-based brawler:** player controls **movement + depth + facing + attack timing**.
+
+### 3.6.11 OPEN — next design gate (not locked)
+
+**Basic Attack Combo System** — separate HetCreep design session before implementation expands combo beyond current 3-hit chain:
+
+- Hit count per combo
+- Combo input window
+- Animation transitions
+- Combo reset timing
+- Finisher rules
+- Finisher knockback/knockdown
+- Cancel rules
+
+**Do not** expand scope to other systems until this combo design is recorded in Blueprint.
 
 ---
 
