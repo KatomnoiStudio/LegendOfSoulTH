@@ -5,6 +5,22 @@
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-08-07
+
+Combat camera — Naruto-mobile-style elevated side framing (presentation only)
+
+### Added
+
+- **`combatCameraConfig.ts`** — centralized camera tuning (`pitch`, `distance`, `fov`, zoom clamps, smoothing)
+- **`combatCameraFraming.ts`** — pure framing math: enemy-group focus, dynamic zoom, composition bias (+ tests)
+
+### Changed
+
+- `BattleCamera` frames midpoint between player and combat-relevant enemy group (not player-only lock)
+- Reduced top-down feel: pitch ~15°, closer distance, FOV 38°, dynamic zoom with damping
+- Aspect-ratio-aware horizontal limits; boss widens framing via config modifiers
+- Includes v0.7.2 combat UI arc/HUD/fullscreen + v0.7.3 spawn composition (rebased on 0.8.0)
+
 ## [0.7.3] - 2026-08-07
 
 Battlefield spawn composition — player left / enemy right / formation spacing (presentation only)
