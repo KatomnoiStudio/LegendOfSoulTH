@@ -5,6 +5,16 @@
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-08-07
+
+Combat camera ~30° pitch + battle sprite sheets wired (presentation only)
+
+### Changed
+
+- `combatCameraConfig`: pitch **30°**, distance **5.0**, screen character height ratio **0.36**
+- `battleSpriteSequences`: monkey-king + pig-warrior walk/dash use full 8-dir sheet frames (`monkey-walk` / `pigsy-walk`)
+- `EntitySprite`: Y-axis billboard toward camera (replaces fixed plane tilt)
+
 ## [0.8.2] - 2026-08-07
 
 Combat camera pitch tuning — slightly higher vantage (presentation only)
