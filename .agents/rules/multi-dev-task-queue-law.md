@@ -1,4 +1,4 @@
-<!-- coalmine: verified 2026-08-07 · exemplar ring0-traffic-control-law.md's single-writer merge model, extended to task-claiming · revalidate 90d -->
+<!-- coalmine: verified 2026-08-08 · exemplar ring0-traffic-control-law.md's single-writer merge model, extended to task-claiming + Bors/Mergify's priority/in-flight-queue visibility (grounded the pre-claim collision check below) · gaps found via a CoalBoard 4-seat opinion-lane sweep (2026-08-08), each spot-verified against live repo state before being filled here · revalidate 90d -->
 
 # Multi-Dev Task Queue Law
 
@@ -10,11 +10,13 @@
 
 `TASKS.md` (repo root) is the single source of truth for **all** work: every claimable unit, its owner, its status, and its `%` complete. If it's not a row in `TASKS.md`, it isn't a task a dev can claim.
 
+**This binds Ring 0 too, including for Ring 0's own work (found via a CoalBoard opinion-lane sweep, 2026-08-08 — a real, not hypothetical, gap: multiple rows sat `Owner: —, ⚪ not started, 0%` in this exact file after Ring 0 had already shipped and merged the code for them).** Ring 0 updates a row's `Owner`/`Status`/`%` in the **SAME commit** as any code Ring 0 itself writes against a currently-unclaimed row — the sole writer of the claim columns is also the party most likely to skip the ledger for its own work, precisely because there is no one else to catch the omission. Nothing code-enforces this; it is trust in Ring 0's own diligence, named explicitly because that trust has already failed once, observably, in this repo.
+
 ## Claim protocol (Ring-0-locked, updated 2026-08-07 — supersedes the earlier git-race version)
 
 Claiming now routes through Ring 0 the same way merging does (`.agents/rules/ring0-traffic-control-law.md`) — one writer for `TASKS.md`'s claim columns removes the git-race entirely, instead of resolving it after the fact.
 
-1. **Load**: Ring 1 reads `TASKS.md` (or `AGENT_BLUEPRINT.md`'s Lab-entry order if no preference) and **picks** one unclaimed row (`Owner: —`, `Status: ⚪ not started`).
+1. **Load**: Ring 1 reads `TASKS.md` (or `AGENT_BLUEPRINT.md`'s Lab-entry order if no preference) and **picks** one unclaimed row (`Owner: —`, `Status: ⚪ not started`). **Before claiming, check for in-flight work on the same system that `TASKS.md` wouldn't show** — an open branch or PR (`git branch -a` / the repo's open-PR list) already touching it, claimed or not (found via a CoalBoard opinion-lane sweep, 2026-08-08: this exact collision has already happened twice in this repo — a same-day parallel-implementation clash requiring an 8-file reconciliation pass, and a currently-open branch independently re-implementing an already-merged system, neither visible from `TASKS.md` alone since it tracks claimed rows only, never in-flight branch/PR scope). Anything found → treat it the same as an already-claimed row (step 5 below), even though `TASKS.md` itself doesn't show a claim.
 2. **Lock request**: Ring 1 tells Ring 0 which row/task they're picking — same two channels as `ring0-traffic-control-law.md`'s handoff paths: Path A (a PR/issue comment naming the task) or Path B (just say it directly, no ceremony required).
 3. **Lock**: Ring 0 edits that row — `Owner` → the dev's name/handle, `Status` → `🟡 claimed`, `Claimed` → today's date — commits (`docs(tasks): claim #NN <task name>`), and pushes. Ring 0 is the sole writer of `TASKS.md`'s claim columns now, so **there is no claim race to resolve** — first request Ring 0 actually locks wins, by construction, not by a git-push footrace.
 4. **Start**: once locked (Ring 0 confirms — a reply, or just the pushed `TASKS.md` diff), Ring 1 begins work and submits when done via `ring0-traffic-control-law.md`'s handoff paths. No need to wait for a formal go-ahead beyond the lock itself.
@@ -50,7 +52,7 @@ If a task is genuinely big enough for 2+ devs at once (e.g. a large system with 
 
 ## Stale-claim handling
 
-A claimed task (`%` frozen, no commits referencing it) for **7+ days** with no update → any dev tells Ring 0 to flag it (`Status` → `🔴 stalled — re-claim?`) — same request channel as claiming. HetCreep decides whether to free it for re-claim. Never silently reassign — a stalled row might mean blocked-on-something, not abandoned.
+A claimed task (`%` frozen, no commits referencing it) for **7+ days** with no update → any dev tells Ring 0 to flag it (`Status` → `🔴 stalled — re-claim?`) — same request channel as claiming. **Before freeing it, Ring 0 asks the claiming dev directly** (found via a CoalBoard opinion-lane sweep, 2026-08-08 — the peer-report channel means a dev's slow week becomes visible to a teammate before it's explained to the person deciding its fate; asking first keeps the anti-abandonment check from reading as a surveillance report) — only then decides whether to free it for re-claim. Never silently reassign — a stalled row might mean blocked-on-something, not abandoned.
 
 ## What this doesn't mean
 
