@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { getSessionPlayer, importSave, login, register, savePlayer } from './accountRepository'
+import { GAME_INFO } from '../game/gameInfo'
 
 /*
   ไฟล์ save ที่นำเข้ามาคือข้อมูลจากภายนอกที่ผู้เล่นแก้เองได้ทั้งก้อน
@@ -173,6 +174,21 @@ describe('session — หมดอายุแบบ sliding window ไม่ใ
     const legacy = { ...JSON.parse(raw as string) }
     delete legacy.expiresAt
     localStorage.setItem('los:session:v1', JSON.stringify(legacy))
+
+    expect(await getSessionPlayer()).toBeNull()
+  })
+
+  test('เกมอัปเดต (เลขเวอร์ชันเปลี่ยน) — session เก่าหมดอายุทันที ไม่ต้องรอครบ 30 วัน', async () => {
+    const registered = await register('updated@b.co', 'passw0rd!')
+    expect(registered.ok).toBe(true)
+    expect(await getSessionPlayer()).not.toBeNull()
+
+    // จำลองว่า build ใหม่ถูก deploy — session ที่มีอยู่เดิมยังถืออีเมล/uid เดิม แต่ตราด้วย
+    // เวอร์ชันเก่าอยู่ (GAME_INFO.version ตอนนี้ต่างจากตอนที่ session ถูกเขียน)
+    const raw = localStorage.getItem('los:session:v1')
+    expect(raw).not.toBeNull()
+    const stale = { ...JSON.parse(raw as string), appVersion: `${GAME_INFO.version}-เก่ากว่านี้` }
+    localStorage.setItem('los:session:v1', JSON.stringify(stale))
 
     expect(await getSessionPlayer()).toBeNull()
   })
