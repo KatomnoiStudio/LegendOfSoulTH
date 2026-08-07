@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`
 > **Default Branch**: `master`
-> **Last Updated**: 2026-08-07T12:20:00+07:00 by `Cursor Agent (cloud)`
+> **Last Updated**: 2026-08-07T19:05:00+07:00 by `Claude Code` (merged PR #16, Master Blueprint v1.0, from `Cursor Agent (cloud)`)
 > **RULES_VERSION last synced: 15** (see `.agents/rules/rules-freshness-check.md` — this exact line is what the check greps for; the compression pass that rewrote this file dropped it, restored here)
 
 > **2026-08-06 overhaul**: this file had grown to 65+ interleaved, verbose items (two colliding numbering
