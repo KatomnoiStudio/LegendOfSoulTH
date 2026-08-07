@@ -48,7 +48,6 @@ export class StageRuntime {
 
   enter(): void {
     if (this.lifecycle !== 'not_started') return
-    this.lifecycle = 'entering'
     this.lifecycle = 'active'
     this.objective.start()
     this.encounter.start()
@@ -114,10 +113,7 @@ export class StageRuntime {
     if (this.lifecycle !== 'active') return
     this.won = won
     this.failureReason = won ? undefined : failureReason
-    this.lifecycle = 'resolving'
     this.timer.stop()
-    this.lifecycle = won ? 'cleared' : 'failed'
-    this.lifecycle = 'exiting'
     this.cleanup()
     this.lifecycle = 'complete'
   }
