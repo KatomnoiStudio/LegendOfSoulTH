@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
-import { DoubleSide, Vector3 } from 'three'
+import { useFrame } from '@react-three/fiber'
+import { DoubleSide } from 'three'
 import type { Group, Mesh, MeshBasicMaterial } from 'three'
 import {
   getBattleSpriteSet,
@@ -13,6 +13,11 @@ import {
   runtimeDepthNormalized,
   runtimeToWorldXZ,
 } from '../../game/realtimeBattle/battleCoordinates'
+import {
+  ENTITY_SPRITE_ASPECT,
+  ENTITY_SPRITE_HEIGHT,
+  ENTITY_SPRITE_PITCH_RAD,
+} from '../../game/realtimeBattle/entitySpritePresentation'
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
 import type { EntityState, RealtimeBattleEntity } from '../../game/realtimeBattle/types'
 
@@ -23,10 +28,6 @@ import type { EntityState, RealtimeBattleEntity } from '../../game/realtimeBattl
  * object ของ three.js ตรง ๆ ทุกเฟรมผ่าน ref โดยอ่านค่าจาก runtime (§8)
  * ถ้าเปลี่ยนมาใช้ setState ที่นี่ จะเกิด re-render 60 ครั้งต่อวินาทีต่อหนึ่งตัวละคร
  */
-
-/** อัตราส่วนของภาพตัวละคร (กว้าง:สูง) — ชุดเฟรมทุกตัวใช้สัดส่วนเดียวกัน */
-const SPRITE_ASPECT = 1.2508
-const SPRITE_HEIGHT = 1.6
 
 interface EntitySpriteProps {
   runtime: RealtimeBattleRuntime
@@ -64,11 +65,9 @@ function findEntity(runtime: RealtimeBattleRuntime, entityId: string): RealtimeB
 }
 
 export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpriteProps) {
-  const { camera } = useThree()
   const group = useRef<Group>(null)
   const mesh = useRef<Mesh>(null)
   const shadow = useRef<Mesh>(null)
-  const worldPos = useRef(new Vector3())
   const spriteSet = useMemo(() => getBattleSpriteSet(kind), [kind])
 
   /** เฟรมเริ่มของแอนิเมชันที่ไม่วน — ต้องรู้ว่าเริ่มเล่นตอนไหนถึงจะเล่นจบแล้วค้างได้ */
@@ -121,12 +120,6 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
     if (shadow.current) {
       shadow.current.visible = entity.state !== 'dead'
     }
-
-    // หันสไปรต์เข้าหากล้องแนวนอน — อ่านชัดที่มุมกล้อง ~30°
-    mesh.current.getWorldPosition(worldPos.current)
-    const dx = camera.position.x - worldPos.current.x
-    const dz = camera.position.z - worldPos.current.z
-    mesh.current.rotation.set(0, Math.atan2(dx, dz), 0)
   })
 
   return (
@@ -143,8 +136,12 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
         />
       </mesh>
 
-      <mesh ref={mesh} position={[0, SPRITE_HEIGHT / 2, 0]}>
-        <planeGeometry args={[SPRITE_HEIGHT * SPRITE_ASPECT, SPRITE_HEIGHT]} />
+      <mesh
+        ref={mesh}
+        position={[0, ENTITY_SPRITE_HEIGHT / 2, 0]}
+        rotation={[ENTITY_SPRITE_PITCH_RAD, 0, 0]}
+      >
+        <planeGeometry args={[ENTITY_SPRITE_HEIGHT * ENTITY_SPRITE_ASPECT, ENTITY_SPRITE_HEIGHT]} />
         <meshBasicMaterial
           transparent
           alphaTest={0.025}
