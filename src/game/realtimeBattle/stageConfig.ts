@@ -1,5 +1,6 @@
 import { TEMPLE_LOBBY_BG, BATTLE_ART_BG } from '../backgroundAssets'
 import type { CharacterModelKind } from '../characters'
+import { resolvePlayerSpawn } from './spawnFormation'
 import type { Vec2 } from './types'
 
 /**
@@ -126,25 +127,21 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
 /**
  * ห้องแรก: ลานฝึกหน้าวิหาร (Temple Training Arena)
  *
- * ผู้เล่นเกิดล่างกลาง ศัตรูเกิดแถวบน ไม่มีสิ่งกีดขวางในเวอร์ชันแรก (§9)
- * ขนาดห้องกว้างกว่าจอออกแบบ (1600x900) เล็กน้อยเพื่อให้กล้องมีที่ให้ตาม
+ * Spawn composition มาจาก `spawnFormation.ts` + `battlePresentation.ts`
+ * (player ซ้าย / enemy ขวา / formation กลางสนาม) — `playerSpawn`/`enemySpawns`
+ * ใน stage object เป็น snapshot สำหรับเทสต์/เอกสารเท่านั้น
  */
-const TEMPLE_TRAINING_ARENA_SPAWNS: Vec2[] = [
-  { x: 420, y: 260 },
-  { x: 900, y: 220 },
-  { x: 1380, y: 260 },
-  { x: 660, y: 400 },
-  { x: 1140, y: 400 },
-]
+const ARENA_SIZE = { width: 1800, height: 1100 }
+const PRESENTATION_PLAYER_SPAWN = resolvePlayerSpawn(ARENA_SIZE)
 
 export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
   'trial-01': {
     id: 'trial-01',
     name: 'ลานฝึกหน้าวิหาร',
-    width: 1800,
-    height: 1100,
-    playerSpawn: { x: 900, y: 880 },
-    enemySpawns: TEMPLE_TRAINING_ARENA_SPAWNS,
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
     waves: [
       {
         id: 'wave-1',
@@ -160,10 +157,10 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
   'trial-02': {
     id: 'trial-02',
     name: 'ประตูปีศาจ',
-    width: 1800,
-    height: 1100,
-    playerSpawn: { x: 900, y: 880 },
-    enemySpawns: TEMPLE_TRAINING_ARENA_SPAWNS,
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
     waves: [
       {
         id: 'wave-1',

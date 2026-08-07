@@ -5,6 +5,22 @@
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-08-07
+
+Battlefield spawn composition — player left / enemy right / formation spacing (presentation only)
+
+### Added
+
+- **`battlePresentation.ts`** — normalized spawn presentation config
+- **`spawnFormation.ts`** — formation resolver + overlap separation pass (+ tests)
+
+### Changed
+
+- Player spawns ~22% X (left), enemies ~76% X (right) with depth formation
+- Initial facing: player `right`, enemies `left` (spawn presentation)
+- Intro camera frames player + enemy group midpoint
+- `stageConfig` enemy spawns delegated to formation resolver
+
 ## [0.7.2] - 2026-08-07
 
 Combat UI layout fix — arc cluster, compact HUD, fullscreen + landscape guard (Blueprint §3.3 UI pass)

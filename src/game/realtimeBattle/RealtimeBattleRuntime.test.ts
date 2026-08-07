@@ -51,6 +51,12 @@ describe('createRealtimeBattle', () => {
     expect(state.player.position).toEqual(stage.playerSpawn)
     expect(state.player.hp).toBe(state.player.maxHp)
     expect(state.enemies).toHaveLength(3)
+    expect(state.player.position.x).toBeLessThan(state.enemies[0].position.x)
+    for (const enemy of state.enemies) {
+      expect(enemy.position.x).toBeGreaterThan(stage.width * 0.65)
+      expect(enemy.combatFacing).toBe('left')
+    }
+    expect(state.player.combatFacing).toBe('right')
     expect(state.status).toBe('intro')
     expect(state.currentWaveIndex).toBe(0)
   })
