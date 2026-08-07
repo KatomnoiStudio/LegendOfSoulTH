@@ -54,7 +54,7 @@ export const DEFAULT_COMBAT_CAMERA_CONFIG: CombatCameraConfig = {
   pitchDeg: 30,
   distance: 5.0,
   fovDeg: 38,
-  heightOffset: 0.42,
+  heightOffset: 0.58,
   targetHeightOffset: 0,
   minZoom: 0.9,
   maxZoom: 1.26,
