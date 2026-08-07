@@ -7,12 +7,16 @@
 
 **เล่นได้ที่**: https://legendofsoulth.github.io/LegendOfSoulTH/
 
-หน้า Lobby ของเกม Real-time Action **2.5D** แนว *"รวมเหล่านักรบจากตำนานและประวัติศาสตร์"*
+หน้า Lobby ของเกม Real-time Action **2.5D** แนว _"รวมเหล่านักรบจากตำนานและประวัติศาสตร์"_
 สร้างด้วย **React 19 + TypeScript + Vite**, ฉาก 3D ด้วย **three.js + React Three Fiber**, สไตล์ด้วย **CSS Modules**
 
-> ขอบเขตปัจจุบัน: หน้า Lobby + สมัคร/ล็อกอิน + ระบบทอง/หยกพื้นฐาน + ฉากเดิน/สำรวจ + ระบบต่อสู้พื้นฐาน
+> ขอบเขตปัจจุบัน: หน้า Lobby + สมัคร/ล็อกอิน + ระบบทอง/หยกพื้นฐาน + ระบบต่อสู้เรียลไทม์ + รางวัลหลังต่อสู้จริง
 > ปุ่มเมนูส่วนใหญ่ยังเป็น placeholder — กดได้แต่แสดง toast `Coming soon`
-> ยังไม่มีเควส / ระบบดรอปจริง / backend server (ดูหัวข้อ "บัญชีผู้เล่นและทอง/หยก" ด้านล่าง)
+> ยังไม่มีเควส / backend server (ดูหัวข้อ "บัญชีผู้เล่นและทอง/หยก" ด้านล่าง) — **ระบบดรอปทองจากต่อสู้มีจริงแล้ว**
+> (`RewardSystem` ผ่าน `earnGold`/`grantItem`, ดู PR #14) โหมดเดิน/สำรวจ (`dialogue/npc/exploration/flow`)
+> โค้ดยังอยู่ครบแต่**ไม่มีทางเข้าในเกมตอนนี้** — LEGACY ตั้งแต่ PR #11 ไม่ใช่ขอบเขตที่ใช้งานอยู่
+> (แผนผลิตภัณฑ์เต็ม → [`docs/MASTER_BLUEPRINT_v1.0.md`](docs/MASTER_BLUEPRINT_v1.0.md), gap ต่อของจริง →
+> [`docs/BLUEPRINT_GAP_ANALYSIS.md`](docs/BLUEPRINT_GAP_ANALYSIS.md))
 
 ## คำสั่ง
 
@@ -88,11 +92,11 @@ npm run build:models
 
 สร้างไฟล์ลง `public/models/` ตัวละครละ 1 ไฟล์ พร้อมตรวจสอบผลลัพธ์ให้อัตโนมัติ
 
-| ไฟล์ | ตัวละคร | สามเหลี่ยม | กระดูก | ขนาด |
-|---|---|---|---|---|
-| `monkey-king.glb` | ถือกระบองทอง มีหางและแถบคาดหัว | 734 | 23 | 134 KB |
-| `pig-warrior.glb` | ถือคราดเก้าซี่ มีหูและจมูกหมู | 688 | 20 | 124 KB |
-| `pilgrim-monk.glb` | ชุดพระ ถือไม้เท้ามีห่วง | 936 | 20 | 160 KB |
+| ไฟล์               | ตัวละคร                        | สามเหลี่ยม | กระดูก | ขนาด   |
+| ------------------ | ------------------------------ | ---------- | ------ | ------ |
+| `monkey-king.glb`  | ถือกระบองทอง มีหางและแถบคาดหัว | 734        | 23     | 134 KB |
+| `pig-warrior.glb`  | ถือคราดเก้าซี่ มีหูและจมูกหมู  | 688        | 20     | 124 KB |
+| `pilgrim-monk.glb` | ชุดพระ ถือไม้เท้ามีห่วง        | 936        | 20     | 160 KB |
 
 แต่ละไฟล์มี **SkinnedMesh 1 ตัว** (แบ่ง primitive ตามวัสดุ), **skeleton ร่วมชุดเดียว**
 และ **AnimationClip ชื่อ `Idle`** ยาว 2.4 วินาที
@@ -267,14 +271,16 @@ src/
 ทุกหน้าจอ**อ่าน/แก้สถานะผู้เล่น** (`player`, ทอง/หยก, session) ผ่าน [`src/hooks/useAuth.ts`](src/hooks/useAuth.ts)
 เท่านั้น — `App.tsx` ถือ `useAuth()` แล้วส่ง `player` + callback ต่าง ๆ ลงไปเป็น props
 (`LobbyPage` → `TopBar` / `SettingsModal` ฯลฯ) ไม่มีหน้าไหนเขียนสถานะผู้เล่นผ่าน `accountRepository`
-หรือ localStorage ตรง ๆ นอกเหนือจากทางนี้ — แต่คอมโปเนนต์บางตัว *import ค่า config คงที่*
+หรือ localStorage ตรง ๆ นอกเหนือจากทางนี้ — แต่คอมโปเนนต์บางตัว _import ค่า config คงที่_
 (`PASSWORD_MIN_LENGTH` ใน `AuthModal`, `GOLD_PACKAGES`/`GEM_PACKAGES` ใน `CurrencyShopModal`)
 จาก `accountRepository.ts` ตรง ๆ ได้ — ไม่ใช่ player state จึงไม่ต้องผ่าน `useAuth`
 (`src/lib/authUi.ts`'s last-email UI convenience ก็เช่นกัน ไม่ใช่ player state)
 
 **กติกาทอง/หยก (บังคับที่ชั้น API ใน [`accountRepository.ts`](src/data/accountRepository.ts)):**
-- ทองเพิ่มได้ทาง `earnGold(uid, 'quest' | 'drop', amount)` (ยังไม่มีระบบเควส/ดรอปจริง จึงยังไม่มีปุ่มไหนเรียก
-  ฟังก์ชันนี้ในเกม — เอาปุ่มเดโม "เก็บของตก" ออกแล้ว รอระบบเควส/ต่อสู้จริง) หรือ `topUpGold(uid, packageId)`
+
+- ทองเพิ่มได้ทาง `earnGold(uid, 'quest' | 'drop', amount)` — **`'drop'` เรียกจริงแล้ว** จาก
+  `RewardSystem` หลังชนะการต่อสู้ (`LobbyBattleSession`, ดู PR #14) ส่วน `'quest'` ยังไม่มีระบบเควส
+  จึงยังไม่มีปุ่มไหนเรียก หรือ `topUpGold(uid, packageId)`
   (เติมเงินจริง — **ยังไม่ต่อ payment gateway** ถือว่าจ่ายสำเร็จเสมอ ห้ามใช้ค้าจริง)
 - หยกเพิ่มได้ทาง `topUpGems(uid, packageId)` (เติมเงินจริง เงื่อนไขเดียวกับทอง) หรือ
   `redeemCoupon(uid, code)` (โค้ดคูปอง เช่น `WELCOME2026`)
