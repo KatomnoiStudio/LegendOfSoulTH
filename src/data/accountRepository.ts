@@ -39,6 +39,46 @@ import { EMPTY_PROGRESS, type FriendCandidate, type Player } from '../types/play
 const DB_KEY = 'los:db:v1'
 const SESSION_KEY = 'los:session:v1'
 
+/** อายุ session ก่อนหมดอายุถ้าไม่มีการใช้งานเลย — sliding window ต่ออายุทุกครั้งที่อ่านสำเร็จ */
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
+
+interface SessionRecord {
+  uid: string
+  email: string
+  expiresAt: string
+}
+
+function createSession(uid: string, email: string): SessionRecord {
+  return { uid, email, expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString() }
+}
+
+/*
+  ผู้เรียกทุกรายต้องอ่าน session ผ่านฟังก์ชันนี้เท่านั้น ห้าม readJson(SESSION_KEY) ตรง ๆ
+
+  เดิม session ไม่มีวันหมดอายุเลย (เขียนแค่ uid/email ไม่มี timestamp) — เข้าเกมครั้งเดียว
+  ค้าง login ตลอดไปจนกว่าจะกด logout เอง ต่อให้ปิดแท็บทิ้งไปเป็นปี ผู้เล่นเจอเข้าเกมได้ทันที
+  โดยไม่มีการันตีว่ายังเป็นเจ้าของอุปกรณ์จริง ๆ
+
+  sliding window (ต่ออายุทุกครั้งที่อ่านสำเร็จ) แทนวันหมดอายุตายตัว เพราะผู้เล่นที่เล่นต่อเนื่อง
+  ไม่ควรถูกเตะกลางเกมแค่เพราะ session อายุครบตามนาฬิกา — หมดอายุเฉพาะแท็บที่ปิดทิ้งไว้จริง ๆ
+  เกิน 30 วันเท่านั้น
+*/
+function readActiveSession(): SessionRecord | null {
+  const session = readJson<SessionRecord>(SESSION_KEY)
+  if (!session) return null
+
+  // session เก่าก่อนมีฟิลด์นี้ (เขียนไว้ตอนยังไม่มี expiry) — ถือว่าหมดอายุทันที
+  // ปลอดภัยกว่าปล่อยให้ใช้ต่อแบบไม่มีเวลาจำกัดเงียบ ๆ
+  if (!session.expiresAt || new Date(session.expiresAt).getTime() <= Date.now()) {
+    removeKey(SESSION_KEY)
+    return null
+  }
+
+  const renewed = createSession(session.uid, session.email)
+  writeJson(SESSION_KEY, renewed)
+  return renewed
+}
+
 /** ตัวละครที่ได้ฟรีตอนสมัครบัญชีใหม่ */
 const STARTER_CHARACTER_ID = 'monkey-king'
 
@@ -218,9 +258,7 @@ export const GOLD_PACKAGES: GoldPackage[] = [
 
 /* ---------------- ผลลัพธ์ ---------------- */
 
-export type AuthResult =
-  | { ok: true; player: Player }
-  | { ok: false; error: string }
+export type AuthResult = { ok: true; player: Player } | { ok: false; error: string }
 
 /* ---------------- ตรวจข้อมูลก่อนบันทึก ---------------- */
 
@@ -239,9 +277,22 @@ export function validateEmail(email: string): string | null {
 // รหัสผ่านที่พบบ่อยที่สุดจนไม่ป้องกันอะไรเลย แม้ยาวพอตาม PASSWORD_MIN_LENGTH ก็ตาม
 // (รายการเล็ก ๆ พอกันกรณีชัดเจนที่สุด ไม่ใช่ dictionary attack เต็มรูปแบบ — ไม่ต้องพึ่ง library ภายนอก)
 const COMMON_PASSWORDS = new Set([
-  'password', 'password1', 'password123', '12345678', '123456789', '1234567890',
-  'qwerty123', 'qwertyui', 'letmein1', 'iloveyou', 'admin123', 'welcome1',
-  '11111111', '00000000', 'abc12345', 'changeme',
+  'password',
+  'password1',
+  'password123',
+  '12345678',
+  '123456789',
+  '1234567890',
+  'qwerty123',
+  'qwertyui',
+  'letmein1',
+  'iloveyou',
+  'admin123',
+  'welcome1',
+  '11111111',
+  '00000000',
+  'abc12345',
+  'changeme',
 ])
 
 export function validatePassword(password: string): string | null {
@@ -385,7 +436,7 @@ export async function register(email: string, password: string): Promise<AuthRes
     ที่ตามมา) ให้ผลประหลาดที่สุด: หน้าจอเข้าเกมได้ตามปกติ แต่พอโหลดหน้าใหม่ getSessionPlayer
     หา session ไม่เจอแล้วเด้งกลับหน้าล็อกอิน ทั้งที่บัญชีถูกบันทึกไว้เรียบร้อยแล้วจริง ๆ
   */
-  if (!writeJson(SESSION_KEY, { uid, email: key })) {
+  if (!writeJson(SESSION_KEY, createSession(uid, key))) {
     /*
       ถอนบัญชีที่เพิ่งสร้างออกด้วย
 
@@ -421,7 +472,7 @@ export async function login(email: string, password: string): Promise<AuthResult
   }
 
   // เช็คค่าที่คืนมาด้วยเหตุผลเดียวกับใน register (ดูคอมเมนต์ที่นั่น)
-  if (!writeJson(SESSION_KEY, { uid: account.uid, email: key })) {
+  if (!writeJson(SESSION_KEY, createSession(account.uid, key))) {
     return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
   }
   return { ok: true, player: normalizePlayer(account.player) }
@@ -433,7 +484,7 @@ export async function logout(): Promise<void> {
 
 /** อ่านผู้เล่นของ session ที่ค้างอยู่ — ใช้ตอนเปิดเกมเพื่อไม่ต้องล็อกอินซ้ำ */
 export async function getSessionPlayer(): Promise<Player | null> {
-  const session = readJson<{ uid: string; email: string }>(SESSION_KEY)
+  const session = readActiveSession()
   if (!session) return null
 
   const account = loadDb().accounts[session.email]
@@ -458,8 +509,10 @@ interface SaveExport {
  * ส่งออกบัญชีของ session ปัจจุบันเป็น JSON — ให้ผู้เล่นโหลดเก็บไว้เป็นไฟล์สำรอง/ย้ายเครื่อง
  * ข้อมูลอยู่ใน localStorage ของเบราว์เซอร์เท่านั้น ไม่มี sync ข้ามอุปกรณ์ในตัว — ปุ่มนี้คือทางแก้
  */
-export async function exportSave(): Promise<{ ok: true; json: string } | { ok: false; error: string }> {
-  const session = readJson<{ uid: string; email: string }>(SESSION_KEY)
+export async function exportSave(): Promise<
+  { ok: true; json: string } | { ok: false; error: string }
+> {
+  const session = readActiveSession()
   if (!session) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' }
 
   const account = loadDb().accounts[session.email]
@@ -506,7 +559,7 @@ export async function importSave(json: string): Promise<AuthResult> {
   }
 
   // เช็คค่าที่คืนมาด้วยเหตุผลเดียวกับใน register (ดูคอมเมนต์ที่นั่น)
-  if (!writeJson(SESSION_KEY, { uid: account.uid, email: key })) {
+  if (!writeJson(SESSION_KEY, createSession(account.uid, key))) {
     return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
   }
   return { ok: true, player: normalizePlayer(account.player) }
@@ -519,7 +572,7 @@ export async function importSave(json: string): Promise<AuthResult> {
  * ไม่ใช่ข้อมูลตัวละครที่ UI ทั่วไปต้องเห็น) ฟังก์ชันนี้จึงเป็นทางเดียวที่ควรใช้อ่านอีเมล
  */
 export function getSessionEmail(): string | null {
-  return readJson<{ uid: string; email: string }>(SESSION_KEY)?.email ?? null
+  return readActiveSession()?.email ?? null
 }
 
 export type { FriendCandidate } from '../types/player'
@@ -554,8 +607,7 @@ export async function savePlayer(player: Player): Promise<boolean> {
 /* ---------------- ทอง/หยก — ต้องผ่านฟังก์ชันที่ระบุแหล่งที่มาเท่านั้น ---------------- */
 
 export type CurrencyResult =
-  | { ok: true; player: Player; amount: number }
-  | { ok: false; error: string }
+  { ok: true; player: Player; amount: number } | { ok: false; error: string }
 
 /** ให้ทองจากการเล่นเท่านั้น — ทำเควสสำเร็จ หรือของดรอประหว่างเล่น */
 export async function earnGold(
@@ -647,7 +699,8 @@ export async function redeemCoupon(uid: string, code: string): Promise<CurrencyR
     const totalRedeemed = Object.values(db.accounts).reduce(
       (count, other) =>
         count +
-        (other.transactions ?? []).filter((tx) => tx.source === 'coupon' && tx.refId === normalized).length,
+        (other.transactions ?? []).filter((tx) => tx.source === 'coupon' && tx.refId === normalized)
+          .length,
       0,
     )
     if (totalRedeemed >= coupon.maxRedemptions) {
@@ -679,9 +732,7 @@ export async function getTransactions(uid: string): Promise<CurrencyTransaction[
 /** ไอเทมได้จากการเล่นเท่านั้น — ทำเควสสำเร็จ หรือของดรอป (กติกาเดียวกับทอง) */
 export type ItemSource = GoldSource
 
-export type ItemResult =
-  | { ok: true; player: Player }
-  | { ok: false; error: string }
+export type ItemResult = { ok: true; player: Player } | { ok: false; error: string }
 
 /**
  * เพิ่มไอเทมเข้ากระเป๋าผู้เล่น — มีอยู่แล้วให้บวกจำนวน ไม่มีให้สร้างช่องใหม่
@@ -730,8 +781,7 @@ export async function grantItem(
 /* ---------------- ตัวละคร ---------------- */
 
 export type CharacterGrantResult =
-  | { ok: true; player: Player; characterId: string }
-  | { ok: false; error: string }
+  { ok: true; player: Player; characterId: string } | { ok: false; error: string }
 
 /**
  * มอบตัวละครให้บัญชีผู้เล่น

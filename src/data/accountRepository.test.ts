@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { getSessionPlayer, importSave, login, register, savePlayer } from './accountRepository'
 
 /*
@@ -119,5 +119,61 @@ describe('saveDb — เขียนชนกันข้ามแท็บต�
 
     expect(tabA).toBe(false)
     expect((await getSessionPlayer())?.name).toBe('จากแท็บ B')
+  })
+})
+
+/*
+  เดิม session ไม่มีวันหมดอายุเลย — เขียนแค่ uid/email ไม่มี timestamp ผู้เล่นที่ล็อกอินครั้ง
+  เดียวจะเข้าเกมได้ตลอดไปไม่มีเงื่อนไข ต่อให้ปิดแท็บทิ้งไว้เป็นปี (รายงานจาก HetCreep 2026-08-07)
+*/
+describe('session — หมดอายุแบบ sliding window ไม่ใช่ค้าง login ตลอดไป', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  test('ไม่แตะเลย 31 วัน — session หมดอายุ ต้องล็อกอินใหม่', async () => {
+    vi.useFakeTimers()
+    const now = new Date('2026-01-01T00:00:00.000Z')
+    vi.setSystemTime(now)
+
+    const registered = await register('sleepy@b.co', 'passw0rd!')
+    expect(registered.ok).toBe(true)
+    expect(await getSessionPlayer()).not.toBeNull()
+
+    vi.setSystemTime(new Date(now.getTime() + 31 * 24 * 60 * 60 * 1000))
+    expect(await getSessionPlayer()).toBeNull()
+  })
+
+  test('เล่นต่อเนื่องทุกไม่กี่วัน — session ต่ออายุ (sliding) ไม่หลุดแม้รวมเกิน 30 วัน', async () => {
+    vi.useFakeTimers()
+    const start = new Date('2026-01-01T00:00:00.000Z')
+    vi.setSystemTime(start)
+
+    const registered = await register('active@b.co', 'passw0rd!')
+    expect(registered.ok).toBe(true)
+
+    // เข้าเกมทุก 10 วัน รวม 6 รอบ (60 วัน) — ถ้าเป็นวันหมดอายุตายตัวจะหลุดตั้งแต่รอบที่ 4
+    for (let i = 1; i <= 6; i++) {
+      vi.setSystemTime(new Date(start.getTime() + i * 10 * 24 * 60 * 60 * 1000))
+      expect(await getSessionPlayer()).not.toBeNull()
+    }
+  })
+
+  test('session รูปแบบเก่าที่ไม่มี expiresAt เลย ถือว่าหมดอายุทันที ไม่ใช่ค้าง login ไม่จำกัดเวลา', async () => {
+    const registered = await register('legacy@b.co', 'passw0rd!')
+    expect(registered.ok).toBe(true)
+
+    // จำลอง session ที่เขียนไว้ก่อนมีฟีเจอร์นี้ (ไม่มี expiresAt)
+    const raw = localStorage.getItem('los:session:v1')
+    expect(raw).not.toBeNull()
+    const legacy = { ...JSON.parse(raw as string) }
+    delete legacy.expiresAt
+    localStorage.setItem('los:session:v1', JSON.stringify(legacy))
+
+    expect(await getSessionPlayer()).toBeNull()
   })
 })
