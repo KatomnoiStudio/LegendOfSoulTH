@@ -1,7 +1,11 @@
 # Legend of Soul TH — Master Blueprint v1.0
 
+> **⚠️ SUPERSEDED** — Historical only.  
+> **Current Product North Star:** [`MASTER_BLUEPRINT_v3.0.md`](MASTER_BLUEPRINT_v3.0.md)  
+> **Migration:** [`BLUEPRINT_V3_MIGRATION_AUDIT.md`](BLUEPRINT_V3_MIGRATION_AUDIT.md)
+
 > **Document type**: Product Specification + Master Blueprint + Agent Work Contract  
-> **Status**: ADOPTED as Product Baseline (documentation PR — no gameplay implementation in the same change)  
+> **Status**: ~~ADOPTED~~ **SUPERSEDED**  
 > **Operator**: HetCreep  
 > **Agent author**: Cursor Agent (cloud)  
 > **Created**: 2026-08-07  
