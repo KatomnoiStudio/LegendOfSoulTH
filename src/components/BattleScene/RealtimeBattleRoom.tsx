@@ -4,6 +4,7 @@ import WebGL from 'three/addons/capabilities/WebGL.js'
 import { reportError } from '../../lib/errors/reportError'
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
 import type { RealtimeBattleSnapshot, Vec2 } from '../../game/realtimeBattle/types'
+import type { SkillSlot } from '../../game/realtimeBattle/skills'
 import { BattleArena } from './BattleArena'
 import { BattleControls } from './BattleControls'
 import { BattleHud } from './BattleHud'
@@ -24,7 +25,6 @@ export function RealtimeBattleRoom({
   onExit,
   onMove,
   onAttack,
-  onDash,
   onSkill,
 }: {
   runtime: RealtimeBattleRuntime
@@ -32,8 +32,7 @@ export function RealtimeBattleRoom({
   onExit: () => void
   onMove: (vector: Vec2) => void
   onAttack: () => void
-  onDash: () => void
-  onSkill: () => void
+  onSkill: (slot: SkillSlot) => void
 }) {
   const [webglAvailable] = useState(() => WebGL.isWebGL2Available())
   const [contextLost, setContextLost] = useState(false)
@@ -112,7 +111,7 @@ export function RealtimeBattleRoom({
       <DamageNumberLayer runtime={runtime} projection={projection} />
 
       <BattleHud snapshot={snapshot} onExit={onExit} />
-      <BattleControls runtime={runtime} onMove={onMove} onAttack={onAttack} onDash={onDash} onSkill={onSkill} />
+      <BattleControls runtime={runtime} onMove={onMove} onAttack={onAttack} onSkill={onSkill} />
 
       {snapshot.status === 'intro' ? (
         <div className={styles.introBanner} aria-live="polite">

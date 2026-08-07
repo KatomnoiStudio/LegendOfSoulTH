@@ -267,7 +267,13 @@
 .controlsRight {
   display: flex;
   align-items: flex-end;
-  gap: var(--sp-3);
+  gap: var(--sp-2);
+}
+
+.skillBar {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-2);
 }
 
 .attackBtn {
@@ -433,14 +439,59 @@
   z-index: 1;
 }
 
+.ultimateBtn {
+  pointer-events: auto;
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid #e8a84a;
+  background: radial-gradient(circle at 50% 35%, rgb(255 180 80 / 55%), rgb(100 40 8 / 90%));
+  color: #fff5d6;
+  font-size: 0.85rem;
+  font-weight: 900;
+  cursor: pointer;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  box-shadow: 0 0 12px rgb(255 160 60 / 45%);
+  transition: transform 90ms var(--ease-out);
+}
+
+.ultimateBtn:active {
+  transform: scale(0.94);
+}
+
+.ultimateCooldown {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 0;
+  background: rgb(0 0 0 / 68%);
+  pointer-events: none;
+}
+
+.ultimateLabel {
+  position: relative;
+  z-index: 1;
+}
+
 @media (max-height: 480px) {
   /* ask-CB (2026-08-06): 96px * ~0.43 = 41.3px จริงบนจอ — ต่ำกว่าเกณฑ์ 44px ของสเปกข้อ 12/29
-     (ปุ่มโจมตี/หลบข้างบนผ่านเกณฑ์นี้แล้วตามคอมเมนต์บรรทัด 233) เพิ่มเป็น 108px ให้ scale
-     เป็น ~46.4px ผ่านเกณฑ์เหมือนปุ่มหลบ */
+     (ปุ่มโจมตีข้างบนผ่านเกณฑ์นี้แล้วตามคอมเมนต์บรรทัด 233) เพิ่มเป็น 108px ให้ scale
+     เป็น ~46.4px ผ่านเกณฑ์ */
   .skillBtn {
     width: 108px;
     height: 108px;
     font-size: 1.05rem;
+  }
+
+  .ultimateBtn {
+    width: 112px;
+    height: 112px;
+    font-size: 1.1rem;
   }
 }
 
