@@ -3,8 +3,8 @@
 > **Operator / Human User**: `HetCreep`
 > **Repository**: `LegendofSoulTH/LegendOfSoulTH`
 > **Default Branch**: `master`
-> **Last Updated**: 2026-08-07T11:20:00+07:00 by `Claude Code`
-> **RULES_VERSION last synced: 13** (see `.agents/rules/rules-freshness-check.md` — this exact line is what the check greps for; the compression pass that rewrote this file dropped it, restored here)
+> **Last Updated**: 2026-08-07T11:25:00+07:00 by `Cursor Agent (cloud)`
+> **RULES_VERSION last synced: 14** (see `.agents/rules/rules-freshness-check.md` — this exact line is what the check greps for; the compression pass that rewrote this file dropped it, restored here)
 
 > **2026-08-06 overhaul**: this file had grown to 65+ interleaved, verbose items (two colliding numbering
 > tracks from concurrent sessions/forks) and was getting expensive to read every session. Compressed to
