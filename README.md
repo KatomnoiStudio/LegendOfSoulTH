@@ -156,8 +156,11 @@ Vite **ไม่แตะไฟล์ใน `public/` เลย** (copy ดิ�
 จึงมักใหญ่เกินจำเป็นสำหรับสิ่งที่จอเกมแสดงจริง ภาพทุกภาพในเกมจึงมีสองชุด:
 
 - **`assets/raw/`** — ต้นฉบับ PNG (git-tracked, **ไม่ถูก deploy** เพราะอยู่นอก `public/`)
-- **`public/{characters,ui,backgrounds}/`** — ผลลัพธ์ WebP ที่ `build:images` สร้างให้
-  (คอมมิตเข้า git เหมือนกับ `public/models/*.glb` จาก `build:models` — ไม่ต้องรัน build ตอน deploy)
+- **`public/{characters,ui,backgrounds}/`** — ผลลัพธ์ WebP ที่ `build:images` สร้างให้ คอมมิตเข้า git
+  (ไม่ต้องรัน `build:images` ตอน deploy) — **ต่างจาก** `public/models/*.glb` จาก `build:models`
+  ซึ่ง **ไม่ commit** (`.gitignore` กันไว้ — ไม่มีอะไรใน `src/` โหลด `.glb` จริงตอนนี้ จึงไม่ต้อง
+  regenerate ตอน deploy เช่นกัน แค่คนละเหตุผล: ไฟล์เดียวไม่ commit เพราะไม่ได้ใช้ อีกไฟล์ commit
+  เพราะใช้จริงในเกมทุกวันนี้)
 
 ```bash
 npm run build:images   # แปลง assets/raw/**/*.png -> public/**/*.webp ด้วย sharp

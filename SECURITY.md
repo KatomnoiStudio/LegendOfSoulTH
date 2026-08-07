@@ -1,10 +1,13 @@
 # Security Policy
 
-Legend of Soul-TH is a client-side hobby game (React + Vite, deployed to GitHub Pages). There is
-no backend server — "the database" is the player's own browser `localStorage`. Read
-[`src/data/accountRepository.ts`](src/data/accountRepository.ts)'s header comment for exactly
-what that does and does not protect before filing a report; a lot of "issues" that would be
-real bugs on a real backend are expected, documented limitations here (see **Out of Scope**).
+Legend of Soul-TH is a small hobby game (React + Vite, deployed to GitHub Pages) with a real
+backend: **Supabase (Auth + Postgres + Row Level Security)**, live since 2026-08-07. All account,
+currency, character, and admin-status data lives server-side, RLS-protected; the client never
+mutates it directly. Read [`src/data/accountRepository.supabase.ts`](src/data/accountRepository.supabase.ts)
+and [`supabase/migrations/`](supabase/migrations/) for exactly what's enforced where before filing
+a report. The older client-only `accountRepository.ts`/`password.ts` (localStorage + local PBKDF2)
+is **dormant, kept only for the shared validators it re-exports** — `useAuth.ts` no longer imports
+its own login/register/session logic. Still-real limitations are documented in **Out of Scope** below.
 
 ## Reporting a Vulnerability
 
@@ -18,7 +21,7 @@ Include:
 
 - affected file/commit and the URL or build you tested (production `https://katomnoistudio.github.io/LegendOfSoulTH/` vs. a local dev build)
 - steps to reproduce from a clean browser profile
-- what trust boundary is actually crossed (see Scope below — this app has very few)
+- what trust boundary is actually crossed (see Scope below — RLS policies and RPC functions are the real ones now, not "does the client trust itself")
 - any logs/screenshots with tokens, emails, or other real data redacted
 
 Expected response:
@@ -35,21 +38,28 @@ In scope:
 - anything that lets one player's browser affect **another** player's account/data, or that
   exfiltrates data the app didn't already hand to the page itself (real XSS, real CSRF-equivalent,
   supply-chain compromise of a dependency actually shipped in the built bundle)
+- any way to bypass a Supabase Row Level Security policy or trigger a `SECURITY DEFINER` RPC
+  function (`supabase/migrations/*.sql`) into doing something its own checks should have rejected
+  (self-granting currency/characters/admin status, reading another player's row, etc.)
 
 ## Out of Scope
 
 By design, not bugs — don't file these:
 
-- **"I can edit my own account data via DevTools/localStorage."** Expected. The app explicitly
-  does not trust the client for anything (see `accountRepository.ts` header). There is no
-  server to defraud — editing your own browser's `localStorage` only affects your own browser.
-- **"Passwords are hashed client-side with no real server auth."** Documented and intentional —
-  see [`src/lib/password.ts`](src/lib/password.ts)'s header comment. This is a local-only demo
-  auth layer (PBKDF2 + salt, constant-time compare) so passwords aren't stored in the clear
-  even locally; it is explicitly **not** a substitute for real server-side authentication.
-- **"CurrencyShopModal payments (gold or gems) aren't real / always succeed."** Intentional — no
-  payment gateway is wired up yet (see `accountRepository.ts` `topUpGold`/`topUpGems`). Not a payment-bypass vulnerability;
-  there is no real payment to bypass.
+- **"I can see/edit values in my own browser's React state or a stale localStorage cache."**
+  Expected and low-risk: the server (Supabase, RLS-enforced) is the real source of truth for
+  currency/characters/admin-status; any client-side tampering is cosmetic and gets overwritten
+  on the next server round-trip. **Do** file a report if you find a way to make a _write_ (an
+  RPC call, a direct table mutation) actually persist a value the server should have rejected —
+  that crosses a real trust boundary. (This project already fixed one real case of this shape:
+  `grant_character` didn't check admin status before 2026-08-07 — see `supabase/migrations/0004_admin_accounts.sql`'s
+  own comment for what that looked like and how it was closed. Report the same _class_ of bug elsewhere.)
+- **"Passwords are hashed client-side with no real server auth."** No longer applies to the live
+  app — auth is Supabase Auth (server-side), not the old local PBKDF2 layer in
+  [`src/lib/password.ts`](src/lib/password.ts) (dormant, kept only as a shared validator source).
+- **"CurrencyShopModal payments (gold or gems) aren't real / always succeed."** Still intentional —
+  no payment gateway is wired up yet (see `accountRepository.supabase.ts` `topUpGold`/`topUpGems`).
+  Not a payment-bypass vulnerability; there is no real payment to bypass.
 - Vulnerabilities in a dependency that this project doesn't actually reach at runtime
   (see `npm audit` in CI first — if it's already flagged/tracked there, no need to duplicate).
 
