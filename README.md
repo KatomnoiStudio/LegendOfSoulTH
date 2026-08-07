@@ -18,6 +18,22 @@
 > โค้ดยังอยู่ครบแต่**ไม่มีทางเข้าในเกมตอนนี้** — LEGACY ตั้งแต่ PR #11 ไม่ใช่ขอบเขตที่ใช้งานอยู่
 > (แผนผลิตภัณฑ์เต็ม → [`docs/MASTER_BLUEPRINT_v3.0.md`](docs/MASTER_BLUEPRINT_v3.0.md))
 
+## Setup ครั้งแรก (dev ใหม่)
+
+```bash
+git clone https://github.com/KatomnoiStudio/LegendOfSoulTH.git
+cd LegendOfSoulTH
+npm install
+cp .env.local.example .env.local   # แล้วใส่ค่าจริง (ดูขั้นตอนด้านล่าง)
+npm run dev                        # http://localhost:5173
+```
+
+**ค่าใน `.env.local` เอาจากไหน**: `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` มาจาก Supabase dashboard ของโปรเจกต์ (**Settings → API**) — ขอ HetCreep เชิญเข้า Supabase project เป็น team member (ไม่ใช่ส่งค่าคีย์ผ่านแชท) แล้วไปคัดลอกเองจาก dashboard `.env.local` ถูก `.gitignore` แล้ว (pattern `*.local`) — **ห้าม commit ไฟล์นี้เด็ดขาด**
+
+anon key ไม่ใช่ความลับแบบ service-role key (ถูกออกแบบให้ฝังใน client bundle ได้ ความปลอดภัยจริงอยู่ที่ RLS policy ใน `supabase/migrations/`) แต่ยังต้องมาจาก dashboard เพื่อให้ HetCreep ควบคุม/หมุนเวียนสิทธิ์สมาชิกได้ ไม่ใช่เพราะตัวคีย์เป็นความลับ
+
+ไม่มีค่าเหล่านี้ `npm run dev` จะ throw ทันที (`src/lib/supabaseClient.ts` เช็คตอน module load)
+
 ## คำสั่ง
 
 ```bash
