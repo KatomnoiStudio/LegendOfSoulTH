@@ -37,9 +37,12 @@ Neither path is a workaround of the other — a dev who doesn't know git well is
 
 ## Controller offline / unavailable
 
+**Correction (2026-08-08, live `gh api collaborators` check):** `nustanakritwithai` and `DemoGODRTX` are **no longer `admin:true`** — both dropped to push-only access at some point after this law's original 2026-08-07 draft (which named them as break-glass-eligible). The only `admin:true` accounts today are `HetCreep` and `katomnoistudio-oss` (an org/bot account HetCreep controls, not an independent human) — meaning **there is currently no real break-glass fallback**: no other person holds the technical ability to merge if Ring 0 is genuinely unavailable. This is a tighter access model than this law originally assumed, not a gap — but the break-glass mechanism below is now aspirational until a second trusted human is (re-)granted admin, if HetCreep ever wants that.
+
 No rigid SLA hour-count for a team this size — but the fallback must be _named_, not invented ad hoc under pressure. If Ring 0 is genuinely unavailable and a dev's work is finished, CI-green, and blocking something real:
 
-- The other admin-level collaborators (`nustanakritwithai`, `DemoGODRTX` — already `admin:true` per this repo's existing access control) may merge as a **break-glass fallback**, logged, never silent: the merge commit message states `break-glass: Ring 0 unavailable`.
+- **Today**: no fallback exists. Work waits for Ring 0 (or HetCreep operating as `katomnoistudio-oss`, the same person, not a different party).
+- **If HetCreep grants a second human `admin:true` in the future**, that person may merge as a **break-glass fallback**, logged, never silent: the merge commit message states `break-glass: Ring 0 unavailable`.
 - Break-glass is for finished, CI-green, non-risky work only. Anything touching security/auth/payments/schema/migrations waits for Ring 0 — no exception via break-glass for that category (ties to this project's own CoalBoard error-not-allowed domain list).
 - No dev gets standing merge rights as a workaround for this. Break-glass is a named exception per-incident, not a new standing role.
 
