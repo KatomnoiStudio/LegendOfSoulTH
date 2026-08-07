@@ -5,7 +5,12 @@
 
 ## [Unreleased]
 
-ยังไม่มี
+### Added
+
+- **Blueprint §3.8 Archetype targeting & non-melee resolution** (docs) — Support/Ranged/Summoner/
+  Control/Mini-boss/PvP-level-normalization, gold-standard exemplar-grounded (Guardian Tales,
+  Genshin, Summoners War) — closes gaps found by a 5-round ask-CB rescan loop; fixed a knockdown-rule
+  self-contradiction (§3.6.5 vs §3.6.12) and two dangling §3.9 references (now point to §3.7)
 
 ## [0.7.0] - 2026-08-07
 

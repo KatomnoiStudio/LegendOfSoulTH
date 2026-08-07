@@ -155,7 +155,7 @@ PC: keyboard/mouse/controller-ready; same action layer.
 | Mobile layout                                | Joystick left + S1/S2/S3/U + large Attack bottom-right (§3.3)                                |
 | Dash button                                  | **CUT** — not in UI                                                                          |
 | Soft-target / auto-snap / hard lock (global) | **CUT** for basic movement, facing, and basic attack — player positions depth + L/R manually |
-| Skill-specific target lock                   | **Allowed per skill definition only** (e.g. Ultimate — see §3.9); not a global assist        |
+| Skill-specific target lock                   | **Allowed per skill definition only** (e.g. Ultimate — see §3.7); not a global assist        |
 | `combatFacing` source                        | Movement / joystick vector                                                                   |
 | Vertical-only movement                       | **Keep previous facing** (no auto flip)                                                      |
 | Walk + Attack/Skill                          | **Allowed** simultaneously                                                                   |
@@ -188,7 +188,7 @@ When hit by a **normal/basic** attack:
 - Small backward push + brief stun.
 - **Knockdown is NOT** the default for every normal hit.
 
-**Knockdown reserved for:** heavy attacks, specific skills, combo finishers, elite/boss rules.
+**Knockdown reserved for:** heavy attacks, specific skills, and combo finishers — **but only against elite/boss-tier targets** (§3.6.12). Normal mobs always take hit-stun only, regardless of which move category lands (resolves an earlier ambiguity between this line and the §3.6.12 tuning table — the table is the source of truth).
 
 ### 3.6.6 Interrupt rules
 
@@ -202,18 +202,19 @@ Future **hyper armor / uninterruptible** windows are allowed per move design.
 
 Every attack/skill definition should carry its own data (extend `AttackDefinition` / skill defs in implementation PRs):
 
-| Property                                | Purpose                                                               |
-| --------------------------------------- | --------------------------------------------------------------------- |
-| `startupMs` / `activeMs` / `recoveryMs` | Phase timing (existing)                                               |
-| `castDelayMs`                           | Wind-up before active (skills; basic may be 0 or folded into startup) |
-| `interruptible`                         | Can this phase be cancelled by incoming hit?                          |
-| `movementDuringCast`                    | Allowed movement while casting (usually none or reduced)              |
-| `lungeDistance`                         | Forward displacement on attack (basic attack lunge)                   |
-| `hitstunMs`                             | Stun applied to target on hit                                         |
-| `knockback`                             | Push distance (existing)                                              |
-| `knockdown`                             | Whether this move can knock down                                      |
-| `multiTarget`                           | Hit all in box vs single target (basic = true)                        |
-| `hitShape` / `range` / `depthTolerance` | Hit geometry (existing P2 model)                                      |
+| Property                                | Purpose                                                                                                                                                                                                                      |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `startupMs` / `activeMs` / `recoveryMs` | Phase timing (existing)                                                                                                                                                                                                      |
+| `castDelayMs`                           | Wind-up before active (skills; basic may be 0 or folded into startup)                                                                                                                                                        |
+| `interruptible`                         | Can this phase be cancelled by incoming hit?                                                                                                                                                                                 |
+| `movementDuringCast`                    | Allowed movement while casting (usually none or reduced)                                                                                                                                                                     |
+| `lungeDistance`                         | Forward displacement on attack (basic attack lunge)                                                                                                                                                                          |
+| `hitstunMs`                             | Stun applied to target on hit                                                                                                                                                                                                |
+| `knockback`                             | Push distance (existing)                                                                                                                                                                                                     |
+| `knockdown`                             | Whether this move can knock down                                                                                                                                                                                             |
+| `multiTarget`                           | Hit all in box vs single target (basic = true)                                                                                                                                                                               |
+| `hitShape` / `range` / `depthTolerance` | Hit geometry (existing P2 model)                                                                                                                                                                                             |
+| `effects[]`                             | Optional non-damage effects (§3.8) — kinds: `heal`/`buff`/`cc`/`summon`; each with its own `target` (`self`/`singleEnemy`/`nearestEnemy`/`allEnemies`/`singleAlly`/`allAllies`/`aoe`); omitted entirely on pure-damage moves |
 
 Boss/enemy attacks additionally define: `telegraphMs`, `attackShape`, phase eligibility.
 
@@ -288,23 +289,23 @@ Combat remains a **2.5D positioning-based brawler:** player controls **movement 
 
 HetCreep: set sensible defaults first; **values below are starting points**, not final balance.
 
-| Parameter                          | Initial value                              | Notes                                                 |
-| ---------------------------------- | ------------------------------------------ | ----------------------------------------------------- |
-| `lungeDistance` (basic, per hit)   | 32 / 36 / 44                               | Hit 1 → 2 → 3; hit 3 slightly longer                  |
-| `hitstunMs` (normal basic on hit)  | 200                                        | Short stun before resume                              |
-| `knockback` (basic)                | keep `attacks.ts` chain values             | Tune in playtest                                      |
-| `castDelayMs` S1 / S2 / S3 / Ult   | 0\* / 250 / 320 / 480                      | \*S1 folded into existing startup                     |
-| `interruptible` (default skill)    | `true` during cast                         | Per-skill override in kit                             |
-| `interruptible` (Ultimate wind-up) | `false` during clone/setup phase           | Monkey King ult — see §3.9                            |
-| `movementDuringCast` (default)     | `none`                                     | S3 leap uses skill-driven displacement, not free walk |
-| Mob `telegraphMs`                  | 280                                        | Normal melee enemy                                    |
-| Boss `telegraphMs`                 | 800–1200                                   | Per attack row                                        |
-| Knockdown on normal mob            | **no**                                     | P4 mobs use Hit stun only                             |
-| Knockdown                          | elite/boss + heavy moves + combo finishers | Per move flag                                         |
-| Boss phase threshold               | **50% HP**                                 | **2 phases** baseline                                 |
-| `getUp` i-frames                   | 200 ms                                     | After knockdown                                       |
+| Parameter                                | Initial value                              | Notes                                                 |
+| ---------------------------------------- | ------------------------------------------ | ----------------------------------------------------- |
+| `lungeDistance` (basic, per hit)         | 32 / 36 / 44                               | Hit 1 → 2 → 3; hit 3 slightly longer                  |
+| `hitstunMs` (normal basic on hit)        | 200                                        | Short stun before resume                              |
+| `knockback` (basic)                      | keep `attacks.ts` chain values             | Tune in playtest                                      |
+| `castDelayMs` S1 / S2 / S3 / Ult         | 0\* / 250 / 320 / 480                      | \*S1 folded into existing startup                     |
+| `interruptible` (default skill)          | `true` during cast                         | Per-skill override in kit                             |
+| `interruptible` (Ultimate, all 4 phases) | `false` for the entire strike sequence     | Monkey King ult — hyper-armor throughout, see §3.7    |
+| `movementDuringCast` (default)           | `none`                                     | S3 leap uses skill-driven displacement, not free walk |
+| Mob `telegraphMs`                        | 280                                        | Normal melee enemy                                    |
+| Boss `telegraphMs`                       | 800–1200                                   | Per attack row                                        |
+| Knockdown on normal mob                  | **no**                                     | P4 mobs use Hit stun only                             |
+| Knockdown                                | elite/boss + heavy moves + combo finishers | Per move flag                                         |
+| Boss phase threshold                     | **50% HP**                                 | **2 phases** baseline                                 |
+| `getUp` i-frames                         | 200 ms                                     | After knockdown                                       |
 
-### 3.7 Reference hero kit — หนุมาน / Monkey King (LOCKED baseline)
+## 3.7 Reference hero kit — หนุมาน / Monkey King (LOCKED baseline)
 
 First vertical-slice kit. Other heroes follow the same **per-hero kit file** pattern.
 
@@ -318,7 +319,61 @@ First vertical-slice kit. Other heroes follow the same **per-hero kit file** pat
 
 **Ultimate exception:** only this skill (and future skills explicitly flagged `targetLock: 'nearest'`) may auto-pick a target. Basic attack and S2/S3 still use manual facing/positioning unless their kit row says otherwise.
 
+**Ultimate strike-phase resolution (LOCKED, gold-standard-grounded — genre convention, e.g. Genshin/Star Rail ultimates):** all 4 strike phases hit the **same** locked target (the initial nearest-enemy lock persists through the whole sequence, not re-acquired per phase) — matches the "clone rush" flavor (4 clones converging on one target, not 4 separate picks). The entire 4-phase sequence is **non-interruptible** (hyper-armor), not just the clone/setup wind-up — an ultimate that can be stopped mid-animation reads as broken in this genre. Future `targetLock: 'nearest'` skills should default to this pattern unless their kit row states otherwise.
+
 **Next design gate (OPEN):** per-hero finisher tuning tables and additional hero kits beyond Monkey King.
+
+---
+
+## 3.8 Archetype targeting & non-melee resolution (LOCKED — gold-standard-grounded)
+
+> Fills gaps found in a repeat ask-CB design-gap scan (round 3, 2026-08-07) that survived §3.6/§3.7's locks. Grounded in named exemplars per gold-standard method — cite the exemplar, don't invent an unsourced convention.
+
+### 3.8.1 Support archetype — no ally to target in solo-hero mode
+
+§5.1 locks "pick one hero before stage, no mid-stage switch" — the player only ever has **one** hero on the field in PvE. §3.6.7's `effects[]` schema (item resolved in fork issue #47) already lists `singleAlly`/`allAllies` as valid targets, anticipating party/summon scenarios.
+
+**Resolution (exemplar: Guardian Tales — single active hero, support kits buff the active hero rather than a party):**
+
+- `singleAlly`/`allAllies` effects **fall back to targeting self** when no other ally unit exists on the field.
+- A Summoner's active summons **do** count as allies — a Support kit paired with a Summoner's summons can genuinely multi-target.
+- A pure solo Support hero (no summons out) therefore plays as a **self-buff/self-heal** kit — consistent with ★1-must-be-fully-playable (§4.3) without requiring a party system that doesn't exist yet.
+
+### 3.8.2 Ranged archetype — reuses the existing per-move schema, no new fields
+
+**Resolution (exemplar: Genshin Impact — bow/catalyst basic attacks are the same startup→active→recovery state machine as melee, just with `lungeDistance≈0` and a projectile hitbox):**
+
+- Ranged basic attack uses the **same** §3.6.7 schema as Monkey King's melee basic — set `lungeDistance` near 0, `range` longer, and `hitShape` to a projectile/line shape instead of the close-range multi-target box.
+- No new per-move property is needed; this is a data/tuning difference per hero kit, not an architecture gap.
+
+### 3.8.3 Summoner archetype — summons reuse the enemy AI core
+
+Already directionally locked in fork issue #47 ("summon effect → reuse spawn/entity pool — ไม่สร้าง AI core ใหม่"), stated explicitly here for the record:
+
+- A summoned unit runs the **same** `Idle → Chase → Telegraph → AttackActive → Recovery` state machine as enemy AI (§3.6.8), flagged as player-ally and targeting the nearest enemy instead of the player.
+- Summons do not get a bespoke AI system.
+
+### 3.8.4 Mini-boss — Elite-tier stats, no phase transition
+
+§3.6.9's phase-transition system is scoped to "Boss"; §3.6.8's knockdown/tier table only names "elite/boss." §5.2 introduces "Mini-boss" as a stage-variation example with no tier mapping stated.
+
+**Resolution:** Mini-boss = **Elite tier** (stats, knockdown-eligibility per §3.6.8/§3.6.12) **without** the Boss phase-transition system (§3.6.9) — a stronger single-phase Elite encounter used as a stage centerpiece, not a scaled-down Boss.
+
+### 3.8.5 PvP power normalization — level/skill-level, not just star
+
+§4.3/§6.2 bound **star** power gap (★6 ≤ 130% ★1, fork issue #35) but never addressed hero Level or Skill Level in ranked PvP — a max-level, max-skill-level hero would still dominate a fresh one at the same star, defeating the point of the star-gap bound.
+
+**Resolution (exemplar: the standard ranked-arena pattern in gacha PvP — e.g. Summoners War's arena, which normalizes level so rarity/investment differences are the only intended axis):** ranked PvP (§6) **normalizes Hero Level and Skill Level to the ranked baseline** (effectively max) for the duration of a match — only **star tier** creates the (already-bounded) power gap in ranked. PvE is unaffected; a player's real level/skill progression still matters there.
+
+### 3.8.6 Control archetype — CC is a status effect, not a knockdown
+
+§3.6.5/§3.6.12 restrict **knockdown** to elite/boss-tier targets only — but a Control hero's whole point is disabling _normal_ mobs too, and fork issue #47 already anticipated a `cc` kind in `effects[]` alongside `heal`/`buff`/`summon`.
+
+**Resolution:** CC (stun/root/silence) is applied via `effects[]`'s `cc` kind, carrying its own `ccType`/`ccDurationMs` — it is a **status-effect application**, not a knockdown, and is therefore **not** subject to the elite/boss-only knockdown restriction. A Control kit can stun a normal mob; it just doesn't trigger the knockdown/hit-reaction state machine (§3.6.8) when it does. Heavy and Assassin need no dedicated resolution: Heavy is already a named knockdown trigger (§3.6.5), and Assassin-style mobility is already covered by the generic lunge/leap schema (§3.6.7) — there's no facing-based "backstab" concept possible in an L/R-only attack model, so nothing further to define.
+
+### 3.8.7 PvP hit-reaction tier — deferred to P12
+
+§3.6.5/§3.6.9's knockdown tiers (normal/elite/boss) are written for PvE; §6.3 doesn't state which tier an opposing player-hero maps to (knockdown-immune like a normal mob, or knockdown-eligible like an elite?). Not blocking before P12 (PvP prototype) — resolve alongside the PvP netcode model when that work actually starts.
 
 ---
 
@@ -363,6 +418,10 @@ Example: 1-1 → 1-2 → 1-3 → 1-4 → 1-5 Boss → Chapter 2 …
 - Pick **one hero** before stage; no mid-stage switch
 - Normal stage target: **2–5 min**; boss: **5–8 min**
 
+**Stage-N+1 gating — OPEN, not gold-standard-defaulted:** whether progression requires only a clear-gate (sequential unlock) or also a stamina/energy cost per attempt is a genre-common pattern (Genshin's Resin, Star Rail's Trailblaze Power) but is a **product-philosophy choice** (F2P friction vs player-friendly), not something to default from precedent — §7 already leans player-friendly ("must not sell best power primarily via direct purchase"), which cuts against energy-gating being an automatic fit. **Needs an explicit HetCreep call before P7**, not a gold-standard-grounded default.
+
+**Chapter/stage difficulty scaling — LOCKED architecture, numbers deferred to P7/P11:** enemy stats and stage difficulty scale via a **data-driven per-stage/per-chapter table** (consistent with the config-driven pattern already locked for gacha rates, star ascension, and skill-level scaling — never a hardcoded formula in code). Exact multipliers tune at P7/P11 implementation time.
+
 ## 5.2 Stage design (LOCKED)
 
 **Not every stage is Wave → Wave → Elite.**
@@ -373,7 +432,7 @@ Required **variation** examples:
 - Defend
 - Chase
 - Hazard
-- Mini-boss
+- Mini-boss — **tier = Elite** (§3.8.4), no phase-transition system
 - Time Attack
 - Custom objectives
 
@@ -398,6 +457,8 @@ Goal: **positioning and vertical movement matter** — not repetitive arena wave
 - Match **within rank band** first; expand search if queue waits
 - Rank band reduces raw power mismatch but **does not replace** star-gap balance design
 - When tuning numbers: **limit star power gap** so ★6 does not auto-win vs ★1 in the same rank
+- **PvP normalizes Hero Level and Skill Level to the ranked baseline** (§3.8.5) — only star tier creates a (bounded) power gap in ranked; PvE progression is unaffected
+- **Queue-expansion thresholds — deferred to P13**, alongside the Elo/tier/K-factor numbers (fork issue #39): band-expansion step size and max wait target are tuning parameters, not architecture
 
 ## 6.3 Combat core
 
