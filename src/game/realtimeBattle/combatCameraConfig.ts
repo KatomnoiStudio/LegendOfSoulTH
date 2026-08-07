@@ -6,7 +6,7 @@
  */
 
 export interface CombatCameraConfig {
-  /** Downward pitch from horizontal plane (degrees). ~30° elevated action framing. */
+  /** Downward pitch from horizontal plane (degrees). Target ~10–20°. */
   pitchDeg: number
   /** Base camera distance from look target (world units). */
   distance: number
@@ -49,22 +49,38 @@ export interface CombatCameraConfig {
   maxRelevantEnemies: number
 }
 
-/** Elevated side-down action camera — presentation baseline. */
-export const DEFAULT_COMBAT_CAMERA_CONFIG: CombatCameraConfig = {
-  pitchDeg: 30,
-  distance: 5.0,
-  fovDeg: 38,
+/** v0.8.2 camera baseline before the misinterpreted +30% height change (v0.8.3). */
+export const COMBAT_CAMERA_V082_BASELINE = {
+  pitchDeg: 18,
+  distance: 5.5,
   heightOffset: 0.58,
+  targetCharacterScreenHeightRatio: 0.3,
+  minZoom: 0.88,
+  maxZoom: 1.22,
+} as const
+
+/** Viewpoint height boost on top of the v0.8.2 baseline (+30% camera elevation). */
+export const COMBAT_CAMERA_VIEW_HEIGHT_BOOST = 1.3
+
+/**
+ * v0.8.2 baseline camera Y at zoom 1 ≈ 2.28.
+ * +30% target Y ≈ 2.96 → heightOffset 1.264 with pitch/distance restored.
+ */
+export const DEFAULT_COMBAT_CAMERA_CONFIG: CombatCameraConfig = {
+  pitchDeg: COMBAT_CAMERA_V082_BASELINE.pitchDeg,
+  distance: COMBAT_CAMERA_V082_BASELINE.distance,
+  fovDeg: 38,
+  heightOffset: 1.264,
   targetHeightOffset: 0,
-  minZoom: 0.9,
-  maxZoom: 1.26,
+  minZoom: COMBAT_CAMERA_V082_BASELINE.minZoom,
+  maxZoom: COMBAT_CAMERA_V082_BASELINE.maxZoom,
   followSmoothing: 0.12,
   zoomSmoothing: 0.14,
   playerScreenBias: -0.06,
   depthCompositionBias: 0.35,
   horizontalViewMargin: 0.9,
   referenceCharacterHeight: 1.6,
-  targetCharacterScreenHeightRatio: 0.36,
+  targetCharacterScreenHeightRatio: COMBAT_CAMERA_V082_BASELINE.targetCharacterScreenHeightRatio,
   minCombatSpanWorld: 2.8,
   maxCombatSpanWorld: 7.5,
   bossDistanceModifier: 0.92,

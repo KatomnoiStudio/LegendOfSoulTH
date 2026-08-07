@@ -5,6 +5,20 @@
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-08-07
+
+Camera +30% view height fix — revert character tilt regression from v0.8.3 misinterpretation
+
+### Fixed
+
+- Revert EntitySprite Y-axis billboard (root cause of walking tilt) — restore fixed pitch lean
+- Restore v0.8.2 camera pitch/distance baseline; apply +30% via `heightOffset` only (1.264)
+- Revert mistaken `targetCharacterScreenHeightRatio` zoom boost (0.36 → 0.3)
+
+### Tests
+
+- Camera +30% height regression guard + entity sprite presentation constants
+
 ## [0.11.0] - 2026-08-07
 
 Result / Reward Pipeline — dungeon clear/fail → resolve → grant → save → result UI

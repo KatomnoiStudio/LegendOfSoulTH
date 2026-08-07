@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_COMBAT_CAMERA_CONFIG } from './combatCameraConfig'
+import {
+  COMBAT_CAMERA_V082_BASELINE,
+  COMBAT_CAMERA_VIEW_HEIGHT_BOOST,
+  DEFAULT_COMBAT_CAMERA_CONFIG,
+} from './combatCameraConfig'
 import {
   clampLookTarget,
   computeCameraPose,
@@ -62,5 +66,22 @@ describe('combatCameraFraming', () => {
     const clamped = clampLookTarget({ x: 99, z: 99 }, limits)
     expect(clamped.x).toBeLessThanOrEqual(limits.limitX)
     expect(clamped.z).toBeLessThanOrEqual(limits.limitZ)
+  })
+
+  it('raises camera view height +30% over v0.8.2 baseline without changing character reference size', () => {
+    const baselineConfig = {
+      ...DEFAULT_COMBAT_CAMERA_CONFIG,
+      ...COMBAT_CAMERA_V082_BASELINE,
+    }
+    const look = { x: 0, z: 0 }
+    const baselinePose = computeCameraPose(look, 1, baselineConfig)
+    const currentPose = computeCameraPose(look, 1, DEFAULT_COMBAT_CAMERA_CONFIG)
+
+    expect(DEFAULT_COMBAT_CAMERA_CONFIG.referenceCharacterHeight).toBe(1.6)
+    expect(DEFAULT_COMBAT_CAMERA_CONFIG.pitchDeg).toBe(COMBAT_CAMERA_V082_BASELINE.pitchDeg)
+    expect(currentPose.positionY).toBeCloseTo(
+      baselinePose.positionY * COMBAT_CAMERA_VIEW_HEIGHT_BOOST,
+      1,
+    )
   })
 })
