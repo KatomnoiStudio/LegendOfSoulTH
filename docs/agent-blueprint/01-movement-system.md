@@ -1,0 +1,72 @@
+# 1. Movement System
+
+> Category: Combat core · Generated via gold-standard FILL + adversarial CB-lite verify (2 seats), 2026-08-07 · **revised after verify flagged an issue**.
+
+### Scope
+
+Owns per-tick resolution of movement for any `RealtimeBattleEntity` (player or enemy) inside the real-time battle stage: input-vector normalization/deadzone, diagonal-speed correction, speed-to-displacement integration, circle-vs-circle collision push-out against other living entities, arena-bounds clamping, and derived 8-way `facing` + combat-facing update (`src/game/realtimeBattle/MovementSystem.ts:1-134`, delegating combat-facing to `combatFacing.ts`). It does NOT own: input capture/device mapping (joystick/keyboard → `Vec2`, lives in the input layer feeding `RealtimeBattleRuntime`), enemy decision-making (`EnemyAISystem.ts` decides _where_ to go, explicitly deferring to this system to actually move — comment at `EnemyAISystem.ts:7-11`), attack/hit resolution (`HitboxSystem`/`DamageSystem`), hit-stun/death state transitions (only _reads_ `entity.state`/`hitStunRemainingMs`, doesn't set them), or camera/3D rendering (pure logic file, "ไม่มีอะไรผูกกับ React หรือ DOM" per file header, `MovementSystem.ts:6`).
+
+### Inputs/Outputs
+
+- `stepMovement(entity: RealtimeBattleEntity, inputVector: Vec2, deltaMs: number, ctx: MovementContext): boolean` — mutates `entity.velocity`, `entity.position`, `entity.facing`, `entity.combatFacing` in place; returns `true` iff the entity actually moved this tick.
+- `MovementContext = { stage: RealtimeBattleStage; blockers: RealtimeBattleEntity[] }` — `stage` supplies `width`/`height` bounds; `blockers` is the set of other living entities to collide against (caller passes all enemies for the player, `[player, ...enemies]` for an enemy — self is filtered by `id`, `RealtimeBattleRuntime.ts:127-130,370-373`).
+- Pure helpers also exported: `normalizeVector(Vec2): Vec2`, `directionFromVector(Vec2): Direction8 | null`, `clampToArena(Vec2, radius, stage): Vec2`, `resolveCircleOverlap(mover, moverRadius, other, otherRadius): Vec2`.
+- Reads but does not write: `entity.state`, `entity.hitStunRemainingMs`, `entity.speed`, `entity.collisionRadius`.
+
+### Dependencies
+
+- **Combat (this system)** feeds movement results to combat-facing (`combatFacing.ts`) and is consumed every tick by the realtime-battle runtime (`RealtimeBattleRuntime.ts`), which also drives `DamageSystem`/`HitboxSystem`/`ComboSystem`.
+- **Enemy AI** (`EnemyAISystem.ts`) is upstream: it decides the desired direction vector and hands it to this system rather than moving entities itself — stated explicitly to avoid a second, rule-diverging movement implementation (`EnemyAISystem.ts:7-11`).
+- **Hero system**: player input vector originates from hero/input layer, not owned here.
+- No dependency on adventure/pvp/economy/backend/social systems — this is combat-core only. (Note: `src/game/adventure/movement.ts` and `src/game/exploration/movement.ts` are separate, unrelated movement modules for other game modes — not this system.)
+
+### Done-criteria
+
+Existing `MovementSystem.test.ts` already encodes the acceptance bar; a change is done when it still holds and the following remain true:
+
+1. Diagonal input normalizes to the same top speed as cardinal input (no diagonal speed boost) — `MovementSystem.test.ts:45,169`.
+2. Sub-deadzone (`< 0.12` magnitude) input produces zero velocity/no facing change — `:55,74`.
+3. Displacement per tick = `speed * (deltaMs/1000)` along the normalized vector — `:117`.
+4. Entity cannot leave `[radius, stage.width-radius] × [radius, stage.height-radius]` — `:135`.
+5. `state === 'dead'` or `hitStunRemainingMs > 0` blocks movement and zeroes velocity — `:143,151`.
+6. Overlapping blockers are pushed apart to exactly `moverRadius + otherRadius` separation, including the zero-distance degenerate case — `:96,101,106,156`.
+7. `npm run test` (Vitest, per `MovementSystem.test.ts`) and `npm run typecheck` pass.
+
+### World-class bar
+
+**Celeste** (Maddy Thorson/Matt Makes Games, 2018) is the reference worth naming here, but for its actual signature technique, not the one this system implements. Celeste's reputation for input forgiveness rests on _temporal_ forgiveness — coyote-time and jump-buffering, letting a late or early press still register as correct — not on deadzone thresholding, which is a generic, near-universal technique in any game with analog input and not something Celeste is distinctively known for. This system currently has the deadzone half (`INPUT_DEADZONE = 0.12`, `MovementSystem.ts:14`) and no input-buffering equivalent. The aspirational reference, if movement-feel complaints arise later, is Celeste's buffering/coyote-time pattern specifically — not a justification for the deadzone constant already in place.
+
+### Stay-current note
+
+If/when hero-specific movement mods ship (speed buffs, slows, dash-in-a-skill per §3.4's "mobility may live inside skills"), `entity.speed` as a flat scalar may need to become a base+modifiers computation — worth revisiting only when such a skill is actually implemented, not before.
+
+### Low-maintenance-cost design
+
+Single source of truth, enforced by comment and structure, not just convention: `EnemyAISystem.ts` deliberately does not reimplement movement — it only produces a direction vector and calls the same `stepMovement` the player uses (`EnemyAISystem.ts:7-11`), so collision/bounds/speed rules exist in exactly one place for both player and enemies. The module is also plain, dependency-free pure functions (no class, no interface/DI layer for a single implementation) mutating a plain data struct — consistent with this codebase's ECC/YAGNI style of not adding abstraction until a second real implementation demands it.
+
+### Known scars (real historical precedent)
+
+**Note on exemplar substitution**: `01-movement-system.md`'s "World-class bar" section cites Celeste, but explicitly for its _coyote-time/jump-buffering_ (temporal input forgiveness) — a mechanic this system doesn't implement (no jumping, no input buffering). I searched for documented Celeste incidents matching what this system actually does (analog deadzone, diagonal-vector normalization, per-tick speed*delta integration, circle-vs-circle push-out collision, arena-bounds clamping) and found none well-documented — Celeste's public bug/changelog record (itch.io bug board, official changelog) is dominated by soft-locks, an up/down input-repeat bug, and respawn-facing bugs, not deadzone/diagonal-normalization/multi-entity-collision incidents. Per the task instructions, substituting the closest well-documented real incidents in the same _mechanical_ territory (movement-vector integration and physics collision-resolution), even across different exemplar games, since no single well-documented game covers all three sub-mechanisms.
+
+**Revision note (this pass)**: the prior draft's second scar (Quake strafe-jumping) had two problems on recheck: its sole citation (`press.etc.cmu.edu/node/2899`) 301-redirects to an unrelated generic book-catalog page — dead as a source — and, more importantly, Quake's bug requires an acceleration/velocity-_accumulation_ model (speed capped only along the current acceleration vector, letting alternating inputs compound across ticks). Reading `MovementSystem.ts:108-109` confirms this system has no such model: `entity.velocity` is fully recomputed from `direction * entity.speed` on every call, with nothing carried over from the previous tick. The Quake scar's "Test-for-us" was therefore asserting a property already structurally guaranteed by this codebase's design, not exercising a genuine risk — a citation swap alone wouldn't have fixed that. It's replaced below with a different failure mode in the same "per-tick speed*delta integration" territory that _does_ apply here: `stepMovement` takes `deltaMs` from the caller and multiplies it straight into displacement (`MovementSystem.ts:108,112-113`) with no upper clamp anywhere in the function. The existing suite only ever calls it with small, uniform values (100/500/1000ms, `MovementSystem.test.ts:119,128,138,145,153,160,173-174`) — never a spike.
+
+---
+
+- **Scar**: Doom's diagonal movement vector was never normalized, so holding forward+strafe together moved the player ~30% faster than either alone — formalized by the speedrun community as "SR40" (straferunning at ~40 units/tic vs. cardinal cap). — Source: [Diagonal Speed Boost — TV Tropes](https://tvtropes.org/pmwiki/pmwiki.php/Main/DiagonalSpeedBoost) (quote verified live: "Straferunning (SR)... is 30% faster... SR40"); secondary/corroborating: [`quakemovement` — GZDoom modding guide for porting Quake-style acceleration physics into Doom, documents SR40/SR50 friction values](https://github.com/0dot0repeating/quakemovement) (relabeled here — it's a porting/config guide, not a comparative writeup of the two games' native movement code, and doesn't itself narrate the SR40 history the way the prior draft's citation implied; TV Tropes carries the actual claim).
+- **Test-for-us**: Feed `normalizeVector`/`stepMovement` an input vector at several off-axis angles (not just the four cardinal or eight canonical diagonals — e.g. (0.9, 0.4), (0.3, 0.95)) and check the resulting per-tick displacement magnitude never exceeds `speed * (deltaMs/1000)` at any angle, not just the ones the existing test suite (`MovementSystem.test.ts:45,169`) happens to sample.
+
+- **Scar**: Variable/unclamped frame delta fed directly into a `position += velocity * deltaTime` integration is a well-documented class of physics bug — a frame hitch, GC pause, or lag spike inflates `deltaTime` for one tick, and the resulting single-tick displacement can overshoot far past the intended per-tick speed cap, tunneling through collision geometry or past bounds the game assumed nothing could cross in one step. — Source: [Fix Your Timestep! — Glenn Fiedler, gafferongames.com](https://gafferongames.com/post/fix_your_timestep/) (quote verified live: "...fast moving objects tunneling through walls and players falling through the floor!"). Note: unlike the Doom and Skyrim scars, this isn't a single shipped game's documented public-bug-tracker incident — it's the canonical, widely-cited engineering-literature source describing exactly this failure class, chosen because (unlike the strafe-jumping scar it replaces) it structurally matches this system's actual design: full per-tick recompute driven directly by a caller-supplied, unclamped `deltaMs`.
+- **Test-for-us**: Call `stepMovement` with a large/spiky `deltaMs` (simulating a frame hitch or lag spike — e.g. 500, 2000, 10000, well outside the 100–1000ms range the existing suite uses) against a blocker or arena edge positioned within normal per-tick reach but well short of the resulting large-delta displacement, and confirm the entity's final position still satisfies both Done-criteria invariants together — inside arena bounds _and_ never ending up on the far side of / clipped through a blocker it should have collided with — rather than checking each invariant only in isolation the way the current small-, uniform-deltaMs tests do.
+
+- **Scar**: Skyrim's physics engine has a well-documented family of collision/contact bugs where sustained contact with another body or getting stuck against scenery causes velocity to build up or resolve incorrectly, launching the entity at high speed instead of a small bounded correction ("catapult"/"flying NPC" glitches). — Source: [Skyrim:Glitches — UESP (Unofficial Elder Scrolls Pages) Wiki, Physics section](https://en.uesp.net/wiki/Skyrim:Glitches) (verified live; documents sustained-contact "vibrate"/velocity-gain-while-pushing and enemies "catapulting" after getting stuck in scenery — not specifically an at-spawn/exact-overlap case; framing below adjusted to match).
+- **Test-for-us**: Place two entities at the exact same position (the zero-distance case the Done-criteria already names, `MovementSystem.test.ts:96,101,106,156` — this codebase's closest in-engine analog to Skyrim's stuck/overlapping-bodies family, not a claim UESP documents that precise spawn scenario) and also try 3+ blockers all overlapping the mover simultaneously in one tick — confirm `resolveCircleOverlap`'s output displacement stays small/bounded per tick (no single-tick position jump proportional to overlap count) and that resolution order across multiple simultaneous overlaps doesn't compound into one entity being shoved a large distance in one step.
+
+---
+
+None of the above prescribes how Doom, Skyrim, or generic engine physics literature eventually fixed these — this project's own `01-movement-system.md` Done-criteria and `docs/MASTER_BLUEPRINT_v3.0.md` are what define correct behavior here; the exemplars only supply the _shape_ of failure worth trying to reproduce against this system.
+
+---
+
+**Verification method**: fetched all four citations live (WebFetch), confirmed the two carried-over sources (TV Tropes, UESP) resolve and quote-match as claimed; confirmed the dead `press.etc.cmu.edu` URL 301s to an unrelated book-catalog page and did not attempt to patch it in place — replaced the scar it supported instead, since the deeper problem was mechanical mismatch, not just link rot; confirmed the replacement source (`gafferongames.com/post/fix_your_timestep/`) is live and quote-matches; read `MovementSystem.ts` and `MovementSystem.test.ts` directly to confirm the no-accumulation velocity model and the existing suite's deltaMs value range.
+
+**Discipline-check** (re-verified this pass): PASS. All three "Test-for-us" lines assert outcome invariants (bounded displacement magnitude, both position invariants holding simultaneously under a large delta, bounded per-tick push-out) — none tell the implementer to copy an exemplar's specific fix mechanism (no "clamp deltaMs like engine X does," no "cap along total velocity like later Quake did"). They stay in "name the failure shape, let this project's own Done-criteria define correct" territory.

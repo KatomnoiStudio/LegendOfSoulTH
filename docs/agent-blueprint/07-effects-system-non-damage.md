@@ -1,0 +1,54 @@
+# 7. Effects System (non-damage)
+
+> Category: Combat core · Generated via gold-standard FILL + adversarial CB-lite verify (2 seats), 2026-08-07 · **revised after verify flagged an issue**.
+
+### Scope
+
+Owns: resolving the optional `effects[]` array on a move definition (§3.6.7) into non-damage outcomes — `heal`, `buff`, `cc` (stun/root/silence via `ccType`/`ccDurationMs`), `summon` — and resolving each effect's `target` (`self`/`singleEnemy`/`nearestEnemy`/`allEnemies`/`singleAlly`/`allAllies`/`aoe`) against whatever units actually exist on the field, including the solo-hero fallback rule (§3.8.1: `singleAlly`/`allAllies` → self when no other ally is out). Does NOT own: damage-number calculation (Hit Reaction / Damage System, §3.6.5), the knockdown/hit-reaction state machine that `cc` is explicitly exempted from (§3.8.6), the summoned unit's AI loop itself (Enemy AI System reused per §3.8.3 — Effects System only spawns it), or per-hero kit balancing numbers.
+
+### Inputs/Outputs
+
+- **In**: one `effects[]` entry per invocation — `{ kind: 'heal'|'buff'|'cc'|'summon', target: TargetSelector, /* kind-specific: healAmount | buffType+magnitude+durationMs | ccType+ccDurationMs | summonId }` — plus current battle-state unit roster (player, allies/summons, enemies) to resolve `target` against.
+- **Out**: applied state mutation(s) — HP delta (heal), a timed stat modifier record (buff), a timed status-effect record consumed by later hit-reaction checks (cc), or a spawned unit handed to the Enemy-AI-reuse path (summon). The effects resolver itself has no return value beyond the mutated battle state, following `DamageSystem.ts`'s existing direct-field-mutation style, e.g. `target.hitStunRemainingMs = HIT_STUN_MS` at `src/game/realtimeBattle/DamageSystem.ts:82`. Note `applyDamage` (same file, lines 69-96) _does_ return a `DamageOutcome` — that return value is Damage System's own concern (the damage number/crit flag), not something the effects resolver needs an analogue of, since none of `heal`/`buff`/`cc`/`summon` produce a comparable per-call number the caller must consume.
+
+### Dependencies
+
+- **Per-Move Property Schema** (#5) — `effects[]` is a field _on_ that shared schema, not separate.
+- **Skill/Cast System** (#4) / **Basic Attack System** (#3) — effects fire from the same active-frame resolution these systems already drive.
+- **Hit Reaction System** (#6) — `cc` must stay routed around the knockdown/hit-reaction state machine per §3.8.6; must not silently start calling it. **Caveat**: verified against `src/game/realtimeBattle/types.ts:25` — `EntityState` is `'idle' | 'walk' | 'attack' | 'skill' | 'hit' | 'dead'`, no `knockdown` state exists anywhere in `src/` (grep confirms zero hits), and `applyDamage` applies hit-stun/knockback uniformly with no elite/boss tier branch. This matches `AGENT_BLUEPRINT.md`'s own admission (line 24) that Elite/Mini-boss Tier (#10) and Boss System (#11) are zero-implementation. So "stays routed around the knockdown state machine" is a forward-looking exemption against machinery that doesn't exist yet — today the enforceable contract is narrower: cc must not touch `applyDamage`/`hitStunRemainingMs` at all (see Done-criteria #4).
+- **Enemy AI System** (#9) — `summon` effects hand off to this system's state machine verbatim (§3.8.3), no bespoke AI.
+- **Elite/Mini-boss Tier (#10) / Boss System (#11)** — not yet implemented (confirmed above). Any cc-tier-differentiation behavior (mob vs. elite vs. boss knockdown-immunity) is out of scope until one of these lands; this system's cc-exemption claim is provable today only at the narrower "doesn't call `applyDamage`" level, not at a "doesn't cause knockdown" level, because nothing in shipped code can knock anything down yet.
+- **Hero Kit / Archetype System** (#12) — Support/Control/Summoner archetype resolutions (§3.8.1/§3.8.6) are the consumers that make this system meaningful; it has no purpose without them.
+
+### Done-criteria
+
+1. `AttackDefinition` (or skill-def equivalent) gains an optional `effects[]` field with the four kinds and full target union from §3.6.7 — compiles, unit-tested for shape.
+2. A pure-damage move with `effects` omitted behaves byte-identical to today (regression test against existing `attacks.ts`/`DamageSystem.test.ts` fixtures).
+3. `singleAlly`/`allAllies` resolve to self when zero other allies are on field, and to the real ally set when a Summoner's summon is out — both paths covered by a test (§3.8.1).
+4. `cc` applies its status effect without ever calling `applyDamage` or writing `target.hitStunRemainingMs` — test asserts that after a `cc` effect resolves, the target's `hitStunRemainingMs` is untouched (stays at whatever it was pre-effect) and `applyDamage` was not invoked for that resolution. This is the testable form of the §3.8.6 exemption available today. **Blocked/deferred**: a stronger assertion — "a stunned normal mob is not knocked down, but a stunned elite/boss is" — requires an actual knockdown state and an elite/boss tier distinction, neither of which exist yet (#10/#11, zero implementation per `AGENT_BLUEPRINT.md:24`); revisit this criterion when either system lands.
+5. `summon` spawns a unit running the same `Idle → Chase → Telegraph → AttackActive → Recovery` machine as enemy AI, flagged ally-targeting-nearest-enemy — verified by reusing (not forking) the existing enemy AI test harness.
+
+### World-class bar
+
+Exemplar: **Guardian Tales** (already the cited exemplar in blueprint §3.8.1, not invented here) — single active-hero-on-field model where Support kits buff/heal the active hero directly rather than requiring a party UI. The one pattern worth borrowing: **the fallback-to-self resolution lives in the targeting layer, not as a special case duplicated in every Support hero's kit data** — so a ★1 Support is fully playable solo (§4.3) without the game needing a party system that doesn't exist yet.
+
+### Stay-current note
+
+§3.8.7 explicitly defers "PvP hit-reaction tier" to P12 — when PvP netcode lands, `cc` against an opposing player-hero (knockdown-immune like a mob, or elite-like?) is unresolved and will force a revisit of this system's target-resolution rules for the PvP context. Separately (see Dependencies), Elite/Mini-boss Tier (#10) and Boss System (#11) landing will also force a revisit of Done-criterion #4 from "doesn't call `applyDamage`" up to an actual knockdown-immunity assertion.
+
+### Low-maintenance-cost design
+
+Keep `effects[]` as **plain data fields on the existing `AttackDefinition`/skill-def objects in `attacks.ts`/`skills.ts`**, interpreted by kind: `cc`/`buff` resolve entirely in `SkillSystem.ts` and must never touch `DamageSystem.ts`'s hit-reaction fields (`hitStunRemainingMs` etc.) or call `applyDamage` — that's the boundary Done-criterion #4 tests. `heal`/`summon` may read/write `DamageSystem.ts`-adjacent state (HP, unit roster) since they're the inverse of damage/spawn concerns already living there, but still don't route through `applyDamage`'s hit-stun path. This mirrors the pattern already in place, where `attacks.ts`'s own header states tuning values must live in one file so balance changes don't require touching five files (`src/game/realtimeBattle/attacks.ts:1-5`), and `DamageSystem.ts` applies `HIT_STUN_MS` as a direct field write rather than through an abstract effect-pipeline class. Do not build a generic `StatusEffectManager`/effect-handler interface before a second effect kind actually needs shared machinery — with only `heal`/`buff`/`cc`/`summon` and zero of them implemented yet, an interface today would be a speculative abstraction with one real caller each (YAGNI, per project ponytail/ECC convention).
+
+### Known scars (real historical precedent)
+
+- **Scar**: A pet-summon effect (Faby equipped with the "Jack Frost" pet) silently failed to spawn the pet whenever that hero was placed in the 2nd or 3rd roster slot instead of the lead/active slot, in Team Death Match. — Source: Guardian Tales patch notes, Aug 16, 2022 ("An issue where pets were not summoned will be fixed when Faby wearing Jack Frost is set as the 2nd and 3rd Hero of the Team Death Match"), archived at guardiantalesguides.com/game/patches/view/40
+- **Test-for-us**: Fire a `summon` effect from an owner that is _not_ the currently active/player-controlled hero (e.g. an ally-roster slot rather than slot 0) and confirm the spawn still happens — try to reproduce a silent no-op where the summon resolver implicitly assumes "effect owner == the hero currently on field."
+
+- **Scar**: A support hero's (Priscilla) party-wide buff/status effect stopped applying to the party whenever she was set as the 2nd or 3rd hero instead of first/active — same patch. — Source: Guardian Tales patch notes, Aug 16, 2022 ("An issue where Priscilla's party effect was not applied when Priscilla was set as the second or third hero in the team death match will be fixed"), archived at guardiantalesguides.com/game/patches/view/40
+- **Test-for-us**: Resolve a `buff` effect with target `allAllies`/`allEnemies` where the effect-owning entity is _not_ the active hero slot, and check the resolved target set still matches the real live roster — try to trigger a case where target resolution silently returns an empty/wrong set because it implicitly keyed off "active hero" instead of the actual unit that owns the effect.
+
+- **Scar**: An ally AI unit (Veronica) failed to activate at all — no attack behavior triggered — under one specific party-formation + enemy-object combination (attacking the Guild Castle Scarecrow). Unlike the two scars above, this one carries no roster-slot (2nd/3rd hero) element in the patch note — it is an AI-activation failure keyed to a party-composition/enemy-type pairing, not a buff/heal/summon-effect resolution failure. — Source: Guardian Tales patch notes, Oct 18, 2022 ("The phenomenon that AI does not work when forming Veronica as a party member and attacking the Guild Castle Scarecrow is fixed"), archived at guardiantalesguides.com/game/patches/view/45
+- **Test-for-us**: Run the `summon`-effect handoff into the reused Enemy-AI-System state machine against several different enemy-type / party-composition combinations, not just the one combo exercised in the happy-path test, and check the spawned unit's `Idle → Chase → Telegraph → AttackActive → Recovery` machine actually starts in every combo rather than sitting inert for a specific untested pairing.
+
+None of the above prescribes Guardian Tales' fix as correct for us — only the failure shape (roster-slot / owner-identity assumptions silently breaking effect resolution, or reused-AI-machinery going inert on an untested party/enemy combination) is extracted. What "correct" means for Legend of Soul TH's Effects System is defined solely by `docs/agent-blueprint/07-effects-system-non-damage.md` and `docs/MASTER_BLUEPRINT_v3.0.md`, not by how the exemplar happened to patch its own bugs.
