@@ -34,10 +34,12 @@ export function CombatCluster({
   runtime,
   onAttack,
   onSkill,
+  disabled = false,
 }: {
   runtime: RealtimeBattleRuntime
   onAttack: () => void
   onSkill: (slot: SkillSlot) => void
+  disabled?: boolean
 }) {
   const [, tick] = useReducer((n: number) => n + 1, 0)
 
@@ -62,7 +64,10 @@ export function CombatCluster({
   const attackMetrics = getAttackButtonState(player, castingSlot !== null)
 
   return (
-    <div className={styles.combatCluster}>
+    <div
+      className={`${styles.combatCluster}${disabled ? ` ${styles.combatClusterBlocked}` : ''}`}
+      aria-hidden={disabled}
+    >
       <CombatActionButton
         actionId="basic-attack"
         label="ATK"

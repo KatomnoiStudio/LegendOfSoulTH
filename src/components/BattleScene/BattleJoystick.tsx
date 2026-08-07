@@ -8,6 +8,7 @@ const STICK_RADIUS = 52
 
 export interface BattleJoystickProps {
   onChange: (input: MovementInput) => void
+  disabled?: boolean
 }
 
 /**
@@ -15,7 +16,7 @@ export interface BattleJoystickProps {
  *
  * Outputs MovementInput (x + depth) — combat never reads screen coordinates.
  */
-export function BattleJoystick({ onChange }: BattleJoystickProps) {
+export function BattleJoystick({ onChange, disabled = false }: BattleJoystickProps) {
   const baseRef = useRef<HTMLDivElement>(null)
   const activePointer = useRef<number | null>(null)
   const [knob, setKnob] = useState({ x: 0, y: 0 })
@@ -30,6 +31,7 @@ export function BattleJoystick({ onChange }: BattleJoystickProps) {
 
   const update = useCallback(
     (clientX: number, clientY: number) => {
+      if (disabled) return
       const base = baseRef.current
       if (!base) return
 
@@ -40,7 +42,7 @@ export function BattleJoystick({ onChange }: BattleJoystickProps) {
       const raw = clampStickVector(dx / scale, dy / scale, STICK_RADIUS)
       emit(raw)
     },
-    [emit],
+    [emit, disabled],
   )
 
   const release = useCallback(() => {
@@ -59,7 +61,7 @@ export function BattleJoystick({ onChange }: BattleJoystickProps) {
         role="application"
         aria-label="แป้นบังคับทิศทาง"
         onPointerDown={(event) => {
-          if (activePointer.current !== null) return
+          if (disabled || activePointer.current !== null) return
           activePointer.current = event.pointerId
           event.currentTarget.setPointerCapture(event.pointerId)
           update(event.clientX, event.clientY)

@@ -1,7 +1,6 @@
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
 import type { SkillSlot } from '../../game/realtimeBattle/skills'
 import type { MovementInput } from '../../game/realtimeBattle/playerInput'
-import { layoutCssVars } from '../../game/realtimeBattle/combatUILayout'
 import { BattleJoystick } from './BattleJoystick'
 import { CombatCluster } from './CombatCluster'
 import styles from './BattleScene.module.css'
@@ -16,19 +15,26 @@ export function BattleControls({
   onMove,
   onAttack,
   onSkill,
+  inputBlocked = false,
 }: {
   runtime: RealtimeBattleRuntime
   onMove: (input: MovementInput) => void
   onAttack: () => void
   onSkill: (slot: SkillSlot) => void
+  inputBlocked?: boolean
 }) {
   return (
-    <div className={styles.controls} style={layoutCssVars()}>
+    <div className={styles.controls} aria-hidden={inputBlocked}>
       <div className={styles.controlsLeft}>
-        <BattleJoystick onChange={onMove} />
+        <BattleJoystick onChange={onMove} disabled={inputBlocked} />
       </div>
       <div className={styles.controlsRight}>
-        <CombatCluster runtime={runtime} onAttack={onAttack} onSkill={onSkill} />
+        <CombatCluster
+          runtime={runtime}
+          onAttack={onAttack}
+          onSkill={onSkill}
+          disabled={inputBlocked}
+        />
       </div>
     </div>
   )
