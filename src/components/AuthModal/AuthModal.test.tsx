@@ -106,4 +106,20 @@ describe('AuthModal', () => {
     ).toBeInTheDocument()
     expect(googleButton).not.toBeDisabled()
   })
+
+  test('onLoginWithGoogle reject ไม่ทำให้ปุ่ม Google ค้าง disable ถาวร', async () => {
+    const user = userEvent.setup()
+    const onLoginWithGoogle = vi.fn().mockRejectedValue(new Error('เครือข่ายขัดข้อง'))
+
+    render(
+      <AuthModal onRegister={vi.fn()} onLogin={vi.fn()} onLoginWithGoogle={onLoginWithGoogle} />,
+    )
+
+    const googleButton = screen.getByRole('button', { name: 'เข้าสู่ระบบด้วย Google' })
+    await user.click(googleButton)
+
+    await waitFor(() => expect(onLoginWithGoogle).toHaveBeenCalled())
+    await waitFor(() => expect(googleButton).not.toBeDisabled())
+    expect(screen.getByText('เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง')).toBeInTheDocument()
+  })
 })

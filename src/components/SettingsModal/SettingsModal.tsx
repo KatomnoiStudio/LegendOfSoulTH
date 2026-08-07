@@ -3,6 +3,7 @@ import type { CurrencyResult } from '../../data/accountRepository.shared'
 import { useModalA11y } from '../../hooks/useModalA11y'
 import { GAME_INFO } from '../../game/gameInfo'
 import { getA11ySettings, setA11ySettings, type A11ySettings } from '../../lib/a11ySettings'
+import { reportError } from '../../lib/errors/reportError'
 import { type AudioChannel, type AudioSettings } from '../../lib/audio/AudioEngine'
 import type { QualityOverride } from '../../hooks/usePerformanceQuality'
 import {
@@ -223,10 +224,18 @@ function GameInfoPanel({
   const handleLinkGoogle = async () => {
     if (linking) return
     setLinking(true)
-    // สำเร็จแล้วหน้าเปลี่ยนไปทันที (redirect ออกจากแอป) — ไม่ต้องเคลียร์ linking ในเคสนั้น
-    const error = await onLinkGoogleAccount()
-    if (error) {
-      showToast(error, 'error')
+    try {
+      // สำเร็จแล้วหน้าเปลี่ยนไปทันที (redirect ออกจากแอป) — ไม่ต้องเคลียร์ linking ในเคสนั้น
+      const error = await onLinkGoogleAccount()
+      if (error) {
+        showToast(error, 'error')
+        setLinking(false)
+      }
+    } catch (cause) {
+      // ต้องจับไว้เหมือน AuthModal's handleSubmit/handleGoogleLogin — ไม่งั้น reject หลุด
+      // แล้วปุ่มค้าง disabled ถาวร
+      reportError('AUTH_OAUTH_FAIL', 'silent', cause)
+      showToast('เชื่อมบัญชี Google ไม่สำเร็จ ลองใหม่อีกครั้ง', 'error')
       setLinking(false)
     }
   }

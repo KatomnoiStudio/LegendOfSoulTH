@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SettingsModal } from './SettingsModal'
 import { DEFAULT_AUDIO_SETTINGS } from '../../lib/audio/AudioEngine'
@@ -164,5 +164,18 @@ describe('SettingsModal', () => {
 
     expect(await screen.findByText('เชื่อมบัญชี Google ไม่สำเร็จ')).toBeInTheDocument()
     expect(linkButton).not.toBeDisabled()
+  })
+
+  test('onLinkGoogleAccount reject ไม่ทำให้ปุ่มค้าง disable ถาวร', async () => {
+    const user = userEvent.setup()
+    const onLinkGoogleAccount = vi.fn().mockRejectedValue(new Error('เครือข่ายขัดข้อง'))
+    renderModal({ hasGoogleLinked: false, onLinkGoogleAccount })
+
+    const linkButton = screen.getByRole('button', { name: 'เชื่อมบัญชี Google' })
+    await user.click(linkButton)
+
+    await waitFor(() => expect(onLinkGoogleAccount).toHaveBeenCalled())
+    await waitFor(() => expect(linkButton).not.toBeDisabled())
+    expect(screen.getByText('เชื่อมบัญชี Google ไม่สำเร็จ ลองใหม่อีกครั้ง')).toBeInTheDocument()
   })
 })

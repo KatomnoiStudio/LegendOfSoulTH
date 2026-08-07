@@ -94,10 +94,17 @@ export function AuthModal({ onRegister, onLogin, onLoginWithGoogle }: AuthModalP
     if (busy) return
     setBusy(true)
     setError(null)
-    // สำเร็จแล้วหน้าเปลี่ยนไปทันที (redirect ออกจากแอป) — ไม่ต้อง setBusy(false) ในเคสนั้น
-    const message = await onLoginWithGoogle()
-    if (message) {
-      setError(message)
+    try {
+      // สำเร็จแล้วหน้าเปลี่ยนไปทันที (redirect ออกจากแอป) — ไม่ต้อง setBusy(false) ในเคสนั้น
+      const message = await onLoginWithGoogle()
+      if (message) {
+        setError(message)
+        setBusy(false)
+      }
+    } catch (cause) {
+      // ต้องจับไว้เหมือน handleSubmit — ไม่งั้น reject หลุดแล้วปุ่มค้าง disabled ถาวร
+      reportError('AUTH_OAUTH_FAIL', 'silent', cause)
+      setError('เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง')
       setBusy(false)
     }
   }
