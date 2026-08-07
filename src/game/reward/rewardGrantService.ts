@@ -1,6 +1,7 @@
 import type { CurrencyResult, GoldSource, ItemResult } from '../../data/accountRepository'
 import type { Player } from '../../types/player'
-import { applyBattleExp } from '../realtimeBattle/RewardSystem'
+import { applyAccountExp } from '../realtimeBattle/RewardSystem'
+import { applyHeroExpToLeadHero } from '../progression/progressionService'
 import type { ResolvedReward, RewardEntry, RewardGrantResult } from './rewardSchema'
 import { hasRewardTransaction, rewardTransactionFlagKey } from './resultFinalizer'
 import { validateRewardEntry } from './rewardValidator'
@@ -113,9 +114,11 @@ export async function grantDungeonRewards(
     }
   }
 
-  if (heroExp > 0 || accountExp > 0) {
-    // P5 placeholder — full hero/account split lands in P8 progression service.
-    next = applyBattleExp(next, heroExp + accountExp)
+  if (heroExp > 0) {
+    next = applyHeroExpToLeadHero(next, heroExp).player
+  }
+  if (accountExp > 0) {
+    next = applyAccountExp(next, accountExp)
   }
 
   const flags = {

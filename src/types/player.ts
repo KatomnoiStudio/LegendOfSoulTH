@@ -19,7 +19,6 @@ export interface SkillProgress {
  * เลเวลสกิลทั้ง 4 ช่องต่อฮีโร่หนึ่งตัว — คีย์ตรงกับ SkillSlot ใน
  * src/game/realtimeBattle/skills.ts (skill1-3 + ultimate)
  * สร้างค่าเริ่มต้นผ่าน createDefaultSkillLevels() (SkillProgressionSystem.ts) เท่านั้น
- * เพื่อให้ shape ตรงกันทั้ง accountRepository.ts และ accountRepository.supabase.ts
  */
 export type SkillLevels = Record<'skill1' | 'skill2' | 'skill3' | 'ultimate', SkillProgress>
 
@@ -33,10 +32,14 @@ export interface OwnedCharacter {
   /**
    * เลเวลสกิล 4 ช่อง (work contract #14 — Progression System)
    * บัญชีเก่าก่อนมีฟิลด์นี้ไม่มีใน localStorage/Supabase แถวเก่า — อ่านผ่าน
-   * normalizePlayer (accountRepository.ts) / mapOwnedCharacterRow (accountRepository.supabase.ts)
-   * เสมอ อย่า derefตรง ๆ จากข้อมูลดิบ
+   * normalizePlayer / migrateOwnedCharacters เสมอ อย่า deref ตรง ๆ จากข้อมูลดิบ
    */
   skillLevels: SkillLevels
+  /** P8 — talent foundation */
+  talentState?: { unlockedNodes: string[] }
+  /** P8 — awakening foundation */
+  awakeningState?: { tier: number; unlockedEffects?: string[] }
+  progressionVersion?: number
 }
 
 /** ไอเทมหนึ่งช่องในกระเป๋าผู้เล่น — itemId ต้องมีอยู่ใน ITEMS (ดู src/game/items.ts) */

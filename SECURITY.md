@@ -13,7 +13,7 @@ its own login/register/session logic. Still-real limitations are documented in *
 
 Use GitHub private vulnerability reporting — it goes straight to the maintainer, not a public issue:
 
-- <https://github.com/KatomnoiStudio/LegendOfSoulTH/security/advisories/new>
+- https://github.com/KatomnoiStudio/LegendOfSoulTH/security/advisories/new
 
 **Do not** open a public GitHub issue for a security report.
 

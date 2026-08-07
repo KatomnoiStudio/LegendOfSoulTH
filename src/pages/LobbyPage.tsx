@@ -235,7 +235,11 @@ export function LobbyPage({
 
       {/* หน้า Lobby ยังคง mount อยู่ข้างหลัง ฉาก 3D และแอนิเมชันตัวละครจึงไม่รีเซ็ต */}
       {rosterOpen ? (
-        <CharacterRosterModal player={player} onClose={() => setRosterOpen(false)} />
+        <CharacterRosterModal
+          player={player}
+          onClose={() => setRosterOpen(false)}
+          onPlayerChange={onPlayerChange}
+        />
       ) : null}
 
       {profileOpen ? (

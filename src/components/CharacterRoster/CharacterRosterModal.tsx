@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useModalA11y } from '../../hooks/useModalA11y'
 import { ROSTER } from '../../game/characters'
+import { resolveHeroLevelStats } from '../../game/progression/heroStatsResolver'
 import type { Player } from '../../types/player'
 import { CharacterCard } from './CharacterCard'
 import { CharacterPreview } from './CharacterPreview'
 import { CharacterStats } from './CharacterStats'
+import { HeroProgressionPanel } from './HeroProgressionPanel'
 import styles from './CharacterRosterModal.module.css'
 
 /** ระยะแอนิเมชันตอนปิด (ต้องตรงกับ keyframes shell-out / veil-out ใน CSS) */
@@ -13,7 +15,10 @@ const CLOSE_MS = 200
 interface CharacterRosterModalProps {
   player: Player
   onClose: () => void
+  onPlayerChange: (next: Player) => Promise<boolean>
 }
+
+type RightPanelTab = 'details' | 'progression'
 
 /**
  * หน้าทำเนียบวีรชน — เปิดทับหน้า Lobby แบบเต็มจอ
@@ -21,27 +26,33 @@ interface CharacterRosterModalProps {
  * หน้า Lobby ยังอยู่ครบด้านหลัง (ไม่ถูก unmount) ฉาก 3D และแอนิเมชันตัวละคร
  * จึงเล่นต่อเนื่องและกลับมาอยู่ในสถานะเดิมทันทีเมื่อปิด
  */
-export function CharacterRosterModal({ player, onClose }: CharacterRosterModalProps) {
+export function CharacterRosterModal({
+  player,
+  onClose,
+  onPlayerChange,
+}: CharacterRosterModalProps) {
   const ownedRoster = useMemo(
     () =>
       player.ownedCharacters.flatMap((owned) => {
         const character = ROSTER.find((entry) => entry.id === owned.characterId)
-        return character
-          ? [
-              {
-                ...character,
-                level: owned.level,
-                exp: owned.exp,
-                expToNext: owned.expToNext,
-                skillLevels: owned.skillLevels,
-              },
-            ]
-          : []
+        if (!character) return []
+        const levelStats = resolveHeroLevelStats(owned.characterId, owned.level)
+        return [
+          {
+            ...character,
+            level: owned.level,
+            exp: owned.exp,
+            expToNext: owned.expToNext,
+            skillLevels: owned.skillLevels,
+            stats: levelStats ?? character.stats,
+          },
+        ]
       }),
     [player.ownedCharacters],
   )
 
   const [selectedId, setSelectedId] = useState(ownedRoster[0]?.id ?? '')
+  const [rightTab, setRightTab] = useState<RightPanelTab>('details')
   const [closing, setClosing] = useState(false)
   const closeTimer = useRef<number | undefined>(undefined)
 
@@ -131,7 +142,37 @@ export function CharacterRosterModal({ player, onClose }: CharacterRosterModalPr
             <CharacterPreview character={selected} />
           </div>
 
-          <CharacterStats character={selected} />
+          <div className={styles.detailColumn}>
+            <div className={styles.tabRow} role="tablist" aria-label="แผงรายละเอียดขุนพล">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={rightTab === 'details'}
+                className={rightTab === 'details' ? styles.tabActive : styles.tab}
+                onClick={() => setRightTab('details')}
+              >
+                รายละเอียด
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={rightTab === 'progression'}
+                className={rightTab === 'progression' ? styles.tabActive : styles.tab}
+                onClick={() => setRightTab('progression')}
+              >
+                พัฒนา
+              </button>
+            </div>
+            {rightTab === 'details' ? (
+              <CharacterStats character={selected} />
+            ) : (
+              <HeroProgressionPanel
+                player={player}
+                heroId={selected.id}
+                onPlayerChange={onPlayerChange}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>

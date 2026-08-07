@@ -49,14 +49,14 @@ function buildPlayer(): Player {
 }
 
 // CharacterStats เรียก useToast() ซึ่ง throw ถ้าไม่มี ToastProvider ครอบอยู่ — ต้องครอบทุกครั้ง
-function renderModal(onClose = vi.fn()) {
+function renderModal(onClose = vi.fn(), onPlayerChange = vi.fn(async () => true)) {
   const player = buildPlayer()
   render(
     <ToastProvider>
-      <CharacterRosterModal player={player} onClose={onClose} />
+      <CharacterRosterModal player={player} onClose={onClose} onPlayerChange={onPlayerChange} />
     </ToastProvider>,
   )
-  return { onClose }
+  return { onClose, onPlayerChange }
 }
 
 describe('CharacterRosterModal', () => {

@@ -73,6 +73,14 @@ jobs:
         # shell: bash บังคับ — `set -o pipefail`/`tee` เป็น bash syntax, pwsh (default shell
         # ของ windows-latest) parse ไม่ผ่าน; Git Bash มากับ windows runner อยู่แล้ว
         shell: bash
+        # VITE_SUPABASE_URL/ANON_KEY จำเป็นตั้งแต่ accountRepository.supabase.test.ts มีอยู่ —
+        # import ของมันลาก supabaseClient.ts เข้ามา ซึ่ง throw ทันทีตอน module evaluate ถ้าไม่มี
+        # ค่านี้ (ดู supabaseClient.ts) แม้เทสต์เองจะ test แค่ pure mapping ไม่แตะ Supabase จริงเลย
+        # secrets เดียวกับ step "Build Application" ด้านล่าง ไม่ใช่ค่าลับจริง (anon key ออกแบบมา
+        # ให้ฝังใน client bundle ได้อยู่แล้ว — ดูคอมเมนต์ supabaseClient.ts)
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
           set -o pipefail
           npm run test:coverage 2>&1 | tee test-output.log
