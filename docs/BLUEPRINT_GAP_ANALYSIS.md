@@ -1,6 +1,11 @@
 # Legend of Soul TH — Blueprint Gap Analysis
 
-> **Against**: [`MASTER_BLUEPRINT_v1.0.md`](MASTER_BLUEPRINT_v1.0.md)  
+> **⚠️ SUPERSEDED** — Gap analysis for **Blueprint v1.0** only.  
+> **Current baseline:** [`MASTER_BLUEPRINT_v2.0.md`](MASTER_BLUEPRINT_v2.0.md)  
+> **Current migration audit:** [`BLUEPRINT_V2_MIGRATION_AUDIT.md`](BLUEPRINT_V2_MIGRATION_AUDIT.md)  
+> Superseded: 2026-08-07
+
+> **Against**: [`MASTER_BLUEPRINT_v1.0.md`](MASTER_BLUEPRINT_v1.0.md) (historical)  
 > **Audit date**: 2026-08-07  
 > **Auditor**: Cursor Agent (cloud), Ring 1  
 > **Working tree**: branch `cursor/master-blueprint-v1-e117` @ upstream `KatomnoiStudio/LegendOfSoulTH`  

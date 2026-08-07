@@ -1,7 +1,12 @@
 # Legend of Soul TH — Master Blueprint v1.0
 
+> **⚠️ SUPERSEDED** — This document is **historical only**.  
+> **Current Product North Star:** [`MASTER_BLUEPRINT_v2.0.md`](MASTER_BLUEPRINT_v2.0.md)  
+> **Migration reality:** [`BLUEPRINT_V2_MIGRATION_AUDIT.md`](BLUEPRINT_V2_MIGRATION_AUDIT.md)  
+> Superseded: 2026-08-07 (Master Direction Reset — Stage-Based 2.5D + Gacha + Ranked PvP)
+
 > **Document type**: Product Specification + Master Blueprint + Agent Work Contract  
-> **Status**: ADOPTED as Product Baseline (documentation PR — no gameplay implementation in the same change)  
+> **Status**: ~~ADOPTED~~ **SUPERSEDED** (replaced by v2.0 — retain for history)  
 > **Operator**: HetCreep  
 > **Agent author**: Cursor Agent (cloud)  
 > **Created**: 2026-08-07  
