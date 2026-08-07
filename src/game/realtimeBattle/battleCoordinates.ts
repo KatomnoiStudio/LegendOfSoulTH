@@ -24,7 +24,7 @@ export const BATTLE_CAMERA_PITCH_DEG = 30
 export const BATTLE_CAMERA_DISTANCE = 5.0
 
 /** @deprecated Use `combatCameraConfig.ts`. */
-export const BATTLE_CAMERA_HEIGHT_BIAS = 0.42
+export const BATTLE_CAMERA_HEIGHT_BIAS = 0.58
 
 /** @deprecated Use `combatCameraConfig.ts`. */
 export const BATTLE_CAMERA_FOLLOW_RATE = 8

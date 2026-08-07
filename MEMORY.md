@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`
 > **Repository**: `KatomnoiStudio/LegendOfSoulTH`
 > **Default Branch**: `master`
-> **Last Updated**: 2026-08-07T by `Cursor Agent (cloud)` — P4 combat production core v0.9.0
+> **Last Updated**: 2026-08-07T by `Cursor Agent (cloud)` — P4 combat production core v0.9.0 (synced upstream v0.8.2)
 > **RULES_VERSION last synced: 23** (see `.agents/rules/rules-freshness-check.md`)
 
 > **2026-08-06 overhaul**: this file had grown to 65+ interleaved, verbose items (two colliding numbering
@@ -31,7 +31,7 @@
 - **Auto version-bump policy** (HetCreep, 2026-08-07): "auto bump ตลอดเมื่อ main ตัดสินว่าลงตัว" — bump `GAME_INFO.version` (+ `package.json` + `CHANGELOG.md`) เองได้เมื่อจบงานที่เห็นว่า "ลงตัว" แล้ว ไม่ต้องถามซ้ำทุกครั้ง (ยืนยันด้วยการยิง deploy-gate ให้ตัดรอบ release ใหม่).
 - **releases page เคยว่างเปล่า — root cause หาแล้ว** (2026-08-07): commit ที่ bump เป็น 0.2.0 จริง (`fdaf569`) run deploy ถูก **cancelled** (ชนกับ push ถี่ + GitHub Actions outage ที่เริ่ม 2026-08-06 15:22 UTC) ก่อนตัด release สำเร็จ — ทุก commit หลังจากนั้นเวอร์ชันยังเป็น 0.2.0 เดิม gate เลย skip ถูกต้องทุกครั้ง (ไม่ใช่บั๊ก) ไม่เคยมี release ไหนสร้างสำเร็จเลยจริง ๆ ตั้งแต่ระบบนี้มีผล ต้อง bump เวอร์ชันใหม่อีกครั้งเพื่อให้ gate สร้าง release รอบแรกจริง. GitHub status ตอนตรวจ (2026-08-07 ~04:00 UTC) ยังเป็น **Partial System Outage**.
 - **Gold-standard audit (SUPERSEDED — see item 99 for the current one)**: this line's own "~84%" figure came from a Cursor Agent branch's independent audit run, merged into this file via PR #25 alongside unrelated real code — it competed with, and is now superseded by, item 99's separately-run 77% audit (different scoring pass, different day, don't average or reconcile the two numbers — item 99 is current).
-- **Open PRs**: P4 combat core v0.9.0 on `cursor/p4-combat-core-35fc` · camera v0.8.3 on `cursor/camera-pitch-35fc`
+- **Open PRs**: P4 combat core v0.9.0 on `cursor/p4-combat-core-35fc`
 - **Auto-bump policy (2026-08-07, ตั้งโดย HetCreep)**: bump `GAME_INFO.version`/`package.json` เองทันทีที่งานหนึ่งก้อนลงตัว (build+lint+test+build ผ่าน + commit แล้ว) ไม่ต้องถามก่อน — deploy gate ผูกกับเลขนี้อยู่แล้ว.
 - **Deploy webhook หลุด 1 ครั้ง (2026-08-07)**: push bump `cf8b5de` (0.3.0) เอง workflow `deploy.yml` ไม่ถูกจ้างเลย (0 run สำหรับ commit นั้น) — ช่วงที่ GitHub ยังฟื้นจาก outage (สถานะตอนนั้น "Partial System Outage") แก้ด้วย manual `workflow_dispatch` (`force:true`) ผ่าน REST API แทน — deploy/release ผ่านปกติ. commit ถัดไปด้วยกลไกปกติ (0.3.1) trigger เองสำเร็จไม่ต้องแทรกแซง — ถ้าเว็บไม่อัพเดตหลัง push ที่ bump เวอร์ชันแล้ว เช็ค `actions/runs?head_sha=<sha>` ก่อนสงสัยโค้ด (อาจเป็นแค่ webhook หลุด ไม่ใช่บั๊ก).
 - **Session expiry (2026-08-07, แก้แล้ว, v0.3.1)**: `accountRepository.ts`'s session เดิมไม่มี TTL เลย (`{uid,email}` เท่านั้น) ล็อกอินครั้งเดียวค้างตลอดไป — เพิ่ม `expiresAt` แบบ sliding window 30 วัน (`readActiveSession()` เป็นจุดอ่านเดียวที่ทุกฟังก์ชันต้องผ่าน, ต่ออายุทุกครั้งที่อ่านสำเร็จ, session รูปแบบเก่าไม่มี `expiresAt` = หมดอายุทันที).
