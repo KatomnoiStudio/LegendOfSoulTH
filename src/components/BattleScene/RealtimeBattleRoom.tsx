@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Canvas } from '@react-three/fiber'
 import WebGL from 'three/addons/capabilities/WebGL.js'
 import { reportError } from '../../lib/errors/reportError'
@@ -31,6 +31,7 @@ export function RealtimeBattleRoom({
   onMove,
   onAttack,
   onSkill,
+  overlay,
 }: {
   runtime: RealtimeBattleRuntime
   snapshot: RealtimeBattleSnapshot
@@ -38,6 +39,7 @@ export function RealtimeBattleRoom({
   onMove: (input: MovementInput) => void
   onAttack: () => void
   onSkill: (slot: SkillSlot) => void
+  overlay?: ReactNode
 }) {
   const viewport = useBattleViewport(true)
   const [webglAvailable] = useState(() => WebGL.isWebGL2Available())
@@ -121,6 +123,7 @@ export function RealtimeBattleRoom({
       <DamageNumberLayer runtime={runtime} projection={projection} />
 
       <BattleHud snapshot={snapshot} onExit={onExit} />
+      {overlay}
       <BattleControls
         runtime={runtime}
         onMove={onMove}

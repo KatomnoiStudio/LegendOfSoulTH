@@ -136,6 +136,24 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     aiRole: 'controller',
     combatTier: 'mob',
   },
+  'spirit-guardian-boss': {
+    id: 'spirit-guardian-boss',
+    name: 'ผู้พิทักษ์วิญญาณ (บอส)',
+    spriteKind: 'pilgrim-monk',
+    accent: '#3dffb8',
+    maxHp: 520,
+    atk: 78,
+    def: 28,
+    speed: 130,
+    collisionRadius: 42,
+    hurtboxRadius: 50,
+    detectRange: 1700,
+    attackRange: 82,
+    attackCooldownMs: 1400,
+    attackId: 'enemy-elite-slam',
+    aiRole: 'elite',
+    combatTier: 'boss',
+  },
 }
 
 /**
@@ -190,6 +208,88 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
           { templateId: 'shadow-soldier', spawnIndex: 3 },
           { templateId: 'shadow-soldier', spawnIndex: 4 },
         ],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+  },
+  /** P5 dungeon arenas — wave data consumed by Stage Runtime (survival uses manual wave advance) */
+  'p5-survival-arena': {
+    id: 'p5-survival-arena',
+    name: 'ดันเจี้ยนทดสอบ — เอาชีวิตรอด',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'w1',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 1 },
+        ],
+      },
+      {
+        id: 'w2',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'spirit-guardian', spawnIndex: 2 },
+        ],
+      },
+      {
+        id: 'w3',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 1 },
+          { templateId: 'shadow-soldier', spawnIndex: 3 },
+        ],
+      },
+    ],
+    backgroundAsset: TEMPLE_LOBBY_BG,
+  },
+  'p5-hazard-arena': {
+    id: 'p5-hazard-arena',
+    name: 'ดันเจี้ยนทดสอบ — อันตราย',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'w1',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 2 },
+        ],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+  },
+  'p5-elite-arena': {
+    id: 'p5-elite-arena',
+    name: 'ดันเจี้ยนทดสอบ — มินิบอส',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'w1',
+        enemies: [{ templateId: 'demon-captain', spawnIndex: 1 }],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+  },
+  'p5-boss-arena': {
+    id: 'p5-boss-arena',
+    name: 'ดันเจี้ยนทดสอบ — บอส',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'w1',
+        enemies: [{ templateId: 'spirit-guardian-boss', spawnIndex: 1 }],
       },
     ],
     backgroundAsset: BATTLE_ART_BG,

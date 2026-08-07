@@ -5,6 +5,22 @@
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-08-07
+
+P5 Dungeon Vertical Slice — stage/dungeon orchestration above P4 combat core
+
+### Added
+
+- `src/game/dungeon/` — schema, stage runtime, objectives (7 types), timer, encounter, dungeon orchestrator
+- `P5_TEST_DUNGEON` — 4-stage vertical slice (survival → hazard → elite → boss)
+- `DungeonSession` + `DungeonResultPanel` + `StageObjectiveHud`
+- P4 battle bridge hooks: `setAutoWaveAdvance`, `spawnWaveAt`, `forceVictory/Defeat`, `applyEnvironmentalDamage`
+- Lobby "เริ่มการผจญภัย" now enters dungeon run; battle tab still opens trial-01
+
+### Tests
+
+- Stage timer, all 7 stage type fixtures, stage lifecycle, dungeon config (+23 tests, 278 total)
+
 ## [0.9.0] - 2026-08-07
 
 P4 Combat Production Core — telegraph, hit reaction, interrupt, knockdown, AI baseline

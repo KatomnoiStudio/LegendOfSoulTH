@@ -1,0 +1,95 @@
+import { describe, expect, it } from 'vitest'
+import { P5_TEST_DUNGEON } from './dungeonConfig'
+import { DungeonOrchestrator } from './dungeonOrchestrator'
+import { StageRuntime } from './stageRuntime'
+import { createTestBattleBridge } from './stageBattleBridge'
+import { P5_STAGE_TYPE_FIXTURES } from './dungeonConfig'
+import type { RealtimeBattleEntity } from '../realtimeBattle/types'
+
+function player(): RealtimeBattleEntity {
+  return {
+    id: 'player',
+    entityType: 'player',
+    name: 'Hero',
+    position: { x: 400, y: 550 },
+    velocity: { x: 0, y: 0 },
+    facing: 'right',
+    combatFacing: 'right',
+    state: 'idle',
+    hp: 500,
+    maxHp: 500,
+    atk: 80,
+    def: 50,
+    speed: 200,
+    collisionRadius: 30,
+    hurtboxRadius: 35,
+    attackCooldownRemainingMs: 0,
+    skillCooldownsMs: { skill1: 0, skill2: 0, skill3: 0 },
+    ultimateGauge: 0,
+    invulnerableUntilMs: 0,
+    hitStunRemainingMs: 0,
+    knockdownRemainingMs: 0,
+    getUpRemainingMs: 0,
+    combatTier: 'mob',
+  }
+}
+
+describe('StageRuntime lifecycle', () => {
+  it('not started → active → complete on custom win', () => {
+    const bridge = createTestBattleBridge({ player: player(), enemies: [], elapsedMs: 0 })
+    const runtime = new StageRuntime(P5_STAGE_TYPE_FIXTURES.custom, bridge)
+    expect(runtime.getSnapshot().lifecycle).toBe('not_started')
+    runtime.enter()
+    expect(runtime.getSnapshot().lifecycle).toBe('active')
+    const res = runtime.tick(16)
+    expect(res).toBe('win')
+    expect(runtime.isComplete()).toBe(true)
+    expect(runtime.isCleared()).toBe(true)
+  })
+
+  it('fails on player death', () => {
+    const p = player()
+    p.state = 'dead'
+    p.hp = 0
+    const bridge = createTestBattleBridge({ player: p, enemies: [], elapsedMs: 0 })
+    const runtime = new StageRuntime(P5_STAGE_TYPE_FIXTURES.custom, bridge)
+    runtime.enter()
+    const res = runtime.tick(16)
+    expect(res).toBe('lose')
+    expect(runtime.isFailed()).toBe(true)
+  })
+
+  it('cannot restart after complete', () => {
+    const bridge = createTestBattleBridge({ player: player(), enemies: [], elapsedMs: 0 })
+    const runtime = new StageRuntime(P5_STAGE_TYPE_FIXTURES.custom, bridge)
+    runtime.enter()
+    runtime.tick(16)
+    const res = runtime.tick(16)
+    expect(res).toBe('continue')
+  })
+})
+
+describe('DungeonOrchestrator', () => {
+  it('starts dungeon run', () => {
+    const orch = new DungeonOrchestrator(P5_TEST_DUNGEON, {
+      teamSlots: ['monkey-king', null, null, null],
+      ownedCharacters: [
+        {
+          characterId: 'monkey-king',
+          level: 10,
+          exp: 0,
+          expToNext: 100,
+        },
+      ],
+      progress: { flags: {}, battleHistory: [] },
+      name: 'Test',
+      gold: 0,
+      gems: 0,
+      inventory: [],
+      friends: [],
+    } as never)
+    expect(orch.start()).toBe(true)
+    expect(orch.getSnapshot().phase).toBe('stage_active')
+    orch.dispose()
+  })
+})
