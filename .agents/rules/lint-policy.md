@@ -1,4 +1,5 @@
 <!-- coalmine: verified 2026-08-07 · exemplar excalidraw `eslint --max-warnings=0` + oxlint CLI docs + WAI-ARIA APG + MDN BroadcastChannel · revalidate 90d -->
+
 # Project Law: Lint Policy
 
 > `.oxlintrc.json` is JSON and cannot carry comments. This file is where the reasoning
@@ -56,6 +57,15 @@ and how side-effect imports work generally. The rule has no way to tell that apa
 an accidental import, and the accidental case is caught by review far more cheaply than
 by living with a false positive in the entry file.
 
+### `no-console` — off for `src/lib/webVitals.ts` only
+
+Same shape as the `src/lib/errors/**` exemption above: this is the sole point that logs
+Core Web Vitals (LCP/INP/CLS), dev-only (`import.meta.env.DEV` gate, dynamic `import()`
+so production builds tree-shake it out entirely), local-only console.debug, nothing sent
+anywhere — see `.agents/rules/ecc/web/observability.md` for the standing decision against
+external telemetry. Scoped to the one file so a stray `console.log` anywhere else in the
+app still gets caught.
+
 ### `unicorn/require-post-message-target-origin` — off for `src/components/WorldChat/chatStorage.ts` only
 
 Fired on `channel.postMessage('new-message')`. `BroadcastChannel.postMessage()` takes
@@ -72,8 +82,8 @@ There used to be an override here turning off four rules for
 `src/hooks/useDialogue.ts`, because that subsystem had no live entry point and changing
 effect dependencies in code nobody can exercise is how a silent bug gets planted.
 
-It was written with an explicit expiry condition: *"expires with the keep-or-delete
-decision on exploration mode, which is HetCreep's to make."* That decision landed the same
+It was written with an explicit expiry condition: _"expires with the keep-or-delete
+decision on exploration mode, which is HetCreep's to make."_ That decision landed the same
 day — comment the subsystem out rather than delete it — so the rules cannot fire there any
 more and the override is gone.
 

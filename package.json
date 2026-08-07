@@ -8,14 +8,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run build:images && tsc -b && vite build",
     "build:models": "node tools/build-models.mjs",
     "build:images": "node tools/optimize-images.mjs",
     "typecheck": "tsc -b",
     "lint": "oxlint --deny-warnings",
     "test": "vitest run",
     "audit": "npm audit --audit-level=high",
-    "ci": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "ci": "npm run typecheck && npm run lint && npm run test && npm run build && node tools/check-bundle-size.mjs",
     "preview": "vite preview",
     "prepare": "husky",
     "test:coverage": "vitest run --coverage",
@@ -54,7 +54,8 @@
     "sharp": "^0.35.3",
     "typescript": "~7.0.2",
     "vite": "^8.2.0",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "web-vitals": "^6.1.0"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

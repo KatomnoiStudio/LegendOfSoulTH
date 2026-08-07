@@ -1,14 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": [
-    "react",
-    "typescript",
-    "oxc",
-    "import",
-    "jsx-a11y",
-    "promise",
-    "unicorn"
-  ],
+  "plugins": ["react", "typescript", "oxc", "import", "jsx-a11y", "promise", "unicorn"],
   "categories": {
     "correctness": "warn",
     "suspicious": "warn"
@@ -26,7 +18,7 @@
   },
   "overrides": [
     {
-      "files": ["src/lib/errors/**"],
+      "files": ["src/lib/errors/**", "src/lib/webVitals.ts"],
       "rules": { "no-console": "off" }
     },
     {

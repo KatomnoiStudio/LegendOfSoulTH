@@ -6,8 +6,10 @@ import { GlobalErrorBanner } from './components/GlobalErrorBanner/GlobalErrorBan
 import { reportError } from './lib/errors/reportError.ts'
 import { applyA11ySettings, getA11ySettings } from './lib/a11ySettings.ts'
 import { installGlobalErrorHandlers } from './lib/globalErrorHandlers.ts'
+import { installWebVitalsLogger } from './lib/webVitals.ts'
 
 installGlobalErrorHandlers()
+installWebVitalsLogger()
 // ใส่ค่าตั้งค่าการเข้าถึงที่เคยบันทึกไว้ลง <html> ตั้งแต่เฟรมแรก ไม่ต้องรอเปิด SettingsModal
 applyA11ySettings(getA11ySettings())
 
