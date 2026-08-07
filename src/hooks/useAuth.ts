@@ -53,8 +53,6 @@ export interface AuthState {
   grantItem: (itemId: string, quantity: number, source: ItemSource) => Promise<ItemResult>
   /** ส่งออก save เป็นไฟล์ JSON ไว้สำรอง/ย้ายเครื่อง — คืน null เมื่อสำเร็จ (ไฟล์ถูกดาวน์โหลดแล้ว) */
   exportSave: () => Promise<string | null>
-  /** นำเข้าไฟล์ save ที่ export ไว้ — คืน null เมื่อสำเร็จ คืนข้อความเมื่อผิดพลาด */
-  importSave: (json: string) => Promise<string | null>
 }
 
 export function useAuth(): AuthState {
@@ -110,7 +108,7 @@ export function useAuth(): AuthState {
     เขียนความคืบหน้าผู้เล่นลงที่เก็บข้อมูล — คืน true เมื่อบันทึกลงจริง
 
     เดิมทิ้งค่าที่ savePlayer คืนมาโดยไม่ดู ทั้งที่ทุกฟังก์ชันพี่น้องใน accountRepository
-    (register/login/importSave/earnGold/...) เช็คค่าเดียวกันนี้แล้วขึ้นข้อความบอกผู้ใช้
+    (register/login/earnGold/...) เช็คค่าเดียวกันนี้แล้วขึ้นข้อความบอกผู้ใช้
     และนี่คือเส้นทางเขียนของความคืบหน้าทั้งเกม — ทีม อัปเกรด เงิน ผลต่อสู้ เพื่อน
     ผลคือพื้นที่เก็บข้อมูลเต็มแล้วหน้าจอยังโชว์เหมือนเซฟติด ผู้เล่นเล่นต่อจนปิดแท็บ
     แล้วของหายทั้งหมดโดยไม่เคยมีสัญญาณอะไรเลย
@@ -212,15 +210,6 @@ export function useAuth(): AuthState {
     return null
   }, [])
 
-  const importSave = useCallback(async (json: string) => {
-    const result = await accounts.importSave(json)
-    if (!result.ok) return result.error
-    setPlayer(result.player)
-    setEmail(accounts.getSessionEmail())
-    setStatus('signed-in')
-    return null
-  }, [])
-
   return {
     status,
     player,
@@ -237,6 +226,5 @@ export function useAuth(): AuthState {
     grantCharacter,
     grantItem,
     exportSave,
-    importSave,
   }
 }

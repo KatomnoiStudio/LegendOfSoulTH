@@ -7,6 +7,24 @@
 
 ยังไม่มี
 
+## [0.5.1] - 2026-08-07
+
+### Fixed
+
+- **Production ล่มทั้งเว็บ (จอขาว)** — build ตอนปล่อย v0.5.0 ไม่มี `VITE_SUPABASE_URL`/
+  `VITE_SUPABASE_ANON_KEY` เป็น GitHub Actions secret เลย ผู้เล่นจริงทุกคนเจอหน้าขาวเปล่า
+  เพิ่ม secret (ระดับ org, จำกัดสิทธิ์เฉพาะ repo นี้) + inject เข้า build step ทั้ง deploy/ci
+- **หน้าเว็บล่มทั้งเว็บถ้า env หายอีกในอนาคต** — `main.tsx` เปลี่ยนเป็นโหลด `App` แบบ
+  dynamic import แทน static import ถ้าโหลดไม่สำเร็จ (เช่น env หายอีก) จะขึ้นข้อความ
+  "โหลดเกมไม่สำเร็จ" แทนจอขาวเปล่า
+- **ฟอร์มล็อกอิน/สมัครถูก browser autofill เติมอีเมล/รหัสผ่านให้เองอัตโนมัติ** — ปิด
+  `autoComplete` ของฟอร์มนี้ทั้งหมด (ยังจำอีเมลล่าสุดของแอปเองไว้ตามเดิม)
+
+### Removed
+
+- **ปุ่ม "นำเข้าไฟล์ save จากเครื่องอื่น"** — เหลือค้างจากยุค localStorage ใช้กับบัญชี
+  Supabase ไม่ได้จริง (กดแล้วพังทุกครั้ง) ตัดทิ้งทั้งระบบ
+
 ## [0.5.0] - 2026-08-07
 
 Combat Foundation (Blueprint v3 P0–P2) + Supabase backend live
