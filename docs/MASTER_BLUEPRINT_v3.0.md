@@ -416,7 +416,7 @@ Example: 1-1 → 1-2 → 1-3 → 1-4 → 1-5 Boss → Chapter 2 …
 - Pick **one hero** before stage; no mid-stage switch
 - Normal stage target: **2–5 min**; boss: **5–8 min**
 
-**Stage-N+1 gating — OPEN, not gold-standard-defaulted:** whether progression requires only a clear-gate (sequential unlock) or also a stamina/energy cost per attempt is a genre-common pattern (Genshin's Resin, Star Rail's Trailblaze Power) but is a **product-philosophy choice** (F2P friction vs player-friendly), not something to default from precedent — §7 already leans player-friendly ("must not sell best power primarily via direct purchase"), which cuts against energy-gating being an automatic fit. **Needs an explicit HetCreep call before P7**, not a gold-standard-grounded default.
+**Stage-N+1 gating — LOCKED skeleton, numbers open (HetCreep, 2026-08-08):** yes, an energy/stamina system gates stage attempts — same genre-common shape as Genshin's Resin/Star Rail's Trailblaze Power (cited when this item was first flagged OPEN). Skeleton only: a per-account energy pool, consumed per stage attempt, regenerates over real time, refillable with gems (premium currency, §7) as one of several refill sources. **Explicitly deferred to P7/P11 tuning**: pool size, regen rate, per-stage cost, whether cost scales with stage difficulty. This is architecture, not a business-model number — building the pool/regen/refill mechanism doesn't commit to any specific friction level, that's set later by the numbers.
 
 **Chapter/stage difficulty scaling — LOCKED architecture, numbers deferred to P7/P11:** enemy stats and stage difficulty scale via a **data-driven per-stage/per-chapter table** (consistent with the config-driven pattern already locked for gacha rates, star ascension, and skill-level scaling — never a hardcoded formula in code). Exact multipliers tune at P7/P11 implementation time.
 
@@ -467,9 +467,23 @@ Same 2.5D movement + L/R attack + 3 skills + ultimate as PvE.
 # §7 — Monetization (direction)
 
 - **Core:** Hero Gacha + star ascension
-- **Secondary (later):** skins, season pass, starter pack, convenience — TBD
+- **Secondary (later, skeleton LOCKED, HetCreep 2026-08-08):** cosmetic/convenience only — skins, season pass, starter pack, currency packs. **Must never sell power directly** (a stat boost, a guaranteed top-rarity hero outside the gacha roll, a stage-skip that bypasses real play) — only appearance, currency, or QoL. Exact SKUs/pricing still TBD, deferred to P14 — this line locks the _category boundary_, not the catalog.
 - **Must not:** sell best power primarily via direct purchase
 - Premium one-time purchase model: **SUPERSEDED** (v1.0)
+
+## 7.1 Gacha pity — LOCKED skeleton, numbers deferred to P9 (HetCreep, 2026-08-08)
+
+Soft/hard pity, same shape as Genshin Impact's wish system (the exemplar this project's own gold-standard audit already cited for this exact gap) — a guaranteed top-rarity hero within a bounded pull count, pity counter persists per banner, resets on a top-rarity hit. **Deferred to P9, business-model call**: exact pity threshold, soft-pity ramp curve, per-pull cost, whether the pity counter is player-visible. This line locks _that a fairness floor exists_, not what the floor's number is — implementing the counter/reset mechanism doesn't commit to a specific rate.
+
+---
+
+# §7.5 — Social & Communication (direction, HetCreep 2026-08-08)
+
+Retroactive lock for a system already shipped this session with no prior blueprint coverage (`src/components/WorldChat/`, `src/components/AddFriendModal/`, `supabase/migrations/0001_init.sql`'s `friends` table) — found via an ask-CB opinion-lane gap sweep, `AGENT_BLUEPRINT.md` system #28.
+
+- **Data ownership**: server-authoritative (Supabase, RLS-protected) — same §8 authority model as account/currency/hero data, not a separate exception.
+- **Moderation skeleton — LOCKED**: admin-driven via the `admin_accounts` table already built this session (`supabase/migrations/0004_admin_accounts.sql`) — an admin account can act on reported content through the existing hidden admin-command layer in WorldChat. No automated/AI moderation, no community-reporting UI yet — those are additive later, not required for this lock to hold.
+- **Scope stays as-shipped**: World Chat (global, same-instance) + Friends (add/accept/block by UID). Private/guild chat remain the existing "coming soon" placeholders — not part of this lock, no commitment to build them.
 
 ---
 
@@ -479,6 +493,7 @@ Same 2.5D movement + L/R attack + 3 skills + ultimate as PvE.
 - Target: Client → Game API → modules → database
 - Valuable data (account, heroes, stars, currency, gacha, rank, MMR) → **server authority**
 - Supabase work in repo is **early seam** toward this — not full game authority yet
+- **Error/Observability** (HetCreep 2026-08-08, cross-referenced per `AGENT_BLUEPRINT.md` system #27): governed by `.agents/rules/ecc/web/observability.md`, not re-specified here — that doc is the source of truth for the error-boundary/relay/code-registry design, already SETTLED. This line exists so a reader of this product blueprint doesn't miss that the system is real and governed elsewhere, not absent.
 
 ---
 

@@ -18,7 +18,7 @@ No queue slot needed — touch only on bug/extension.
 - #18 Reward (`RewardSystem.ts`), #26 Control/Input (PR #24), #27 Error/Observability (SETTLED).
 - #22 Currency (DB RPCs) — **badge caveat (found via ask-CB dogfood-methodology sweep, 2026-08-07):** its own work contract (`docs/agent-blueprint/22-currency-system.md:38`) admits zero test coverage on `earnGold`/`redeemCoupon`/`topUpGold`/`topUpGems` — the "maintain only" stamp was earned by a source-scan grep (file exists), never by a dogfood/red-team pass or by tests. Real gap, tracked under `.agents/rules/gold-standard-baseline.md`'s open component-test-coverage MUST-HAVE (AGENTS.md rule 10) — not fixed here, flagged so nobody trusts this badge more than it's earned.
 - #25 Backend/Server-Authority — baseline shipped (auth/RLS/RPC); GROWS as Tier-1/2 systems land, not a one-time ship.
-- #28 Social/Communication — shipped and working; only the formal blueprint-lock/moderation-policy decision is open, and that's low-urgency since the feature already functions fine unlocked.
+- #28 Social/Communication — shipped and working; formal blueprint-lock done (§7.5, 2026-08-08) — data-ownership server-authoritative, moderation admin-driven via `admin_accounts`.
 
 ### Tier 1 — Urgent / core (next up, blocks the rest — roadmap P3–P8, verified NOT yet in `src/`)
 
@@ -32,12 +32,12 @@ No queue slot needed — touch only on bug/extension.
 
 ### Tier 2 — Not urgent yet (sequenced later, real work, roadmap P9–P13)
 
-- #23 Gacha System, #15 Star Ascension, #13 Hero Collection (expansion) — **zero implementation found** (`grep gacha/pity` = 0 hits); numbers explicitly deferred to P9 in the master blueprint itself.
+- #23 Gacha System, #15 Star Ascension, #13 Hero Collection (expansion) — **zero implementation found** (`grep gacha/pity` = 0 hits); pity-mechanic SKELETON locked (§7.1, 2026-08-08, soft/hard pity per Genshin's shape), rate/cost numbers still deferred to P9.
 - #19 PvP/Ranked, #20 PvP Power Normalization, #21 Netcode/Networking — **zero implementation found** (`grep PvP/matchmaking` = 0 hits); blueprint's own §3.8.7/§8 already say "deferred to P12".
 
 ### Tier 3 — Decorative / optional, add on later
 
-- #24 Monetization/Shop — blueprint says "TBD, no locked architecture yet" (P14); don't design ahead of the decision.
+- #24 Monetization/Shop — category boundary locked (§7, 2026-08-08 — cosmetic/convenience only, never direct power), exact SKUs/pricing still TBD (P14); don't design the catalog ahead of that decision.
 - Formal blueprint-lock for #28 Social (moderation policy, data-ownership doc) — nice-to-have paperwork, not gameplay-blocking since the feature already runs.
 
 ---
@@ -85,7 +85,7 @@ No queue slot needed — touch only on bug/extension.
 
 ### Adventure
 
-16. **Stage / Adventure System** — Chapter → Stage → Boss structure; stage-N+1 gating is OPEN (product-philosophy call, not yet decided); difficulty scaling is data-driven, numbers deferred to P7/P11. Source: §5.1.
+16. **Stage / Adventure System** — Chapter → Stage → Boss structure; stage-N+1 gating LOCKED skeleton (energy/stamina pool, 2026-08-08 — refill via gem, per-stage cost) — pool size/regen/cost numbers deferred to P7/P11. Source: §5.1.
     → full work contract: [`docs/agent-blueprint/16-stage-adventure-system.md`](docs/agent-blueprint/16-stage-adventure-system.md)
 17. **Stage Variation System** — 7 stage types, each with a win/lose contract. Source: §5.2.
     → full work contract: [`docs/agent-blueprint/17-stage-variation-system.md`](docs/agent-blueprint/17-stage-variation-system.md)
