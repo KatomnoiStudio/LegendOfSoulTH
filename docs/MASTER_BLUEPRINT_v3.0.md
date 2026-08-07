@@ -116,6 +116,14 @@ Do **not** plan or implement these until HetCreep reopens them:
 
 **Layout (LOCKED 2026-08-07):** joystick **bottom-left**; **S1 · S2 · S3 · Ultimate** in a row **above** the attack button; **Basic Attack** = **largest button, bottom-right**. Walk and press Attack/Skill simultaneously (separate pointer ids).
 
+**Button presentation (LOCKED 2026-08-07):**
+
+- **Basic Attack:** **icon only** (no text label on button)
+- **Skills S1–S3 / Ultimate:** numeric/icon slots — **art icons TBD** (placeholder until assets land)
+- **Ultimate when gauge empty:** button **pressable but no effect** (no disabled state required)
+
+**PC keybinds (LOCKED):** Attack `J` / `Space` · S1 `1`/`E` · S2 `2`/`R` · S3 `3`/`F` · Ultimate `4`/`Q`
+
 **No separate Dash button.**
 
 **No soft-target, no auto-snap, no hard lock-on UI.** See §3.6.
@@ -142,14 +150,15 @@ PC: keyboard/mouse/controller-ready; same action layer.
 
 ### 3.6.1 Controls & targeting
 
-| Rule                                | Decision                                                      |
-| ----------------------------------- | ------------------------------------------------------------- |
-| Mobile layout                       | Joystick left + S1/S2/S3/U + large Attack bottom-right (§3.3) |
-| Dash button                         | **CUT** — not in UI                                           |
-| Soft-target / auto-snap / hard lock | **CUT** — player positions depth + L/R facing manually        |
-| `combatFacing` source               | Movement / joystick vector                                    |
-| Vertical-only movement              | **Keep previous facing** (no auto flip)                       |
-| Walk + Attack/Skill                 | **Allowed** simultaneously                                    |
+| Rule                                         | Decision                                                                                     |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Mobile layout                                | Joystick left + S1/S2/S3/U + large Attack bottom-right (§3.3)                                |
+| Dash button                                  | **CUT** — not in UI                                                                          |
+| Soft-target / auto-snap / hard lock (global) | **CUT** for basic movement, facing, and basic attack — player positions depth + L/R manually |
+| Skill-specific target lock                   | **Allowed per skill definition only** (e.g. Ultimate — see §3.9); not a global assist        |
+| `combatFacing` source                        | Movement / joystick vector                                                                   |
+| Vertical-only movement                       | **Keep previous facing** (no auto flip)                                                      |
+| Walk + Attack/Skill                          | **Allowed** simultaneously                                                                   |
 
 ### 3.6.2 Basic attack
 
@@ -257,25 +266,59 @@ Prevents state-machine collisions between Telegraph/AttackActive/Recovery and ph
 Do **not** add while implementing P4/P6 foundation:
 
 - Dash button
-- Soft-target / auto-target / lock-on UI
+- Soft-target / auto-target / **global** lock-on UI
 - QTE dodge
 - Heavy 3D telegraph VFX (markers + tint first)
 
 Combat remains a **2.5D positioning-based brawler:** player controls **movement + depth + facing + attack timing**.
 
-### 3.6.11 OPEN — next design gate (not locked)
+### 3.6.11 Basic Attack Combo System (LOCKED — HetCreep Ring 0, 2026-08-07)
 
-**Basic Attack Combo System** — separate HetCreep design session before implementation expands combo beyond current 3-hit chain:
+| Rule                 | Decision                                                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hit count**        | **3 hits** per combo chain                                                                                                            |
+| **Combo window**     | **Keep current implementation** (~700 ms window per chain step — tune in playtest)                                                    |
+| **Combo reset**      | Stop attacking → may **start again at hit 1** as soon as the next attack input is valid (no extra decay timer beyond recovery/window) |
+| **Finisher (hit 3)** | **Per-character** — defined in each hero's kit data (e.g. stronger, longer range than normals/skills); not one global finisher rule   |
+| **Cancel rules**     | **No cancel** between basic-attack combo and skills (cannot skill-cancel combo or attack-cancel skill)                                |
+| **Input buffer**     | **Keep current** — buffer early input, never skip recovery                                                                            |
+| **Animation**        | **Full sprite set** for every combo phase (startup / active / recovery per hit)                                                       |
 
-- Hit count per combo
-- Combo input window
-- Animation transitions
-- Combo reset timing
-- Finisher rules
-- Finisher knockback/knockdown
-- Cancel rules
+### 3.6.12 Initial combat tuning (baseline — playtest & adjust)
 
-**Do not** expand scope to other systems until this combo design is recorded in Blueprint.
+HetCreep: set sensible defaults first; **values below are starting points**, not final balance.
+
+| Parameter                          | Initial value                              | Notes                                                 |
+| ---------------------------------- | ------------------------------------------ | ----------------------------------------------------- |
+| `lungeDistance` (basic, per hit)   | 32 / 36 / 44                               | Hit 1 → 2 → 3; hit 3 slightly longer                  |
+| `hitstunMs` (normal basic on hit)  | 200                                        | Short stun before resume                              |
+| `knockback` (basic)                | keep `attacks.ts` chain values             | Tune in playtest                                      |
+| `castDelayMs` S1 / S2 / S3 / Ult   | 0\* / 250 / 320 / 480                      | \*S1 folded into existing startup                     |
+| `interruptible` (default skill)    | `true` during cast                         | Per-skill override in kit                             |
+| `interruptible` (Ultimate wind-up) | `false` during clone/setup phase           | Monkey King ult — see §3.9                            |
+| `movementDuringCast` (default)     | `none`                                     | S3 leap uses skill-driven displacement, not free walk |
+| Mob `telegraphMs`                  | 280                                        | Normal melee enemy                                    |
+| Boss `telegraphMs`                 | 800–1200                                   | Per attack row                                        |
+| Knockdown on normal mob            | **no**                                     | P4 mobs use Hit stun only                             |
+| Knockdown                          | elite/boss + heavy moves + combo finishers | Per move flag                                         |
+| Boss phase threshold               | **50% HP**                                 | **2 phases** baseline                                 |
+| `getUp` i-frames                   | 200 ms                                     | After knockdown                                       |
+
+### 3.7 Reference hero kit — หนุมาน / Monkey King (LOCKED baseline)
+
+First vertical-slice kit. Other heroes follow the same **per-hero kit file** pattern.
+
+| Slot         | Name (TH)              | Design                           | Implementation notes                                                                                                                                                           |
+| ------------ | ---------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Basic**    | โจมตีปกติ              | 3-hit combo, multi-target, lunge | §3.6.11; finisher hit 3 tuned per §3.6.12                                                                                                                                      |
+| **S1**       | กระบวนทองคำ            | Spinning staff (existing)        | Radial AoE — already shipped                                                                                                                                                   |
+| **S2**       | กระบองตีระยะไกล        | Long-range staff strike          | Horizontal or line hit; **no** target lock                                                                                                                                     |
+| **S3**       | กระโดดพุ่งทุบ          | Leap jump → slam                 | Skill-driven leap displacement; slam on landing                                                                                                                                |
+| **Ultimate** | แยก 4 ร่าง → พุ่งโจมตี | Clone split → rush               | **Skill-specific nearest-target lock**; presentation uses clone animation; **code = long-range attack skill locked to nearest enemy, 4 strike phases**; not global soft-target |
+
+**Ultimate exception:** only this skill (and future skills explicitly flagged `targetLock: 'nearest'`) may auto-pick a target. Basic attack and S2/S3 still use manual facing/positioning unless their kit row says otherwise.
+
+**Next design gate (OPEN):** per-hero finisher tuning tables and additional hero kits beyond Monkey King.
 
 ---
 
