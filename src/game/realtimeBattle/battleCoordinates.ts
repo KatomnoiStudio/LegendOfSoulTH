@@ -18,13 +18,13 @@ import type { Vec2 } from './types'
  */
 
 /** @deprecated Use `combatCameraConfig.ts` — kept for imports that only need coordinate helpers. */
-export const BATTLE_CAMERA_PITCH_DEG = 15
+export const BATTLE_CAMERA_PITCH_DEG = 18
 
 /** @deprecated Use `combatCameraConfig.ts`. */
-export const BATTLE_CAMERA_DISTANCE = 5.4
+export const BATTLE_CAMERA_DISTANCE = 5.5
 
 /** @deprecated Use `combatCameraConfig.ts`. */
-export const BATTLE_CAMERA_HEIGHT_BIAS = 0.42
+export const BATTLE_CAMERA_HEIGHT_BIAS = 0.58
 
 /** @deprecated Use `combatCameraConfig.ts`. */
 export const BATTLE_CAMERA_FOLLOW_RATE = 8

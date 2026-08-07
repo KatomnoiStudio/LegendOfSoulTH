@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-08-07
+
+Combat camera pitch tuning — slightly higher vantage (presentation only)
+
+### Changed
+
+- `combatCameraConfig`: pitch 15° → **18°**, height offset 0.42 → **0.58**, distance 5.4 → **5.5**
+
 ## [0.8.1] - 2026-08-07
 
 Combat camera — Naruto-mobile-style elevated side framing (presentation only)

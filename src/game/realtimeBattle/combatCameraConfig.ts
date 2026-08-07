@@ -51,10 +51,10 @@ export interface CombatCameraConfig {
 
 /** Elevated side-down action camera — presentation baseline. */
 export const DEFAULT_COMBAT_CAMERA_CONFIG: CombatCameraConfig = {
-  pitchDeg: 15,
-  distance: 5.4,
+  pitchDeg: 18,
+  distance: 5.5,
   fovDeg: 38,
-  heightOffset: 0.42,
+  heightOffset: 0.58,
   targetHeightOffset: 0,
   minZoom: 0.88,
   maxZoom: 1.22,
