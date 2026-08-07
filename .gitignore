@@ -24,7 +24,9 @@ public/models/
 
 # Per-machine/per-editor local tool config — not project config, each dev's own setup
 .claude/launch.json
-.cursor/environment.json
+
+# Cursor IDE local config — machine/cloud-agent only, not project config
+.cursor/
 
 # Personal/off-project notes — see .agents/rules/personal-scope-law.md
 # (never goes in the shared, mandatory-read MEMORY.md)
