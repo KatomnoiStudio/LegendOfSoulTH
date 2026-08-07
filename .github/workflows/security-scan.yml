@@ -6,10 +6,10 @@ on:
   pull_request:
     branches: [ master ]
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *' # Run daily
 
 concurrency:
-  group: security-fork-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -17,27 +17,48 @@ permissions:
 
 jobs:
   secret-scan:
-    name: Secret Scan
+    name: Secret & Credential Leak Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+
       - name: Install Gitleaks
+        # gitleaks/gitleaks-action v2+ requires a paid GITLEAKS_LICENSE for org-owned repos
+        # (this repo is under the LegendofSoulTH org). The underlying gitleaks CLI itself is
+        # free/OSS with no such restriction, so run it directly instead of the Action wrapper.
         run: |
           curl -sSfL -o gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
           echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz" | sha256sum -c -
           tar -xzf gitleaks.tar.gz gitleaks
-      - name: Gitleaks
+
+      - name: Gitleaks Secret Scanner
         run: ./gitleaks detect --source . --verbose --redact
 
   npm-audit:
-    name: NPM Audit
+    name: NPM Dependency Vulnerability Audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
-          cache: npm
-      - run: npm audit --audit-level=high
+          cache: 'npm'
+
+      - name: Run NPM Audit Check
+        run: npm audit --audit-level=high

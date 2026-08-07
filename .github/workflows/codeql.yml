@@ -17,7 +17,7 @@ on:
     - cron: '0 0 * * 0'
 
 concurrency:
-  group: codeql-fork-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 # ตั้งเพดานสิทธิ์ระดับ workflow เหมือนอีกสามไฟล์ (ci/deploy/security-scan)
@@ -28,19 +28,31 @@ permissions:
 
 jobs:
   analyze:
-    name: Analyze
+    name: Analyze Code Quality & Security
     runs-on: ubuntu-latest
     permissions:
       security-events: write
       actions: read
       contents: read
+
     strategy:
       fail-fast: false
       matrix:
-        language: [ javascript-typescript ]
+        language: [ 'javascript-typescript' ]
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: github/codeql-action/init@v3
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@c4dd10e44af883a891fe31ced449bcb4a6728b9b # v3
         with:
           languages: ${{ matrix.language }}
-      - uses: github/codeql-action/analyze@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@c4dd10e44af883a891fe31ced449bcb4a6728b9b # v3

@@ -1,14 +1,13 @@
 import { isActiveWindow, totalDurationMs, type AttackDefinition } from './attacks'
 import type { RealtimeSkillDefinition } from './skills'
 import type { RealtimeBattleEntity } from './types'
+import { isUltimateReady } from './ultimateGauge'
 
 /**
- * ระบบสกิลของผู้เล่น (§18)
+ * ระบบสกิลของผู้เล่น (Blueprint v3 P3)
  *
- * ทำงานคล้ายคอมโบท่าเดียว: กดแล้วเล่นท่า startup → active → recovery
- * ดาเมจเกิดเฉพาะช่วง active เท่านั้น ศัตรูแต่ละตัวโดนได้ครั้งเดียวต่อการร่าย
- *
- * ระหว่างร่ายสกิลผู้เล่นหยุดนิ่ง — hitbox หมุนรอบตัวจึงไม่ลากตามการเดิน
+ * 3 skills + 1 ultimate ต่อฮีโร่ — ท่าเดียวต่อการกด: startup → active → recovery
+ * ดาเมจเกิดเฉพาะช่วง active ศัตรูแต่ละตัวโดนได้ครั้งเดียวต่อการร่าย
  */
 
 export interface SkillState {
@@ -32,16 +31,27 @@ export function isCastingSkill(skill: SkillState): boolean {
 export function canStartSkill(
   player: RealtimeBattleEntity,
   skill: SkillState,
+  definition: RealtimeSkillDefinition,
   isAttacking: boolean,
-  isDashing: boolean,
 ): boolean {
   if (player.state === 'dead') return false
   if (player.hitStunRemainingMs > 0) return false
   if (skill.definition !== null) return false
-  if (isDashing) return false
   if (isAttacking) return false
-  if (player.skillCooldownRemainingMs > 0) return false
-  return true
+
+  if (definition.slot === 'ultimate') {
+    return isUltimateReady(player.ultimateGauge)
+  }
+
+  if (
+    definition.slot === 'skill1' ||
+    definition.slot === 'skill2' ||
+    definition.slot === 'skill3'
+  ) {
+    return player.skillCooldownsMs[definition.slot] <= 0
+  }
+
+  return false
 }
 
 /** เริ่มร่ายสกิล — คืน true ถ้าเริ่มได้จริง */
@@ -57,7 +67,17 @@ export function startSkill(
 
   player.state = 'skill'
   player.velocity = { x: 0, y: 0 }
-  player.skillCooldownRemainingMs = definition.cooldownMs
+
+  if (definition.slot === 'ultimate') {
+    player.ultimateGauge = 0
+  } else if (
+    definition.slot === 'skill1' ||
+    definition.slot === 'skill2' ||
+    definition.slot === 'skill3'
+  ) {
+    player.skillCooldownsMs[definition.slot] = definition.cooldownMs
+  }
+
   player.invulnerableUntilMs = elapsedMs + definition.invulnerableMs
   return true
 }

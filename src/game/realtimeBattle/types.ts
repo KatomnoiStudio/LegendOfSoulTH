@@ -20,7 +20,10 @@ export type Direction8 =
 /** ทิศโจมตีพื้นฐาน — ซ้าย/ขวาเท่านั้น (Blueprint v3 P2) */
 export type CombatFacing = 'left' | 'right'
 
-export type EntityState = 'idle' | 'walk' | 'attack' | 'skill' | 'dash' | 'hit' | 'dead'
+export type EntityState = 'idle' | 'walk' | 'attack' | 'skill' | 'hit' | 'dead'
+
+/** ช่องสกิล 1–3 (ultimate ใช้ gauge แยก — ดู ultimateGauge.ts) */
+export type SkillCooldownSlot = 'skill1' | 'skill2' | 'skill3'
 
 /** ฝ่ายของหน่วย — ใช้ตรวจว่า hitbox ทำอันตรายใครได้บ้าง */
 export type EntityType = 'player' | 'enemy' | 'boss'
@@ -49,8 +52,9 @@ export interface RealtimeBattleEntity {
   hurtboxRadius: number
 
   attackCooldownRemainingMs: number
-  skillCooldownRemainingMs: number
-  dashCooldownRemainingMs: number
+  skillCooldownsMs: Record<SkillCooldownSlot, number>
+  /** 0–100 — เต็มแล้วใช้อัลติเมทได้ (Blueprint v3 P3) */
+  ultimateGauge: number
 
   /** เวลา (elapsedMs ของ runtime) ที่ยังอยู่ยงคงกระพันจนถึง */
   invulnerableUntilMs: number
@@ -71,7 +75,7 @@ export interface DamageEvent {
   createdAtMs: number
 }
 
-export type BattleEffectKind = 'hit-spark' | 'dash-trail' | 'skill-spin' | 'death' | 'spawn'
+export type BattleEffectKind = 'hit-spark' | 'skill-spin' | 'death' | 'spawn'
 
 export interface BattleEffectEvent {
   id: string

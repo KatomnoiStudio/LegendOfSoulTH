@@ -23,7 +23,13 @@ function makePlayer(): Player {
     expToNext: 100,
     currency: { gold: 0, gem: 0 },
     ownedCharacters: [
-      { characterId: 'monkey-king', level: 12, exp: 0, expToNext: 100, obtainedAt: '2026-01-01T00:00:00.000Z' },
+      {
+        characterId: 'monkey-king',
+        level: 12,
+        exp: 0,
+        expToNext: 100,
+        obtainedAt: '2026-01-01T00:00:00.000Z',
+      },
     ],
     inventory: [],
     friends: [],
@@ -232,7 +238,7 @@ describe('RealtimeBattleRuntime', () => {
     const hpBefore = enemy.hp
     enemy.position = { x: state.player.position.x + 60, y: state.player.position.y }
 
-    runtime.requestSkill()
+    runtime.requestSkill('skill1')
 
     for (let t = 0; t < 1200; t += 16) {
       runtime.step(16)

@@ -7,6 +7,26 @@
 
 ยังไม่มี
 
+## [0.6.0] - 2026-08-07
+
+Homework delivery — Blueprint v3 P0–P3 (Combat Foundation + Skill framework)
+
+### Added
+
+- **P0** Blueprint v3 docs + governance
+- **P1** 2.5D side-down arena (`battleCoordinates.ts`)
+- **P2** L/R basic attack + depth hit (`combatFacing.ts`)
+- **P3** Skill kit (3 skills + ultimate), ultimate gauge, `SkillBar` UI
+
+### Removed
+
+- **Dash button + DashSystem** (Blueprint v3)
+
+### Changed
+
+- คีย์บอร์ดสกิล: 1/E, 2/R, 3/F, 4/Q · `skillCooldownsMs` แยกช่อง
+- `.gitignore`: `.cursor/` ทั้งโฟลเดอร์ (`.claude/launch.json` คงเดิม)
+
 ## [0.5.1] - 2026-08-07
 
 ### Fixed

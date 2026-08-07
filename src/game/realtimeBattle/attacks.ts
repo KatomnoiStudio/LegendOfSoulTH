@@ -109,17 +109,8 @@ export const COMBO_CONFIG = {
   hitStopMs: 55,
 } as const
 
-/** ค่าจังหวะของ dash (§17) */
-export const DASH_CONFIG = {
-  durationMs: 220,
-  invulnerableMs: 170,
-  cooldownMs: 1300,
-  /** ระยะทางรวมของการพุ่งหนึ่งครั้ง (หน่วย runtime) */
-  distance: 300,
-} as const
-
 /**
- * สกิลหมุนกระบวนทองคำของหงอคง (§18)
+ * สกิลหมุนกระบวนทองคำของหงอคง — Skill 1 (Blueprint v3 P3)
  *
  * โจมตีรอบตัว 360° ช่วง active ยาวกว่าคอมโบไม้เดียว — ศัตรูแต่ละตัวโดนได้ครั้งเดียวต่อการร่าย
  * damageMultiplier สูงกว่าไม้สามของคอมโบเล็กน้อย เพื่อให้คูลดาวน์ 8 วินาทีคุ้มค่า
@@ -140,11 +131,65 @@ export const MONKEY_SPINNING_STAFF: AttackDefinition = {
   knockback: 140,
 }
 
-/** ค่าจังหวะของสกิล (§18) — อยู่ที่เดียว ห้าม hard-code กระจายหลายไฟล์ */
+/** สกิล 2 — พุ่งไม้เท้าแนวนอน (placeholder content, P3 framework) */
+export const MONKEY_STAFF_THRUST: AttackDefinition = {
+  id: 'monkey-staff-thrust',
+  animationId: 'attack-2',
+  startupMs: 140,
+  activeMs: 100,
+  recoveryMs: 360,
+  comboWindowStartMs: 0,
+  comboWindowEndMs: 0,
+  damageMultiplier: 1.35,
+  range: 145,
+  hitShape: 'horizontal',
+  arcDegrees: 0,
+  depthTolerance: 92,
+  knockback: 120,
+}
+
+/** สกิล 3 — กวาดไม้กว้าง (placeholder content, P3 framework) */
+export const MONKEY_STAFF_SWEEP: AttackDefinition = {
+  id: 'monkey-staff-sweep',
+  animationId: 'attack-3',
+  startupMs: 160,
+  activeMs: 130,
+  recoveryMs: 400,
+  comboWindowStartMs: 0,
+  comboWindowEndMs: 0,
+  damageMultiplier: 1.5,
+  range: 138,
+  hitShape: 'horizontal',
+  arcDegrees: 0,
+  depthTolerance: 110,
+  knockback: 160,
+}
+
+/** อัลติเมท — กระบวนทองคำรุนแรง (placeholder content, P3 framework) */
+export const MONKEY_GOLDEN_FURY: AttackDefinition = {
+  id: 'monkey-golden-fury',
+  animationId: 'skill-1',
+  startupMs: 220,
+  activeMs: 520,
+  recoveryMs: 620,
+  comboWindowStartMs: 0,
+  comboWindowEndMs: 0,
+  damageMultiplier: 2.4,
+  range: 175,
+  hitShape: 'radial',
+  arcDegrees: 360,
+  depthTolerance: 0,
+  knockback: 200,
+}
+
+/** ค่าจังหวะของสกิล (Blueprint v3 P3) — อยู่ที่เดียว ห้าม hard-code กระจายหลายไฟล์ */
 export const SKILL_CONFIG = {
-  cooldownMs: 8000,
+  skill1CooldownMs: 8000,
+  skill2CooldownMs: 6000,
+  skill3CooldownMs: 10000,
   /** i-frame ช่วงเปิดท่า — สั้นกว่าเวลาร่ายทั้งหมด ไม่ให้รอดฟรีตลอดท่า */
   invulnerableMs: 280,
+  ultimateInvulnerableMs: 420,
 } as const
 
 /** ท่าโจมตีของศัตรู — จังหวะเดียวกับที่ EnemyAISystem ใช้ตัดสินใจ */
