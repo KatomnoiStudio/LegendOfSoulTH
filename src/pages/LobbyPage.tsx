@@ -198,6 +198,7 @@ export function LobbyPage({
           player={player}
           onPlayerChange={onPlayerChange}
           onEarnGold={onEarnGold}
+          onGrantItem={onGrantItem}
           onExit={() => setDungeonOpen(false)}
         />
       ) : null}

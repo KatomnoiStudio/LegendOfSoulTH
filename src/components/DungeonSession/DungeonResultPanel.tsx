@@ -1,20 +1,17 @@
-import { formatDurationMs, formatNumber } from '../../lib/format'
-import type { DungeonResult } from '../../game/dungeon/dungeonSchema'
+import { formatNumber } from '../../lib/format'
+import type { ResultViewModel } from '../../game/reward/rewardSchema'
 import { useModalA11y } from '../../hooks/useModalA11y'
 import styles from '../BattleScene/BattleScene.module.css'
 
 export function DungeonResultPanel({
-  result,
-  dungeonName,
+  viewModel,
   onContinue,
 }: {
-  result: DungeonResult
-  dungeonName: string
+  viewModel: ResultViewModel
   onContinue: () => void
 }) {
-  const won = result.success
+  const won = viewModel.status === 'clear'
   const { shellRef, backdropProps } = useModalA11y<HTMLDivElement>(onContinue)
-  const stagesCleared = result.stageResults.filter((s) => s.success).length
 
   return (
     <div className={styles.resultBackdrop} {...backdropProps}>
@@ -26,31 +23,47 @@ export function DungeonResultPanel({
         aria-labelledby="dungeon-result-title"
         tabIndex={-1}
       >
-        <p className={styles.resultEyebrow}>{dungeonName}</p>
+        <p className={styles.resultEyebrow}>{viewModel.dungeonName}</p>
         <h2 id="dungeon-result-title" className={won ? styles.resultWin : styles.resultLose}>
           {won ? 'เคลียร์ดันเจี้ยน' : 'ดันเจี้ยนล้มเหลว'}
         </h2>
         <p className={styles.resultMeta}>
-          เวลา {formatDurationMs(result.clearTimeMs)} · ด่านผ่าน {stagesCleared}/
-          {result.stageResults.length}
+          เวลา {viewModel.clearTimeLabel} · ด่านผ่าน {viewModel.stagesCleared}/
+          {viewModel.stagesTotal}
         </p>
 
+        {!won && viewModel.failureLabel ? (
+          <p className={styles.resultMeta}>{viewModel.failureLabel}</p>
+        ) : null}
+
+        {viewModel.nonProductionBalance ? (
+          <p className={styles.resultMeta} data-testid="non-production-balance-label">
+            NON-PRODUCTION BALANCE
+          </p>
+        ) : null}
+
         <ul className={styles.resultRewards} aria-label="รางวัล">
-          {result.rewardPlaceholder ? (
-            <>
-              <li>
-                <span>ทอง (placeholder)</span>
-                <strong>+{formatNumber(result.rewardPlaceholder.gold)}</strong>
+          {viewModel.rewards.length > 0 ? (
+            viewModel.rewards.map((reward) => (
+              <li key={`${reward.kind}-${reward.label}`}>
+                <span>{reward.label}</span>
+                <strong>{reward.amount}</strong>
               </li>
-              <li>
-                <span>EXP (placeholder)</span>
-                <strong>+{formatNumber(result.rewardPlaceholder.exp)}</strong>
-              </li>
-            </>
-          ) : null}
+            ))
+          ) : (
+            <li>
+              <span>ไม่มีรางวัล</span>
+              <strong>{formatNumber(0)}</strong>
+            </li>
+          )}
         </ul>
 
-        <button type="button" className={styles.resultContinue} onClick={onContinue}>
+        <button
+          type="button"
+          className={styles.resultContinue}
+          onClick={onContinue}
+          disabled={!viewModel.canContinue}
+        >
           กลับล็อบบี้
         </button>
       </div>

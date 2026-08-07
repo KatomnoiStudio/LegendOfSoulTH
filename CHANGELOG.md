@@ -5,6 +5,23 @@
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-08-07
+
+Result / Reward Pipeline — dungeon clear/fail → resolve → grant → save → result UI
+
+### Added
+
+- `src/game/reward/` — `DungeonResult` finalizer, data-driven `RewardResolver`, `RewardGrantService`, `ResultViewModel`, pipeline orchestrator
+- NON-PRODUCTION placeholder balance in `rewardConfig.ts` for `p5-test-dungeon`
+- Idempotent grant via `reward_tx_${runId}:final` progress flag
+- `DungeonResultPanel` now renders `ResultViewModel` (no inline reward math in UI)
+- Reward pipeline tests (+11 tests)
+
+### Changed
+
+- `DungeonOrchestrator` finalizes immutable `DungeonResult` with combat summary accumulator
+- `DungeonSession` grants rewards on Continue via ledger (`earnGold`/`grantItem`) then saves once
+
 ## [0.10.0] - 2026-08-07
 
 P5 Dungeon Vertical Slice — stage/dungeon orchestration above P4 combat core
