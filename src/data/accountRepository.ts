@@ -1,4 +1,5 @@
 import { getCharacter } from '../game/characters'
+import { GAME_INFO } from '../game/gameInfo'
 import { getItem } from '../game/items'
 import { generateUid } from '../game/uid'
 import { TEAM_SIZE } from '../game/team'
@@ -46,10 +47,17 @@ interface SessionRecord {
   uid: string
   email: string
   expiresAt: string
+  /** เลขเวอร์ชันเกม (GAME_INFO.version) ตอนเขียน session นี้ — ดู readActiveSession */
+  appVersion: string
 }
 
 function createSession(uid: string, email: string): SessionRecord {
-  return { uid, email, expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString() }
+  return {
+    uid,
+    email,
+    expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString(),
+    appVersion: GAME_INFO.version,
+  }
 }
 
 /*
@@ -62,6 +70,11 @@ function createSession(uid: string, email: string): SessionRecord {
   sliding window (ต่ออายุทุกครั้งที่อ่านสำเร็จ) แทนวันหมดอายุตายตัว เพราะผู้เล่นที่เล่นต่อเนื่อง
   ไม่ควรถูกเตะกลางเกมแค่เพราะ session อายุครบตามนาฬิกา — หมดอายุเฉพาะแท็บที่ปิดทิ้งไว้จริง ๆ
   เกิน 30 วันเท่านั้น
+
+  session ยังหมดอายุทันทีถ้า appVersion ไม่ตรงกับ build ปัจจุบันด้วย (HetCreep 2026-08-07) —
+  อัปเดตเกมแล้ว session เก่าใช้ต่อไม่ได้ ต้องล็อกอินใหม่เสมอ ไม่ใช่แค่ตอนแท็บที่เปิดค้างเห็น
+  UpdateBanner แล้วกดรีเฟรชเอง แต่รวมถึงแท็บใหม่ที่เปิดขึ้นมาทีหลังด้วย (localStorage เดิม
+  ยังอยู่แต่เป็นของ build เก่า) — กันข้อมูล Player รูปแบบเก่าที่อาจไม่ตรงกับโค้ดใหม่หลุดเข้าเกม
 */
 function readActiveSession(): SessionRecord | null {
   const session = readJson<SessionRecord>(SESSION_KEY)
@@ -70,6 +83,11 @@ function readActiveSession(): SessionRecord | null {
   // session เก่าก่อนมีฟิลด์นี้ (เขียนไว้ตอนยังไม่มี expiry) — ถือว่าหมดอายุทันที
   // ปลอดภัยกว่าปล่อยให้ใช้ต่อแบบไม่มีเวลาจำกัดเงียบ ๆ
   if (!session.expiresAt || new Date(session.expiresAt).getTime() <= Date.now()) {
+    removeKey(SESSION_KEY)
+    return null
+  }
+
+  if (session.appVersion !== GAME_INFO.version) {
     removeKey(SESSION_KEY)
     return null
   }

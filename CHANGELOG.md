@@ -7,6 +7,19 @@
 
 ยังไม่มี
 
+## [0.3.2] - 2026-08-07
+
+### Fixed
+
+- **ปุ่ม "เริ่มการผจญภัย" ทับแถบเมนูลัดบนมือถือแนวนอน** — ทั้งสองชิดขอบขวาเหมือนกันโดยไม่รู้จักกัน
+  เพิ่มระยะห่างให้ปุ่มเว้นพ้นแถบเมนูลัดจริงที่ 700x360/812x375/640x320 (ทดสอบจริงแล้ว)
+
+### Changed
+
+- **อัปเดตเกมแล้วรีเฟรชอัตโนมัติ** — แท็บที่เปิดค้างไว้จะรีเฟรชเองภายใน 5 วินาทีเมื่อมี build
+  ใหม่ (เดิมแค่เตือนเฉย ๆ ให้กดเอง) และ session จะหมดอายุทันทีถ้าเลขเวอร์ชันไม่ตรงกับ build
+  ปัจจุบัน แม้เป็นแท็บที่เพิ่งเปิดใหม่ก็ตาม
+
 ## [0.3.1] - 2026-08-07
 
 ### Fixed
@@ -99,7 +112,8 @@
 - ภาพทั้งหมดแปลงเป็น WebP ผ่าน pipeline `assets/raw/` → `npm run build:images`
 - Governance: `AGENTS.md`, `MEMORY.md`, `.agents/rules/**`, `SECURITY.md`
 
-[Unreleased]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.1.0...v0.2.0
