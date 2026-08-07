@@ -79,9 +79,9 @@ export function AuthModal({ onRegister, onLogin }: AuthModalProps) {
         setBusy(false)
       }
     } catch (cause) {
-      // เหตุผลเดียวกับ handleImportFile: ถ้าปล่อย reject หลุด busy จะค้าง true
-      // แล้วกล่องนี้ใช้ต่อไม่ได้เลย (เช่นตอนหน้าไม่ได้อยู่บน secure context จน
-      // crypto.subtle ใช้ไม่ได้ หรือแฮชที่เก็บไว้เพี้ยนจน deriveBits โยนข้อผิดพลาด)
+      // ต้องจับไว้ ไม่งั้น reject หลุดแล้ว busy จะค้าง true กล่องนี้ใช้ต่อไม่ได้เลย
+      // (เช่นตอนหน้าไม่ได้อยู่บน secure context จน crypto.subtle ใช้ไม่ได้ หรือแฮช
+      // ที่เก็บไว้เพี้ยนจน deriveBits โยนข้อผิดพลาด)
       reportError('AUTH_SUBMIT_FAIL', 'silent', cause)
       setError('ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง')
       setBusy(false)
