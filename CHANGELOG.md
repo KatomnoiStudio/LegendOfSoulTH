@@ -16,9 +16,8 @@ Blueprint v3 P3 — 3 Skills + Ultimate framework, ตัด dash button + Comba
 - **Skill kit** — 3 skills + 1 ultimate ต่อฮีโร่ (`skills.ts`, `RealtimeSkillKit`)
 - **Ultimate gauge** — เติมจากการต่อสู้, ใช้เมื่อเต็ม (`ultimateGauge.ts`)
 - **Skill bar UI** — ปุ่ม S1/S2/S3/U แทนปุ่มสกิลเดียว (`SkillBar.tsx`)
-- **Blueprint §3.6 Combat Foundation Design Lock** (docs, ไม่แตะโค้ด) — controls, basic attack
-  lunge/multi-target, cast interrupt, hit reaction, boss telegraph SM, phase transition
-  (HetCreep Ring 0, 2026-08-07) — ปิด fork gap #33
+- **Blueprint §3.6 Combat Foundation Design Lock** (docs) — controls, lunge/multi-target, cast interrupt, hit reaction, boss telegraph SM, phase transition — ปิด fork gap [#33](https://github.com/nustanakritwithai/GameTurnBase/issues/33)
+- **Blueprint §3.6.11–§3.7** — combo 3-hit/no-cancel, UI icons, tuning baseline, Monkey King S2/S3/Ult kit
 
 ### Removed
 
