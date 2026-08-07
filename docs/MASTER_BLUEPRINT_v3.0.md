@@ -117,8 +117,7 @@ Do **not** plan or implement these until HetCreep reopens them:
 
 **Button presentation (LOCKED 2026-08-07):**
 
-- **Basic Attack:** **icon only** (no text label on button)
-- **Skills S1–S3 / Ultimate:** numeric/icon slots — **art icons TBD** (placeholder until assets land)
+- **Basic Attack, Skills S1–S3, Ultimate:** all share the same button style — **short text label** (`ATK`/`S1`/`S2`/`S3`/`ULT`) until real icons land, **art icons TBD** (placeholder until assets land) — **revised 2026-08-07** from an earlier icon-only-for-Attack draft: PR #24 shipped a uniform label style across the whole cluster (easier to learn the reference layout), the blueprint now matches what's live rather than the reverse
 - **Ultimate when gauge empty:** button **pressable but no effect** (no disabled state required)
 
 **PC keybinds (LOCKED):** Attack `J` / `Space` · S1 `1`/`E` · S2 `2`/`R` · S3 `3`/`F` · Ultimate `4`/`Q`
