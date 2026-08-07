@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { PLAYER_ATTACK_CHAIN, type AttackDefinition } from './attacks'
+import { getEnemyAttackById, PLAYER_ATTACK_CHAIN, type AttackDefinition } from './attacks'
 import * as DamageSystem from './DamageSystem'
 import { applyDamage, calcDamage } from './DamageSystem'
 import { createEnemyBrain, stepEnemyAI } from './EnemyAISystem'
@@ -44,6 +44,9 @@ function unit(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEnti
     ultimateGauge: 0,
     invulnerableUntilMs: 0,
     hitStunRemainingMs: 0,
+    knockdownRemainingMs: 0,
+    getUpRemainingMs: 0,
+    combatTier: 'mob',
     ...overrides,
   }
 }
@@ -278,8 +281,11 @@ describe('summon effect — reuse enemy AI machine verbatim (done-criterion #5, 
     })
     const brain = createEnemyBrain()
 
+    const telegraphMs = getEnemyAttackById('enemy-melee').telegraphMs ?? 0
+
     stepEnemyAI(summon, brain, nearestEnemy, 16) // idle → chase
-    const decision = stepEnemyAI(summon, brain, nearestEnemy, 16) // chase → attack
+    stepEnemyAI(summon, brain, nearestEnemy, 16) // chase → telegraph (P4 combat core: ทุกท่าผ่าน telegraph state ก่อนเสมอ)
+    const decision = stepEnemyAI(summon, brain, nearestEnemy, telegraphMs) // telegraph → attack
 
     expect(brain.state).toBe('attack')
     expect(summon.state).toBe('attack')

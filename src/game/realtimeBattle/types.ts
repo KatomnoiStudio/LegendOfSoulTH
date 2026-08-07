@@ -27,10 +27,13 @@ export type CombatFacing = 'left' | 'right'
  * ใช้ร่วมกันทั้ง elite และ boss ไม่มี state แยกต่อ tier (§3.8.4)
  */
 export type EntityState =
-  'idle' | 'walk' | 'attack' | 'skill' | 'hit' | 'dead' | 'knockdown' | 'getup'
+  'idle' | 'walk' | 'attack' | 'skill' | 'hit' | 'dead' | 'knockdown' | 'getUp'
 
 /** ระดับความแรงของศัตรู — elite ยืมสเตตัสจากตัวคูณในข้อมูล ไม่มี kit พิเศษ (§3.8.4) */
 export type EnemyTier = 'normal' | 'elite'
+
+/** Mob / elite / boss tier — elite uses same AI core, different data. */
+export type CombatTier = 'mob' | 'elite' | 'boss'
 
 /** ช่องสกิล 1–3 (ultimate ใช้ gauge แยก — ดู ultimateGauge.ts) */
 export type SkillCooldownSlot = 'skill1' | 'skill2' | 'skill3'
@@ -92,6 +95,10 @@ export interface RealtimeBattleEntity {
   /** เวลา (elapsedMs ของ runtime) ที่ยังอยู่ยงคงกระพันจนถึง */
   invulnerableUntilMs: number
   hitStunRemainingMs: number
+  knockdownRemainingMs: number
+  getUpRemainingMs: number
+  /** mob | elite | boss — drives knockdown eligibility */
+  combatTier: CombatTier
 
   /** id ตัวละครผู้เล่น (ดู src/game/characters.ts) — มีเฉพาะฝ่ายผู้เล่น */
   characterId?: string

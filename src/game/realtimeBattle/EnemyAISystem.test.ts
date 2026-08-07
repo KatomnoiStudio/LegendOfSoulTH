@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { createEnemyBrain, ENEMY_ATTACK_TIMING, stepEnemyAI } from './EnemyAISystem'
+import { ENEMY_ATTACK_MELEE } from './attacks'
+import {
+  createEnemyBrain,
+  isEnemyAttackDamageWindow,
+  isEnemyTelegraphing,
+  stepEnemyAI,
+} from './EnemyAISystem'
 import { createRealtimeBattle } from './createRealtimeBattle'
 import { RealtimeBattleRuntime } from './RealtimeBattleRuntime'
 import { findHitTargets } from './HitboxSystem'
@@ -14,8 +20,9 @@ import type { RealtimeBattleEntity } from './types'
 import type { Player } from '../../types/player'
 import { EMPTY_PROGRESS } from '../../types/player'
 
-const ATTACK_TOTAL_MS =
-  ENEMY_ATTACK_TIMING.startupMs + ENEMY_ATTACK_TIMING.activeMs + ENEMY_ATTACK_TIMING.recoveryMs
+const EXECUTE_MS =
+  ENEMY_ATTACK_MELEE.startupMs + ENEMY_ATTACK_MELEE.activeMs + ENEMY_ATTACK_MELEE.recoveryMs
+const TELEGRAPH_MS = ENEMY_ATTACK_MELEE.telegraphMs ?? 0
 
 function makePlayer(): Player {
   return {
@@ -67,6 +74,9 @@ function entity(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
     ultimateGauge: 0,
     invulnerableUntilMs: 0,
     hitStunRemainingMs: 0,
+    knockdownRemainingMs: 0,
+    getUpRemainingMs: 0,
+    combatTier: 'mob',
     enemyId: 'shadow-soldier',
     ...overrides,
   }
@@ -115,16 +125,20 @@ describe('stepEnemyAI', () => {
     const brain = createEnemyBrain()
 
     stepEnemyAI(enemy, brain, player, 16) // → chase
-    const decision = stepEnemyAI(enemy, brain, player, 16) // → attack
+    const decision = stepEnemyAI(enemy, brain, player, 16) // → telegraph
 
-    expect(brain.state).toBe('attack')
+    expect(brain.state).toBe('telegraph')
+    expect(isEnemyTelegraphing(brain)).toBe(true)
     expect(enemy.state).toBe('attack')
     expect(decision.move).toEqual({ x: 0, y: 0 })
     expect(enemy.attackCooldownRemainingMs).toBe(template.attackCooldownMs)
 
-    // ระหว่างท่ายังไม่จบ ต้องไม่ขยับเลยแม้ผู้เล่นจะอยู่ไกลออกไป
-    const during = stepEnemyAI(enemy, brain, player, ENEMY_ATTACK_TIMING.startupMs)
+    stepEnemyAI(enemy, brain, player, TELEGRAPH_MS) // telegraph → attack execute
     expect(brain.state).toBe('attack')
+
+    const during = stepEnemyAI(enemy, brain, player, ENEMY_ATTACK_MELEE.startupMs - 20)
+    expect(brain.state).toBe('attack')
+    expect(isEnemyAttackDamageWindow(brain)).toBe(false)
     expect(during.move).toEqual({ x: 0, y: 0 })
   })
 
@@ -139,7 +153,8 @@ describe('stepEnemyAI', () => {
 
     stepEnemyAI(enemy, brain, player, 16)
     stepEnemyAI(enemy, brain, player, 16)
-    stepEnemyAI(enemy, brain, player, ATTACK_TOTAL_MS)
+    stepEnemyAI(enemy, brain, player, TELEGRAPH_MS)
+    stepEnemyAI(enemy, brain, player, EXECUTE_MS)
     expect(brain.state).toBe('recover')
 
     stepEnemyAI(enemy, brain, player, 500)
@@ -281,10 +296,10 @@ describe('stepEnemyAI — บอส (#11 Boss System)', () => {
     stepEnemyAI(boss, brain, player, 16, 0) // idle → chase
     stepEnemyAI(boss, brain, player, 16, 16) // chase → telegraph (เลือกท่าเฟส 1)
     expect(brain.state).toBe('telegraph')
-    const row = brain.bossAttackRow
-    if (!row) throw new Error('ควรมี bossAttackRow แล้ว')
+    const row = brain.selectedAttack
+    if (!row) throw new Error('ควรมี selectedAttack แล้ว')
 
-    stepEnemyAI(boss, brain, player, row.telegraphMs, 100) // telegraph → attack
+    stepEnemyAI(boss, brain, player, row.telegraphMs ?? 0, 100) // telegraph → attack
     expect(brain.state).toBe('attack')
 
     // HP ลดต่ำกว่า threshold ระหว่างอยู่ในท่าโจมตี (mid-AttackActive)
@@ -352,12 +367,12 @@ describe('stepEnemyAI — บอส (#11 Boss System)', () => {
 
     stepEnemyAI(boss, brain, player, 16, 0) // → chase
     stepEnemyAI(boss, brain, player, 16, 16) // → telegraph เฟส 1
-    const phase1Row = brain.bossAttackRow
-    if (!phase1Row) throw new Error('ควรมี bossAttackRow แล้ว')
+    const phase1Row = brain.selectedAttack
+    if (!phase1Row) throw new Error('ควรมี selectedAttack แล้ว')
     expect(phase1Row).toBe(bossTemplate.phases[0].attacks[0])
 
     boss.hp = bossTemplate.maxHp * 0.4 // ข้าม threshold
-    stepEnemyAI(boss, brain, player, phase1Row.telegraphMs, 100) // telegraph → attack
+    stepEnemyAI(boss, brain, player, phase1Row.telegraphMs ?? 0, 100) // telegraph → attack
     const attackTotalMs = phase1Row.startupMs + phase1Row.activeMs + phase1Row.recoveryMs
     stepEnemyAI(boss, brain, player, attackTotalMs, 200) // attack → recover
     stepEnemyAI(boss, brain, player, 260, 300) // recover → chase (จุดปลอดภัย)
@@ -370,7 +385,7 @@ describe('stepEnemyAI — บอส (#11 Boss System)', () => {
     boss.attackCooldownRemainingMs = 0 // จำลอง tickTimers ของ runtime นับถอยหลังจนพ้นคูลดาวน์แล้ว
     stepEnemyAI(boss, brain, player, 16, 500) // → telegraph เฟส 2
     expect(brain.state).toBe('telegraph')
-    const phase2Row = brain.bossAttackRow
+    const phase2Row = brain.selectedAttack
     expect(phase2Row).toBe(bossTemplate.phases[1].attacks[0])
     expect(phase2Row).not.toBe(phase1Row)
   })
@@ -393,21 +408,21 @@ describe('stepEnemyAI — บอส (#11 Boss System)', () => {
     const decision = stepEnemyAI(boss, brain, player, 16, 16) // → telegraph
 
     expect(brain.state).toBe('telegraph')
-    const row = brain.bossAttackRow
-    if (!row) throw new Error('ควรมี bossAttackRow แล้ว')
+    const row = brain.selectedAttack
+    if (!row) throw new Error('ควรมี selectedAttack แล้ว')
     expect(row.telegraphMs).toBeGreaterThanOrEqual(800)
     expect(row.telegraphMs).toBeLessThanOrEqual(1200)
     expect(decision.telegraph).toBeDefined()
     expect(decision.telegraph?.durationMs).toBe(row.telegraphMs)
 
     // ยังไม่ครบ telegraphMs → ยังไม่เข้า AttackActive
-    stepEnemyAI(boss, brain, player, row.telegraphMs - 10, 100)
+    stepEnemyAI(boss, brain, player, (row.telegraphMs ?? 0) - 10, 100)
     expect(brain.state).toBe('telegraph')
 
     // ครบแล้ว → attack (ท่าเดียวกับที่เทเลกราฟไว้ — กันสลับท่า, scar #2)
     stepEnemyAI(boss, brain, player, 10, 1000)
     expect(brain.state).toBe('attack')
-    expect(brain.bossAttackRow).toBe(row)
+    expect(brain.selectedAttack).toBe(row)
   })
 
   it('Done-criterion 5: เปลี่ยนเฟสได้ครั้งเดียวต่อบอสหนึ่งตัว แม้ HP แกว่งกลับข้าม threshold ซ้ำหลังเฟส 2', () => {

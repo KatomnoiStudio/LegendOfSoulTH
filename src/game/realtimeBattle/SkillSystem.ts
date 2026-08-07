@@ -1,21 +1,22 @@
 import { isActiveWindow, totalDurationMs, type AttackDefinition } from './attacks'
+import { getMovePhase, getStrikeIndex, resolveInterruptible } from './combatMoveSchema'
+import { getPlayerSkillPhase, interruptPlayerSkill, shouldInterruptMove } from './combatInterrupt'
 import type { RealtimeSkillDefinition } from './skills'
+import { isControlLocked } from './combatReaction'
 import type { RealtimeBattleEntity } from './types'
 import { isUltimateReady } from './ultimateGauge'
 
 /**
- * ระบบสกิลของผู้เล่น (Blueprint v3 P3)
- *
- * 3 skills + 1 ultimate ต่อฮีโร่ — ท่าเดียวต่อการกด: startup → active → recovery
- * ดาเมจเกิดเฉพาะช่วง active ศัตรูแต่ละตัวโดนได้ครั้งเดียวต่อการร่าย
+ * ระบบสกิลของผู้เล่น (Blueprint v3 P3 + P4 interrupt/target lock)
  */
 
 export interface SkillState {
   definition: RealtimeSkillDefinition | null
   sinceStartMs: number
   hitTargets: Set<string>
-  /** เป้าที่ถูกล็อกไว้ตอนเริ่มร่าย — ใช้เฉพาะท่าที่มี attack.targetLock (ระบบ #8) */
-  lockedTargetId: string | undefined
+  /** Per-strike hit tracking for multi-hit ultimates */
+  strikeHits: Set<string>
+  lockedTargetId: string | null
 }
 
 export function createSkillState(): SkillState {
@@ -23,31 +24,9 @@ export function createSkillState(): SkillState {
     definition: null,
     sinceStartMs: 0,
     hitTargets: new Set(),
-    lockedTargetId: undefined,
+    strikeHits: new Set(),
+    lockedTargetId: null,
   }
-}
-
-/** ศัตรูที่ใกล้ผู้ร่ายที่สุด (ตัวเป็น ๆ เท่านั้น) — เดียวกับ pattern ที่ EnemyAISystem.ts ใช้ */
-function nearestEnemyId(
-  caster: RealtimeBattleEntity,
-  enemies: RealtimeBattleEntity[],
-): string | undefined {
-  let closestId: string | undefined
-  let closestDistance = Infinity
-
-  for (const enemy of enemies) {
-    if (enemy.state === 'dead' || enemy.hp <= 0) continue
-    const distance = Math.hypot(
-      enemy.position.x - caster.position.x,
-      enemy.position.y - caster.position.y,
-    )
-    if (distance < closestDistance) {
-      closestDistance = distance
-      closestId = enemy.id
-    }
-  }
-
-  return closestId
 }
 
 export function isCastingSkill(skill: SkillState): boolean {
@@ -60,8 +39,7 @@ export function canStartSkill(
   definition: RealtimeSkillDefinition,
   isAttacking: boolean,
 ): boolean {
-  if (player.state === 'dead') return false
-  if (player.hitStunRemainingMs > 0) return false
+  if (isControlLocked(player)) return false
   if (skill.definition !== null) return false
   if (isAttacking) return false
 
@@ -80,20 +58,18 @@ export function canStartSkill(
   return false
 }
 
-/** เริ่มร่ายสกิล — คืน true ถ้าเริ่มได้จริง */
 export function startSkill(
   player: RealtimeBattleEntity,
   skill: SkillState,
   definition: RealtimeSkillDefinition,
   elapsedMs: number,
-  enemies: RealtimeBattleEntity[] = [],
+  lockedTargetId: string | null = null,
 ): boolean {
   skill.definition = definition
   skill.sinceStartMs = 0
   skill.hitTargets.clear()
-  // ล็อกเป้าครั้งเดียวตอนเริ่มร่าย คงไว้ตลอด active window นี้ (ระบบ #8) — ไม่ query ซ้ำระหว่างท่า
-  skill.lockedTargetId =
-    definition.attack.targetLock === 'nearest' ? nearestEnemyId(player, enemies) : undefined
+  skill.strikeHits.clear()
+  skill.lockedTargetId = lockedTargetId
 
   player.state = 'skill'
   player.velocity = { x: 0, y: 0 }
@@ -115,24 +91,33 @@ export function startSkill(
 export interface SkillTick {
   hitboxActive: boolean
   attack: AttackDefinition | null
+  strikeIndex: number
 }
 
-/** เดินท่าสกิลไปหนึ่ง tick */
 export function stepSkill(
   player: RealtimeBattleEntity,
   skill: SkillState,
   deltaMs: number,
 ): SkillTick {
   if (!skill.definition) {
-    return { hitboxActive: false, attack: null }
+    return { hitboxActive: false, attack: null, strikeIndex: -1 }
   }
 
-  if (player.hitStunRemainingMs > 0 || player.state === 'dead') {
+  if (player.state === 'dead') {
     skill.definition = null
     skill.hitTargets.clear()
+    skill.strikeHits.clear()
+    skill.lockedTargetId = null
     skill.sinceStartMs = 0
-    skill.lockedTargetId = undefined
-    return { hitboxActive: false, attack: null }
+    return { hitboxActive: false, attack: null, strikeIndex: -1 }
+  }
+
+  if (player.hitStunRemainingMs > 0) {
+    const phase = getPlayerSkillPhase(skill.definition.attack, skill.sinceStartMs)
+    if (shouldInterruptMove(skill.definition.attack, phase)) {
+      interruptPlayerSkill(player, skill)
+      return { hitboxActive: false, attack: null, strikeIndex: -1 }
+    }
   }
 
   skill.sinceStartMs += deltaMs
@@ -141,15 +126,28 @@ export function stepSkill(
   if (skill.sinceStartMs >= totalDurationMs(attack)) {
     skill.definition = null
     skill.hitTargets.clear()
+    skill.strikeHits.clear()
+    skill.lockedTargetId = null
     skill.sinceStartMs = 0
-    skill.lockedTargetId = undefined
     if (player.state === 'skill') player.state = 'idle'
-    return { hitboxActive: false, attack: null }
+    return { hitboxActive: false, attack: null, strikeIndex: -1 }
   }
 
   player.state = 'skill'
+  const telegraph = attack.telegraphMs ?? 0
+  const executeElapsed = Math.max(0, skill.sinceStartMs - telegraph)
+  const strikeIndex = getStrikeIndex(attack, executeElapsed)
+
   return {
     hitboxActive: isActiveWindow(attack, skill.sinceStartMs),
     attack,
+    strikeIndex,
   }
+}
+
+export function isSkillPhaseInterruptible(skill: SkillState): boolean {
+  if (!skill.definition) return true
+  const phase = getMovePhase(skill.definition.attack, skill.sinceStartMs)
+  if (phase === 'complete') return true
+  return resolveInterruptible(skill.definition.attack, phase)
 }

@@ -3,6 +3,7 @@ import type { Player } from '../../types/player'
 import { EMPTY_PROGRESS } from '../../types/player'
 import { createDefaultSkillLevels } from './SkillProgressionSystem'
 import { createEnemyBrain, stepEnemyAI, ENEMY_ATTACK_TIMING } from './EnemyAISystem'
+import { getEnemyAttackById } from './attacks'
 import {
   createRealtimeBattle,
   createWaveEnemies,
@@ -241,21 +242,29 @@ describe('mini-boss ใช้ EnemyAI เส้นทางเดียวกั
     // ยังไม่เข้าระยะ = idle เหมือนศัตรูทั่วไป
     expect(brain.state).toBe('idle')
 
-    // ระยะโจมตีจริง — ต้องเข้า chase แล้ว attack ด้วยลำดับ state เดียวกับ EnemyAISystem.test.ts
+    // ระยะโจมตีจริง — ต้องเข้า chase → telegraph → attack ด้วยลำดับ state เดียวกับ EnemyAISystem.test.ts
+    // (P4 combat core: ทุกท่าผ่าน telegraph state ก่อนเสมอ — enemy.state อ่านว่า 'attack' ตั้งแต่
+    // ระหว่าง telegraph แล้ว เพราะไม่ใช่บอส ใช้ EntityState 'attack' เดิม)
+    const telegraphMs = getEnemyAttackById('enemy-elite-slam').telegraphMs ?? 0
     stepEnemyAI(boss, brain, player, 16, 0) // → chase
-    stepEnemyAI(boss, brain, player, 16, 16) // → attack
+    stepEnemyAI(boss, brain, player, 16, 16) // chase → telegraph
+    expect(brain.state).toBe('telegraph')
+    expect(boss.state).toBe('attack')
+    stepEnemyAI(boss, brain, player, telegraphMs, 32) // telegraph → attack
     expect(brain.state).toBe('attack')
     expect(boss.state).toBe('attack')
 
-    stepEnemyAI(boss, brain, player, ENEMY_ATTACK_TIMING.startupMs, 32)
-    expect(brain.state).toBe('attack') // ยังไม่มี telegraph/phase-transition state แทรก
+    stepEnemyAI(boss, brain, player, ENEMY_ATTACK_TIMING.startupMs, 48)
+    expect(brain.state).toBe('attack') // ยังไม่มี phase-transition state แทรก
 
     // ฟิลด์เฉพาะบอส (#11) ต้องนิ่งอยู่ค่าเริ่มต้นตลอด — พิสูจน์ว่า mini-boss ไม่แตะกลไก
     // Boss phase-transition เลย (bossTemplate ใน stepEnemyAI gate ด้วย entityType === 'boss'
     // เท่านั้น ตัวนี้เป็น 'enemy' ธรรมดา ต่างกันที่ tier ในข้อมูล ไม่ใช่โค้ด)
+    // (selectedAttack เองไม่ใช่ฟิลด์เฉพาะบอสอีกต่อไปหลัง reconcile กับ P4 combat core —
+    // ทั้ง mob และ boss path ใช้ฟิลด์เดียวกันนี้ร่วมกัน ต้อง "มีค่า" ไม่ใช่ null ถึงจะถูก)
     expect(brain.bossPhaseIndex).toBe(0)
     expect(brain.bossPendingPhaseTransition).toBe(false)
-    expect(brain.bossAttackRow).toBeNull()
+    expect(brain.selectedAttack).not.toBeNull()
   })
 })
 
@@ -281,6 +290,9 @@ function createPlayerEntityStub(position: { x: number; y: number }) {
     ultimateGauge: 0,
     invulnerableUntilMs: 0,
     hitStunRemainingMs: 0,
+    knockdownRemainingMs: 0,
+    getUpRemainingMs: 0,
+    combatTier: 'mob' as const,
   }
 }
 

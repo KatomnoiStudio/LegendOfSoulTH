@@ -66,7 +66,19 @@ const REQUIRED_FIELDS = [
 // per this file's own note above requiring a consumer before a new optional field lands here.
 // 'knockdown' added by system #10 (Elite/Mini-boss Tier System) — real consumer is
 // DamageSystem.ts's applyDamage (knockdown gate) + EnemyAISystem.ts (knockdown/getup states).
-const OPTIONAL_FIELDS = ['targetLock', 'effects', 'knockdown'] as const
+const OPTIONAL_FIELDS = [
+  'targetLock',
+  'effects',
+  'knockdown',
+  // P4 combat core (upstream PR #29, reconciled into this repo's Tier-1 systems merge)
+  'telegraphMs',
+  'hitstunMs',
+  'knockdownMs',
+  'getUpMs',
+  'interruptible',
+  'phaseOverrides',
+  'strikeCount',
+] as const
 const KNOWN_FIELDS: readonly string[] = [...REQUIRED_FIELDS, ...OPTIONAL_FIELDS]
 
 const ALL_SHIPPED_ATTACKS: AttackDefinition[] = [

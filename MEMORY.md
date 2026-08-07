@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`
 > **Repository**: `KatomnoiStudio/LegendOfSoulTH`
 > **Default Branch**: `master`
-> **Last Updated**: 2026-08-08T (this session) by `Claude Code` — 41-agent Tier-1-systems workflow landed + QC'd (item 101); MEMORY.md itself surgically shrunk same session (see 2026-08-08 note below)
+> **Last Updated**: 2026-08-08T (this session) by `Claude Code` — reconciled local Tier-1-systems work with upstream PR #29's independently-built P4 combat core (item 109); MEMORY.md itself surgically shrunk same session (see 2026-08-08 note below)
 > **RULES_VERSION last synced: 23** (local `master`, this session) — bumped 17→18 (multi-dev task queue law) →19 (Agent Blueprint execution-order rule) →20 (Ring 0 traffic control law) →21 (claim protocol made Ring-0-locked) →22 (break-glass claim fallback for repo-admin devs) →23 (security doc sync law, from a `/gold-standard` AUDIT) within this same session. **Unrelated note carried forward**: an earlier version of this line read "19" citing a pending fork PR #59 (Cursor Agent, cloud) that was never found merged to `origin/master` — this session passed through 19 independently via 17→18→19→20→21→22→23, not a confirmation of that PR landing. Still worth reconciling numbering with PR #59 if/when it lands.
 
 > **2026-08-06 overhaul**: this file had grown to 65+ interleaved, verbose items (two colliding numbering
@@ -27,13 +27,13 @@
 
 ## 🎯 Current Status
 
-- **Repo**: not blocked, `npm run ci` green — PR #25 merged (item 100). No open PRs on `KatomnoiStudio/LegendOfSoulTH`; fork PR [#59](https://github.com/nustanakritwithai/GameTurnBase/pull/59) unconfirmed merged to `origin/master` — reconcile `RULES_VERSION` numbering if/when it lands.
-- **Version**: **0.8.0**.
+- **Repo**: mid-merge, reconciling local Tier-1 systems (item 101) with upstream PR #29's independently-built P4 combat core (item 109) — see item 109 once landed for the resolved state. `npm run ci` was green on both sides independently before merge.
+- **Version**: reconciling **0.8.0** (local Tier-1 systems) against **0.9.0** (upstream P4 combat core) — final number set once item 109 lands.
 - **Org/Live**: `KatomnoiStudio` — https://katomnoistudio.github.io/LegendOfSoulTH/
 - **Backend**: Supabase Auth+Postgres live, wired via `useAuth.ts` (item 41/87). `accountRepository.ts` (localStorage) stays as a dormant fallback seam only.
-- **Master Blueprint v3.0**: P0–P3 DONE · §3.6/§3.7 LOCKED · mobile combat UI done (§3.3) · **NEXT: P4 Enemy AI**.
-- **Battle (current)**: realtime, 2.5D side-down, L/R + lunge, 3 skills + ultimate, mobile combat cluster (joystick left / ATK+skills right), no global soft-target, Ult skill-only lock (หนุมาน).
-- **Still open**: per-hero finisher numbers · fork gap issues [#34–#44](https://github.com/nustanakritwithai/GameTurnBase/issues/34) (not blocking P4).
+- **Master Blueprint v3.0**: P0–P3 DONE · §3.6/§3.7 LOCKED · mobile combat UI done (§3.3) · P4 combat core landed upstream (PR #29) independently of this session's Tier-1 systems work, reconciling now (item 109).
+- **Battle (current, pre-reconciliation)**: realtime, 2.5D side-down, L/R + lunge, 3 skills + ultimate, mobile combat cluster, plus whichever of telegraph/hitstun/interrupt/knockdown/soft-target/hard-lock/boss-AI survives the item 109 reconciliation from either side.
+- **Still open**: per-hero finisher numbers · fork gap issues [#34–#44](https://github.com/nustanakritwithai/GameTurnBase/issues/34) (not blocking) · PR #28 "camera pitch" (same Cursor batch as #29, still open/`dirty`, likely superseded by already-merged #26/#27 — needs a close/stale check.
 - **Gold-standard**: current figure is item 99's **77%** (12-dim AUDIT+FILL+ADOPT). An earlier ~84% figure merged in via PR #25 is SUPERSEDED — different scoring pass/day, don't average or reconcile.
 - **UI/UX gold-standard backlog**: `.agents/rules/gold-standard-baseline.md` — MUST-HAVEs closed, EXCELLENCE-tier gaps (3D char-select keyboard path, tab-strip `aria-controls`, `AuthModal` live-validation, breakpoint tokens, some reduced-motion) tracked there, not scaffolded.
 - **Security posture**: real Supabase/RLS/RPC trust boundary (`SECURITY.md` corrected item 99). CodeQL + Dependabot + Secret Scanning + Gitleaks + NPM Audit + branch protection + SHA-pinning all on; `secret_scanning_validity_checks` needs manual toggle (Settings → Code security).
@@ -179,3 +179,5 @@ All entries 2026-08-05/06 unless noted. Roughly chronological.
 104. **Session TTL added, v0.3.1 (2026-08-07)** — `accountRepository.ts` sessions gained a sliding 30-day `expiresAt` via `readActiveSession()` as the single read gate; pre-existing sessions without `expiresAt` now expire immediately.
 105. **Deploy-gate root cause found (2026-08-07)** — the first commit to actually reach 0.2.0 (`fdaf569`) had its deploy run cancelled by a push race during the 2026-08-06 Actions outage before a release was cut; every commit since correctly no-op'd at 0.2.0, no release had ever actually landed. A later bump (`cf8b5de`, 0.3.0) also failed to auto-trigger `deploy.yml` during outage recovery — worked around via manual `workflow_dispatch(force:true)`; the next bump (0.3.1) auto-triggered fine. **Lesson**: check `actions/runs?head_sha=<sha>` before suspecting a code bug when the site doesn't update.
 106. **Git-history rewrite (old admin email, 49 commits) — decided NOT to do** (HetCreep, 2026-08-07), after finding an active fork (`nustanakritwithai/GameTurnBase`) that a force-push rewrite would break. Standing decision — don't revisit without new instruction.
+107. **Combat camera framing (2026-08-07, v0.8.1)** — `combatCameraConfig.ts` + `combatCameraFraming.ts` + `BattleCamera` rewrite: elevated side-down ~15° pitch, player-enemy midpoint framing, dynamic zoom/smoothing, boss modifiers. Presentation only. Upstream PR #26 (independent of this session, merged via item 109 reconciliation).
+108. **Combat camera pitch raise (2026-08-07, v0.8.2)** — HetCreep feedback: pitch angle raised — `pitchDeg` 15 to 18, `heightOffset` 0.42 to 0.58, `distance` 5.4 to 5.5. Config-only tweak. Upstream PR #27 (same, merged via item 109).

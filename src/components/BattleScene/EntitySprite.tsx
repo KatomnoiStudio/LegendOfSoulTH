@@ -1,10 +1,10 @@
 import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
-import { DoubleSide } from 'three'
+import { useFrame, useThree } from '@react-three/fiber'
+import { DoubleSide, Vector3 } from 'three'
 import type { Group, Mesh, MeshBasicMaterial } from 'three'
 import {
   getBattleSpriteSet,
-  toSpriteDirection,
+  resolveBattleFrames,
   type BattleAnimationId,
 } from '../../game/battleSpriteSequences'
 import type { CharacterModelKind } from '../../game/characters'
@@ -46,11 +46,12 @@ function animationForState(state: EntityState): BattleAnimationId {
       return 'skill-1'
     case 'hit':
       return 'hit'
-    // Knockdown/GetUp (§3.8.4) — ยืมแอนิเมชัน hit ไปก่อน ยังไม่มีเฟรมภาพเฉพาะ
+    // Knockdown/GetUp (§3.8.4) — ยืมแอนิเมชัน hit/idle ไปก่อน ยังไม่มีเฟรมภาพเฉพาะ
     // (ponytail: อัปเกรดตอนมีชุดเฟรมล้ม/ลุกจริงจากทีมอาร์ต ไม่ใช่ตอนนี้)
     case 'knockdown':
-    case 'getup':
       return 'hit'
+    case 'getUp':
+      return 'idle'
     case 'dead':
       return 'death'
     case 'idle':
@@ -65,9 +66,11 @@ function findEntity(runtime: RealtimeBattleRuntime, entityId: string): RealtimeB
 }
 
 export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpriteProps) {
+  const { camera } = useThree()
   const group = useRef<Group>(null)
   const mesh = useRef<Mesh>(null)
   const shadow = useRef<Mesh>(null)
+  const worldPos = useRef(new Vector3())
   const spriteSet = useMemo(() => getBattleSpriteSet(kind), [kind])
 
   /** เฟรมเริ่มของแอนิเมชันที่ไม่วน — ต้องรู้ว่าเริ่มเล่นตอนไหนถึงจะเล่นจบแล้วค้างได้ */
@@ -102,7 +105,7 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
     }
 
     const animation = spriteSet[animationId]
-    const frames = animation.frames[toSpriteDirection(entity.facing)]
+    const frames = resolveBattleFrames(animation, entity.facing)
     if (frames.length === 0) return
 
     const localSeconds = Math.max(0, elapsedMs - animationStartMs.current) / 1000
@@ -120,6 +123,12 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
     if (shadow.current) {
       shadow.current.visible = entity.state !== 'dead'
     }
+
+    // หันสไปรต์เข้าหากล้องแนวนอน — อ่านชัดที่มุมกล้อง ~30°
+    mesh.current.getWorldPosition(worldPos.current)
+    const dx = camera.position.x - worldPos.current.x
+    const dz = camera.position.z - worldPos.current.z
+    mesh.current.rotation.set(0, Math.atan2(dx, dz), 0)
   })
 
   return (
@@ -136,7 +145,7 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
         />
       </mesh>
 
-      <mesh ref={mesh} position={[0, SPRITE_HEIGHT / 2, 0]} rotation={[-0.38, 0, 0]}>
+      <mesh ref={mesh} position={[0, SPRITE_HEIGHT / 2, 0]}>
         <planeGeometry args={[SPRITE_HEIGHT * SPRITE_ASPECT, SPRITE_HEIGHT]} />
         <meshBasicMaterial
           transparent

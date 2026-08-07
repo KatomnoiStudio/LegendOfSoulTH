@@ -207,6 +207,9 @@ export function resolveSummonEffect(
     ultimateGauge: 0,
     invulnerableUntilMs: 0,
     hitStunRemainingMs: 0,
+    knockdownRemainingMs: 0,
+    getUpRemainingMs: 0,
+    combatTier: 'mob',
     enemyId: template.id,
   }
 }

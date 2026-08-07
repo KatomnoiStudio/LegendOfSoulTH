@@ -5,6 +5,59 @@
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-07
+
+P4 Combat Production Core — telegraph, hit reaction, interrupt, knockdown, AI baseline
+
+### Added
+
+- `combatMoveSchema` — move phases, telegraph/hitstun defaults (200ms), `phaseOverrides`, multi-strike
+- `combatReaction` — hitstun/knockback/knockdown→getUp lifecycle (elite/boss only for knockdown)
+- `combatInterrupt` — data-driven interrupt per phase
+- `softTarget` — nearest-enemy assist + ultimate `targetLock: 'nearest'`
+- Enemy telegraph AI loop + ground telegraph markers (`TelegraphMarkers.tsx`)
+- Per-enemy attack data (`attackId`, `combatTier`, `aiRole`) in `stageConfig`
+
+### Changed
+
+- `EnemyAISystem`: idle→chase→telegraph→execute→recover
+- `DamageSystem`: delegates to `applyCombatReaction`
+- Ultimate setup uninterruptible via `phaseOverrides`
+
+## [0.8.3] - 2026-08-07
+
+Combat camera ~30° pitch + battle sprite sheets wired (presentation only)
+
+### Changed
+
+- `combatCameraConfig`: pitch **30°**, distance **5.0**, screen character height ratio **0.36**
+- `battleSpriteSequences`: monkey-king + pig-warrior walk/dash use full 8-dir sheet frames (`monkey-walk` / `pigsy-walk`)
+- `EntitySprite`: Y-axis billboard toward camera (replaces fixed plane tilt)
+
+## [0.8.2] - 2026-08-07
+
+Combat camera pitch tuning — slightly higher vantage (presentation only)
+
+### Changed
+
+- `combatCameraConfig`: pitch 15° → **18°**, height offset 0.42 → **0.58**, distance 5.4 → **5.5**
+
+## [0.8.1] - 2026-08-07
+
+Combat camera — Naruto-mobile-style elevated side framing (presentation only)
+
+### Added
+
+- **`combatCameraConfig.ts`** — centralized camera tuning (`pitch`, `distance`, `fov`, zoom clamps, smoothing)
+- **`combatCameraFraming.ts`** — pure framing math: enemy-group focus, dynamic zoom, composition bias (+ tests)
+
+### Changed
+
+- `BattleCamera` frames midpoint between player and combat-relevant enemy group (not player-only lock)
+- Reduced top-down feel: pitch ~15°, closer distance, FOV 38°, dynamic zoom with damping
+- Aspect-ratio-aware horizontal limits; boss widens framing via config modifiers
+- Includes v0.7.2 combat UI arc/HUD/fullscreen + v0.7.3 spawn composition (rebased on 0.8.0)
+
 ## [0.7.3] - 2026-08-07
 
 Battlefield spawn composition — player left / enemy right / formation spacing (presentation only)

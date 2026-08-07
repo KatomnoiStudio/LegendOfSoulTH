@@ -15,6 +15,8 @@ import {
 
 export type SkillSlot = 'skill1' | 'skill2' | 'skill3' | 'ultimate'
 
+export type TargetLockMode = 'none' | 'nearest'
+
 export interface RealtimeSkillDefinition {
   id: string
   name: string
@@ -24,6 +26,7 @@ export interface RealtimeSkillDefinition {
   attack: AttackDefinition
   cooldownMs: number
   invulnerableMs: number
+  targetLock?: TargetLockMode
 }
 
 export interface RealtimeSkillKit {
@@ -72,6 +75,7 @@ export const REALTIME_CHARACTER_KITS: Record<string, RealtimeSkillKit> = {
       attack: MONKEY_GOLDEN_FURY,
       cooldownMs: 0,
       invulnerableMs: SKILL_CONFIG.ultimateInvulnerableMs,
+      targetLock: 'nearest',
     },
   },
 }

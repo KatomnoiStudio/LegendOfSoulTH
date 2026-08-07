@@ -58,6 +58,11 @@ export interface RealtimeEnemyTemplate {
    * (createWaveEnemies) ค่าด้านบนในนี้ยังเป็นสเตตัส "ฐาน" ก่อนคูณเสมอ ไม่ใช่ค่าที่คูณแล้ว
    */
   tier: EnemyTier
+  /** Attack row id in ENEMY_ATTACKS */
+  attackId: string
+  /** AI role config — same core, different data */
+  aiRole: 'melee' | 'ranged' | 'tank' | 'controller' | 'support' | 'elite'
+  combatTier: 'mob' | 'elite' | 'boss'
 }
 
 /**
@@ -230,6 +235,9 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     attackRange: 74,
     attackCooldownMs: 1500,
     tier: 'normal',
+    attackId: 'enemy-melee',
+    aiRole: 'melee',
+    combatTier: 'mob',
   },
   'demon-captain': {
     id: 'demon-captain',
@@ -246,6 +254,9 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     attackRange: 86,
     attackCooldownMs: 1700,
     tier: 'normal',
+    attackId: 'enemy-elite-slam',
+    aiRole: 'elite',
+    combatTier: 'elite',
   },
   'spirit-guardian': {
     id: 'spirit-guardian',
@@ -262,6 +273,9 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     attackRange: 78,
     attackCooldownMs: 1300,
     tier: 'normal',
+    attackId: 'enemy-melee',
+    aiRole: 'controller',
+    combatTier: 'mob',
   },
   /**
    * ขุนศึกปีศาจ — ตัวอย่าง Elite/mini-boss (§3.8.4/§5.2): สเตตัสฐานเท่า demon-captain
@@ -283,6 +297,9 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     attackRange: 86,
     attackCooldownMs: 1700,
     tier: 'elite',
+    attackId: 'enemy-elite-slam',
+    aiRole: 'elite',
+    combatTier: 'elite',
   },
 }
 

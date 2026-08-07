@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import {
-  applyDamage,
-  GET_UP_IFRAME_MS,
-  isKnockdownEligible,
-  KNOCKDOWN_DURATION_MS,
-} from './DamageSystem'
+import { applyDamage, isKnockdownEligible, KNOCKDOWN_DURATION_MS } from './DamageSystem'
+import { tickKnockdownState } from './combatReaction'
 import { createEnemyBrain, stepEnemyAI } from './EnemyAISystem'
 import { createWaveEnemies } from './createRealtimeBattle'
 import {
@@ -49,6 +45,9 @@ function entity(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
     ultimateGauge: 0,
     invulnerableUntilMs: 0,
     hitStunRemainingMs: 0,
+    knockdownRemainingMs: 0,
+    getUpRemainingMs: 0,
+    combatTier: 'mob',
     ...overrides,
   }
 }
@@ -141,8 +140,8 @@ describe('Done-criterion 2: mini-boss wave spawn plays out on the existing state
 describe('Done-criterion 3: knockdown-flagged hit vs elite/boss/normal targets', () => {
   const knockdownMove = attack({ knockdown: true })
 
-  it('เป้าหมาย tier elite โดนท่า knockdown = เข้า Knockdown state พร้อม i-frame 200ms หลังลุก', () => {
-    const target = entity({ tier: 'elite' })
+  it('เป้าหมาย combatTier elite โดนท่า knockdown = เข้า Knockdown state, เวลานอนพักอยู่ที่ knockdownRemainingMs', () => {
+    const target = entity({ combatTier: 'elite' })
     applyDamage({
       attacker,
       target,
@@ -151,14 +150,16 @@ describe('Done-criterion 3: knockdown-flagged hit vs elite/boss/normal targets',
       random: fakeRandom(0.5, 0.99),
     })
 
+    // combatReaction.ts's applyCombatReaction: knockdown branch clears hitStunRemainingMs
+    // to 0 and drives timing through knockdownRemainingMs/getUpRemainingMs instead
+    // (tickKnockdownState owns the state machine — i-frames land later, at getUp→idle).
     expect(target.state).toBe('knockdown')
-    expect(target.hitStunRemainingMs).toBe(KNOCKDOWN_DURATION_MS)
-    // §3.6.12 line 304: getUp i-frames = 200ms — คุ้มกันตลอดช่วงล้ม + ช่วงลุก (one shared gate)
-    expect(target.invulnerableUntilMs).toBe(1000 + KNOCKDOWN_DURATION_MS + GET_UP_IFRAME_MS)
+    expect(target.hitStunRemainingMs).toBe(0)
+    expect(target.knockdownRemainingMs).toBe(KNOCKDOWN_DURATION_MS)
   })
 
   it('เป้าหมาย entityType boss โดนท่าเดียวกัน = ผลลัพธ์เหมือนกันทุกประการกับ elite', () => {
-    const eliteTarget = entity({ tier: 'elite' })
+    const eliteTarget = entity({ combatTier: 'elite' })
     const bossTarget = entity({ entityType: 'boss' })
 
     applyDamage({
@@ -177,12 +178,12 @@ describe('Done-criterion 3: knockdown-flagged hit vs elite/boss/normal targets',
     })
 
     expect(bossTarget.state).toBe(eliteTarget.state)
+    expect(bossTarget.knockdownRemainingMs).toBe(eliteTarget.knockdownRemainingMs)
     expect(bossTarget.hitStunRemainingMs).toBe(eliteTarget.hitStunRemainingMs)
-    expect(bossTarget.invulnerableUntilMs).toBe(eliteTarget.invulnerableUntilMs)
   })
 
-  it('เป้าหมาย tier normal โดนท่าเดียวกัน = ไม่ knockdown แค่เซปกติ', () => {
-    const target = entity({ tier: 'normal' })
+  it('เป้าหมาย combatTier mob โดนท่าเดียวกัน = ไม่ knockdown แค่เซปกติ', () => {
+    const target = entity({ combatTier: 'mob' })
     applyDamage({
       attacker,
       target,
@@ -197,7 +198,7 @@ describe('Done-criterion 3: knockdown-flagged hit vs elite/boss/normal targets',
   })
 
   it('ท่าที่ไม่มี knockdown flag ไม่ทำให้เป้าหมาย elite ล้ม', () => {
-    const target = entity({ tier: 'elite' })
+    const target = entity({ combatTier: 'elite' })
     applyDamage({
       attacker,
       target,
@@ -209,8 +210,8 @@ describe('Done-criterion 3: knockdown-flagged hit vs elite/boss/normal targets',
     expect(target.state).toBe('hit')
   })
 
-  it('Knockdown/GetUp เดินผ่าน EnemyAISystem จริง แล้วกลับไป chase/idle ได้ (ไม่ค้าง)', () => {
-    const target = entity({ tier: 'elite', enemyId: 'demon-warlord' })
+  it('Knockdown/GetUp เดินผ่าน tickKnockdownState + EnemyAISystem จริง แล้วกลับไป chase/idle ได้ (ไม่ค้าง)', () => {
+    const target = entity({ combatTier: 'elite', enemyId: 'demon-warlord' })
     const player = entity({ id: 'player', entityType: 'player', position: { x: 550, y: 500 } })
     const brain = createEnemyBrain()
 
@@ -223,18 +224,20 @@ describe('Done-criterion 3: knockdown-flagged hit vs elite/boss/normal targets',
     })
     expect(target.state).toBe('knockdown')
 
-    // เดินจน hitStunRemainingMs หมด (RealtimeBattleRuntime.tickTimers ก็ลดค่านี้แบบนี้ทุกเฟรม)
+    // เดินจน knockdownRemainingMs หมด (RealtimeBattleRuntime.tickTimers เรียก tickKnockdownState
+    // ทุกเฟรมแบบนี้จริง ๆ — ก่อน stepEnemyAI เสมอ)
     let elapsed = 0
-    for (let i = 0; i < 200 && target.hitStunRemainingMs > 0; i += 1) {
-      target.hitStunRemainingMs = Math.max(0, target.hitStunRemainingMs - 16)
+    for (let i = 0; i < 200 && target.state === 'knockdown'; i += 1) {
+      tickKnockdownState(target, 16, elapsed)
       elapsed += 16
       stepEnemyAI(target, brain, player, 16, elapsed)
     }
-    expect(target.hitStunRemainingMs).toBe(0)
-    expect(brain.state).toBe('getup')
+    expect(target.state).toBe('getUp')
+    expect(brain.state).toBe('getUp')
 
-    // เดินต่อจน GetUp i-frame หมด — ต้องกลับไป chase (ผู้เล่นอยู่ในระยะ) ไม่ค้างที่ getup ตลอดไป
-    for (let i = 0; i < 50 && brain.state === 'getup'; i += 1) {
+    // เดินต่อจน GetUp i-frame หมด — ต้องกลับไป chase (ผู้เล่นอยู่ในระยะ) ไม่ค้างที่ getUp ตลอดไป
+    for (let i = 0; i < 50 && brain.state === 'getUp'; i += 1) {
+      tickKnockdownState(target, 16, elapsed)
       elapsed += 16
       stepEnemyAI(target, brain, player, 16, elapsed)
     }
@@ -244,7 +247,7 @@ describe('Done-criterion 3: knockdown-flagged hit vs elite/boss/normal targets',
 
 describe('Done-criterion 4: mini-boss full HP to death sets no invulnerable/phase flag', () => {
   it('ตีจนตายต่อเนื่อง ไม่มี branch ไหนที่ HP-threshold แล้วเซ็ต invulnerable/phase flag ทับ death', () => {
-    const target = entity({ tier: 'elite', hp: 300, maxHp: 300 })
+    const target = entity({ combatTier: 'elite', hp: 300, maxHp: 300 })
     const knockdownMove = attack({ knockdown: true, damageMultiplier: 0.5 })
 
     let guard = 0
@@ -320,7 +323,7 @@ describe('Known scar test-for-us: knockdown gate is immune to stat-table tuning'
     const extremeMultiplier = { maxHp: 999, atk: 999, def: 999 }
     void extremeMultiplier // เอกสารเจตนา: gate เช็คแค่ tier/entityType ไม่แตะค่าพวกนี้เลย ดูบรรทัดถัดไป
 
-    const puny = entity({ tier: 'elite', atk: 1, def: 1, maxHp: 1 })
+    const puny = entity({ combatTier: 'elite', atk: 1, def: 1, maxHp: 1 })
     const knockdownMove = attack({ knockdown: true })
     applyDamage({
       attacker,
@@ -337,8 +340,8 @@ describe('Known scar test-for-us: knockdown gate is immune to stat-table tuning'
 
 describe('Related caveat test-for-us: tier discriminant does not drift with flat-stat magnitude', () => {
   it('ศัตรู normal ที่ค่า flat สูงกว่า elite (data-entry ผิด) ยังคงไม่ knockdown —ยึด tier ไม่ยึดตัวเลข', () => {
-    const outScaledNormal = entity({ tier: 'normal', atk: 99999, def: 99999, maxHp: 99999 })
-    const weakElite = entity({ tier: 'elite', atk: 1, def: 1, maxHp: 1 })
+    const outScaledNormal = entity({ combatTier: 'mob', atk: 99999, def: 99999, maxHp: 99999 })
+    const weakElite = entity({ combatTier: 'elite', atk: 1, def: 1, maxHp: 1 })
     const knockdownMove = attack({ knockdown: true })
 
     applyDamage({

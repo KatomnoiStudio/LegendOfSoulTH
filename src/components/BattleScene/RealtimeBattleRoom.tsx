@@ -6,6 +6,7 @@ import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBa
 import type { MovementInput } from '../../game/realtimeBattle/playerInput'
 import type { RealtimeBattleSnapshot } from '../../game/realtimeBattle/types'
 import type { SkillSlot } from '../../game/realtimeBattle/skills'
+import { DEFAULT_COMBAT_CAMERA_CONFIG } from '../../game/realtimeBattle/combatCameraConfig'
 import { layoutCssVars } from '../../game/realtimeBattle/combatUILayout'
 import { BattleArena } from './BattleArena'
 import { BattleControls } from './BattleControls'
@@ -105,7 +106,11 @@ export function RealtimeBattleRoom({
         // ที่ครอบอยู่ทำให้ขนาด canvas เพี้ยน (เหตุผลเดียวกับ LobbyScene — ดูคอมเมนต์ในไฟล์นั้น)
         resize={{ offsetSize: true }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
-        camera={{ fov: 42, near: 0.1, far: 200 }}
+        camera={{
+          fov: DEFAULT_COMBAT_CAMERA_CONFIG.fovDeg,
+          near: 0.1,
+          far: 200,
+        }}
         onCreated={({ gl }) => setCanvasElement(gl.domElement)}
       >
         <BattleArena runtime={runtime} />
