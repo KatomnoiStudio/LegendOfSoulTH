@@ -7,6 +7,20 @@
 
 ยังไม่มี
 
+## [0.4.0] - 2026-08-07
+
+รวม PR #14 (`cursor/submit-homework-e117`) เข้า master — งานที่ยังไม่เคยขึ้น upstream มาก่อน
+
+### Added
+
+- **แผงผลหลังต่อสู้ + รางวัลจริง** — ชนะ/แพ้แล้วขึ้น `BattleResultPanel` ก่อนกลับล็อบบี้
+  คำนวณทอง/EXP/ไอเทมใน `RewardSystem` (แพ้ได้ศูนย์) ผ่าน `earnGold`/`grantItem` ledger
+- ประวัติการต่อสู้เก็บ `durationMs` แทนเทิร์นปลอม — บัญชีเก่ายังอ่าน `turns` ได้
+
+### Fixed
+
+- **จบต่อสู้แล้วค้างในห้อง** — กดกลับจากแผงผลแล้วปิด `LobbyBattleSession` กลับล็อบบี้ทันที
+
 ## [0.3.2] - 2026-08-07
 
 ### Fixed
@@ -112,7 +126,8 @@
 - ภาพทั้งหมดแปลงเป็น WebP ผ่าน pipeline `assets/raw/` → `npm run build:images`
 - Governance: `AGENTS.md`, `MEMORY.md`, `.agents/rules/**`, `SECURITY.md`
 
-[Unreleased]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.2.0...v0.3.0

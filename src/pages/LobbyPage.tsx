@@ -10,10 +10,7 @@ import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRos
 import { ItemsModal } from '../components/ItemsModal/ItemsModal'
 import { MainNavigation } from '../components/MainNavigation/MainNavigation'
 import { ProfileModal } from '../components/ProfileModal/ProfileModal'
-import {
-  SettingsModal,
-  type AudioSettings,
-} from '../components/SettingsModal/SettingsModal'
+import { SettingsModal, type AudioSettings } from '../components/SettingsModal/SettingsModal'
 import { getAudioSettings, initAudioEngine, setAudioSettings } from '../lib/audio/AudioEngine'
 import { getPerformanceSettings, setPerformanceSettings } from '../lib/performanceSettings'
 import type { QualityOverride } from '../hooks/usePerformanceQuality'
@@ -25,6 +22,8 @@ import type {
   CharacterGrantResult,
   CurrencyResult,
   FriendCandidate,
+  GoldSource,
+  ItemResult,
 } from '../data/accountRepository'
 import type { Player } from '../types/player'
 import styles from './LobbyPage.module.css'
@@ -40,6 +39,10 @@ interface LobbyPageProps {
   /** บันทึกความคืบหน้ากลับลงฐานข้อมูล */
   /** คืน true เมื่อบันทึกลงที่เก็บข้อมูลจริง — false แปลว่าหน้าจอถูกย้อนกลับแล้ว */
   onPlayerChange: (next: Player) => Promise<boolean>
+  /** ทองจากการเล่น (ดรอป/เควส) — ผ่าน ledger */
+  onEarnGold: (source: GoldSource, amount: number, refId?: string) => Promise<CurrencyResult>
+  /** ไอเทมดรอปจากการต่อสู้ */
+  onGrantItem: (itemId: string, quantity: number, source: GoldSource) => Promise<ItemResult>
   onLogout: () => Promise<void>
   /** เติมทองด้วยเงินจริง */
   onTopUpGold: (packageId: string) => Promise<CurrencyResult>
@@ -60,6 +63,8 @@ interface LobbyPageProps {
 export function LobbyPage({
   player,
   onPlayerChange,
+  onEarnGold,
+  onGrantItem,
   onLogout,
   onTopUpGold,
   onTopUpGems,
@@ -180,6 +185,8 @@ export function LobbyPage({
         <LobbyBattleSession
           player={player}
           onPlayerChange={onPlayerChange}
+          onEarnGold={onEarnGold}
+          onGrantItem={onGrantItem}
           onExit={() => setBattleOpen(false)}
         />
       ) : null}
@@ -196,7 +203,9 @@ export function LobbyPage({
       />
 
       {/* หน้า Lobby ยังคง mount อยู่ข้างหลัง ฉาก 3D และแอนิเมชันตัวละครจึงไม่รีเซ็ต */}
-      {rosterOpen ? <CharacterRosterModal player={player} onClose={() => setRosterOpen(false)} /> : null}
+      {rosterOpen ? (
+        <CharacterRosterModal player={player} onClose={() => setRosterOpen(false)} />
+      ) : null}
 
       {profileOpen ? (
         <ProfileModal

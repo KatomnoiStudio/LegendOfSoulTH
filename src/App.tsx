@@ -19,8 +19,6 @@ import { TitlePage } from './pages/TitlePage'
  * (session ถูกกู้จากฐานข้อมูลใน useAuth)
  */
 export default function App() {
-  // earnGold ยังไม่มีหน้าจอไหนเรียกใช้ตอนนี้ (ตั้งใจ — ทองต้องมาจากเควส/ดรอปของจริงเท่านั้น
-  // ไม่ใช่ปุ่มกดเพิ่มเอง) เก็บ hook ไว้ให้ระบบเควส/ต่อสู้ในอนาคตเรียกใช้ตรง ๆ เมื่อสร้างเสร็จ
   const {
     status,
     player,
@@ -28,12 +26,14 @@ export default function App() {
     login,
     logout,
     updatePlayer,
+    earnGold,
     topUpGold,
     topUpGems,
     redeemCoupon,
     findFriendByUid,
     isAdmin,
     grantCharacter,
+    grantItem,
     exportSave,
     importSave,
   } = useAuth()
@@ -48,6 +48,8 @@ export default function App() {
           <LobbyPage
             player={player}
             onPlayerChange={updatePlayer}
+            onEarnGold={earnGold}
+            onGrantItem={grantItem}
             onLogout={logout}
             onTopUpGold={topUpGold}
             onTopUpGems={topUpGems}
