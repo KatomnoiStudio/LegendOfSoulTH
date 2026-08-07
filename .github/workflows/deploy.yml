@@ -151,6 +151,13 @@ jobs:
       # tsc -b ที่อยู่ใน npm run build — เทสต์อย่าง battleAssets.test.ts ที่คอยกันบั๊ก
       # จอขาวจากไฟล์ภาพหาย ตรวจ path ที่เป็นสตริงล้วน ซึ่ง build มองไม่เห็น
       - name: Run Tests
+        # VITE_SUPABASE_URL/ANON_KEY จำเป็นเหมือน step "Build Application" ด้านล่าง —
+        # accountRepository.supabase.test.ts ลาก supabaseClient.ts เข้ามา ซึ่ง throw ทันทีตอน
+        # module evaluate ถ้าไม่มีค่านี้ (ดู supabaseClient.ts) แม้เทสต์เองจะ test แค่ pure
+        # mapping ไม่แตะ Supabase จริงเลย (ดูฟิกซ์เดียวกันใน ci.yml)
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm test
 
       # ไม่รัน build:models ที่นี่ตั้งใจ — ไม่มีโค้ดใน src/ โหลด .glb ใช้ (เกมเรนเดอร์ sprite 2D แทน,
