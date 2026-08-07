@@ -42,13 +42,27 @@ Fork นี้เป็น **staging branch holder** สำหรับ Cursor C
 
 ---
 
-## Earlier fork PRs (open / historical)
+## Active branches (remote)
 
-| Fork PR                                                            | Topic                            | Upstream            |
-| ------------------------------------------------------------------ | -------------------------------- | ------------------- |
-| [#64](https://github.com/nustanakritwithai/GameTurnBase/pull/64)   | P4 Combat Core v0.9.0            | merged upstream #29 |
-| [#61](https://github.com/nustanakritwithai/GameTurnBase/pull/61)   | Mobile combat UI v0.7.1          | merged upstream #24 |
-| [#57–#60](https://github.com/nustanakritwithai/GameTurnBase/pulls) | Docs / P4 AI / camera iterations | various             |
+หลังทำความสะอาด 2026-08-07 เหลือเฉพาะ:
+
+- `master`
+- `cursor/p5-dungeon-slice-35fc`
+- `cursor/result-reward-pipeline-35fc`
+- `cursor/camera-height-tilt-fix-35fc`
+- `cursor/p8-character-progression-35fc`
+
+กิ่งเก่าที่ merge แล้ว / superseded (PR #57–#64 และงานก่อน P5 chain) ถูกลบจาก remote แล้ว
+
+---
+
+## Closed / historical (archived)
+
+| Fork PR | Topic                         | สถานะ                                  |
+| ------- | ----------------------------- | -------------------------------------- |
+| #64     | P4 Combat Core v0.9.0         | ปิด — superseded (upstream #29 merged) |
+| #61–#63 | Mobile UI / camera iterations | ปิด — superseded by #67 chain          |
+| #57–#60 | Docs / P4 AI                  | ปิด — merged หรือ obsolete             |
 
 ---
 
