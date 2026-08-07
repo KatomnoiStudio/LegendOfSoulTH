@@ -330,7 +330,7 @@ export class RealtimeBattleRuntime {
   /**
    * ศัตรูลงดาเมจใส่ผู้เล่นเมื่อท่าของมันเข้าสู่ active frame
    *
-   * บอส (brain.bossAttackRow ไม่ null) ใช้ท่าที่ล็อกไว้ตอน Telegraph แทน ENEMY_ATTACK ทั่วไป
+   * บอส (brain.selectedAttack ไม่ null) ใช้ท่าที่ล็อกไว้ตอน Telegraph แทน ENEMY_ATTACK ทั่วไป
    * นี่คือ "attack-set swap ตามเฟส" (#11) ที่ใช้งานจริง — พูลถูกเลือกใน EnemyAISystem แล้ว
    * ที่นี่แค่หยิบท่าที่เลือกไว้มาลงดาเมจ ไม่ตัดสินใจเลือกเองอีกชั้น
    */
