@@ -5,7 +5,9 @@
 
 ## [Unreleased]
 
-ยังไม่มี
+### Added
+
+- **Blueprint §3.6 Combat Foundation Design Lock** — controls, basic attack lunge/multi-target, cast interrupt, hit reaction, boss telegraph SM, phase transition (HetCreep Ring 0, 2026-08-07)
 
 ## [0.6.0] - 2026-08-07
 
