@@ -14,6 +14,7 @@ function entity(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
     position: { x: 0, y: 0 },
     velocity: { x: 0, y: 0 },
     facing: 'right',
+    combatFacing: 'right',
     state: 'idle',
     hp: 100,
     maxHp: 100,
@@ -31,7 +32,14 @@ function entity(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
   }
 }
 
-const attacker = () => entity({ id: 'player', entityType: 'player', facing: 'right', position: { x: 0, y: 0 } })
+const attacker = () =>
+  entity({
+    id: 'player',
+    entityType: 'player',
+    combatFacing: 'right',
+    facing: 'right',
+    position: { x: 0, y: 0 },
+  })
 
 function query(overrides: Partial<Parameters<typeof findHitTargets>[1]> = {}) {
   return {
@@ -43,8 +51,8 @@ function query(overrides: Partial<Parameters<typeof findHitTargets>[1]> = {}) {
   }
 }
 
-describe('findHitTargets', () => {
-  it('โดนเป้าหมายที่อยู่ในระยะและอยู่ในกรวยด้านหน้า', () => {
+describe('findHitTargets (P2 horizontal + depth)', () => {
+  it('โดนเป้าหมายด้านหน้าในระยะและแนว depth ใกล้พอ', () => {
     const target = entity({ id: 'e1', position: { x: 100, y: 0 } })
     expect(findHitTargets([target], query()).map((t) => t.id)).toEqual(['e1'])
   })
@@ -54,14 +62,45 @@ describe('findHitTargets', () => {
     expect(findHitTargets([behind], query())).toHaveLength(0)
   })
 
-  it('ไม่โดนเป้าหมายที่อยู่ไกลเกินระยะ', () => {
+  it('ไม่โดนเป้าหมายที่อยู่ไกลเกินระยะแนวนอน', () => {
     const far = entity({ id: 'e1', position: { x: PLAYER_ATTACK.range + 200, y: 0 } })
     expect(findHitTargets([far], query())).toHaveLength(0)
   })
 
+  it('โดนเป้าหมายที่ offset depth ภายใน tolerance', () => {
+    const aligned = entity({ id: 'e1', position: { x: 90, y: 80 } })
+    expect(findHitTargets([aligned], query())).toHaveLength(1)
+  })
+
+  it('ไม่โดนเป้าหมายที่ depth ห่างเกิน tolerance', () => {
+    const misaligned = entity({ id: 'e1', position: { x: 90, y: 200 } })
+    expect(findHitTargets([misaligned], query())).toHaveLength(0)
+  })
+
   it('เผื่อรัศมีตัวเป้าหมาย — ขอบตัวเข้ามาในระยะก็ถือว่าโดน', () => {
-    const edge = entity({ id: 'e1', position: { x: PLAYER_ATTACK.range + 20, y: 0 }, hurtboxRadius: 36 })
+    const edge = entity({
+      id: 'e1',
+      position: { x: PLAYER_ATTACK.range + 20, y: 0 },
+      hurtboxRadius: 36,
+    })
     expect(findHitTargets([edge], query())).toHaveLength(1)
+  })
+
+  it('โจมตีซ้ายโดนเป้าหมายทางซ้ายเท่านั้น', () => {
+    const leftSide = entity({ id: 'e1', position: { x: -80, y: 0 } })
+    const rightSide = entity({ id: 'e2', position: { x: 80, y: 0 } })
+    const leftAttacker = entity({
+      id: 'player',
+      entityType: 'player',
+      combatFacing: 'left',
+      facing: 'left',
+      position: { x: 0, y: 0 },
+    })
+    const hits = findHitTargets([leftSide, rightSide], {
+      ...query(),
+      attacker: leftAttacker,
+    })
+    expect(hits.map((t) => t.id)).toEqual(['e1'])
   })
 
   it('ไม่โดนซ้ำถ้าอยู่ใน alreadyHit แล้ว', () => {
@@ -85,8 +124,8 @@ describe('findHitTargets', () => {
     expect(findHitTargets([self], query({ attacker: self }))).toHaveLength(0)
   })
 
-  it('ท่าที่กวาดรอบตัว (360 องศา) โดนได้ทุกทิศ', () => {
-    const around = { ...PLAYER_ATTACK, arcDegrees: 360 }
+  it('ท่า radial (360°) ยังโดนรอบตัวได้', () => {
+    const around = { ...PLAYER_ATTACK, hitShape: 'radial' as const, arcDegrees: 360 }
     const behind = entity({ id: 'e1', position: { x: -80, y: 0 } })
     const above = entity({ id: 'e2', position: { x: 0, y: -80 } })
 
@@ -94,7 +133,7 @@ describe('findHitTargets', () => {
     expect(hits.map((t) => t.id).toSorted()).toEqual(['e1', 'e2'])
   })
 
-  it('โดนหลายตัวพร้อมกันได้ถ้าอยู่ในกรวยเดียวกัน', () => {
+  it('โดนหลายตัวพร้อมกันได้ถ้าอยู่ในระยะและ depth ใกล้พอ', () => {
     const a = entity({ id: 'e1', position: { x: 90, y: 20 } })
     const b = entity({ id: 'e2', position: { x: 90, y: -20 } })
     expect(findHitTargets([a, b], query())).toHaveLength(2)

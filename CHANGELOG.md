@@ -7,6 +7,21 @@
 
 ยังไม่มี
 
+## [0.5.0] - 2026-08-07
+
+Combat Foundation — Blueprint v3 P1 + P2
+
+### Added
+
+- **Blueprint v3.0** — Universe of Legends baseline, roadmap P0–P15, governance docs
+- **สนามต่อสู้ 2.5D side-down (P1)** — กล้องมุม brawler, แกน depth, `battleCoordinates.ts`
+- **โจมตีซ้าย/ขวา + depth hit (P2)** — `combatFacing`, hitbox แนวนอน + depth tolerance สำหรับ basic attack
+
+### Changed
+
+- คอมโบผู้เล่นและ melee ศัตรูใช้ hit model แนวนอน (ไม่ใช่กรวย 360°)
+- สกิลหมุนกระบวนทองคำยังเป็น radial 360° ชั่วคราว (รอ P3)
+
 ## [0.4.0] - 2026-08-07
 
 รวม PR #14 (`cursor/submit-homework-e117`) เข้า master — งานที่ยังไม่เคยขึ้น upstream มาก่อน

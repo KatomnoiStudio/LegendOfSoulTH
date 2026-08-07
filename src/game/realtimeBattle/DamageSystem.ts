@@ -1,4 +1,5 @@
 import type { AttackDefinition } from './attacks'
+import { horizontalKnockbackVector } from './combatFacing'
 import { directionVector } from './HitboxSystem'
 import type { RealtimeBattleEntity } from './types'
 import { ARMOR_MITIGATION, DAMAGE_VARIANCE, MINIMUM_DAMAGE } from '../battle/formulas'
@@ -81,9 +82,11 @@ export function applyDamage(context: DamageContext): DamageOutcome {
   target.hitStunRemainingMs = HIT_STUN_MS
   target.invulnerableUntilMs = elapsedMs + HIT_INVULNERABLE_MS
 
-  // กระเด็นตามทิศที่ผู้โจมตีหันอยู่ ไม่ใช่ทิศจากผู้โจมตีไปเป้าหมาย
-  // (ไม่งั้นตอนยืนซ้อนกันสนิทจะไม่มีทิศให้กระเด็น)
-  const push = directionVector(attacker.facing)
+  // กระเด็นแนวนอนตาม combatFacing สำหรับ basic attack (P2) — radial ยังใช้ทิศ facing เดิม
+  const push =
+    attack.hitShape === 'horizontal'
+      ? horizontalKnockbackVector(attacker.combatFacing)
+      : directionVector(attacker.facing)
   target.position = {
     x: target.position.x + push.x * attack.knockback,
     y: target.position.y + push.y * attack.knockback,

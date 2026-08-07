@@ -18,6 +18,7 @@ function player(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
     position: { x: 500, y: 500 },
     velocity: { x: 0, y: 0 },
     facing: 'right',
+    combatFacing: 'right',
     state: 'idle',
     hp: 300,
     maxHp: 300,
@@ -37,7 +38,10 @@ function player(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
 }
 
 /** เดินท่าปัจจุบันจนจบพอดี */
-function finishCurrentAttack(unit: RealtimeBattleEntity, combo: ReturnType<typeof createComboState>) {
+function finishCurrentAttack(
+  unit: RealtimeBattleEntity,
+  combo: ReturnType<typeof createComboState>,
+) {
   const attack = combo.attack
   if (!attack) return
   stepCombo(unit, combo, totalDurationMs(attack) + 1)
@@ -152,7 +156,9 @@ describe('ComboSystem', () => {
   it('ไม้ที่สามกระเด็นแรงกว่าสองไม้แรก', () => {
     expect(PLAYER_ATTACK_CHAIN[2].knockback).toBeGreaterThan(PLAYER_ATTACK_CHAIN[0].knockback)
     expect(PLAYER_ATTACK_CHAIN[2].knockback).toBeGreaterThan(PLAYER_ATTACK_CHAIN[1].knockback)
-    expect(PLAYER_ATTACK_CHAIN[2].damageMultiplier).toBeGreaterThan(PLAYER_ATTACK_CHAIN[1].damageMultiplier)
+    expect(PLAYER_ATTACK_CHAIN[2].damageMultiplier).toBeGreaterThan(
+      PLAYER_ATTACK_CHAIN[1].damageMultiplier,
+    )
   })
 
   it('โดนตีจนเซระหว่างคอมโบ = ท่าถูกยกเลิกและคอมโบขาด', () => {

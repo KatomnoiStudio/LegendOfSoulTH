@@ -20,6 +20,7 @@ function player(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
     position: { x: 900, y: 550 },
     velocity: { x: 0, y: 0 },
     facing: 'right',
+    combatFacing: 'right',
     state: 'idle',
     hp: 300,
     maxHp: 300,
@@ -87,7 +88,12 @@ describe('DashSystem', () => {
   it('ระหว่างพุ่งมี i-frame ที่กันดาเมจได้จริง', () => {
     const unit = player()
     const dash = createDashState()
-    const enemy = player({ id: 'enemy', entityType: 'enemy', position: { x: 940, y: 550 }, facing: 'left' })
+    const enemy = player({
+      id: 'enemy',
+      entityType: 'enemy',
+      position: { x: 940, y: 550 },
+      facing: 'left',
+    })
 
     startDash(unit, dash, { x: 1, y: 0 }, 1000)
 
@@ -126,7 +132,9 @@ describe('DashSystem', () => {
   })
 
   it('พุ่งตอนกำลังเซหรือตายไม่ได้', () => {
-    expect(startDash(player({ hitStunRemainingMs: 150 }), createDashState(), { x: 1, y: 0 }, 0)).toBe(false)
+    expect(
+      startDash(player({ hitStunRemainingMs: 150 }), createDashState(), { x: 1, y: 0 }, 0),
+    ).toBe(false)
     expect(startDash(player({ state: 'dead' }), createDashState(), { x: 1, y: 0 }, 0)).toBe(false)
   })
 

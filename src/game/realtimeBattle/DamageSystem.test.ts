@@ -27,6 +27,7 @@ function entity(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
     position: { x: 500, y: 500 },
     velocity: { x: 0, y: 0 },
     facing: 'down',
+    combatFacing: 'right',
     state: 'idle',
     hp: 200,
     maxHp: 200,
@@ -68,11 +69,17 @@ describe('calcDamage', () => {
     const target = entity({ def: 50 })
 
     const normal = calcDamage({
-      attacker, target, attack: PLAYER_ATTACK, elapsedMs: 0,
+      attacker,
+      target,
+      attack: PLAYER_ATTACK,
+      elapsedMs: 0,
       random: fakeRandom(0.5, 0.99),
     })
     const critical = calcDamage({
-      attacker, target, attack: PLAYER_ATTACK, elapsedMs: 0,
+      attacker,
+      target,
+      attack: PLAYER_ATTACK,
+      elapsedMs: 0,
       random: fakeRandom(0.5, 0.01),
     })
 
@@ -85,7 +92,10 @@ describe('calcDamage', () => {
     const target = entity({ def: 9999 })
 
     const outcome = calcDamage({
-      attacker, target, attack: PLAYER_ATTACK, elapsedMs: 0,
+      attacker,
+      target,
+      attack: PLAYER_ATTACK,
+      elapsedMs: 0,
       random: fakeRandom(0.5, 0.99),
     })
 
@@ -98,11 +108,17 @@ describe('calcDamage', () => {
     const heavy = { ...PLAYER_ATTACK, damageMultiplier: 2 }
 
     const light = calcDamage({
-      attacker, target, attack: PLAYER_ATTACK, elapsedMs: 0,
+      attacker,
+      target,
+      attack: PLAYER_ATTACK,
+      elapsedMs: 0,
       random: fakeRandom(0.5, 0.99),
     })
     const strong = calcDamage({
-      attacker, target, attack: heavy, elapsedMs: 0,
+      attacker,
+      target,
+      attack: heavy,
+      elapsedMs: 0,
       random: fakeRandom(0.5, 0.99),
     })
 
@@ -112,11 +128,19 @@ describe('calcDamage', () => {
 
 describe('applyDamage', () => {
   it('ลดเลือด ทำให้เซ ให้อยู่ยงชั่วครู่ และกระเด็นไปตามทิศที่ผู้โจมตีหัน', () => {
-    const attacker = entity({ id: 'player', atk: 100, facing: 'right', position: { x: 400, y: 500 } })
+    const attacker = entity({
+      id: 'player',
+      atk: 100,
+      facing: 'right',
+      position: { x: 400, y: 500 },
+    })
     const target = entity({ def: 50, position: { x: 500, y: 500 } })
 
     const outcome = applyDamage({
-      attacker, target, attack: PLAYER_ATTACK, elapsedMs: 1000,
+      attacker,
+      target,
+      attack: PLAYER_ATTACK,
+      elapsedMs: 1000,
       random: fakeRandom(0.5, 0.99),
     })
 
@@ -133,7 +157,10 @@ describe('applyDamage', () => {
     const target = entity({ hp: 5, def: 0, position: { x: 500, y: 500 } })
 
     const outcome = applyDamage({
-      attacker, target, attack: PLAYER_ATTACK, elapsedMs: 0,
+      attacker,
+      target,
+      attack: PLAYER_ATTACK,
+      elapsedMs: 0,
       random: fakeRandom(0.5, 0.99),
     })
 

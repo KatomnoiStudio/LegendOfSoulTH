@@ -17,6 +17,9 @@ export interface Vec2 {
 export type Direction8 =
   'up' | 'up-right' | 'right' | 'down-right' | 'down' | 'down-left' | 'left' | 'up-left'
 
+/** ทิศโจมตีพื้นฐาน — ซ้าย/ขวาเท่านั้น (Blueprint v3 P2) */
+export type CombatFacing = 'left' | 'right'
+
 export type EntityState = 'idle' | 'walk' | 'attack' | 'skill' | 'dash' | 'hit' | 'dead'
 
 /** ฝ่ายของหน่วย — ใช้ตรวจว่า hitbox ทำอันตรายใครได้บ้าง */
@@ -29,6 +32,8 @@ export interface RealtimeBattleEntity {
   position: Vec2
   velocity: Vec2
   facing: Direction8
+  /** ทิศโจมตีซ้าย/ขวา — แยกจาก facing สำหรับสไปรต์เดิน (P2) */
+  combatFacing: CombatFacing
   state: EntityState
 
   hp: number
