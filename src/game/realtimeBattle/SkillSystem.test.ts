@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { MONKEY_SPINNING_STAFF, SKILL_CONFIG, totalDurationMs } from './attacks'
-import { getRealtimeSkillForCharacter } from './skills'
+import {
+  MONKEY_GOLDEN_FURY,
+  MONKEY_SPINNING_STAFF,
+  MONKEY_STAFF_SWEEP,
+  MONKEY_STAFF_THRUST,
+  SKILL_CONFIG,
+  totalDurationMs,
+} from './attacks'
+import { getRealtimeSkillKit, getSkillFromKit } from './skills'
 import {
   canStartSkill,
   createSkillState,
@@ -8,6 +15,7 @@ import {
   startSkill,
   stepSkill,
 } from './SkillSystem'
+import { ULTIMATE_GAUGE_CONFIG } from './ultimateGauge'
 import type { RealtimeBattleEntity } from './types'
 
 function player(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEntity {
@@ -28,8 +36,8 @@ function player(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
     collisionRadius: 34,
     hurtboxRadius: 42,
     attackCooldownRemainingMs: 0,
-    skillCooldownRemainingMs: 0,
-    dashCooldownRemainingMs: 0,
+    skillCooldownsMs: { skill1: 0, skill2: 0, skill3: 0 },
+    ultimateGauge: 0,
     invulnerableUntilMs: 0,
     hitStunRemainingMs: 0,
     characterId: 'monkey-king',
@@ -38,51 +46,79 @@ function player(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
 }
 
 describe('skills registry', () => {
-  it('หงอคงมีสกิลหมุนกระบวนทองคำ', () => {
-    const skill = getRealtimeSkillForCharacter('monkey-king')
-    expect(skill?.id).toBe('spinning-golden-staff')
-    expect(skill?.attack).toBe(MONKEY_SPINNING_STAFF)
-    expect(skill?.cooldownMs).toBe(SKILL_CONFIG.cooldownMs)
+  it('หงอคงมี kit 3 สกิล + อัลติเมท', () => {
+    const kit = getRealtimeSkillKit('monkey-king')
+    expect(kit?.skill1.id).toBe('spinning-golden-staff')
+    expect(kit?.skill1.attack).toBe(MONKEY_SPINNING_STAFF)
+    expect(kit?.skill2.attack).toBe(MONKEY_STAFF_THRUST)
+    expect(kit?.skill3.attack).toBe(MONKEY_STAFF_SWEEP)
+    expect(kit?.ultimate.attack).toBe(MONKEY_GOLDEN_FURY)
+    expect(kit?.skill1.cooldownMs).toBe(SKILL_CONFIG.skill1CooldownMs)
   })
 
-  it('ตัวละครที่ไม่มีสกิลคืน undefined', () => {
-    expect(getRealtimeSkillForCharacter('pig-warrior')).toBeUndefined()
-    expect(getRealtimeSkillForCharacter(undefined)).toBeUndefined()
+  it('ตัวละครที่ไม่มี kit คืน undefined', () => {
+    expect(getRealtimeSkillKit('pig-warrior')).toBeUndefined()
+    expect(getRealtimeSkillKit(undefined)).toBeUndefined()
   })
 })
 
 describe('SkillSystem', () => {
-  it('เริ่มร่ายสกิลได้เมื่อพร้อม และตั้งคูลดาวน์ + i-frame', () => {
+  it('เริ่มร่ายสกิล 1 ได้เมื่อพร้อม และตั้งคูลดาวน์ช่องนั้น + i-frame', () => {
     const unit = player()
     const skill = createSkillState()
-    const definition = getRealtimeSkillForCharacter('monkey-king')
-    if (!definition) throw new Error('ไม่พบสกิลหงอคง')
+    const kit = getRealtimeSkillKit('monkey-king')
+    if (!kit) throw new Error('ไม่พบ kit หงอคง')
+    const definition = getSkillFromKit(kit, 'skill1')
 
     expect(startSkill(unit, skill, definition, 1000)).toBe(true)
     expect(isCastingSkill(skill)).toBe(true)
     expect(unit.state).toBe('skill')
-    expect(unit.skillCooldownRemainingMs).toBe(SKILL_CONFIG.cooldownMs)
+    expect(unit.skillCooldownsMs.skill1).toBe(SKILL_CONFIG.skill1CooldownMs)
     expect(unit.invulnerableUntilMs).toBe(1000 + definition.invulnerableMs)
   })
 
-  it('ร่ายซ้ำไม่ได้ระหว่างคูลดาวน์หรือกำลังร่ายอยู่', () => {
-    const unit = player({ skillCooldownRemainingMs: 500 })
+  it('ร่ายซ้ำช่องเดียวไม่ได้ระหว่างคูลดาวน์หรือกำลังร่ายอยู่', () => {
+    const unit = player({ skillCooldownsMs: { skill1: 500, skill2: 0, skill3: 0 } })
     const skill = createSkillState()
-    const definition = getRealtimeSkillForCharacter('monkey-king')
-    if (!definition) throw new Error('ไม่พบสกิลหงอคง')
+    const kit = getRealtimeSkillKit('monkey-king')
+    if (!kit) throw new Error('ไม่พบ kit หงอคง')
+    const definition = getSkillFromKit(kit, 'skill1')
 
-    expect(canStartSkill(unit, skill, false, false)).toBe(false)
+    expect(canStartSkill(unit, skill, definition, false)).toBe(false)
 
-    unit.skillCooldownRemainingMs = 0
+    unit.skillCooldownsMs.skill1 = 0
     startSkill(unit, skill, definition, 0)
-    expect(canStartSkill(unit, skill, false, false)).toBe(false)
+    expect(canStartSkill(unit, skill, definition, false)).toBe(false)
+  })
+
+  it('อัลติเมทใช้ได้เมื่อ gauge เต็ม และรีเซ็ต gauge หลังร่าย', () => {
+    const unit = player({ ultimateGauge: ULTIMATE_GAUGE_CONFIG.max })
+    const skill = createSkillState()
+    const kit = getRealtimeSkillKit('monkey-king')
+    if (!kit) throw new Error('ไม่พบ kit หงอคง')
+    const ultimate = getSkillFromKit(kit, 'ultimate')
+
+    expect(canStartSkill(unit, skill, ultimate, false)).toBe(true)
+    startSkill(unit, skill, ultimate, 0)
+    expect(unit.ultimateGauge).toBe(0)
+  })
+
+  it('อัลติเมทใช้ไม่ได้เมื่อ gauge ยังไม่เต็ม', () => {
+    const unit = player({ ultimateGauge: 50 })
+    const skill = createSkillState()
+    const kit = getRealtimeSkillKit('monkey-king')
+    if (!kit) throw new Error('ไม่พบ kit หงอคง')
+    const ultimate = getSkillFromKit(kit, 'ultimate')
+
+    expect(canStartSkill(unit, skill, ultimate, false)).toBe(false)
   })
 
   it('hitbox เปิดเฉพาะช่วง active ของท่า', () => {
     const unit = player()
     const skill = createSkillState()
-    const definition = getRealtimeSkillForCharacter('monkey-king')
-    if (!definition) throw new Error('ไม่พบสกิลหงอคง')
+    const kit = getRealtimeSkillKit('monkey-king')
+    if (!kit) throw new Error('ไม่พบ kit หงอคง')
+    const definition = getSkillFromKit(kit, 'skill1')
 
     startSkill(unit, skill, definition, 0)
 
@@ -96,8 +132,9 @@ describe('SkillSystem', () => {
   it('จบท่าแล้วกลับ idle และเคลียร์สถานะสกิล', () => {
     const unit = player()
     const skill = createSkillState()
-    const definition = getRealtimeSkillForCharacter('monkey-king')
-    if (!definition) throw new Error('ไม่พบสกิลหงอคง')
+    const kit = getRealtimeSkillKit('monkey-king')
+    if (!kit) throw new Error('ไม่พบ kit หงอคง')
+    const definition = getSkillFromKit(kit, 'skill1')
 
     startSkill(unit, skill, definition, 0)
     stepSkill(unit, skill, totalDurationMs(definition.attack) + 1)
@@ -109,8 +146,9 @@ describe('SkillSystem', () => {
   it('โดนตีจนสตันระหว่างร่าย = ยกเลิกสกิล', () => {
     const unit = player()
     const skill = createSkillState()
-    const definition = getRealtimeSkillForCharacter('monkey-king')
-    if (!definition) throw new Error('ไม่พบสกิลหงอคง')
+    const kit = getRealtimeSkillKit('monkey-king')
+    if (!kit) throw new Error('ไม่พบ kit หงอคง')
+    const definition = getSkillFromKit(kit, 'skill1')
 
     startSkill(unit, skill, definition, 0)
     unit.hitStunRemainingMs = 120

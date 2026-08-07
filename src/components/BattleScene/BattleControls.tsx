@@ -1,30 +1,26 @@
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
+import type { SkillSlot } from '../../game/realtimeBattle/skills'
 import type { Vec2 } from '../../game/realtimeBattle/types'
 import { AttackButton } from './AttackButton'
 import { BattleJoystick } from './BattleJoystick'
-import { DashButton } from './DashButton'
-import { SkillButton } from './SkillButton'
+import { SkillBar } from './SkillBar'
 import styles from './BattleScene.module.css'
 
 /**
- * ชั้นปุ่มควบคุมบนจอ — จอยซ้าย ปุ่มขวา (§12)
+ * ชั้นปุ่มควบคุมบนจอ — จอยซ้าย ปุ่มขวา (Blueprint v3 P3)
  *
- * ปุ่มสกิลแสดงเฉพาะตัวละครที่มีสกิลใน registry จริง — ไม่ใส่ปุ่มว่างที่หลอกผู้เล่น
- *
- * ทั้งชั้นเป็น pointer-events: none ยกเว้นตัวควบคุมเอง เพื่อไม่ให้บังการมองฉาก
+ * ขวา: Basic Attack + สกิล 1/2/3 + Ultimate — ไม่มีปุ่ม dash
  */
 export function BattleControls({
   runtime,
   onMove,
   onAttack,
-  onDash,
   onSkill,
 }: {
   runtime: RealtimeBattleRuntime
   onMove: (vector: Vec2) => void
   onAttack: () => void
-  onDash: () => void
-  onSkill: () => void
+  onSkill: (slot: SkillSlot) => void
 }) {
   return (
     <div className={styles.controls}>
@@ -32,8 +28,7 @@ export function BattleControls({
         <BattleJoystick onChange={onMove} />
       </div>
       <div className={styles.controlsRight}>
-        <SkillButton runtime={runtime} onPress={onSkill} />
-        <DashButton runtime={runtime} onPress={onDash} />
+        <SkillBar runtime={runtime} onPress={onSkill} />
         <AttackButton onPress={onAttack} />
       </div>
     </div>
