@@ -7,6 +7,14 @@
 
 ยังไม่มี
 
+## [0.3.1] - 2026-08-07
+
+### Fixed
+
+- **Session ไม่มีวันหมดอายุ** — ล็อกอินครั้งเดียวเข้าเกมได้ตลอดไป ปิดแท็บทิ้งไว้กี่ปีก็ไม่เด้ง
+  ออก ตอนนี้หมดอายุแบบ sliding window 30 วัน (เข้าเล่นต่อเนื่องไม่โดนเตะกลางเกม แต่แท็บที่
+  ทิ้งไว้เกิน 30 วันจริง ๆ ต้องล็อกอินใหม่)
+
 ## [0.3.0] - 2026-08-07
 
 รอบต่อจาก 0.2.0 (ที่ยังไม่เคยปล่อยจริง — run deploy ของ commit ที่ bump ไว้ถูก cancel
@@ -91,7 +99,8 @@
 - ภาพทั้งหมดแปลงเป็น WebP ผ่าน pipeline `assets/raw/` → `npm run build:images`
 - Governance: `AGENTS.md`, `MEMORY.md`, `.agents/rules/**`, `SECURITY.md`
 
-[Unreleased]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/LegendofSoulTH/LegendOfSoulTH/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/LegendofSoulTH/LegendOfSoulTH/releases/tag/v0.1.0
