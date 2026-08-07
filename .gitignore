@@ -16,6 +16,10 @@ dist-ssr
 # regenerate locally with `npm run build:models` when actually needed; not shipped to deploy
 public/models/
 
+# One-off Python art-pipeline tooling (align/extract/split sprite sheets) — run locally by
+# whoever processes character art, never invoked by CI/build; keep it out of the shared repo
+scripts/
+
 # Agent tool internal state — never shipped, machine-local only
 .claude/coalhearth/
 .claude/coalwash/
