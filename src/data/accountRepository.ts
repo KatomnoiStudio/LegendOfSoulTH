@@ -584,7 +584,8 @@ export async function importSave(json: string): Promise<AuthResult> {
 }
 
 /**
- * อีเมลของ session ที่ล็อกอินอยู่ — ใช้ตรวจสิทธิ์ผู้ดูแล (ดู src/data/admins.ts)
+ * อีเมลของ session ที่ล็อกอินอยู่ — เวอร์ชัน Supabase ย้ายการตรวจสิทธิ์ผู้ดูแลไปที่ตาราง
+ * `admin_accounts` แล้ว (ดู supabase/migrations/0004_admin_accounts.sql) ไม่ใช้อีเมลเช็คอีกต่อไป
  *
  * แยกจาก getSessionPlayer เพราะ Player ไม่มีฟิลด์อีเมล (ตั้งใจ — อีเมลเป็นข้อมูลบัญชี
  * ไม่ใช่ข้อมูลตัวละครที่ UI ทั่วไปต้องเห็น) ฟังก์ชันนี้จึงเป็นทางเดียวที่ควรใช้อ่านอีเมล

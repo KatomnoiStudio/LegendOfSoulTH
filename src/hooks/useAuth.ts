@@ -8,7 +8,6 @@ import type {
   ItemResult,
   ItemSource,
 } from '../data/accountRepository.supabase'
-import { isAdminEmail } from '../data/admins'
 import { reportError } from '../lib/errors/reportError'
 import { downloadSaveJson } from '../lib/saveFile'
 import type { Player } from '../types/player'
@@ -43,8 +42,10 @@ export interface AuthState {
   /** ค้นหาผู้เล่นจาก UID เพื่อเพิ่มเพื่อน — คืน null ถ้าไม่พบ (ดู accountRepository.findPlayerByUid) */
   findFriendByUid: (uid: string) => Promise<FriendCandidate | null>
   /**
-   * บัญชีนี้ใช้คำสั่งผู้ดูแลได้ไหม (ดู src/data/admins.ts)
-   * ⚠️ ไม่ใช่ขอบเขตความปลอดภัย — เช็คฝั่ง client กับข้อมูลที่ผู้เล่นแก้เองได้
+   * บัญชีนี้ใช้คำสั่งผู้ดูแลได้ไหม — มาจากตาราง admin_accounts ฝั่ง Supabase
+   * (ดู supabase/migrations/0004_admin_accounts.sql) ไม่มีทาง insert/update ให้ authenticated
+   * role เลย ตั้งค่าได้ทาง Supabase dashboard เท่านั้น — เป็นขอบเขตความปลอดภัยจริงแล้ว
+   * (ต่างจาก static list เดิมใน src/data/admins.ts ที่เป็นแค่ client-side convenience)
    */
   isAdmin: boolean
   /** มอบตัวละครให้บัญชีนี้ — ตอนนี้เรียกจากช่องคำสั่งผู้ดูแลเท่านั้น */
@@ -58,8 +59,8 @@ export interface AuthState {
 export function useAuth(): AuthState {
   const [status, setStatus] = useState<AuthStatus>('loading')
   const [player, setPlayer] = useState<Player | null>(null)
-  // อีเมลไม่ได้อยู่ใน Player (เป็นข้อมูลบัญชี ไม่ใช่ของตัวละคร) จึงเก็บแยกไว้ตรวจสิทธิ์ผู้ดูแล
-  const [email, setEmail] = useState<string | null>(null)
+  // อีเมล/isAdmin ไม่ได้อยู่ใน Player (เป็นข้อมูลบัญชี ไม่ใช่ของตัวละคร) จึงเก็บแยก
+  const [isAdmin, setIsAdmin] = useState(false)
 
   // กู้ session ตอนเปิดเกม เพื่อไม่ต้องล็อกอินซ้ำทุกครั้ง
   useEffect(() => {
@@ -68,7 +69,7 @@ export function useAuth(): AuthState {
     accounts.getSessionPlayer().then((restored) => {
       if (cancelled) return
       setPlayer(restored)
-      setEmail(restored ? accounts.getSessionEmail() : null)
+      setIsAdmin(restored ? accounts.getSessionIsAdmin() : false)
       setStatus(restored ? 'signed-in' : 'guest')
       return undefined
     })
@@ -83,7 +84,7 @@ export function useAuth(): AuthState {
     const result = await accounts.register(nextEmail, password)
     if (!result.ok) return result.error
     setPlayer(result.player)
-    setEmail(accounts.getSessionEmail())
+    setIsAdmin(accounts.getSessionIsAdmin())
     setStatus('signed-in')
     return null
   }, [])
@@ -92,7 +93,7 @@ export function useAuth(): AuthState {
     const result = await accounts.login(nextEmail, password)
     if (!result.ok) return result.error
     setPlayer(result.player)
-    setEmail(accounts.getSessionEmail())
+    setIsAdmin(accounts.getSessionIsAdmin())
     setStatus('signed-in')
     return null
   }, [])
@@ -100,7 +101,7 @@ export function useAuth(): AuthState {
   const logout = useCallback(async () => {
     await accounts.logout()
     setPlayer(null)
-    setEmail(null)
+    setIsAdmin(false)
     setStatus('guest')
   }, [])
 
@@ -222,7 +223,7 @@ export function useAuth(): AuthState {
     topUpGems,
     redeemCoupon,
     findFriendByUid,
-    isAdmin: isAdminEmail(email),
+    isAdmin,
     grantCharacter,
     grantItem,
     exportSave,

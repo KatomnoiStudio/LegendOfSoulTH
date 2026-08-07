@@ -59,17 +59,26 @@ interface ProfileRow {
 
 /** ประกอบ Player เต็มรูปจากตารางลูกทั้งหมด — เรียกซ้ำได้จากหลายจุด (login/register/session) */
 async function loadPlayer(profileId: string): Promise<Player | null> {
-  const [profileRes, charsRes, slotsRes, itemsRes, friendsRes, historyRes] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', profileId).maybeSingle(),
-    supabase.from('owned_characters').select('*').eq('profile_id', profileId),
-    supabase.from('team_slots').select('*').eq('profile_id', profileId).order('slot_index'),
-    supabase.from('inventory_items').select('*').eq('profile_id', profileId),
-    supabase.from('friends').select('*').eq('profile_id', profileId),
-    supabase.from('battle_history').select('*').eq('profile_id', profileId).order('finished_at'),
-  ])
+  const [profileRes, charsRes, slotsRes, itemsRes, friendsRes, historyRes, adminRes] =
+    await Promise.all([
+      supabase.from('profiles').select('*').eq('id', profileId).maybeSingle(),
+      supabase.from('owned_characters').select('*').eq('profile_id', profileId),
+      supabase.from('team_slots').select('*').eq('profile_id', profileId).order('slot_index'),
+      supabase.from('inventory_items').select('*').eq('profile_id', profileId),
+      supabase.from('friends').select('*').eq('profile_id', profileId),
+      supabase.from('battle_history').select('*').eq('profile_id', profileId).order('finished_at'),
+      supabase
+        .from('admin_accounts')
+        .select('profile_id')
+        .eq('profile_id', profileId)
+        .maybeSingle(),
+    ])
 
   const profile = profileRes.data as ProfileRow | null
   if (!profile) return null
+
+  // แยกจาก Player โดยตั้งใจ (ไม่ใช่ข้อมูลตัวละคร เป็นสิทธิ์บัญชี) — cache แบบเดียวกับอีเมล
+  cachedSessionIsAdmin = adminRes.data != null
 
   const teamSlots: (string | null)[] = Array.from({ length: TEAM_SIZE }, () => null)
   for (const row of slotsRes.data ?? []) {
@@ -169,11 +178,11 @@ export async function login(email: string, password: string): Promise<AuthResult
 export async function logout(): Promise<void> {
   await supabase.auth.signOut()
   cachedSessionEmail = null
+  cachedSessionIsAdmin = false
 }
 
 /*
-  getSessionEmail() ต้องเป็น sync ตาม signature เดิม (useAuth.ts เรียกทันทีหลัง login/register/
-  getSessionPlayer resolve เพื่ออ่านอีเมลไปเช็คสิทธิ์ผู้ดูแล) แต่ supabase-js ไม่มีทาง sync อ่าน
+  getSessionEmail() ต้องเป็น sync ตาม signature เดิม แต่ supabase-js ไม่มีทาง sync อ่าน
   session ปัจจุบันได้เลย (getSession() เป็น Promise เสมอ แม้จะไม่ยิง network จริงก็ตาม)
 
   เก็บ cache ไว้เองแทน — อัปเดตทุกจุดที่ยืนยันตัวตนสำเร็จ (login/register/getSessionPlayer)
@@ -182,9 +191,22 @@ export async function logout(): Promise<void> {
 */
 let cachedSessionEmail: string | null = null
 
+/*
+  isAdmin เป็นข้อมูลในตาราง admin_accounts (ดู supabase/migrations/0004_admin_accounts.sql)
+  ไม่ใช่ค่าใน JWT/auth session เหมือนอีเมล จึงรีเฟรชได้เฉพาะตอน loadPlayer ยิง query จริง
+  (login/register/getSessionPlayer) — ไม่ผูกกับ onAuthStateChange เหมือนอีเมล เพราะ event
+  นั้นไม่มีข้อมูลตารางนี้ให้อ่านแบบ sync
+*/
+let cachedSessionIsAdmin = false
+
 supabase.auth.onAuthStateChange((_event, session) => {
   cachedSessionEmail = session?.user.email ?? null
 })
+
+/** สิทธิ์แอดมิน — sync ตาม pattern เดียวกับ getSessionEmail() ค่าล่าสุดคือครั้งที่ loadPlayer() รันสำเร็จ */
+export function getSessionIsAdmin(): boolean {
+  return cachedSessionIsAdmin
+}
 
 /** ใช้ session ที่ supabase-js จัดการเองอยู่แล้ว (localStorage + refresh token) ไม่ต้องมี TTL ของเราเอง */
 export async function getSessionPlayer(): Promise<Player | null> {
@@ -315,7 +337,8 @@ export async function grantCharacter(
   characterId: string,
 ): Promise<CharacterGrantResult> {
   // ผ่าน RPC เหมือน earnGold/grantItem — owned_characters ไม่มี INSERT policy ให้ authenticated
-  // ตรง ๆ โดยตั้งใจ (กันมอบตัวละครให้ตัวเองได้ทุกตัวโดยไม่ผ่านการตรวจสอบ)
+  // ตรง ๆ โดยตั้งใจ + ฟังก์ชันเองเช็ค admin_accounts อีกชั้น (0004_admin_accounts.sql) —
+  // ก่อนหน้านี้ไม่มีเช็คสิทธิ์เลย เรียก RPC ตรงผ่าน devtools ได้ตัวละครฟรีทุกตัว แก้แล้ว
   const { data, error } = await supabase.rpc('grant_character', { p_character_id: characterId })
   if (error) {
     return {

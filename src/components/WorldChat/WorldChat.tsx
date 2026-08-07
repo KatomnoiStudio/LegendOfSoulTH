@@ -19,7 +19,7 @@ import styles from './WorldChat.module.css'
  * เพื่อน-แบบเรียลไทม์/กิลด์รองรับ
  *
  * คำสั่งผู้ดูแล (เช่น /givecharacter) ยังทำงานอยู่เบื้องหลังสำหรับบัญชีที่เป็นผู้ดูแล
- * เท่านั้น (ดู src/data/admins.ts) แต่ตั้งใจไม่ใบ้อะไรใน UI เลย — ผู้เล่นทั่วไปเห็น
+ * เท่านั้น (ดู supabase/migrations/0004_admin_accounts.sql) แต่ตั้งใจไม่ใบ้อะไรใน UI เลย — ผู้เล่นทั่วไปเห็น
  * เป็นช่องแชทธรรมดา 100% ผลลัพธ์ของคำสั่งก็แสดงเฉพาะฝั่งผู้พิมพ์เอง ไม่ถูกโพสต์เข้า
  * แชทโลกให้คนอื่นเห็น — ถ้าบัญชีที่พิมพ์ "ดูเหมือน" คำสั่ง (ขึ้นต้น /) แต่ไม่ใช่ผู้ดูแล
  * (หรือเป็นผู้ดูแลแต่สลับไปอยู่บัญชีอื่นโดยไม่ทันสังเกต) ข้อความจะถูกส่งเป็นแชทธรรมดา
@@ -35,7 +35,7 @@ type Tab = 'world' | 'private' | 'guild'
 interface WorldChatProps {
   /** ชื่อที่จะแปะไว้หน้าข้อความ */
   playerName: string
-  /** ใช้คำสั่งลับได้ไหม (ดู src/data/admins.ts) — ไม่มีผลต่อหน้าตา UI เลย */
+  /** ใช้คำสั่งลับได้ไหม (ดู supabase/migrations/0004_admin_accounts.sql) — ไม่มีผลต่อหน้าตา UI เลย */
   isAdmin: boolean
   /** มอบตัวละครให้บัญชีที่ล็อกอินอยู่ (ดู useAuth.grantCharacter) — เรียกเฉพาะตอน isAdmin */
   onGiveCharacter: (characterId: string) => Promise<CharacterGrantResult>
@@ -81,7 +81,9 @@ export function WorldChat({ playerName, isAdmin, onGiveCharacter }: WorldChatPro
 
   const feed = useMemo<FeedEntry[]>(() => {
     const chatEntries: FeedEntry[] = messages.map((message) => ({ ...message, kind: 'message' }))
-    return [...chatEntries, ...systemEntries].toSorted((a, b) => a.createdAt.localeCompare(b.createdAt))
+    return [...chatEntries, ...systemEntries].toSorted((a, b) =>
+      a.createdAt.localeCompare(b.createdAt),
+    )
   }, [messages, systemEntries])
 
   // เลื่อนลงล่างสุดเสมอเมื่อมีข้อความใหม่หรือเพิ่งเปิดแท็บโลก
@@ -94,7 +96,13 @@ export function WorldChat({ playerName, isAdmin, onGiveCharacter }: WorldChatPro
     setSystemEntries((previous) =>
       [
         ...previous,
-        { id: `sys-${systemEntrySeq}`, kind: 'system' as const, text, tone, createdAt: new Date().toISOString() },
+        {
+          id: `sys-${systemEntrySeq}`,
+          kind: 'system' as const,
+          text,
+          tone,
+          createdAt: new Date().toISOString(),
+        },
       ].slice(-20),
     )
   }, [])
@@ -136,7 +144,10 @@ export function WorldChat({ playerName, isAdmin, onGiveCharacter }: WorldChatPro
     // คำสั่งที่พลาด) แค่แจ้งเตือนส่วนตัวให้ผู้พิมพ์เองรู้ตัว กันเคสผู้ดูแลพิมพ์คำสั่งลับ
     // ผิดบัญชีแล้วข้อความหลุดไปเป็นแชทถาวรโดยไม่รู้ตัว
     if (text.startsWith('/')) {
-      pushSystemEntry('ข้อความขึ้นต้นด้วย / ถูกส่งเป็นแชทปกติแล้ว (ไม่ถูกตีความเป็นคำสั่ง)', 'error')
+      pushSystemEntry(
+        'ข้อความขึ้นต้นด้วย / ถูกส่งเป็นแชทปกติแล้ว (ไม่ถูกตีความเป็นคำสั่ง)',
+        'error',
+      )
     }
 
     setMessages(await postWorldChatMessage(playerName, text))
@@ -183,7 +194,9 @@ export function WorldChat({ playerName, isAdmin, onGiveCharacter }: WorldChatPro
         <>
           <p className={styles.scopeNote}>{SCOPE_NOTE}</p>
           <ol className={styles.feed} role="log" aria-live="polite">
-            {feed.length === 0 ? <li className={styles.hint}>ยังไม่มีข้อความ — ทักทายกันก่อนเลย</li> : null}
+            {feed.length === 0 ? (
+              <li className={styles.hint}>ยังไม่มีข้อความ — ทักทายกันก่อนเลย</li>
+            ) : null}
             {feed.map((entry) =>
               entry.kind === 'message' ? (
                 <li key={entry.id} className={styles.message}>
@@ -191,7 +204,10 @@ export function WorldChat({ playerName, isAdmin, onGiveCharacter }: WorldChatPro
                   <span className={styles.text}>{entry.text}</span>
                 </li>
               ) : (
-                <li key={entry.id} className={entry.tone === 'ok' ? styles.systemOk : styles.systemError}>
+                <li
+                  key={entry.id}
+                  className={entry.tone === 'ok' ? styles.systemOk : styles.systemError}
+                >
                   {entry.text}
                 </li>
               ),
@@ -221,7 +237,11 @@ export function WorldChat({ playerName, isAdmin, onGiveCharacter }: WorldChatPro
               disabled={busy}
               autoComplete="off"
             />
-            <button type="submit" className={styles.send} disabled={busy || value.trim().length === 0}>
+            <button
+              type="submit"
+              className={styles.send}
+              disabled={busy || value.trim().length === 0}
+            >
               ส่ง
             </button>
           </form>

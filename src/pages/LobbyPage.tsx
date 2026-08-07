@@ -52,7 +52,7 @@ interface LobbyPageProps {
   onRedeemCoupon: (code: string) => Promise<CurrencyResult>
   /** ค้นหาผู้เล่นจาก UID เพื่อเพิ่มเพื่อน */
   onFindFriend: (uid: string) => Promise<FriendCandidate | null>
-  /** บัญชีนี้ใช้คำสั่งลับในแชทได้ไหม — ไม่มีผลต่อหน้าตา UI เลย (ดู src/data/admins.ts) */
+  /** บัญชีนี้ใช้คำสั่งลับในแชทได้ไหม — ไม่มีผลต่อหน้าตา UI เลย (ดู supabase/migrations/0004_admin_accounts.sql) */
   isAdmin: boolean
   /** มอบตัวละครให้บัญชีนี้ — เรียกจากคำสั่งลับในแชท (ดู WorldChat.tsx) */
   onGiveCharacter: (characterId: string) => Promise<CharacterGrantResult>

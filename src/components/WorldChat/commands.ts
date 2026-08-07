@@ -9,7 +9,8 @@ import { ROSTER } from '../../game/characters'
  *
  * ⚠️ ไม่มี UI ไหนในเกมบอกใบ้ว่าคำสั่งเหล่านี้มีอยู่ (ไม่มี placeholder/hint ในช่องพิมพ์) —
  * ตั้งใจให้ช่องแชทดูเป็นแชทปกติสำหรับผู้เล่นทั่วไป ผู้ดูแลต้องรู้คำสั่งเองอยู่แล้ว
- * ดูคำเตือนเรื่องขอบเขตความปลอดภัยจริง (หรือขาดไป) ใน src/data/admins.ts
+ * สิทธิ์ผู้ดูแลเช็คจากตาราง admin_accounts ฝั่ง Supabase แล้ว (ดู supabase/migrations/0004_admin_accounts.sql) —
+ * เป็นขอบเขตความปลอดภัยจริงระดับ RLS/RPC ไม่ใช่แค่ client-side gate เหมือนเดิม
  */
 
 export type ParsedCommand =
@@ -75,10 +76,16 @@ export function parseCommand(raw: string): ParsedCommand | null {
     const characterId = resolveCharacterId(args.join(' '))
     if (!characterId) {
       const available = ROSTER.map((entry) => `${entry.id} (${entry.name})`).join(', ')
-      return { kind: 'error', message: `ไม่รู้จักตัวละคร "${args.join(' ')}" — มีให้เลือก: ${available}` }
+      return {
+        kind: 'error',
+        message: `ไม่รู้จักตัวละคร "${args.join(' ')}" — มีให้เลือก: ${available}`,
+      }
     }
     return { kind: 'give-character', characterId }
   }
 
-  return { kind: 'error', message: `ไม่รู้จักคำสั่ง /${command} — พิมพ์ /help เพื่อดูคำสั่งทั้งหมด` }
+  return {
+    kind: 'error',
+    message: `ไม่รู้จักคำสั่ง /${command} — พิมพ์ /help เพื่อดูคำสั่งทั้งหมด`,
+  }
 }
