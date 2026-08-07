@@ -201,6 +201,31 @@ export async function login(email: string, password: string): Promise<AuthResult
 }
 
 /**
+ * เข้าเล่นแบบ guest — ไม่ต้องกรอกอีเมล/รหัสผ่านเลย (signInAnonymously)
+ *
+ * handle_new_user() trigger ทำงานเหมือนบัญชีปกติทุกประการ (ยืนยันแล้วด้วย manual test บน
+ * project จริง: guest ได้ profile + monkey-king + ทอง 500/หยก 20 เหมือน register()) —
+ * ไม่ต้องเขียน branch แยกสำหรับ guest ในโค้ดฝั่งนี้เลย
+ *
+ * ข้อจำกัดของ guest (ตามที่ Supabase เอกสารระบุไว้ตรง ๆ): ถ้าล้าง cookie/localStorage หรือ
+ * เปลี่ยนเครื่อง จะกลับเข้าบัญชีเดิมไม่ได้อีก ต้องอัพเกรดเป็นบัญชีจริงก่อน (ดู linkGoogleIdentity
+ * ด้านล่าง — ใช้ได้กับ guest เหมือนกับบัญชี email/password ทุกประการ ไม่มีโค้ดแยก)
+ *
+ * guest ที่ไม่เคยอัพเกรดและอายุเกิน 30 วัน ถูกลบอัตโนมัติทุกคืนโดย pg_cron
+ * (0006_guest_cleanup.sql, เกณฑ์ 30 วันอ้างอิงจาก Firebase's official anonymous-auth
+ * best-practices) — กันปั้ม guest จนข้อมูลค้าง ไม่กระทบ guest ที่ยังเล่นอยู่จริง
+ */
+export async function signInAsGuest(): Promise<AuthResult> {
+  const { data, error } = await supabase.auth.signInAnonymously()
+  if (error || !data.user)
+    return { ok: false, error: 'เข้าเล่นแบบ guest ไม่สำเร็จ ลองใหม่อีกครั้ง' }
+
+  const player = await loadPlayer(data.user.id)
+  if (!player) return { ok: false, error: 'เข้าเล่นแบบ guest ไม่สำเร็จ ลองใหม่อีกครั้ง' }
+  return { ok: true, player }
+}
+
+/**
  * เริ่ม OAuth flow กับ Google — เปลี่ยนหน้าออกไปยัง Google ทันที (ไม่ใช่ popup)
  * แล้ว Google ส่งกลับมาที่ redirectTo พร้อม session ใน URL fragment ซึ่ง supabase-js
  * ดักจับเองอัตโนมัติ (ค่าเริ่มต้น detectSessionInUrl: true) — useAuth's getSessionPlayer()/
@@ -252,6 +277,7 @@ export async function logout(): Promise<void> {
   await supabase.auth.signOut()
   cachedSessionEmail = null
   cachedSessionIsAdmin = false
+  cachedSessionIsGuest = false
 }
 
 /*
@@ -272,8 +298,16 @@ let cachedSessionEmail: string | null = null
 */
 let cachedSessionIsAdmin = false
 
+/**
+ * guest ไหม — มาจาก `is_anonymous` ใน JWT/session โดยตรงเหมือนอีเมล (ไม่ใช่ query แยกแบบ isAdmin)
+ * จึงผูกกับ onAuthStateChange ได้ปกติ กลายเป็น false เองอัตโนมัติทันทีที่ upgrade สำเร็จ
+ * (linkIdentity/updateUser ทำให้ GoTrue เปลี่ยน is_anonymous เป็น false ที่ฝั่งเซิร์ฟเวอร์)
+ */
+let cachedSessionIsGuest = false
+
 supabase.auth.onAuthStateChange((_event, session) => {
   cachedSessionEmail = session?.user.email ?? null
+  cachedSessionIsGuest = session?.user.is_anonymous ?? false
 })
 
 /** สิทธิ์แอดมิน — sync ตาม pattern เดียวกับ getSessionEmail() ค่าล่าสุดคือครั้งที่ loadPlayer() รันสำเร็จ */
@@ -281,11 +315,17 @@ export function getSessionIsAdmin(): boolean {
   return cachedSessionIsAdmin
 }
 
+/** guest ไหม — sync ตาม pattern เดียวกับ getSessionEmail() */
+export function getSessionIsGuest(): boolean {
+  return cachedSessionIsGuest
+}
+
 /** ใช้ session ที่ supabase-js จัดการเองอยู่แล้ว (localStorage + refresh token) ไม่ต้องมี TTL ของเราเอง */
 export async function getSessionPlayer(): Promise<Player | null> {
   const { data } = await supabase.auth.getSession()
   const userId = data.session?.user.id
   cachedSessionEmail = data.session?.user.email ?? null
+  cachedSessionIsGuest = data.session?.user.is_anonymous ?? false
   if (!userId) return null
   return loadPlayer(userId)
 }

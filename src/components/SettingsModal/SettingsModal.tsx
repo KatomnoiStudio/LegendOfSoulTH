@@ -65,6 +65,8 @@ interface SettingsModalProps {
   hasGoogleLinked: boolean
   /** เริ่มเชื่อมบัญชีนี้กับ Google — เปลี่ยนหน้าออกไปทันทีเมื่อสำเร็จ */
   onLinkGoogleAccount: () => Promise<string | null>
+  /** บัญชีนี้เป็น guest (ยังไม่เคยอัพเกรด) ไหม */
+  isGuest: boolean
 }
 
 /**
@@ -88,6 +90,7 @@ export function SettingsModal({
   onExportSave,
   hasGoogleLinked,
   onLinkGoogleAccount,
+  isGuest,
 }: SettingsModalProps) {
   const { showToast } = useToast()
   const [tab, setTab] = useState<TabId>('info')
@@ -160,6 +163,7 @@ export function SettingsModal({
             onExportSave={onExportSave}
             hasGoogleLinked={hasGoogleLinked}
             onLinkGoogleAccount={onLinkGoogleAccount}
+            isGuest={isGuest}
           />
         ) : null}
         {tab === 'audio' ? (
@@ -211,12 +215,14 @@ function GameInfoPanel({
   onExportSave,
   hasGoogleLinked,
   onLinkGoogleAccount,
+  isGuest,
 }: {
   onLogout: () => Promise<void>
   ownedCharacterCount: number
   onExportSave: () => Promise<string | null>
   hasGoogleLinked: boolean
   onLinkGoogleAccount: () => Promise<string | null>
+  isGuest: boolean
 }) {
   const { showToast } = useToast()
   const [linking, setLinking] = useState(false)
@@ -270,10 +276,19 @@ function GameInfoPanel({
         ตัวละครที่อ้างอิงวรรณกรรมใช้เฉพาะเรื่องที่เป็นสมบัติสาธารณะเท่านั้น
       </p>
 
-      <p className={styles.panelNote}>
-        บัญชีนี้ผูกกับอีเมลและเก็บบนเซิร์ฟเวอร์แล้ว ล็อกอินจากเครื่อง/เบราว์เซอร์ไหนก็ได้ ข้อมูล
-        sync ให้อัตโนมัติ — ปุ่มส่งออก save ด้านล่างมีไว้สำรองไฟล์เก็บเอง ไม่ใช่วิธีย้ายเครื่องหลัก
-      </p>
+      {isGuest ? (
+        <p className={styles.panelNote} data-warning>
+          บัญชีนี้เป็น guest — ยังไม่ผูกอีเมล/Google ล้างข้อมูลเบราว์เซอร์หรือเปลี่ยนเครื่องแล้ว
+          <strong> กลับเข้าบัญชีเดิมไม่ได้อีกเลย</strong> เชื่อมบัญชี Google
+          ไว้ตอนนี้เพื่อความปลอดภัย
+        </p>
+      ) : (
+        <p className={styles.panelNote}>
+          บัญชีนี้ผูกกับอีเมลและเก็บบนเซิร์ฟเวอร์แล้ว ล็อกอินจากเครื่อง/เบราว์เซอร์ไหนก็ได้ ข้อมูล
+          sync ให้อัตโนมัติ — ปุ่มส่งออก save ด้านล่างมีไว้สำรองไฟล์เก็บเอง
+          ไม่ใช่วิธีย้ายเครื่องหลัก
+        </p>
+      )}
 
       <button
         type="button"

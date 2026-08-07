@@ -23,6 +23,7 @@ function renderModal(overrides: Partial<Parameters<typeof SettingsModal>[0]> = {
     onExportSave: vi.fn().mockResolvedValue(null),
     hasGoogleLinked: false,
     onLinkGoogleAccount: vi.fn().mockResolvedValue(null),
+    isGuest: false,
     ...overrides,
   }
   render(
@@ -177,5 +178,14 @@ describe('SettingsModal', () => {
     await waitFor(() => expect(onLinkGoogleAccount).toHaveBeenCalled())
     await waitFor(() => expect(linkButton).not.toBeDisabled())
     expect(screen.getByText('เชื่อมบัญชี Google ไม่สำเร็จ ลองใหม่อีกครั้ง')).toBeInTheDocument()
+  })
+
+  test('isGuest true — โชว์คำเตือนบัญชี guest แทนข้อความ sync ปกติ', () => {
+    renderModal({ isGuest: true })
+
+    expect(screen.getByText(/บัญชีนี้เป็น guest/)).toBeInTheDocument()
+    expect(
+      screen.queryByText(/บัญชีนี้ผูกกับอีเมลและเก็บบนเซิร์ฟเวอร์แล้ว/),
+    ).not.toBeInTheDocument()
   })
 })

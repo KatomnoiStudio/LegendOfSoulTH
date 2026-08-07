@@ -32,9 +32,17 @@ export interface AuthState {
    * ที่นี่ในเคสนั้น) คืนข้อความเฉพาะตอนยิง redirect เองไม่สำเร็จ (เช่น provider ปิดอยู่)
    */
   loginWithGoogle: () => Promise<string | null>
+  /**
+   * เข้าเล่นทันทีแบบ guest (signInAnonymously) ไม่ต้องกรอกอะไรเลย — status จะกลายเป็น
+   * 'signed-in' เหมือนบัญชีปกติทุกประการ (ไม่ใช่ AuthStatus 'guest' ที่แปลว่า "ยังไม่ล็อกอิน"
+   * — ดู `isGuest` ด้านล่างสำหรับแยกแยะว่าบัญชีที่ signed-in อยู่นี้เป็น guest หรือไม่)
+   */
+  loginAsGuest: () => Promise<string | null>
   logout: () => Promise<void>
   /** เชื่อมบัญชีนี้ (ไม่ว่าล็อกอินด้วย email หรือ Google) เข้ากับ Google — ต้อง signed-in อยู่แล้ว */
   hasGoogleLinked: boolean
+  /** บัญชีที่ signed-in อยู่นี้เป็น guest (ยังไม่เคยอัพเกรด) ไหม — คนละความหมายกับ AuthStatus 'guest' */
+  isGuest: boolean
   /** เริ่มเชื่อมบัญชี Google — เปลี่ยนหน้าออกไปทันทีเมื่อสำเร็จ เหมือน loginWithGoogle */
   linkGoogleAccount: () => Promise<string | null>
   /** บันทึกความคืบหน้า เช่น ตั้งชื่อตัวละคร จัดทีม อัปเกรด */
@@ -71,6 +79,7 @@ export function useAuth(): AuthState {
   // อีเมล/isAdmin ไม่ได้อยู่ใน Player (เป็นข้อมูลบัญชี ไม่ใช่ของตัวละคร) จึงเก็บแยก
   const [isAdmin, setIsAdmin] = useState(false)
   const [hasGoogleLinked, setHasGoogleLinked] = useState(false)
+  const [isGuest, setIsGuest] = useState(false)
 
   const refreshLinkedProviders = useCallback(async () => {
     const providers = await accounts.getLinkedProviders()
@@ -85,6 +94,7 @@ export function useAuth(): AuthState {
       if (cancelled) return
       setPlayer(restored)
       setIsAdmin(restored ? accounts.getSessionIsAdmin() : false)
+      setIsGuest(restored ? accounts.getSessionIsGuest() : false)
       setStatus(restored ? 'signed-in' : 'guest')
       if (restored) void refreshLinkedProviders()
       return undefined
@@ -102,6 +112,7 @@ export function useAuth(): AuthState {
       if (!result.ok) return result.error
       setPlayer(result.player)
       setIsAdmin(accounts.getSessionIsAdmin())
+      setIsGuest(false)
       setStatus('signed-in')
       void refreshLinkedProviders()
       return null
@@ -115,12 +126,24 @@ export function useAuth(): AuthState {
       if (!result.ok) return result.error
       setPlayer(result.player)
       setIsAdmin(accounts.getSessionIsAdmin())
+      setIsGuest(false)
       setStatus('signed-in')
       void refreshLinkedProviders()
       return null
     },
     [refreshLinkedProviders],
   )
+
+  const loginAsGuest = useCallback(async () => {
+    const result = await accounts.signInAsGuest()
+    if (!result.ok) return result.error
+    setPlayer(result.player)
+    setIsAdmin(false)
+    setIsGuest(true)
+    setStatus('signed-in')
+    void refreshLinkedProviders()
+    return null
+  }, [refreshLinkedProviders])
 
   const loginWithGoogle = useCallback(async () => {
     const result = await accounts.signInWithGoogle()
@@ -141,6 +164,7 @@ export function useAuth(): AuthState {
     setPlayer(null)
     setIsAdmin(false)
     setHasGoogleLinked(false)
+    setIsGuest(false)
     setStatus('guest')
   }, [])
 
@@ -256,9 +280,11 @@ export function useAuth(): AuthState {
     register,
     login,
     loginWithGoogle,
+    loginAsGuest,
     logout,
     hasGoogleLinked,
     linkGoogleAccount,
+    isGuest,
     updatePlayer,
     earnGold,
     topUpGold,

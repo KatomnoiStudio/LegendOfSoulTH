@@ -22,7 +22,14 @@ describe('AuthModal', () => {
     const user = userEvent.setup()
     const onLogin = vi.fn().mockRejectedValue(new Error('WebCrypto ใช้ไม่ได้'))
 
-    render(<AuthModal onRegister={vi.fn()} onLogin={onLogin} onLoginWithGoogle={vi.fn()} />)
+    render(
+      <AuthModal
+        onRegister={vi.fn()}
+        onLogin={onLogin}
+        onLoginWithGoogle={vi.fn()}
+        onLoginAsGuest={vi.fn()}
+      />,
+    )
 
     await user.click(screen.getByRole('tab', { name: 'เข้าสู่ระบบ' }))
     await user.type(screen.getByLabelText('อีเมล'), 'player@example.com')
@@ -42,7 +49,14 @@ describe('AuthModal', () => {
     const user = userEvent.setup()
     const onLogin = vi.fn().mockResolvedValue('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
 
-    render(<AuthModal onRegister={vi.fn()} onLogin={onLogin} onLoginWithGoogle={vi.fn()} />)
+    render(
+      <AuthModal
+        onRegister={vi.fn()}
+        onLogin={onLogin}
+        onLoginWithGoogle={vi.fn()}
+        onLoginAsGuest={vi.fn()}
+      />,
+    )
     await user.click(screen.getByRole('tab', { name: 'เข้าสู่ระบบ' }))
     await user.type(screen.getByLabelText('อีเมล'), 'player@example.com')
     await user.type(screen.getByLabelText('รหัสผ่าน'), 'wrongpass')
@@ -58,7 +72,14 @@ describe('AuthModal', () => {
     const user = userEvent.setup()
     const onRegister = vi.fn()
 
-    render(<AuthModal onRegister={onRegister} onLogin={vi.fn()} onLoginWithGoogle={vi.fn()} />)
+    render(
+      <AuthModal
+        onRegister={onRegister}
+        onLogin={vi.fn()}
+        onLoginWithGoogle={vi.fn()}
+        onLoginAsGuest={vi.fn()}
+      />,
+    )
 
     await user.type(screen.getByLabelText('อีเมล'), 'player@example.com')
     await user.type(screen.getByLabelText('รหัสผ่าน'), 'password123')
@@ -78,7 +99,12 @@ describe('AuthModal', () => {
     const onLogin = vi.fn()
 
     render(
-      <AuthModal onRegister={onRegister} onLogin={onLogin} onLoginWithGoogle={onLoginWithGoogle} />,
+      <AuthModal
+        onRegister={onRegister}
+        onLogin={onLogin}
+        onLoginWithGoogle={onLoginWithGoogle}
+        onLoginAsGuest={vi.fn()}
+      />,
     )
 
     await user.click(screen.getByRole('button', { name: 'เข้าสู่ระบบด้วย Google' }))
@@ -95,7 +121,12 @@ describe('AuthModal', () => {
       .mockResolvedValue('เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง')
 
     render(
-      <AuthModal onRegister={vi.fn()} onLogin={vi.fn()} onLoginWithGoogle={onLoginWithGoogle} />,
+      <AuthModal
+        onRegister={vi.fn()}
+        onLogin={vi.fn()}
+        onLoginWithGoogle={onLoginWithGoogle}
+        onLoginAsGuest={vi.fn()}
+      />,
     )
 
     const googleButton = screen.getByRole('button', { name: 'เข้าสู่ระบบด้วย Google' })
@@ -112,7 +143,12 @@ describe('AuthModal', () => {
     const onLoginWithGoogle = vi.fn().mockRejectedValue(new Error('เครือข่ายขัดข้อง'))
 
     render(
-      <AuthModal onRegister={vi.fn()} onLogin={vi.fn()} onLoginWithGoogle={onLoginWithGoogle} />,
+      <AuthModal
+        onRegister={vi.fn()}
+        onLogin={vi.fn()}
+        onLoginWithGoogle={onLoginWithGoogle}
+        onLoginAsGuest={vi.fn()}
+      />,
     )
 
     const googleButton = screen.getByRole('button', { name: 'เข้าสู่ระบบด้วย Google' })
@@ -121,5 +157,44 @@ describe('AuthModal', () => {
     await waitFor(() => expect(onLoginWithGoogle).toHaveBeenCalled())
     await waitFor(() => expect(googleButton).not.toBeDisabled())
     expect(screen.getByText('เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง')).toBeInTheDocument()
+  })
+
+  test('กด "เล่นทันทีแบบไม่สมัคร" แล้วเรียก onLoginAsGuest', async () => {
+    const user = userEvent.setup()
+    const onLoginAsGuest = vi.fn().mockResolvedValue(null)
+
+    render(
+      <AuthModal
+        onRegister={vi.fn()}
+        onLogin={vi.fn()}
+        onLoginWithGoogle={vi.fn()}
+        onLoginAsGuest={onLoginAsGuest}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'เล่นทันทีแบบไม่สมัคร' }))
+
+    await waitFor(() => expect(onLoginAsGuest).toHaveBeenCalledTimes(1))
+  })
+
+  test('onLoginAsGuest reject ไม่ทำให้ปุ่ม guest ค้าง disable ถาวร', async () => {
+    const user = userEvent.setup()
+    const onLoginAsGuest = vi.fn().mockRejectedValue(new Error('เครือข่ายขัดข้อง'))
+
+    render(
+      <AuthModal
+        onRegister={vi.fn()}
+        onLogin={vi.fn()}
+        onLoginWithGoogle={vi.fn()}
+        onLoginAsGuest={onLoginAsGuest}
+      />,
+    )
+
+    const guestButton = screen.getByRole('button', { name: 'เล่นทันทีแบบไม่สมัคร' })
+    await user.click(guestButton)
+
+    await waitFor(() => expect(onLoginAsGuest).toHaveBeenCalled())
+    await waitFor(() => expect(guestButton).not.toBeDisabled())
+    expect(screen.getByText('เข้าเล่นแบบ guest ไม่สำเร็จ ลองใหม่อีกครั้ง')).toBeInTheDocument()
   })
 })

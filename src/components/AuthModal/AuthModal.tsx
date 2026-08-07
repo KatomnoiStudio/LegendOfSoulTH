@@ -13,6 +13,8 @@ interface AuthModalProps {
   onLogin: (email: string, password: string) => Promise<string | null>
   /** เข้าสู่ระบบด้วย Google — สำเร็จแล้วหน้าเปลี่ยนไปทันที ไม่กลับมา resolve ที่นี่ */
   onLoginWithGoogle: () => Promise<string | null>
+  /** เข้าเล่นทันทีแบบ guest — ไม่ต้องกรอกอะไรเลย */
+  onLoginAsGuest: () => Promise<string | null>
 }
 
 /**
@@ -22,7 +24,12 @@ interface AuthModalProps {
  * ตัวฟอร์มไม่รู้จัก localStorage เลย คุยผ่าน callback เท่านั้น
  * เปลี่ยนหลังบ้านเป็นเซิร์ฟเวอร์จริงเมื่อไหร่ ไฟล์นี้ไม่ต้องแก้
  */
-export function AuthModal({ onRegister, onLogin, onLoginWithGoogle }: AuthModalProps) {
+export function AuthModal({
+  onRegister,
+  onLogin,
+  onLoginWithGoogle,
+  onLoginAsGuest,
+}: AuthModalProps) {
   const [lastEmail] = useState(() => getLastEmail())
   // เคยล็อกอินเครื่องนี้มาก่อน (มีอีเมลจำไว้) → เปิดแท็บเข้าสู่ระบบให้เลย ไม่ต้องเดา
   const [mode, setMode] = useState<Mode>(() => (lastEmail ? 'login' : 'register'))
@@ -105,6 +112,25 @@ export function AuthModal({ onRegister, onLogin, onLoginWithGoogle }: AuthModalP
       // ต้องจับไว้เหมือน handleSubmit — ไม่งั้น reject หลุดแล้วปุ่มค้าง disabled ถาวร
       reportError('AUTH_OAUTH_FAIL', 'silent', cause)
       setError('เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง')
+      setBusy(false)
+    }
+  }
+
+  const handleGuestLogin = async () => {
+    if (busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      const message = await onLoginAsGuest()
+      if (message) {
+        setError(message)
+        setBusy(false)
+      }
+      // สำเร็จแล้ว component ถูกถอดออกโดยหน้าแม่เหมือน handleSubmit — ไม่ต้อง setBusy(false)
+    } catch (cause) {
+      // ต้องจับไว้เหมือน handleGoogleLogin — ไม่งั้น reject หลุดแล้วปุ่มค้าง disabled ถาวร
+      reportError('AUTH_SUBMIT_FAIL', 'silent', cause)
+      setError('เข้าเล่นแบบ guest ไม่สำเร็จ ลองใหม่อีกครั้ง')
       setBusy(false)
     }
   }
@@ -246,6 +272,19 @@ export function AuthModal({ onRegister, onLogin, onLoginWithGoogle }: AuthModalP
 
           <p className={styles.note}>
             บัญชีนี้ผูกกับอีเมลและเก็บบนเซิร์ฟเวอร์แล้ว ล็อกอินจากเครื่อง/เบราว์เซอร์ไหนก็ได้
+          </p>
+
+          <button
+            type="button"
+            className={styles.guestLink}
+            onClick={() => void handleGuestLogin()}
+            disabled={busy}
+          >
+            เล่นทันทีแบบไม่สมัคร
+          </button>
+          <p className={styles.note}>
+            เล่นแบบ guest จะกลับเข้าบัญชีเดิมไม่ได้ถ้าล้างข้อมูลเบราว์เซอร์หรือเปลี่ยนเครื่อง —
+            อัพเกรดเป็นบัญชีจริงได้ทีหลังในเมนูตั้งค่า ข้อมูลไม่หาย
           </p>
         </form>
       </div>

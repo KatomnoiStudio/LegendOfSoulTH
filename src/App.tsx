@@ -25,9 +25,11 @@ export default function App() {
     register,
     login,
     loginWithGoogle,
+    loginAsGuest,
     logout,
     hasGoogleLinked,
     linkGoogleAccount,
+    isGuest,
     updatePlayer,
     earnGold,
     topUpGold,
@@ -62,6 +64,7 @@ export default function App() {
             onExportSave={exportSave}
             hasGoogleLinked={hasGoogleLinked}
             onLinkGoogleAccount={linkGoogleAccount}
+            isGuest={isGuest}
           />
         </ToastProvider>
       </GameViewport>
@@ -78,7 +81,12 @@ export default function App() {
         <TitlePage onStart={() => setAuthOpen(true)} />
 
         {status === 'guest' && authOpen ? (
-          <AuthModal onRegister={register} onLogin={login} onLoginWithGoogle={loginWithGoogle} />
+          <AuthModal
+            onRegister={register}
+            onLogin={login}
+            onLoginWithGoogle={loginWithGoogle}
+            onLoginAsGuest={loginAsGuest}
+          />
         ) : null}
 
         {needsName && player ? (

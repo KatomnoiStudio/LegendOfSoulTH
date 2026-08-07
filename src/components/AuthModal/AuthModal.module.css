@@ -280,6 +280,25 @@
   text-align: center;
 }
 
+.guestLink {
+  margin: 0 auto;
+  padding: var(--sp-1) var(--sp-2);
+  color: rgb(226 214 180 / 70%);
+  font-size: 0.75rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.guestLink:hover:not(:disabled) {
+  color: var(--c-gold);
+}
+
+.guestLink:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;

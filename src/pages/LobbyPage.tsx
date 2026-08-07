@@ -63,6 +63,8 @@ interface LobbyPageProps {
   hasGoogleLinked: boolean
   /** เริ่มเชื่อมบัญชีนี้กับ Google — เปลี่ยนหน้าออกไปทันทีเมื่อสำเร็จ */
   onLinkGoogleAccount: () => Promise<string | null>
+  /** บัญชีนี้เป็น guest (ยังไม่เคยอัพเกรด) ไหม — โชว์คำเตือนใน SettingsModal */
+  isGuest: boolean
 }
 
 export function LobbyPage({
@@ -80,6 +82,7 @@ export function LobbyPage({
   onExportSave,
   hasGoogleLinked,
   onLinkGoogleAccount,
+  isGuest,
 }: LobbyPageProps) {
   // แจ้งเตือนจดหมาย/ภารกิจยังเป็น mock เพราะยังไม่มีระบบทั้งสองอย่าง
   const badges = MOCK_BADGES
@@ -272,6 +275,7 @@ export function LobbyPage({
           onExportSave={onExportSave}
           hasGoogleLinked={hasGoogleLinked}
           onLinkGoogleAccount={onLinkGoogleAccount}
+          isGuest={isGuest}
         />
       ) : null}
     </main>
