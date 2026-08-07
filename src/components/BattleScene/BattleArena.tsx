@@ -7,6 +7,7 @@ import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBa
 import { BattleCamera } from './BattleCamera'
 import { EnemyBattleSprite } from './EnemyBattleSprite'
 import { PlayerBattleSprite } from './PlayerBattleSprite'
+import { TelegraphMarkers } from './TelegraphMarkers'
 
 /**
  * สนามต่อสู้ 2.5D side-down — พื้นลาน + แถบ depth + ฉากหลังด้านไกล
@@ -109,6 +110,8 @@ export function BattleArena({ runtime }: { runtime: RealtimeBattleRuntime }) {
         <boxGeometry args={[worldWidth, EDGE_THICKNESS, EDGE_THICKNESS]} />
         <meshBasicMaterial color="#ffd765" transparent opacity={0.35} toneMapped={false} />
       </mesh>
+
+      <TelegraphMarkers runtime={runtime} />
 
       <PlayerBattleSprite runtime={runtime} />
       {state.enemies.map((enemy) => (

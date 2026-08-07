@@ -59,6 +59,9 @@ export function createPlayerEntity(player: Player): RealtimeBattleEntity | null 
     ultimateGauge: 0,
     invulnerableUntilMs: 0,
     hitStunRemainingMs: 0,
+    knockdownRemainingMs: 0,
+    getUpRemainingMs: 0,
+    combatTier: 'mob',
     characterId: character.id,
   }
 }
@@ -128,6 +131,9 @@ export function createWaveEnemies(
       ultimateGauge: 0,
       invulnerableUntilMs: 0,
       hitStunRemainingMs: 0,
+      knockdownRemainingMs: 0,
+      getUpRemainingMs: 0,
+      combatTier: template.combatTier,
       enemyId: template.id,
     }
     return [enemy]

@@ -12,6 +12,8 @@
  * ────────────────────────────────────────────────────────────
  */
 
+import type { MovePhaseOverrides } from './combatMoveSchema'
+
 export interface AttackDefinition {
   id: string
   /** ชุดเฟรมที่จะเล่น (ดู src/game/battleSpriteSequences.ts) */
@@ -39,6 +41,21 @@ export interface AttackDefinition {
   /** ระยะ depth ที่ยังโดนได้ (runtime y) — ใช้เมื่อ hitShape = horizontal */
   depthTolerance: number
   knockback: number
+
+  /** Wind-up before startup — enemy telegraph (ms). Default 0 for player attacks. */
+  telegraphMs?: number
+  /** Stun applied to target — default 200ms baseline. */
+  hitstunMs?: number
+  /** Can this move knock down elite/boss targets? */
+  knockdown?: boolean
+  /** Knockdown / getUp durations (ms) — defaults from COMBAT_DEFAULTS. */
+  knockdownMs?: number
+  getUpMs?: number
+  /** Default true — false for ultimate setup etc. */
+  interruptible?: boolean
+  phaseOverrides?: MovePhaseOverrides
+  /** Multi-hit active window slices (ultimate). */
+  strikeCount?: number
 }
 
 /**
@@ -62,6 +79,7 @@ export const PLAYER_ATTACK_CHAIN: AttackDefinition[] = [
     arcDegrees: 0,
     depthTolerance: 95,
     knockback: 60,
+    hitstunMs: 200,
   },
   {
     id: 'monkey-attack-2',
@@ -93,6 +111,8 @@ export const PLAYER_ATTACK_CHAIN: AttackDefinition[] = [
     arcDegrees: 0,
     depthTolerance: 105,
     knockback: 210,
+    knockdown: true,
+    hitstunMs: 200,
   },
 ]
 
@@ -180,6 +200,14 @@ export const MONKEY_GOLDEN_FURY: AttackDefinition = {
   arcDegrees: 360,
   depthTolerance: 0,
   knockback: 200,
+  interruptible: false,
+  phaseOverrides: {
+    telegraph: { interruptible: false },
+    startup: { interruptible: false },
+    active: { interruptible: false },
+    recovery: { interruptible: true },
+  },
+  strikeCount: 4,
 }
 
 /** ค่าจังหวะของสกิล (Blueprint v3 P3) — อยู่ที่เดียว ห้าม hard-code กระจายหลายไฟล์ */
@@ -192,11 +220,12 @@ export const SKILL_CONFIG = {
   ultimateInvulnerableMs: 420,
 } as const
 
-/** ท่าโจมตีของศัตรู — จังหวะเดียวกับที่ EnemyAISystem ใช้ตัดสินใจ */
-export const ENEMY_ATTACK: AttackDefinition = {
+/** ท่าโจมตีม็อบ — telegraph ก่อน startup/active/recovery */
+export const ENEMY_ATTACK_MELEE: AttackDefinition = {
   id: 'enemy-melee',
   animationId: 'attack-1',
-  startupMs: 320,
+  telegraphMs: 280,
+  startupMs: 120,
   activeMs: 140,
   recoveryMs: 420,
   comboWindowStartMs: 0,
@@ -207,13 +236,48 @@ export const ENEMY_ATTACK: AttackDefinition = {
   arcDegrees: 0,
   depthTolerance: 88,
   knockback: 90,
+  hitstunMs: 200,
 }
 
+/** ท่า elite — ช้ากว่าเล็กน้อย ล้มได้ */
+export const ENEMY_ATTACK_ELITE: AttackDefinition = {
+  id: 'enemy-elite-slam',
+  animationId: 'attack-1',
+  telegraphMs: 340,
+  startupMs: 160,
+  activeMs: 160,
+  recoveryMs: 480,
+  comboWindowStartMs: 0,
+  comboWindowEndMs: 0,
+  damageMultiplier: 1.25,
+  range: 118,
+  hitShape: 'horizontal',
+  arcDegrees: 0,
+  depthTolerance: 92,
+  knockback: 120,
+  hitstunMs: 240,
+  knockdown: true,
+}
+
+/** @deprecated Use ENEMY_ATTACK_MELEE — kept for imports */
+export const ENEMY_ATTACK = ENEMY_ATTACK_MELEE
+
+export const ENEMY_ATTACKS: Record<string, AttackDefinition> = {
+  'enemy-melee': ENEMY_ATTACK_MELEE,
+  'enemy-elite-slam': ENEMY_ATTACK_ELITE,
+}
+
+export function getEnemyAttackById(attackId: string): AttackDefinition {
+  return ENEMY_ATTACKS[attackId] ?? ENEMY_ATTACK_MELEE
+}
+
+import { attackTotalDurationMs, isFullMoveActiveWindow } from './combatMoveSchema'
+
 export function totalDurationMs(attack: AttackDefinition): number {
-  return attack.startupMs + attack.activeMs + attack.recoveryMs
+  return attackTotalDurationMs(attack)
 }
 
 /** อยู่ในช่วงที่ hitbox มีผลจริงหรือยัง */
 export function isActiveWindow(attack: AttackDefinition, sinceStartMs: number): boolean {
-  return sinceStartMs >= attack.startupMs && sinceStartMs < attack.startupMs + attack.activeMs
+  return isFullMoveActiveWindow(attack, sinceStartMs)
 }

@@ -5,6 +5,8 @@ import {
   totalDurationMs,
   type AttackDefinition,
 } from './attacks'
+import { getPlayerAttackPhase, interruptPlayerCombo, shouldInterruptMove } from './combatInterrupt'
+import { isControlLocked } from './combatReaction'
 import type { RealtimeBattleEntity } from './types'
 
 /**
@@ -73,7 +75,7 @@ export function currentComboStep(combo: ComboState): number {
 
 /** บันทึกว่าผู้เล่นกดปุ่มโจมตี — อาจเริ่มท่าทันที หรือถูกเก็บเข้า buffer */
 export function pressAttack(player: RealtimeBattleEntity, combo: ComboState): void {
-  if (player.state === 'dead' || player.hitStunRemainingMs > 0) return
+  if (isControlLocked(player)) return
 
   if (combo.attack === null) {
     beginNextAttack(player, combo)
@@ -144,13 +146,20 @@ export function stepCombo(
     return { hitboxActive: false, attack: null }
   }
 
-  // โดนตีจนเซระหว่างท่า = ท่าถูกยกเลิกและคอมโบขาด
+  // โดนตีจนเซระหว่างท่า = ท่าถูกยกเลิกถ้า interruptible
   if (player.hitStunRemainingMs > 0 || player.state === 'dead') {
-    combo.attack = null
-    combo.chainIndex = 0
-    combo.hitTargets.clear()
-    combo.bufferedInputAgeMs = null
-    combo.sinceLastFinishMs = 0
+    if (combo.attack) {
+      const phase = getPlayerAttackPhase(combo.attack, combo.sinceStartMs)
+      if (shouldInterruptMove(combo.attack, phase)) {
+        interruptPlayerCombo(player, combo)
+      }
+    } else {
+      combo.attack = null
+      combo.chainIndex = 0
+      combo.hitTargets.clear()
+      combo.bufferedInputAgeMs = null
+      combo.sinceLastFinishMs = 0
+    }
     return { hitboxActive: false, attack: null }
   }
 

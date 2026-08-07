@@ -22,7 +22,11 @@ export type Direction8 =
 /** ทิศโจมตีพื้นฐาน — ซ้าย/ขวาเท่านั้น (Blueprint v3 P2) */
 export type CombatFacing = 'left' | 'right'
 
-export type EntityState = 'idle' | 'walk' | 'attack' | 'skill' | 'hit' | 'dead'
+/** Mob / elite / boss tier — elite uses same AI core, different data. */
+export type CombatTier = 'mob' | 'elite' | 'boss'
+
+export type EntityState =
+  'idle' | 'walk' | 'attack' | 'skill' | 'hit' | 'knockdown' | 'getUp' | 'dead'
 
 /** ช่องสกิล 1–3 (ultimate ใช้ gauge แยก — ดู ultimateGauge.ts) */
 export type SkillCooldownSlot = 'skill1' | 'skill2' | 'skill3'
@@ -61,6 +65,10 @@ export interface RealtimeBattleEntity {
   /** เวลา (elapsedMs ของ runtime) ที่ยังอยู่ยงคงกระพันจนถึง */
   invulnerableUntilMs: number
   hitStunRemainingMs: number
+  knockdownRemainingMs: number
+  getUpRemainingMs: number
+  /** mob | elite | boss — drives knockdown eligibility */
+  combatTier: CombatTier
 
   /** id ตัวละครผู้เล่น (ดู src/game/characters.ts) — มีเฉพาะฝ่ายผู้เล่น */
   characterId?: string

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { createEnemyBrain, ENEMY_ATTACK_TIMING, stepEnemyAI } from './EnemyAISystem'
+import { ENEMY_ATTACK_MELEE } from './attacks'
+import {
+  createEnemyBrain,
+  isEnemyAttackDamageWindow,
+  isEnemyTelegraphing,
+  stepEnemyAI,
+} from './EnemyAISystem'
 import { createRealtimeBattle } from './createRealtimeBattle'
 import { RealtimeBattleRuntime } from './RealtimeBattleRuntime'
 import { getEnemyTemplate } from './stageConfig'
@@ -7,8 +13,9 @@ import type { RealtimeBattleEntity } from './types'
 import type { Player } from '../../types/player'
 import { EMPTY_PROGRESS } from '../../types/player'
 
-const ATTACK_TOTAL_MS =
-  ENEMY_ATTACK_TIMING.startupMs + ENEMY_ATTACK_TIMING.activeMs + ENEMY_ATTACK_TIMING.recoveryMs
+const EXECUTE_MS =
+  ENEMY_ATTACK_MELEE.startupMs + ENEMY_ATTACK_MELEE.activeMs + ENEMY_ATTACK_MELEE.recoveryMs
+const TELEGRAPH_MS = ENEMY_ATTACK_MELEE.telegraphMs ?? 0
 
 function makePlayer(): Player {
   return {
@@ -59,6 +66,9 @@ function entity(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
     ultimateGauge: 0,
     invulnerableUntilMs: 0,
     hitStunRemainingMs: 0,
+    knockdownRemainingMs: 0,
+    getUpRemainingMs: 0,
+    combatTier: 'mob',
     enemyId: 'shadow-soldier',
     ...overrides,
   }
@@ -107,16 +117,20 @@ describe('stepEnemyAI', () => {
     const brain = createEnemyBrain()
 
     stepEnemyAI(enemy, brain, player, 16) // → chase
-    const decision = stepEnemyAI(enemy, brain, player, 16) // → attack
+    const decision = stepEnemyAI(enemy, brain, player, 16) // → telegraph
 
-    expect(brain.state).toBe('attack')
+    expect(brain.state).toBe('telegraph')
+    expect(isEnemyTelegraphing(brain)).toBe(true)
     expect(enemy.state).toBe('attack')
     expect(decision.move).toEqual({ x: 0, y: 0 })
     expect(enemy.attackCooldownRemainingMs).toBe(template.attackCooldownMs)
 
-    // ระหว่างท่ายังไม่จบ ต้องไม่ขยับเลยแม้ผู้เล่นจะอยู่ไกลออกไป
-    const during = stepEnemyAI(enemy, brain, player, ENEMY_ATTACK_TIMING.startupMs)
+    stepEnemyAI(enemy, brain, player, TELEGRAPH_MS) // telegraph → attack execute
     expect(brain.state).toBe('attack')
+
+    const during = stepEnemyAI(enemy, brain, player, ENEMY_ATTACK_MELEE.startupMs - 20)
+    expect(brain.state).toBe('attack')
+    expect(isEnemyAttackDamageWindow(brain)).toBe(false)
     expect(during.move).toEqual({ x: 0, y: 0 })
   })
 
@@ -131,7 +145,8 @@ describe('stepEnemyAI', () => {
 
     stepEnemyAI(enemy, brain, player, 16)
     stepEnemyAI(enemy, brain, player, 16)
-    stepEnemyAI(enemy, brain, player, ATTACK_TOTAL_MS)
+    stepEnemyAI(enemy, brain, player, TELEGRAPH_MS)
+    stepEnemyAI(enemy, brain, player, EXECUTE_MS)
     expect(brain.state).toBe('recover')
 
     stepEnemyAI(enemy, brain, player, 500)

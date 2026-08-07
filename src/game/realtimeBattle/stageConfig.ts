@@ -52,6 +52,11 @@ export interface RealtimeEnemyTemplate {
   /** ระยะที่เข้าโจมตีได้ */
   attackRange: number
   attackCooldownMs: number
+  /** Attack row id in ENEMY_ATTACKS */
+  attackId: string
+  /** AI role config — same core, different data */
+  aiRole: 'melee' | 'ranged' | 'tank' | 'controller' | 'support' | 'elite'
+  combatTier: 'mob' | 'elite' | 'boss'
 }
 
 export interface BattleWaveDefinition {
@@ -91,6 +96,9 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     detectRange: 1600,
     attackRange: 74,
     attackCooldownMs: 1500,
+    attackId: 'enemy-melee',
+    aiRole: 'melee',
+    combatTier: 'mob',
   },
   'demon-captain': {
     id: 'demon-captain',
@@ -106,6 +114,9 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     detectRange: 1700,
     attackRange: 86,
     attackCooldownMs: 1700,
+    attackId: 'enemy-elite-slam',
+    aiRole: 'elite',
+    combatTier: 'elite',
   },
   'spirit-guardian': {
     id: 'spirit-guardian',
@@ -121,6 +132,9 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     detectRange: 1600,
     attackRange: 78,
     attackCooldownMs: 1300,
+    attackId: 'enemy-melee',
+    aiRole: 'controller',
+    combatTier: 'mob',
   },
 }
 
