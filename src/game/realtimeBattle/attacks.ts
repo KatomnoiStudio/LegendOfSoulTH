@@ -28,8 +28,16 @@ export interface AttackDefinition {
   damageMultiplier: number
   /** ระยะจากกึ่งกลางตัวผู้โจมตีถึงขอบนอกของ hitbox */
   range: number
-  /** ความกว้างของกรวยโจมตี (องศา) — 360 = รอบตัว */
+  /**
+   * รูปทรง hitbox
+   * - horizontal: โจมตีซ้าย/ขวา + depth tolerance (P2 basic attack)
+   * - radial: กรวย/รอบตัว (สกิล — ยังใช้ arcDegrees)
+   */
+  hitShape: 'horizontal' | 'radial'
+  /** ความกว้างของกรวยโจมตี (องศา) — ใช้เมื่อ hitShape = radial */
   arcDegrees: number
+  /** ระยะ depth ที่ยังโดนได้ (runtime y) — ใช้เมื่อ hitShape = horizontal */
+  depthTolerance: number
   knockback: number
 }
 
@@ -50,7 +58,9 @@ export const PLAYER_ATTACK_CHAIN: AttackDefinition[] = [
     comboWindowEndMs: 700,
     damageMultiplier: 1,
     range: 120,
-    arcDegrees: 110,
+    hitShape: 'horizontal',
+    arcDegrees: 0,
+    depthTolerance: 95,
     knockback: 60,
   },
   {
@@ -63,7 +73,9 @@ export const PLAYER_ATTACK_CHAIN: AttackDefinition[] = [
     comboWindowEndMs: 700,
     damageMultiplier: 1.15,
     range: 128,
-    arcDegrees: 120,
+    hitShape: 'horizontal',
+    arcDegrees: 0,
+    depthTolerance: 100,
     knockback: 80,
   },
   {
@@ -77,7 +89,9 @@ export const PLAYER_ATTACK_CHAIN: AttackDefinition[] = [
     comboWindowEndMs: 0,
     damageMultiplier: 1.55,
     range: 150,
-    arcDegrees: 150,
+    hitShape: 'horizontal',
+    arcDegrees: 0,
+    depthTolerance: 105,
     knockback: 210,
   },
 ]
@@ -120,7 +134,9 @@ export const MONKEY_SPINNING_STAFF: AttackDefinition = {
   comboWindowEndMs: 0,
   damageMultiplier: 1.65,
   range: 158,
+  hitShape: 'radial',
   arcDegrees: 360,
+  depthTolerance: 0,
   knockback: 140,
 }
 
@@ -142,7 +158,9 @@ export const ENEMY_ATTACK: AttackDefinition = {
   comboWindowEndMs: 0,
   damageMultiplier: 1,
   range: 110,
-  arcDegrees: 120,
+  hitShape: 'horizontal',
+  arcDegrees: 0,
+  depthTolerance: 88,
   knockback: 90,
 }
 

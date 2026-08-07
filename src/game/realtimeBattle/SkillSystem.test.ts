@@ -18,6 +18,7 @@ function player(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
     position: { x: 900, y: 550 },
     velocity: { x: 0, y: 0 },
     facing: 'right',
+    combatFacing: 'right',
     state: 'idle',
     hp: 300,
     maxHp: 300,

@@ -1,6 +1,9 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { Vector3 } from 'three'
-import { WORLD_SCALE } from '../../game/realtimeBattle/stageConfig'
+import {
+  BATTLE_HUD_HEIGHT_OFFSET,
+  runtimeToWorldXZ,
+} from '../../game/realtimeBattle/battleCoordinates'
 import type { RealtimeBattleStage } from '../../game/realtimeBattle/stageConfig'
 import type { Vec2 } from '../../game/realtimeBattle/types'
 
@@ -30,12 +33,9 @@ export function ScreenProjector({
   const { camera } = useThree()
 
   useFrame(() => {
-    projection.current.project = (position, heightOffset = 1.4) => {
-      const point = new Vector3(
-        (position.x - stage.width / 2) * WORLD_SCALE,
-        heightOffset,
-        (position.y - stage.height / 2) * WORLD_SCALE,
-      )
+    projection.current.project = (position, heightOffset = BATTLE_HUD_HEIGHT_OFFSET) => {
+      const world = runtimeToWorldXZ(position, stage)
+      const point = new Vector3(world.x, heightOffset, world.z)
       point.project(camera)
 
       // z > 1 แปลว่าจุดอยู่หลังระนาบตัดของกล้อง ฉายออกมาเป็นตำแหน่งกลับด้าน

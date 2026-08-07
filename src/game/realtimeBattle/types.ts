@@ -1,15 +1,9 @@
 /**
- * ชนิดข้อมูลของห้องต่อสู้แบบ Real-time (Top-down Hack & Slash)
+ * ชนิดข้อมูลของห้องต่อสู้แบบ Real-time (2.5D side-down — Blueprint v3)
  *
- * แยกขาดจากระบบ Turn-based เดิมใน src/game/battle/ โดยตั้งใจ —
- * ห้ามนำ BattleSnapshot แบบเทิร์นมาใช้ต่อ และห้ามให้สองระบบใช้ type ร่วมกัน
- * (ยกเว้น BattleResult ที่เป็น contract กับ useGameFlow ซึ่งแปลงผ่าน BattleResultAdapter)
- *
- * ── ระบบพิกัด ──────────────────────────────────────────────
- * Runtime ใช้พิกัด 2 มิติแบบ "หน่วยเดียวกับแผนที่สำรวจ" (หน่วยละ ~1px ของงานออกแบบ)
- *   x = ซ้าย→ขวา, y = บน→ล่าง  (y เพิ่ม = เดินลงล่างของจอ)
- * ตอนวาดด้วย Three.js จะ map เป็น (x, 0, y) บนระนาบ XZ แล้วคูณ WORLD_SCALE
- * ดู src/components/BattleScene/BattleArena.tsx
+ * ── ระบบพิกัด (ดู battleCoordinates.ts) ─────────────────
+ * Runtime: x = ซ้าย–ขวา, y = depth หน้า–หลัง
+ * World:   XZ plane — y runtime → world Z (depth)
  * ───────────────────────────────────────────────────────────
  */
 
@@ -21,14 +15,10 @@ export interface Vec2 {
 }
 
 export type Direction8 =
-  | 'up'
-  | 'up-right'
-  | 'right'
-  | 'down-right'
-  | 'down'
-  | 'down-left'
-  | 'left'
-  | 'up-left'
+  'up' | 'up-right' | 'right' | 'down-right' | 'down' | 'down-left' | 'left' | 'up-left'
+
+/** ทิศโจมตีพื้นฐาน — ซ้าย/ขวาเท่านั้น (Blueprint v3 P2) */
+export type CombatFacing = 'left' | 'right'
 
 export type EntityState = 'idle' | 'walk' | 'attack' | 'skill' | 'dash' | 'hit' | 'dead'
 
@@ -42,6 +32,8 @@ export interface RealtimeBattleEntity {
   position: Vec2
   velocity: Vec2
   facing: Direction8
+  /** ทิศโจมตีซ้าย/ขวา — แยกจาก facing สำหรับสไปรต์เดิน (P2) */
+  combatFacing: CombatFacing
   state: EntityState
 
   hp: number

@@ -7,6 +7,22 @@
 
 ยังไม่มี
 
+## [0.6.0] - 2026-08-07
+
+Blueprint v3.0 รับเป็น Product Baseline เดียว (รวม PR #19 จาก fork `nustanakritwithai/GameTurnBase`) + Combat Foundation P0-P2
+
+### Added
+
+- **Blueprint v3.0** — Universe of Legends baseline, roadmap P0–P15, governance docs
+  (`docs/MASTER_BLUEPRINT_v1.0.md` ถูกลบ — v3.0 เป็นพิมพ์เขียวไฟล์เดียวที่เหลืออยู่)
+- **สนามต่อสู้ 2.5D side-down (P1)** — กล้องมุม brawler, แกน depth, `battleCoordinates.ts`
+- **โจมตีซ้าย/ขวา + depth hit (P2)** — `combatFacing`, hitbox แนวนอน + depth tolerance สำหรับ basic attack
+
+### Changed
+
+- คอมโบผู้เล่นและ melee ศัตรูใช้ hit model แนวนอน (ไม่ใช่กรวย 360°)
+- สกิลหมุนกระบวนทองคำยังเป็น radial 360° ชั่วคราว (รอ P3)
+
 ## [0.5.1] - 2026-08-07
 
 ### Fixed
@@ -29,10 +45,8 @@
 
 ### Changed
 
-- **ย้ายระบบบัญชี/ทอง/หยกไป Supabase จริง** — เดิมเก็บใน localStorage ของเครื่องผู้เล่นเอง
-  ตอนนี้เป็นเซิร์ฟเวอร์จริง (Postgres + Auth) เข้าเล่นข้ามเครื่องได้แล้ว กติกาทอง/หยก
-  (ที่มาต้องระบุ ห้ามเซตตรง) บังคับที่ฐานข้อมูลจริงแล้ว ไม่ใช่แค่โค้ดฝั่งเครื่อง
-- **⚠️ Breaking**: บัญชี/เซฟเก่าที่อยู่ใน localStorage ใช้ต่อไม่ได้ ต้องสมัครใหม่
+- **ย้ายระบบบัญชี/ทอง/หยกไป Supabase จริง** — `useAuth.ts` wired; กติกา ledger บังคับที่ Postgres
+- **⚠️ Breaking**: บัญชี/เซฟเก่าใน localStorage ใช้ต่อไม่ได้ ต้องสมัครใหม่
 
 ## [0.4.0] - 2026-08-07
 

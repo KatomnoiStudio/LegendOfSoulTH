@@ -99,6 +99,7 @@ function beginNextAttack(player: RealtimeBattleEntity, combo: ComboState): void 
 
   player.state = 'attack'
   player.velocity = { x: 0, y: 0 }
+  player.facing = player.combatFacing
 }
 
 export interface ComboTick {
@@ -132,7 +133,11 @@ export function stepCombo(
     combo.sinceLastFinishMs += deltaMs
 
     // มีอินพุตค้างอยู่และท่าเพิ่งจบ = ต่อคอมโบให้ทันที
-    if (combo.bufferedInputAgeMs !== null && player.hitStunRemainingMs <= 0 && player.state !== 'dead') {
+    if (
+      combo.bufferedInputAgeMs !== null &&
+      player.hitStunRemainingMs <= 0 &&
+      player.state !== 'dead'
+    ) {
       beginNextAttack(player, combo)
       return { hitboxActive: false, attack: combo.attack }
     }

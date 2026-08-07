@@ -1,5 +1,6 @@
 import { ENEMY_ATTACK, isActiveWindow } from './attacks'
 import { createWaveEnemies, type RealtimeBattleState } from './createRealtimeBattle'
+import { combatFacingFromVector } from './combatFacing'
 import { applyDamage, type RandomFn } from './DamageSystem'
 import { createEnemyBrain, stepEnemyAI, type EnemyBrain } from './EnemyAISystem'
 import { findHitTargets } from './HitboxSystem'
@@ -136,12 +137,13 @@ export class RealtimeBattleRuntime {
         มาแทรกกลางคัน ระยะพุ่งจะสั้นลงแบบเดาไม่ได้ และ i-frame จะไม่คุ้มกับคูลดาวน์
       */
       const dashing = stepDash(state.player, this.playerDash, deltaMs, state.stage)
-      const moved = dashing || isAttacking(this.playerCombat)
-        ? false
-        : stepMovement(state.player, this.moveInput, deltaMs, {
-            stage: state.stage,
-            blockers: state.enemies,
-          })
+      const moved =
+        dashing || isAttacking(this.playerCombat)
+          ? false
+          : stepMovement(state.player, this.moveInput, deltaMs, {
+              stage: state.stage,
+              blockers: state.enemies,
+            })
 
       // สถานะเดิน/ยืน คุมจากผลของระบบเดินจุดเดียว ไม่ให้ component เดาเอง
       if (state.player.state === 'idle' && moved) state.player.state = 'walk'
@@ -173,6 +175,7 @@ export class RealtimeBattleRuntime {
 
     if (this.attackRequested) {
       this.attackRequested = false
+      state.player.combatFacing = combatFacingFromVector(this.moveInput, state.player.combatFacing)
       pressAttack(state.player, this.playerCombat)
     }
 
@@ -393,7 +396,12 @@ export class RealtimeBattleRuntime {
         const a = alive[i]
         const b = alive[j]
         // ดันเฉพาะตัวหลังออกจากตัวหน้า ทำให้ผลลัพธ์ไม่ขึ้นกับลำดับที่วนเจอ
-        b.position = resolveCircleOverlap(b.position, b.collisionRadius, a.position, a.collisionRadius)
+        b.position = resolveCircleOverlap(
+          b.position,
+          b.collisionRadius,
+          a.position,
+          a.collisionRadius,
+        )
       }
     }
   }
@@ -491,7 +499,11 @@ export class RealtimeBattleRuntime {
    * จะเห็น 'exiting' แทนผลจริง
    */
   requestExit(): void {
-    if (this.state.status === 'exiting' || this.state.status === 'victory' || this.state.status === 'defeat') {
+    if (
+      this.state.status === 'exiting' ||
+      this.state.status === 'victory' ||
+      this.state.status === 'defeat'
+    ) {
       return
     }
     this.state.status = 'exiting'
@@ -526,7 +538,11 @@ export class RealtimeBattleRuntime {
       stageName: state.stage.name,
       status: state.status,
       elapsedMs: state.elapsedMs,
-      player: { ...state.player, position: { ...state.player.position }, velocity: { ...state.player.velocity } },
+      player: {
+        ...state.player,
+        position: { ...state.player.position },
+        velocity: { ...state.player.velocity },
+      },
       enemies: state.enemies.map((enemy) => ({
         ...enemy,
         position: { ...enemy.position },

@@ -1,3 +1,4 @@
+import { applyCombatFacingFromMovement } from './combatFacing'
 import type { RealtimeBattleStage } from './stageConfig'
 import type { Direction8, RealtimeBattleEntity, Vec2 } from './types'
 
@@ -55,7 +56,12 @@ export function clampToArena(position: Vec2, radius: number, stage: RealtimeBatt
  * ใช้กับ "ผู้เล่นชนศัตรู" และ "ศัตรูชนกันเอง" (§21) — ตัวที่ถูกดันคือ `mover`
  * เท่านั้น ตัวตั้งอยู่กับที่ ทำให้ผลลัพธ์ไม่ขึ้นกับลำดับการเรียกภายในหนึ่ง tick
  */
-export function resolveCircleOverlap(mover: Vec2, moverRadius: number, other: Vec2, otherRadius: number): Vec2 {
+export function resolveCircleOverlap(
+  mover: Vec2,
+  moverRadius: number,
+  other: Vec2,
+  otherRadius: number,
+): Vec2 {
   const dx = mover.x - other.x
   const dy = mover.y - other.y
   const minDistance = moverRadius + otherRadius
@@ -109,13 +115,20 @@ export function stepMovement(
 
   for (const blocker of blockers) {
     if (blocker.id === entity.id || blocker.state === 'dead') continue
-    next = resolveCircleOverlap(next, entity.collisionRadius, blocker.position, blocker.collisionRadius)
+    next = resolveCircleOverlap(
+      next,
+      entity.collisionRadius,
+      blocker.position,
+      blocker.collisionRadius,
+    )
   }
 
   entity.position = clampToArena(next, entity.collisionRadius, stage)
 
   const facing = directionFromVector(direction)
   if (facing) entity.facing = facing
+
+  applyCombatFacingFromMovement(entity, direction)
 
   return true
 }

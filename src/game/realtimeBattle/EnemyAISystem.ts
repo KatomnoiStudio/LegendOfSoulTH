@@ -1,4 +1,5 @@
 import { ENEMY_ATTACK } from './attacks'
+import { faceTargetHorizontally } from './combatFacing'
 import { getEnemyTemplate, type RealtimeEnemyTemplate } from './stageConfig'
 import type { RealtimeBattleEntity, Vec2 } from './types'
 
@@ -130,6 +131,7 @@ export function stepEnemyAI(
       }
 
       if (distance <= ranges.attack && enemy.attackCooldownRemainingMs <= 0) {
+        faceTargetHorizontally(enemy, player.position)
         toState(brain, 'attack')
         enemy.state = 'attack'
         enemy.attackCooldownRemainingMs = ranges.attackCooldownMs

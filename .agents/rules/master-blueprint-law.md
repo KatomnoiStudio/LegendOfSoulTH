@@ -1,25 +1,29 @@
-<!-- coalmine: verified 2026-08-07 · exemplar docs/MASTER_BLUEPRINT_v1.0.md · revalidate 90d -->
+<!-- coalmine: verified 2026-08-07 · exemplar docs/MASTER_BLUEPRINT_v3.0.md · revalidate 90d -->
 
 # Project Law: Master Blueprint Authority
 
-> HetCreep / SOL WORK command, 2026-08-07. `RULES_VERSION` bump in `AGENTS.md`.
+> HetCreep / SOL WORK command, 2026-08-07. Updated for v3.0 baseline lock. `RULES_VERSION` bump in `AGENTS.md`.
 
 ## The rule
 
-**`docs/MASTER_BLUEPRINT_v1.0.md` is the Product North Star for Legend of Soul TH.**
+**`docs/MASTER_BLUEPRINT_v3.0.md` is the Product North Star for Legend of Soul TH.**
 
-Agents must treat locked decisions in that file as binding product direction.
+[`docs/MASTER_BLUEPRINT_v1.0.md`](../../docs/MASTER_BLUEPRINT_v1.0.md), [`docs/BLUEPRINT_GAP_ANALYSIS.md`](../../docs/BLUEPRINT_GAP_ANALYSIS.md), and any v2.0 in-flight draft are **SUPERSEDED** — historical only.
+
+Agents must treat locked decisions in v3.0 as binding product direction.
 
 ## What this means
 
-1. Before proposing or implementing gameplay/systems work, read the relevant PART(s) of the Master Blueprint and the current [`docs/BLUEPRINT_GAP_ANALYSIS.md`](../../docs/BLUEPRINT_GAP_ANALYSIS.md).
-2. Code that conflicts with the blueprint is **CURRENT / LEGACY / CONFLICT** — document it; do not silently “fix the blueprint to match the code.”
-3. A **documentation / governance / audit** PR must not implement combat, dungeon, hero, loot, gacha, progression, AI, boss, town, quest, or large refactors. Classify only.
-4. Implementation PRs must name which blueprint PART(s) they advance and stay inside that scope.
-5. After a docs/governance PR: **stop and wait for human review** — do not auto-start the next implementation PR.
+1. Before gameplay/systems work, read Master Blueprint v3.0 and [`docs/BLUEPRINT_V3_MIGRATION_AUDIT.md`](../../docs/BLUEPRINT_V3_MIGRATION_AUDIT.md).
+2. Conflicting code → **CURRENT / LEGACY / SUPERSEDED / DEFERRED** — document; do not silently match code to old blueprints.
+3. **Docs/audit PRs** classify only — no combat, stage, gacha, PvP, or loot implementation.
+4. Implementation PRs name blueprint section + roadmap priority (P1–P15); **one topic = one PR**.
+5. **CUT/DEFERRED** items (loot RPG, affix, set bonus, dash button, skill-4, talent, awakening) must not be built without explicit HetCreep approval.
+6. After a docs PR: **stop for human review**.
 
 ## What this does not license
 
-- Rewriting the blueprint to excuse existing code without an explicit HetCreep decision.
-- Deleting LEGACY trees in a docs PR “to clean up.”
-- Treating the practice fork as the product baseline remote.
+- Rewriting the blueprint to excuse existing code without HetCreep decision.
+- Mass-deleting LEGACY in a docs PR.
+- Treating the practice fork as product baseline remote.
+- Reverting to v1/v2 assumptions (4 skills, separate dash, early loot RPG, Ramakien-only ceiling).

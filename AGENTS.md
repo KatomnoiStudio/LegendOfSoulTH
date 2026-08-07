@@ -2,7 +2,7 @@
 
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `KatomnoiStudio/LegendOfSoulTH`  
-> **RULES_VERSION: 15** (bump on every material rule change — see `.agents/rules/rules-freshness-check.md`)
+> **RULES_VERSION: 17** (bump on every material rule change — see `.agents/rules/rules-freshness-check.md`)
 
 ---
 
@@ -28,4 +28,4 @@
 12. **Proven-good goes in now** (`.agents/rules/proven-good-do-it-now.md`): a change of a kind this project has already proven beneficial gets made, not asked about. Anything else gets weighed — cost against what it buys — and comes back as a recommendation, not an open question.
 13. **Lint policy** (`.agents/rules/lint-policy.md`): `npm run lint` is `oxlint --deny-warnings` and any finding fails CI and the pre-commit hook. Turning a rule off is a decision that belongs in that file with its reasoning, never a silent config diff.
 14. **Currency ledger retention** (`.agents/rules/currency-ledger-retention.md`): the transaction ledger is deliberately un-capped today because nothing grows it yet. When `earnGold`/`grantItem` get wired to real gameplay, archive — never delete — and never prune `coupon`/`topup` entries; a naive cap reopens coupon replay.
-15. **Master Blueprint authority** (`.agents/rules/master-blueprint-law.md`): `docs/MASTER_BLUEPRINT_v1.0.md` is the Product North Star. Locked decisions there bind agents. Docs/audit PRs classify conflicts only — no gameplay implementation. Implementation PRs must name the PART(s) they advance; after a docs PR, stop for human review.
+15. **Master Blueprint authority** (`.agents/rules/master-blueprint-law.md`): `docs/MASTER_BLUEPRINT_v3.0.md` is the Product North Star (v1/v2 superseded). Locked decisions bind agents. CUT/DEFERRED items (loot RPG, affix, dash button, skill-4, etc.) must not ship without HetCreep approval. Docs PRs classify only; implementation PRs name section + P1–P15 priority; one topic = one PR; stop for review after docs PR.

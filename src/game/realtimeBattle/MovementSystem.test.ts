@@ -23,6 +23,7 @@ function entity(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
     position: { x: 500, y: 500 },
     velocity: { x: 0, y: 0 },
     facing: 'up',
+    combatFacing: 'right',
     state: 'idle',
     hp: 100,
     maxHp: 100,
@@ -158,7 +159,10 @@ describe('stepMovement', () => {
 
     stepMovement(player, { x: 1, y: 0 }, 500, { stage: stage(), blockers: [blocker] })
 
-    const gap = Math.hypot(player.position.x - blocker.position.x, player.position.y - blocker.position.y)
+    const gap = Math.hypot(
+      player.position.x - blocker.position.x,
+      player.position.y - blocker.position.y,
+    )
     expect(gap).toBeGreaterThanOrEqual(59.9)
   })
 

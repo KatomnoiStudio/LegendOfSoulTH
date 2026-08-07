@@ -9,7 +9,10 @@ import {
 } from '../../game/battleSpriteSequences'
 import type { CharacterModelKind } from '../../game/characters'
 import { getBattleTexture } from '../../game/realtimeBattle/battleAssets'
-import { WORLD_SCALE } from '../../game/realtimeBattle/stageConfig'
+import {
+  runtimeDepthNormalized,
+  runtimeToWorldXZ,
+} from '../../game/realtimeBattle/battleCoordinates'
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
 import type { EntityState, RealtimeBattleEntity } from '../../game/realtimeBattle/types'
 
@@ -68,11 +71,6 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
   const animationStartMs = useRef(0)
   const currentAnimation = useRef<BattleAnimationId>('idle')
 
-  const half = useMemo(() => {
-    const state = runtime.getState()
-    return { x: state.stage.width / 2, y: state.stage.height / 2 }
-  }, [runtime])
-
   useFrame(() => {
     const entity = findEntity(runtime, entityId)
     if (!group.current || !mesh.current) return
@@ -83,12 +81,15 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
     }
     group.current.visible = true
 
-    // พิกัด runtime (x = ขวา, y = ลงล่างของจอ) → พิกัดโลกของ three.js บนระนาบ XZ
-    group.current.position.set(
-      (entity.position.x - half.x) * WORLD_SCALE,
-      0,
-      (entity.position.y - half.y) * WORLD_SCALE,
-    )
+    const stage = runtime.getState().stage
+    const world = runtimeToWorldXZ(entity.position, stage)
+    group.current.position.set(world.x, 0, world.z)
+
+    // ตัวที่อยู่หน้ากว่า (runtime.y สูงกว่า) วาดทับตัวหลัง
+    const depthOrder = Math.round(runtimeDepthNormalized(entity.position.y, stage) * 1000)
+    group.current.renderOrder = depthOrder
+    mesh.current.renderOrder = depthOrder
+    if (shadow.current) shadow.current.renderOrder = depthOrder - 1
 
     const animationId = animationForState(entity.state)
     const elapsedMs = runtime.getState().elapsedMs
@@ -103,9 +104,7 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
 
     const localSeconds = Math.max(0, elapsedMs - animationStartMs.current) / 1000
     const rawIndex = Math.floor(localSeconds * animation.rate)
-    const index = animation.loop
-      ? rawIndex % frames.length
-      : Math.min(frames.length - 1, rawIndex)
+    const index = animation.loop ? rawIndex % frames.length : Math.min(frames.length - 1, rawIndex)
 
     const texture = getBattleTexture(frames[index])
     const material = mesh.current.material as MeshBasicMaterial
@@ -125,10 +124,16 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
       {/* เงาใต้เท้า ช่วยให้เห็นว่าตัวละครยืนตรงไหนจริงบนพื้น */}
       <mesh ref={shadow} position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.34, 24]} />
-        <meshBasicMaterial color={accent} transparent opacity={0.22} depthWrite={false} toneMapped={false} />
+        <meshBasicMaterial
+          color={accent}
+          transparent
+          opacity={0.22}
+          depthWrite={false}
+          toneMapped={false}
+        />
       </mesh>
 
-      <mesh ref={mesh} position={[0, SPRITE_HEIGHT / 2, 0]} rotation={[-Math.PI / 8, 0, 0]}>
+      <mesh ref={mesh} position={[0, SPRITE_HEIGHT / 2, 0]} rotation={[-0.38, 0, 0]}>
         <planeGeometry args={[SPRITE_HEIGHT * SPRITE_ASPECT, SPRITE_HEIGHT]} />
         <meshBasicMaterial
           transparent
