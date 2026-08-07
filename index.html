@@ -21,10 +21,15 @@
       แทน hostname โปรเจกต์เจาะจง เพราะ ref เปลี่ยนได้ถ้าย้าย/สร้างโปรเจกต์ Supabase ใหม่ ยืนยันแล้ว
       ว่าไม่มีการเชื่อมต่อ third-party อื่นในแอปที่ต้องเปิดเพิ่ม (ตรวจสอบด้วยการเชื่อมต่อจริงและดู
       CSP violation ใน console — ก่อนแก้เจอ error "Refused to connect... violates connect-src 'self'")
+
+      script-src/frame-src เพิ่ม challenges.cloudflare.com สำหรับ Cloudflare Turnstile CAPTCHA
+      (AuthModal.tsx) — ค่าตาม official reference: developers.cloudflare.com/turnstile/reference/
+      content-security-policy/ (verified 2026-08-08). connect-src ก็ต้องเปิดด้วย เพราะ widget ยิง
+      verify request ตรงไปโดเมนนี้เอง ไม่ผ่าน 'self'
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; object-src 'none'; base-uri 'none';"
+      content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'none';"
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <!--
@@ -43,6 +48,8 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Cloudflare Turnstile CAPTCHA widget — AuthModal.tsx calls window.turnstile.render() -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

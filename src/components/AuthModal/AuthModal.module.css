@@ -299,6 +299,11 @@
   opacity: 0.5;
 }
 
+.turnstile {
+  display: flex;
+  justify-content: center;
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;

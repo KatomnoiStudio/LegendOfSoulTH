@@ -5,16 +5,41 @@ import { getLastEmail, setLastEmail } from '../../lib/authUi'
 import { reportError } from '../../lib/errors/reportError'
 import styles from './AuthModal.module.css'
 
+/*
+  Cloudflare Turnstile — โหลดผ่าน <script> ใน index.html (ไม่ใช้ npm package ตาม convention
+  ของโปรเจกต์นี้ที่เลี่ยง dependency ใหม่เมื่อ native script tag พอ) window.turnstile จึงเป็น
+  global ที่ประกาศ type เองตรงนี้ เพราะไม่มี official @types
+*/
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        container: HTMLElement,
+        options: {
+          sitekey: string
+          callback: (token: string) => void
+          'expired-callback'?: () => void
+          'error-callback'?: () => void
+        },
+      ) => string
+      reset: (widgetId: string) => void
+      remove: (widgetId: string) => void
+    }
+  }
+}
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined
+
 type Mode = 'register' | 'login'
 
 interface AuthModalProps {
   /** คืน null เมื่อสำเร็จ คืนข้อความเมื่อผิดพลาด */
-  onRegister: (email: string, password: string) => Promise<string | null>
-  onLogin: (email: string, password: string) => Promise<string | null>
+  onRegister: (email: string, password: string, captchaToken?: string) => Promise<string | null>
+  onLogin: (email: string, password: string, captchaToken?: string) => Promise<string | null>
   /** เข้าสู่ระบบด้วย Google — สำเร็จแล้วหน้าเปลี่ยนไปทันที ไม่กลับมา resolve ที่นี่ */
   onLoginWithGoogle: () => Promise<string | null>
   /** เข้าเล่นทันทีแบบ guest — ไม่ต้องกรอกอะไรเลย */
-  onLoginAsGuest: () => Promise<string | null>
+  onLoginAsGuest: (captchaToken?: string) => Promise<string | null>
 }
 
 /**
@@ -38,7 +63,10 @@ export function AuthModal({
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>(undefined)
   const emailRef = useRef<HTMLInputElement>(null)
+  const turnstileRef = useRef<HTMLDivElement>(null)
+  const turnstileWidgetId = useRef<string | null>(null)
   // focus trap เท่านั้น — ปิดด้วย Esc/backdrop-click ไม่ได้โดยตั้งใจ (ดูคอมเมนต์หัวไฟล์)
   // จึงส่ง onClose เป็น no-op: Tab ยังคงวนอยู่ในกล่องนี้ แต่ Esc/backdrop ไม่ทำอะไร
   // (Esc ของ modal นี้เองด้านล่างยังสลับแท็บสมัคร/เข้าสู่ระบบต่อไปตามเดิม — คนละ listener กัน
@@ -48,6 +76,58 @@ export function AuthModal({
   useEffect(() => {
     emailRef.current?.focus()
   }, [])
+
+  // ไม่มี VITE_TURNSTILE_SITE_KEY (เช่น local dev clone ใหม่ที่ยังไม่ตั้ง .env.local) — ข้าม
+  // widget ไปเงียบ ๆ: captchaToken เป็น undefined ตลอด ถ้า Supabase project เปิด CAPTCHA บังคับ
+  // ไว้จริงค่อยพังตอน submit ด้วยข้อความ error ปกติ ไม่ throw ตอน mount
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY) return
+    let cancelled = false
+    let pollId: ReturnType<typeof setInterval> | undefined
+
+    const render = () => {
+      const turnstile = window.turnstile
+      if (!turnstile || !turnstileRef.current) return false
+      try {
+        // render() throw ได้ถ้า container ยังมี widget เก่าค้างอยู่ (เช่น React StrictMode
+        // dev เรียก effect mount/cleanup/mount ซ้อนกันเร็วมาก) — จับไว้กันหลุดขึ้นไปพัง render
+        turnstileWidgetId.current = turnstile.render(turnstileRef.current, {
+          sitekey: TURNSTILE_SITE_KEY,
+          callback: (token) => {
+            if (!cancelled) setCaptchaToken(token)
+          },
+          'expired-callback': () => {
+            if (!cancelled) setCaptchaToken(undefined)
+          },
+          'error-callback': () => {
+            if (!cancelled) setCaptchaToken(undefined)
+          },
+        })
+      } catch (cause) {
+        reportError('AUTH_SUBMIT_FAIL', 'silent', cause)
+      }
+      return true
+    }
+
+    // script โหลดด้วย async defer — อาจยังไม่พร้อมตอน modal นี้ mount จึง poll สั้น ๆ
+    if (!render()) {
+      pollId = setInterval(() => {
+        if (render() && pollId) clearInterval(pollId)
+      }, 100)
+    }
+
+    return () => {
+      cancelled = true
+      if (pollId) clearInterval(pollId)
+      if (turnstileWidgetId.current) window.turnstile?.remove(turnstileWidgetId.current)
+    }
+  }, [])
+
+  // token ใช้ได้ครั้งเดียว — รีเซ็ต widget ให้ออกใบใหม่หลังทุกครั้งที่ยิง submit (ไม่ว่าจะสำเร็จหรือพลาด)
+  const resetCaptcha = () => {
+    setCaptchaToken(undefined)
+    if (turnstileWidgetId.current) window.turnstile?.reset(turnstileWidgetId.current)
+  }
 
   const switchMode = (next: Mode) => {
     setMode(next)
@@ -78,8 +158,11 @@ export function AuthModal({
     setError(null)
     try {
       const message =
-        mode === 'register' ? await onRegister(email, password) : await onLogin(email, password)
+        mode === 'register'
+          ? await onRegister(email, password, captchaToken)
+          : await onLogin(email, password, captchaToken)
 
+      resetCaptcha()
       if (!message) setLastEmail(email)
 
       // สำเร็จแล้ว component จะถูกถอดออกโดยหน้าแม่ จึงตั้ง busy กลับเฉพาะตอนพลาด
@@ -93,6 +176,7 @@ export function AuthModal({
       // ที่เก็บไว้เพี้ยนจน deriveBits โยนข้อผิดพลาด)
       reportError('AUTH_SUBMIT_FAIL', 'silent', cause)
       setError('ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง')
+      resetCaptcha()
       setBusy(false)
     }
   }
@@ -121,7 +205,8 @@ export function AuthModal({
     setBusy(true)
     setError(null)
     try {
-      const message = await onLoginAsGuest()
+      const message = await onLoginAsGuest(captchaToken)
+      resetCaptcha()
       if (message) {
         setError(message)
         setBusy(false)
@@ -131,6 +216,7 @@ export function AuthModal({
       // ต้องจับไว้เหมือน handleGoogleLogin — ไม่งั้น reject หลุดแล้วปุ่มค้าง disabled ถาวร
       reportError('AUTH_SUBMIT_FAIL', 'silent', cause)
       setError('เข้าเล่นแบบ guest ไม่สำเร็จ ลองใหม่อีกครั้ง')
+      resetCaptcha()
       setBusy(false)
     }
   }
@@ -259,6 +345,8 @@ export function AuthModal({
               />
             </div>
           ) : null}
+
+          {TURNSTILE_SITE_KEY ? <div ref={turnstileRef} className={styles.turnstile} /> : null}
 
           {error ? (
             <div className={styles.error} role="alert">

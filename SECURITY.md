@@ -63,6 +63,18 @@ By design, not bugs — don't file these:
 - Vulnerabilities in a dependency that this project doesn't actually reach at runtime
   (see `npm audit` in CI first — if it's already flagged/tracked there, no need to duplicate).
 
+## Auth Abuse Protection
+
+- **Anonymous (guest) sign-in rate limit**: Supabase's `rate_limit_anonymous_users` config,
+  confirmed at its default 30/hour (per project, not per-IP) — no code change needed, already
+  active. Combined with the 30-day stale-guest cleanup job
+  (`supabase/migrations/0006_guest_cleanup.sql`), bounds how much guest-account farming can
+  accumulate before it's auto-reaped.
+- **CAPTCHA (Cloudflare Turnstile)**: not yet enabled. Supabase's Dashboard toggle
+  (Authentication → Settings → Bot and Abuse Protection) is project-wide across all
+  `signUp`/`signInWithPassword`/`signInAnonymously` calls, not scoped per method — requires a
+  Cloudflare site key/secret key pair from the project owner before it can be wired client-side.
+
 ## Supply-Chain / CI
 
 - Third-party GitHub Actions are pinned to full commit SHAs, not floating version tags

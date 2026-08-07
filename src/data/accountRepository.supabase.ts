@@ -155,7 +155,11 @@ async function loadPlayer(profileId: string): Promise<Player | null> {
   }
 }
 
-export async function register(email: string, password: string): Promise<AuthResult> {
+export async function register(
+  email: string,
+  password: string,
+  captchaToken?: string,
+): Promise<AuthResult> {
   const emailError = validateEmail(email)
   if (emailError) return { ok: false, error: emailError }
   const passwordError = validatePassword(password)
@@ -167,7 +171,7 @@ export async function register(email: string, password: string): Promise<AuthRes
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { data: { uid } },
+      options: { data: { uid }, captchaToken },
     })
 
     if (error) {
@@ -191,8 +195,16 @@ export async function register(email: string, password: string): Promise<AuthRes
   return { ok: false, error: 'สมัครไม่สำเร็จ ลองใหม่อีกครั้ง' }
 }
 
-export async function login(email: string, password: string): Promise<AuthResult> {
-  const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+export async function login(
+  email: string,
+  password: string,
+  captchaToken?: string,
+): Promise<AuthResult> {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password,
+    options: { captchaToken },
+  })
   if (error || !data.user) return { ok: false, error: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' }
 
   const player = await loadPlayer(data.user.id)
@@ -215,8 +227,8 @@ export async function login(email: string, password: string): Promise<AuthResult
  * (0006_guest_cleanup.sql, เกณฑ์ 30 วันอ้างอิงจาก Firebase's official anonymous-auth
  * best-practices) — กันปั้ม guest จนข้อมูลค้าง ไม่กระทบ guest ที่ยังเล่นอยู่จริง
  */
-export async function signInAsGuest(): Promise<AuthResult> {
-  const { data, error } = await supabase.auth.signInAnonymously()
+export async function signInAsGuest(captchaToken?: string): Promise<AuthResult> {
+  const { data, error } = await supabase.auth.signInAnonymously({ options: { captchaToken } })
   if (error || !data.user)
     return { ok: false, error: 'เข้าเล่นแบบ guest ไม่สำเร็จ ลองใหม่อีกครั้ง' }
 

@@ -25,8 +25,8 @@ export type AuthStatus = 'loading' | 'guest' | 'signed-in'
 export interface AuthState {
   status: AuthStatus
   player: Player | null
-  register: (email: string, password: string) => Promise<string | null>
-  login: (email: string, password: string) => Promise<string | null>
+  register: (email: string, password: string, captchaToken?: string) => Promise<string | null>
+  login: (email: string, password: string, captchaToken?: string) => Promise<string | null>
   /**
    * เริ่ม OAuth flow กับ Google — เปลี่ยนหน้าออกไปทันทีเมื่อสำเร็จ (ไม่มีทาง resolve กลับมา
    * ที่นี่ในเคสนั้น) คืนข้อความเฉพาะตอนยิง redirect เองไม่สำเร็จ (เช่น provider ปิดอยู่)
@@ -37,7 +37,7 @@ export interface AuthState {
    * 'signed-in' เหมือนบัญชีปกติทุกประการ (ไม่ใช่ AuthStatus 'guest' ที่แปลว่า "ยังไม่ล็อกอิน"
    * — ดู `isGuest` ด้านล่างสำหรับแยกแยะว่าบัญชีที่ signed-in อยู่นี้เป็น guest หรือไม่)
    */
-  loginAsGuest: () => Promise<string | null>
+  loginAsGuest: (captchaToken?: string) => Promise<string | null>
   logout: () => Promise<void>
   /** เชื่อมบัญชีนี้ (ไม่ว่าล็อกอินด้วย email หรือ Google) เข้ากับ Google — ต้อง signed-in อยู่แล้ว */
   hasGoogleLinked: boolean
@@ -107,8 +107,8 @@ export function useAuth(): AuthState {
 
   /** คืน null เมื่อสำเร็จ คืนข้อความเมื่อผิดพลาด */
   const register = useCallback(
-    async (nextEmail: string, password: string) => {
-      const result = await accounts.register(nextEmail, password)
+    async (nextEmail: string, password: string, captchaToken?: string) => {
+      const result = await accounts.register(nextEmail, password, captchaToken)
       if (!result.ok) return result.error
       setPlayer(result.player)
       setIsAdmin(accounts.getSessionIsAdmin())
@@ -121,8 +121,8 @@ export function useAuth(): AuthState {
   )
 
   const login = useCallback(
-    async (nextEmail: string, password: string) => {
-      const result = await accounts.login(nextEmail, password)
+    async (nextEmail: string, password: string, captchaToken?: string) => {
+      const result = await accounts.login(nextEmail, password, captchaToken)
       if (!result.ok) return result.error
       setPlayer(result.player)
       setIsAdmin(accounts.getSessionIsAdmin())
@@ -134,16 +134,19 @@ export function useAuth(): AuthState {
     [refreshLinkedProviders],
   )
 
-  const loginAsGuest = useCallback(async () => {
-    const result = await accounts.signInAsGuest()
-    if (!result.ok) return result.error
-    setPlayer(result.player)
-    setIsAdmin(false)
-    setIsGuest(true)
-    setStatus('signed-in')
-    void refreshLinkedProviders()
-    return null
-  }, [refreshLinkedProviders])
+  const loginAsGuest = useCallback(
+    async (captchaToken?: string) => {
+      const result = await accounts.signInAsGuest(captchaToken)
+      if (!result.ok) return result.error
+      setPlayer(result.player)
+      setIsAdmin(false)
+      setIsGuest(true)
+      setStatus('signed-in')
+      void refreshLinkedProviders()
+      return null
+    },
+    [refreshLinkedProviders],
+  )
 
   const loginWithGoogle = useCallback(async () => {
     const result = await accounts.signInWithGoogle()
