@@ -22,6 +22,8 @@ export interface SkillState {
   /** Per-strike hit tracking for multi-hit ultimates */
   strikeHits: Set<string>
   lockedTargetId: string | null
+  /** กัน apply effects[] ซ้ำทุก active frame */
+  sideEffectsApplied: boolean
 }
 
 export function createSkillState(): SkillState {
@@ -31,6 +33,7 @@ export function createSkillState(): SkillState {
     hitTargets: new Set(),
     strikeHits: new Set(),
     lockedTargetId: null,
+    sideEffectsApplied: false,
   }
 }
 
@@ -75,6 +78,7 @@ export function startSkill(
   skill.hitTargets.clear()
   skill.strikeHits.clear()
   skill.lockedTargetId = lockedTargetId
+  skill.sideEffectsApplied = false
 
   player.state = 'skill'
   player.velocity = { x: 0, y: 0 }
@@ -140,10 +144,7 @@ export function stepSkill(
 
   player.state = 'skill'
   const telegraph = attack.telegraphMs ?? 0
-  const executeElapsed = Math.max(
-    0,
-    skill.sinceStartMs - telegraph - resolveCastDelayMs(attack),
-  )
+  const executeElapsed = Math.max(0, skill.sinceStartMs - telegraph - resolveCastDelayMs(attack))
   const strikeIndex = getStrikeIndex(attack, executeElapsed)
 
   return {

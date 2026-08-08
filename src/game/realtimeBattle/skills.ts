@@ -1,11 +1,5 @@
-import {
-  MONKEY_GOLDEN_FURY,
-  MONKEY_SPINNING_STAFF,
-  MONKEY_STAFF_SWEEP,
-  MONKEY_STAFF_THRUST,
-  SKILL_CONFIG,
-  type AttackDefinition,
-} from './attacks'
+import { HERO_SKILL_KITS } from '../heroes/kits'
+import type { AttackDefinition } from './attacks'
 
 /**
  * ทะเบียนสกิลของห้องต่อสู้ real-time (Blueprint v3 P3)
@@ -37,48 +31,7 @@ export interface RealtimeSkillKit {
   ultimate: RealtimeSkillDefinition
 }
 
-export const REALTIME_CHARACTER_KITS: Record<string, RealtimeSkillKit> = {
-  'monkey-king': {
-    characterId: 'monkey-king',
-    skill1: {
-      id: 'spinning-golden-staff',
-      name: 'กระบวนทองคำ',
-      slot: 'skill1',
-      characterId: 'monkey-king',
-      attack: MONKEY_SPINNING_STAFF,
-      cooldownMs: SKILL_CONFIG.skill1CooldownMs,
-      invulnerableMs: SKILL_CONFIG.invulnerableMs,
-    },
-    skill2: {
-      id: 'staff-thrust',
-      name: 'แทงไม้เท้า',
-      slot: 'skill2',
-      characterId: 'monkey-king',
-      attack: MONKEY_STAFF_THRUST,
-      cooldownMs: SKILL_CONFIG.skill2CooldownMs,
-      invulnerableMs: SKILL_CONFIG.invulnerableMs,
-    },
-    skill3: {
-      id: 'staff-sweep',
-      name: 'กวาดไม้กว้าง',
-      slot: 'skill3',
-      characterId: 'monkey-king',
-      attack: MONKEY_STAFF_SWEEP,
-      cooldownMs: SKILL_CONFIG.skill3CooldownMs,
-      invulnerableMs: SKILL_CONFIG.invulnerableMs,
-    },
-    ultimate: {
-      id: 'golden-fury',
-      name: 'คลื่นทองคำ',
-      slot: 'ultimate',
-      characterId: 'monkey-king',
-      attack: MONKEY_GOLDEN_FURY,
-      cooldownMs: 0,
-      invulnerableMs: SKILL_CONFIG.ultimateInvulnerableMs,
-      targetLock: 'nearest',
-    },
-  },
-}
+export const REALTIME_CHARACTER_KITS: Record<string, RealtimeSkillKit> = HERO_SKILL_KITS
 
 export function getRealtimeSkillKit(characterId: string | undefined): RealtimeSkillKit | undefined {
   if (!characterId) return undefined
