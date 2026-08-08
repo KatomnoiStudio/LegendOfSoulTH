@@ -23,6 +23,29 @@
 --
 -- cascade via FK on delete cascade from profiles (and everything hanging off it) — same
 -- mechanism 0006_guest_cleanup.sql already relies on; deleting the auth.users row is enough.
+--
+-- ⚠️ NO GRANDFATHER CLAUSE: the age/never-played check runs against every EXISTING account too,
+-- not just future signups — the first cron run after this migration ships can immediately
+-- delete any pre-existing account that already matches (>30 days old, zero battle_history).
+-- Two exemption paths close the real cases HetCreep flagged before applying this:
+--
+-- (1) explicit manual allowlist, for dev/test/team accounts — add a row any time.
+create table if not exists public.cleanup_exempt_profiles (
+  profile_id uuid primary key references public.profiles(id) on delete cascade,
+  reason text not null,
+  created_at timestamptz not null default now()
+);
+
+-- known dev/test accounts from the 0013 apply incident (MEMORY.md item 148) — both predate
+-- this migration and would otherwise be swept on the very first cron run.
+insert into public.cleanup_exempt_profiles (profile_id, reason) values
+  ('e79a973f-fd52-4b84-8e6a-c53a0394db88', 'dev/test account (a@a.com) — item 148'),
+  ('d0a7b94f-5d95-4e52-8d8f-ebdd835cf695', 'dev/test account (kaoshock123, DemoGODRTX) — item 148')
+on conflict (profile_id) do nothing;
+
+-- (2) automatic exemption for any account that ever made a real top-up — derived from data,
+-- no manual list to maintain. topUpGold/topUpGems have no live RPC yet (SECURITY.md), so this
+-- currently matches nothing, but it's cheap to have ready before real payments ship.
 create or replace function public.cleanup_dead_unplayed_accounts()
 returns void
 language plpgsql
@@ -35,6 +58,13 @@ begin
     and u.created_at < now() - interval '30 days'
     and not exists (
       select 1 from public.battle_history bh where bh.profile_id = u.id
+    )
+    and not exists (
+      select 1 from public.cleanup_exempt_profiles ce where ce.profile_id = u.id
+    )
+    and not exists (
+      select 1 from public.currency_transactions ct
+      where ct.profile_id = u.id and ct.source = 'topup'
     );
 end;
 $$;
