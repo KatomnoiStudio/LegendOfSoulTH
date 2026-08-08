@@ -2,7 +2,7 @@
 
 Legend of Soul-TH is a small hobby game (React + Vite, deployed to GitHub Pages) with a real
 backend: **Supabase (Auth + Postgres + Row Level Security)**, live since 2026-08-07. All account,
-currency, character, and admin-status data lives server-side, RLS-protected; the client never
+currency, character, admin-status, and World Chat data lives server-side, RLS-protected; the client never
 mutates it directly. Read [`src/data/accountRepository.supabase.ts`](src/data/accountRepository.supabase.ts)
 and [`supabase/migrations/`](supabase/migrations/) for exactly what's enforced where before filing
 a report. The older client-only `accountRepository.ts`/`password.ts` (localStorage + local PBKDF2)
@@ -46,6 +46,8 @@ In scope:
 - any way to bypass a Supabase Row Level Security policy or trigger a `SECURITY DEFINER` RPC
   function (`supabase/migrations/*.sql`) into doing something its own checks should have rejected
   (self-granting currency/characters/admin status, reading another player's row, etc.)
+- World Chat identity/authority bypasses: posting as another profile, forging the server timestamp,
+  bypassing the 10-message/minute throttle, or writing directly to `world_chat_messages`
 
 ## Out of Scope
 
@@ -63,6 +65,8 @@ By design, not bugs — don't file these:
   beyond RLS (which is row-scoped, not column-scoped) — see `supabase/migrations/0009_economy_integrity_fixes.sql`.
   Lobby battle rewards use refId-guarded RPCs and a durable pending snapshot table — see
   `supabase/migrations/0013_reward_idempotency.sql`. Report the same _class_ of bug elsewhere.)
+- **"I can locally hide/show a World Chat author by editing my block list."** `/block` is a
+  client-local viewing preference by design. Chat rows themselves remain server-authoritative.
 - **"Passwords are hashed client-side with no real server auth."** No longer applies to the live
   app — auth is Supabase Auth (server-side), not the old local PBKDF2 layer in
   [`src/lib/password.ts`](src/lib/password.ts) (dormant, kept only as a shared validator source).

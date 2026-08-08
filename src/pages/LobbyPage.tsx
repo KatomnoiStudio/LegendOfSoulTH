@@ -227,7 +227,6 @@ export function LobbyPage({
         component เปลี่ยนชื่อ/พฤติกรรมไปคนละแบบ ไม่ใช่คอนโซลลับอีกต่อไป)
       */}
       <WorldChat
-        playerName={player.name}
         isAdmin={isAdmin}
         onGiveCharacter={onGiveCharacter}
         onGiveGoldAdmin={onGiveGoldAdmin}
