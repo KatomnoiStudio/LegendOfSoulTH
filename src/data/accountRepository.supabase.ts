@@ -418,6 +418,19 @@ export async function topUpGems(_uid: string, _packageId: string): Promise<Curre
   return { ok: false, error: 'ระบบเติมเงินยังไม่เปิดให้ใช้งาน' }
 }
 
+/**
+ * ⚠️ `uid` ต้องเป็นของบัญชีที่ login อยู่ตอนนี้เท่านั้น — ห้ามใช้เรียกดูของบัญชีอื่นเด็ดขาด
+ *
+ * ตาราง profiles มี SELECT RLS policy เดียวคือ auth.uid() = id (แถวตัวเองเท่านั้น) ถ้าเรียกด้วย
+ * uid ของคนอื่น query ด้านล่างได้ 0 แถวเงียบ ๆ — คืน [] เหมือน "ไม่มีธุรกรรมเลย" ทุกประการ
+ * แยกไม่ออกจากกรณีจริง เป็น landmine คลาสเดียวกับที่ findPlayerByUid เคยพังเงียบ ๆ ในโปรดักชันมา
+ * ก่อนแก้ผ่าน RPC เฉพาะ (ดู .agents/rules/public-profile-lookup-law.md +
+ * supabase/migrations/0012_public_profile_lookup.sql) — ต่างกันตรงที่ฟังก์ชันนี้**ยังไม่ได้ผูก
+ * เข้ากับ useAuth.ts หรือหน้าจอไหนเลย** (grep ยืนยันแล้ว, 2026-08-08) จึงยังไม่เคยถูกเรียกด้วย uid
+ * ที่ไม่ใช่ของตัวเองจริง ๆ — สัญญาณเตือนนี้มีไว้ให้คนที่จะผูกใช้งานจริงในอนาคตเห็นก่อนพลาดซ้ำ
+ * ไม่ใช้ auth.uid() ตรง ๆ แทน param `uid` เพราะฟังก์ชันนี้ต้อง shape parity กับ accountRepository.ts
+ * (localStorage backend, keyed ด้วย uid ไม่ใช่ session) ดู work contract #14 done-criterion #1
+ */
 export async function getTransactions(uid: string): Promise<CurrencyTransaction[]> {
   const { data: profile } = await supabase
     .from('profiles')
