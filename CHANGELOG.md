@@ -5,6 +5,20 @@
 
 ## [Unreleased]
 
+## [0.12.4] - 2026-08-08
+
+Battle presentation hotfix following HetCreep's mobile review; sprite-sheet replacement remains paused for the incoming asset set
+
+### Fixed
+
+- Current character art is lifted at a nested visual-container boundary so feet land on battle Y=0 without moving the shadow, gameplay entity, hitbox/hurtbox, or sprite frames
+- Combat controls use the revised §3.3 curved `S1 → S2 → S3 → ULT` thumb cluster around the larger ATK button
+- Joystick and action buttons clamp to device safe areas; deterministic geometry tests cover four landscape viewport profiles and reject control collisions
+
+### Changed
+
+- Master Blueprint §3.3 supersedes the temporary straight-row layout with HetCreep's 2026-08-08 Combat Cluster lock
+
 ## [0.12.3] - 2026-08-08
 
 Deploy fork PR #73 integration slice (P6 boss + P7 adventure/energy + reward idempotency) plus upstream backend hardening — live was still on 0.12.2 which only covered battle UI fixes

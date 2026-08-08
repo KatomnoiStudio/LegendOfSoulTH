@@ -20,8 +20,15 @@ const SLOT_LABELS: Record<SkillSlot, string> = {
   ultimate: 'ULT',
 }
 
+const SLOT_CLASSES: Record<SkillSlot, string> = {
+  skill1: styles.combatSlotS1,
+  skill2: styles.combatSlotS2,
+  skill3: styles.combatSlotS3,
+  ultimate: styles.combatSlotUltimate,
+}
+
 /**
- * Right-thumb combat cluster — Blueprint §3.3 row above Attack.
+ * Right-thumb combat cluster — skills arc around the primary Attack button.
  */
 export function CombatCluster({
   runtime,
@@ -61,43 +68,39 @@ export function CombatCluster({
       className={`${styles.combatCluster}${disabled ? ` ${styles.combatClusterBlocked}` : ''}`}
       aria-hidden={disabled}
     >
-      <div className={styles.combatSkillsRow}>
-        {(['skill1', 'skill2', 'skill3', 'ultimate'] as SkillSlot[]).map((slot) => {
-          const def = getSkillFromKit(kit, slot)
-          const metrics = getSkillButtonState(slot, player, castingSlot, def.cooldownMs, attacking)
-          return (
-            <CombatActionButton
-              key={slot}
-              actionId={slot}
-              label={SLOT_LABELS[slot]}
-              ariaLabel={
-                slot === 'ultimate'
-                  ? `อัลติเมท ${def.name}`
-                  : `สกิล ${SLOT_LABELS[slot]} ${def.name}`
-              }
-              variant={slot === 'ultimate' ? 'ultimate' : 'skill'}
-              state={metrics.state}
-              cooldownRatio={slot === 'ultimate' ? 1 - metrics.ultimateFill : metrics.cooldownRatio}
-              cooldownSeconds={metrics.cooldownSeconds}
-              ultimateReady={metrics.state === 'ready' && slot === 'ultimate'}
-              onPress={() => onSkill(slot)}
-            />
-          )
-        })}
-      </div>
+      {(['skill1', 'skill2', 'skill3', 'ultimate'] as SkillSlot[]).map((slot) => {
+        const def = getSkillFromKit(kit, slot)
+        const metrics = getSkillButtonState(slot, player, castingSlot, def.cooldownMs, attacking)
+        return (
+          <CombatActionButton
+            key={slot}
+            actionId={slot}
+            label={SLOT_LABELS[slot]}
+            ariaLabel={
+              slot === 'ultimate' ? `อัลติเมท ${def.name}` : `สกิล ${SLOT_LABELS[slot]} ${def.name}`
+            }
+            variant={slot === 'ultimate' ? 'ultimate' : 'skill'}
+            state={metrics.state}
+            cooldownRatio={slot === 'ultimate' ? 1 - metrics.ultimateFill : metrics.cooldownRatio}
+            cooldownSeconds={metrics.cooldownSeconds}
+            ultimateReady={metrics.state === 'ready' && slot === 'ultimate'}
+            onPress={() => onSkill(slot)}
+            className={SLOT_CLASSES[slot]}
+          />
+        )
+      })}
 
-      <div className={styles.combatAttackRow}>
-        <CombatActionButton
-          actionId="basic-attack"
-          label="ATK"
-          ariaLabel="โจมตี"
-          variant="attack"
-          state={attackMetrics.state}
-          cooldownRatio={attackMetrics.cooldownRatio}
-          cooldownSeconds={attackMetrics.cooldownSeconds}
-          onPress={onAttack}
-        />
-      </div>
+      <CombatActionButton
+        actionId="basic-attack"
+        label="ATK"
+        ariaLabel="โจมตี"
+        variant="attack"
+        state={attackMetrics.state}
+        cooldownRatio={attackMetrics.cooldownRatio}
+        cooldownSeconds={attackMetrics.cooldownSeconds}
+        onPress={onAttack}
+        className={styles.combatSlotAttack}
+      />
     </div>
   )
 }

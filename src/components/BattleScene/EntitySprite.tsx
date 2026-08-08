@@ -19,6 +19,7 @@ import {
   ENTITY_SPRITE_PITCH_RAD,
   ENTITY_SPRITE_SHADOW_RADIUS,
   resolveSpriteMeshPresentation,
+  resolveTemporaryEntityContainerLiftY,
 } from '../../game/realtimeBattle/entitySpritePresentation'
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
 import type { EntityState, RealtimeBattleEntity } from '../../game/realtimeBattle/types'
@@ -70,6 +71,7 @@ function findEntity(runtime: RealtimeBattleRuntime, entityId: string): RealtimeB
 
 export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpriteProps) {
   const group = useRef<Group>(null)
+  const visualContainer = useRef<Group>(null)
   const mesh = useRef<Mesh>(null)
   const shadow = useRef<Mesh>(null)
   const spriteSet = useMemo(() => getBattleSpriteSet(kind), [kind])
@@ -81,6 +83,7 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
     () => resolveSpriteMeshPresentation(kind, initialFrame),
     [initialFrame, kind],
   )
+  const temporaryContainerLiftY = useMemo(() => resolveTemporaryEntityContainerLiftY(kind), [kind])
 
   /** เฟรมเริ่มของแอนิเมชันที่ไม่วน — ต้องรู้ว่าเริ่มเล่นตอนไหนถึงจะเล่นจบแล้วค้างได้ */
   const animationStartMs = useRef(0)
@@ -88,7 +91,7 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
 
   useFrame(() => {
     const entity = findEntity(runtime, entityId)
-    if (!group.current || !mesh.current) return
+    if (!group.current || !visualContainer.current || !mesh.current) return
 
     if (!entity) {
       group.current.visible = false
@@ -153,21 +156,25 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
         />
       </mesh>
 
-      <mesh
-        ref={mesh}
-        position={[0, initialPresentation.centerY, 0]}
-        scale={[initialPresentation.scaleX, initialPresentation.scaleY, 1]}
-        rotation={[ENTITY_SPRITE_PITCH_RAD, 0, 0]}
-      >
-        <planeGeometry args={[ENTITY_SPRITE_HEIGHT * ENTITY_SPRITE_ASPECT, ENTITY_SPRITE_HEIGHT]} />
-        <meshBasicMaterial
-          transparent
-          alphaTest={0.025}
-          depthWrite={false}
-          toneMapped={false}
-          side={DoubleSide}
-        />
-      </mesh>
+      <group ref={visualContainer} position={[0, temporaryContainerLiftY, 0]}>
+        <mesh
+          ref={mesh}
+          position={[0, initialPresentation.centerY, 0]}
+          scale={[initialPresentation.scaleX, initialPresentation.scaleY, 1]}
+          rotation={[ENTITY_SPRITE_PITCH_RAD, 0, 0]}
+        >
+          <planeGeometry
+            args={[ENTITY_SPRITE_HEIGHT * ENTITY_SPRITE_ASPECT, ENTITY_SPRITE_HEIGHT]}
+          />
+          <meshBasicMaterial
+            transparent
+            alphaTest={0.025}
+            depthWrite={false}
+            toneMapped={false}
+            side={DoubleSide}
+          />
+        </mesh>
+      </group>
     </group>
   )
 }
