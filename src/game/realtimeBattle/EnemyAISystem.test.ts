@@ -213,6 +213,87 @@ describe('stepEnemyAI', () => {
     expect(enemy.state).toBe('idle')
     expect(decision.move).toEqual({ x: 0, y: 0 })
   })
+
+  it('Scar 1: updates facing towards player after recovering from hitstun to prevent stale facing', () => {
+    const enemy = entity({
+      position: { x: 100, y: 0 },
+      combatFacing: 'left',
+      facing: 'left',
+      hitStunRemainingMs: 100,
+      state: 'hit',
+    })
+    const player = entity({
+      id: 'player',
+      entityType: 'player',
+      position: { x: 200, y: 0 },
+    })
+    const brain = createEnemyBrain()
+    brain.state = 'hit'
+
+    // Tick AI while in hitstun
+    stepEnemyAI(enemy, brain, player, 16)
+    expect(brain.state).toBe('hit')
+    expect(enemy.combatFacing).toBe('left')
+
+    // Relieve hitstun
+    enemy.hitStunRemainingMs = 0
+    stepEnemyAI(enemy, brain, player, 16) // Transition from hit -> chase
+    expect(brain.state).toBe('chase')
+
+    // Now tick again while in attack range to trigger attack
+    enemy.position.x = 180
+    stepEnemyAI(enemy, brain, player, 16) // chase -> telegraph
+    expect(brain.state).toBe('telegraph')
+
+    // The enemy should have faced the player horizontally (turned to the right)
+    expect(enemy.combatFacing).toBe('right')
+    expect(enemy.facing).toBe('right')
+  })
+
+  it('Scar 1: updates facing towards player after recovering from knockdown to prevent stale facing', () => {
+    const enemy = entity({
+      position: { x: 100, y: 0 },
+      combatFacing: 'left',
+      facing: 'left',
+      state: 'knockdown',
+      knockdownRemainingMs: 50,
+    })
+    const player = entity({
+      id: 'player',
+      entityType: 'player',
+      position: { x: 200, y: 0 },
+    })
+    const brain = createEnemyBrain()
+    brain.state = 'knockdown'
+
+    // AI is locked during knockdown
+    stepEnemyAI(enemy, brain, player, 16)
+    expect(brain.state).toBe('knockdown')
+    expect(enemy.combatFacing).toBe('left')
+
+    // Rise up to getUp
+    enemy.state = 'getUp'
+    enemy.knockdownRemainingMs = 0
+    enemy.getUpRemainingMs = 100
+    stepEnemyAI(enemy, brain, player, 16)
+    expect(brain.state).toBe('getUp')
+    expect(enemy.combatFacing).toBe('left')
+
+    // Get up completes, state goes to idle
+    enemy.state = 'idle'
+    enemy.getUpRemainingMs = 0
+    stepEnemyAI(enemy, brain, player, 16) // Transitions getUp -> chase
+    expect(brain.state).toBe('chase')
+
+    // Move within attack range
+    enemy.position.x = 180
+    stepEnemyAI(enemy, brain, player, 16) // chase -> telegraph
+    expect(brain.state).toBe('telegraph')
+
+    // The enemy should now face the player to the right
+    expect(enemy.combatFacing).toBe('right')
+    expect(enemy.facing).toBe('right')
+  })
 })
 
 /** ท่าโจมตีบอสสำหรับเทสต์ — module scope เพราะไม่ผูกกับ closure ใด ๆ (ไม่มี state จับ) */
