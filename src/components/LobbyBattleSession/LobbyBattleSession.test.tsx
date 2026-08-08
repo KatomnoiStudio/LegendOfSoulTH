@@ -4,6 +4,7 @@ import { LobbyBattleSession } from './LobbyBattleSession'
 import { createDefaultSkillLevels } from '../../game/realtimeBattle/SkillProgressionSystem'
 import type { Player } from '../../types/player'
 import { EMPTY_PROGRESS } from '../../types/player'
+import type { LobbyBattleProgressionRpcPayload } from '../../data/accountRepository.supabase'
 import type { RealtimeBattleResult } from '../../game/realtimeBattle/types'
 
 vi.mock('../BattleScene/BattleScene', () => ({
@@ -68,6 +69,28 @@ function makePlayer(): Player {
   }
 }
 
+function rewardMocks(
+  overrides: Partial<{
+    onCommitProgression: (
+      payload: LobbyBattleProgressionRpcPayload,
+    ) => Promise<{ ok: true; player: Player } | { ok: false; error: string }>
+    onRecordPending: (result: RealtimeBattleResult, transactionId: string) => Promise<boolean>
+    onClearPending: (transactionId: string) => Promise<void>
+    onGetPendingRewards: () => Promise<never[]>
+  }> = {},
+) {
+  return {
+    onCommitProgression: vi.fn(async (payload: LobbyBattleProgressionRpcPayload) => ({
+      ok: true as const,
+      player: payload.player,
+    })),
+    onRecordPending: vi.fn(async () => true),
+    onClearPending: vi.fn(),
+    onGetPendingRewards: vi.fn(async () => []),
+    ...overrides,
+  }
+}
+
 describe('LobbyBattleSession', () => {
   it('เริ่มที่หน้าเลือกด่านเสมอ — ไม่ mount BattleScene จนกว่าจะเลือกด่านที่ปลดล็อกแล้ว', () => {
     render(
@@ -76,6 +99,7 @@ describe('LobbyBattleSession', () => {
         onPlayerChange={vi.fn()}
         onEarnGold={vi.fn()}
         onGrantItem={vi.fn()}
+        {...rewardMocks()}
         onExit={vi.fn()}
       />,
     )
@@ -91,6 +115,7 @@ describe('LobbyBattleSession', () => {
         onPlayerChange={vi.fn()}
         onEarnGold={vi.fn()}
         onGrantItem={vi.fn()}
+        {...rewardMocks()}
         onExit={vi.fn()}
       />,
     )
@@ -98,17 +123,19 @@ describe('LobbyBattleSession', () => {
     expect(screen.getByRole('button', { name: /ประตูปีศาจ/ })).toBeDisabled()
   })
 
-  it('does not exit lobby when progression save fails — earnGold not called', async () => {
+  it('does not exit lobby when progression commit fails — earnGold not called', async () => {
     const onExit = vi.fn()
     const onEarnGold = vi.fn()
-    const onPlayerChange = vi.fn().mockResolvedValueOnce(true).mockResolvedValueOnce(false)
 
     render(
       <LobbyBattleSession
         player={makePlayer()}
-        onPlayerChange={onPlayerChange}
+        onPlayerChange={vi.fn(async () => true)}
         onEarnGold={onEarnGold}
         onGrantItem={vi.fn()}
+        {...rewardMocks({
+          onCommitProgression: vi.fn(async () => ({ ok: false as const, error: 'rpc fail' })),
+        })}
         onExit={onExit}
       />,
     )
@@ -121,9 +148,8 @@ describe('LobbyBattleSession', () => {
     fireEvent.click(screen.getByRole('button', { name: 'mock-complete' }))
 
     await waitFor(() => {
-      expect(onPlayerChange).toHaveBeenCalledTimes(2)
+      expect(onEarnGold).not.toHaveBeenCalled()
     })
-    expect(onEarnGold).not.toHaveBeenCalled()
     expect(onExit).not.toHaveBeenCalled()
   })
 
@@ -141,6 +167,7 @@ describe('LobbyBattleSession', () => {
           amount: 20,
         }))}
         onGrantItem={vi.fn()}
+        {...rewardMocks()}
         onExit={onExit}
       />,
     )
@@ -179,6 +206,7 @@ describe('LobbyBattleSession', () => {
         onPlayerChange={onPlayerChange}
         onEarnGold={onEarnGold}
         onGrantItem={vi.fn()}
+        {...rewardMocks()}
         onExit={onExit}
       />,
     )
@@ -197,6 +225,7 @@ describe('LobbyBattleSession', () => {
         onPlayerChange={onPlayerChange}
         onEarnGold={onEarnGold}
         onGrantItem={vi.fn()}
+        {...rewardMocks()}
         onExit={onExit}
       />,
     )

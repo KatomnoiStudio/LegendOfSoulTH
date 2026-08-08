@@ -1,12 +1,18 @@
-import { Suspense, lazy, useCallback, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import type { CurrencyResult, GoldSource, ItemResult } from '../../data/accountRepository.shared'
+import type { LobbyBattleProgressionRpcPayload } from '../../data/accountRepository.supabase'
+import type { PendingLobbyRewardRow } from '../../data/accountRepository.supabase'
 import { ErrorBoundary, SceneCrashFallback } from '../ErrorBoundary/ErrorBoundary'
 import {
   consumeStageEnergy,
   normalizeEnergy,
   tickEnergyRegen,
 } from '../../game/adventure/energySystem'
-import { finalizeLobbyBattleRewards } from '../../game/reward/lobbyBattleRewardPipeline'
+import {
+  finalizeLobbyBattleRewards,
+  pendingLobbyRewardToResult,
+  type LobbyBattleProgressionCommit,
+} from '../../game/reward/lobbyBattleRewardPipeline'
 import { getRealtimeStage, isStageUnlocked } from '../../game/realtimeBattle/stageConfig'
 import type { RealtimeBattleResult } from '../../game/realtimeBattle/types'
 import { reportError } from '../../lib/errors/reportError'
@@ -28,6 +34,10 @@ export function LobbyBattleSession({
   onPlayerChange,
   onEarnGold,
   onGrantItem,
+  onCommitProgression,
+  onRecordPending,
+  onClearPending,
+  onGetPendingRewards,
   onExit,
 }: {
   player: Player
@@ -36,7 +46,18 @@ export function LobbyBattleSession({
   /** ทองจากการเล่น — ต้องผ่าน ledger (earnGold) ไม่ใช่เซตตรง */
   onEarnGold: (source: GoldSource, amount: number, refId?: string) => Promise<CurrencyResult>
   /** ไอเทมดรอป — ต้องผ่าน grantItem */
-  onGrantItem: (itemId: string, quantity: number, source: GoldSource) => Promise<ItemResult>
+  onGrantItem: (
+    itemId: string,
+    quantity: number,
+    source: GoldSource,
+    refId?: string,
+  ) => Promise<ItemResult>
+  onCommitProgression: (
+    payload: LobbyBattleProgressionRpcPayload,
+  ) => Promise<{ ok: true; player: Player } | { ok: false; error: string }>
+  onRecordPending: (result: RealtimeBattleResult, transactionId: string) => Promise<boolean>
+  onClearPending: (transactionId: string) => Promise<void>
+  onGetPendingRewards: () => Promise<PendingLobbyRewardRow[]>
   onExit: () => void
 }) {
   /*
@@ -50,6 +71,49 @@ export function LobbyBattleSession({
   playerRef.current = player
   /** ยังไม่เลือกด่าน = null → แสดงหน้าเลือกด่านก่อน ยังไม่ mount BattleScene */
   const [stageId, setStageId] = useState<string | null>(null)
+
+  const buildRewardDeps = useCallback(
+    () => ({
+      onPlayerChange,
+      onEarnGold,
+      onGrantItem,
+      onCommitProgression: async (payload: LobbyBattleProgressionCommit) => {
+        const result = await onCommitProgression(payload)
+        if (!result.ok) return { ok: false as const, error: result.error }
+        return { ok: true as const, player: result.player }
+      },
+      onRecordPending: async (result: RealtimeBattleResult, transactionId: string) =>
+        onRecordPending(result, transactionId),
+      onClearPending,
+    }),
+    [onClearPending, onCommitProgression, onEarnGold, onGrantItem, onPlayerChange, onRecordPending],
+  )
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const pending = await onGetPendingRewards()
+      if (cancelled || pending.length === 0 || savedRef.current) return
+
+      for (const row of pending) {
+        const result = pendingLobbyRewardToResult(row)
+        const pipeline = await finalizeLobbyBattleRewards(
+          result,
+          playerRef.current,
+          buildRewardDeps(),
+        )
+        if (pipeline.ok) {
+          savedRef.current = true
+          onExit()
+          return
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [buildRewardDeps, onExit, onGetPendingRewards])
 
   const handleSelectStage = useCallback(
     (id: string) => {
@@ -76,11 +140,11 @@ export function LobbyBattleSession({
 
       void (async () => {
         try {
-          const pipeline = await finalizeLobbyBattleRewards(result, playerRef.current, {
-            onPlayerChange,
-            onEarnGold,
-            onGrantItem,
-          })
+          const pipeline = await finalizeLobbyBattleRewards(
+            result,
+            playerRef.current,
+            buildRewardDeps(),
+          )
 
           if (!pipeline.ok) {
             savedRef.current = false
@@ -106,7 +170,7 @@ export function LobbyBattleSession({
         }
       })()
     },
-    [onEarnGold, onExit, onGrantItem, onPlayerChange],
+    [buildRewardDeps, onExit],
   )
 
   // เช็คซ้ำก่อน mount เสมอ (ไม่ใช่แค่ตอนแสดงรายการ) — กันด่านล็อกหลุดเข้าห้องต่อสู้แม้ผ่าน

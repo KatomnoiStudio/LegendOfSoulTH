@@ -7,6 +7,7 @@ import {
   LOBBY_BATTLE_REWARD_POLICY,
   finalizeLobbyBattleRewards,
   lobbyBattleGoldFlagKey,
+  lobbyBattleItemRefId,
   lobbyBattleProgressionFlagKey,
   lobbyBattleTransactionId,
 } from './lobbyBattleRewardPipeline'
@@ -57,9 +58,31 @@ function victoryResult(overrides: Partial<RealtimeBattleResult> = {}): RealtimeB
   }
 }
 
+function mockCommit(onPlayerChange?: (next: Player) => Promise<boolean>) {
+  return vi.fn(async (payload: { player: Player }) => {
+    if (onPlayerChange) {
+      const saved = await onPlayerChange(payload.player)
+      if (!saved) return { ok: false as const, error: 'save failed' }
+    }
+    return { ok: true as const, player: payload.player }
+  })
+}
+
+function baseDeps(overrides: Partial<Parameters<typeof finalizeLobbyBattleRewards>[2]> = {}) {
+  return {
+    onPlayerChange: vi.fn(async () => true),
+    onEarnGold: vi.fn(),
+    onGrantItem: vi.fn(async () => ({ ok: true as const, player: makePlayer() })),
+    onCommitProgression: mockCommit(),
+    onRecordPending: vi.fn(async () => true),
+    onClearPending: vi.fn(),
+    ...overrides,
+  }
+}
+
 describe('lobbyBattleRewardPipeline policy', () => {
-  it('declares ordered partial commit — not atomic backend transaction', () => {
-    expect(LOBBY_BATTLE_REWARD_POLICY).toBe('ordered-partial-commit-with-idempotency')
+  it('declares ordered partial commit — not one atomic backend RPC', () => {
+    expect(LOBBY_BATTLE_REWARD_POLICY).toBe('ordered-partial-commit')
   })
 })
 
@@ -67,21 +90,19 @@ describe('finalizeLobbyBattleRewards', () => {
   const result = victoryResult()
   const txId = lobbyBattleTransactionId(result)
 
-  it('persists progression before earnGold — no ledger call when save fails', async () => {
+  it('persists progression before earnGold — no ledger call when commit fails', async () => {
     const player = makePlayer()
-    const onPlayerChange = vi.fn(async () => false)
     const onEarnGold = vi.fn()
 
     const out = await finalizeLobbyBattleRewards(result, player, {
-      onPlayerChange,
+      ...baseDeps(),
+      onCommitProgression: vi.fn(async () => ({ ok: false as const, error: 'rpc down' })),
       onEarnGold,
-      onGrantItem: vi.fn(),
     })
 
     expect(out.ok).toBe(false)
     expect(out.failure).toBe('progression_save')
     expect(out.player).toBe(player)
-    expect(onPlayerChange).toHaveBeenCalledTimes(1)
     expect(onEarnGold).not.toHaveBeenCalled()
   })
 
@@ -95,14 +116,12 @@ describe('finalizeLobbyBattleRewards', () => {
     const onEarnGold = vi.fn(async () => ({ ok: false as const, error: 'ledger down' }))
 
     const out = await finalizeLobbyBattleRewards(result, player, {
-      onPlayerChange,
-      onEarnGold,
-      onGrantItem: vi.fn(),
+      ...baseDeps({ onPlayerChange, onEarnGold }),
+      onCommitProgression: mockCommit(onPlayerChange),
     })
 
     expect(out.ok).toBe(false)
     expect(out.failure).toBe('gold_grant')
-    expect(onPlayerChange).toHaveBeenCalledTimes(1)
     expect(onEarnGold).toHaveBeenCalledTimes(1)
     expect(onEarnGold).toHaveBeenCalledWith('drop', 81, txId)
     expect(savedPlayer?.progress.flags[lobbyBattleProgressionFlagKey(txId)]).toBe(true)
@@ -124,15 +143,20 @@ describe('finalizeLobbyBattleRewards', () => {
     const onGrantItem = vi.fn(async () => ({ ok: false as const, error: 'inventory full' }))
 
     const out = await finalizeLobbyBattleRewards(result, player, {
-      onPlayerChange,
-      onEarnGold,
-      onGrantItem,
+      ...baseDeps({ onPlayerChange, onEarnGold, onGrantItem }),
+      onCommitProgression: mockCommit(onPlayerChange),
     })
 
     expect(out.ok).toBe(false)
     expect(out.failure).toBe('item_grant')
     expect(onEarnGold).toHaveBeenCalledTimes(1)
     expect(onGrantItem).toHaveBeenCalledTimes(1)
+    expect(onGrantItem).toHaveBeenCalledWith(
+      'iron-essence',
+      1,
+      'drop',
+      lobbyBattleItemRefId(txId, 'iron-essence'),
+    )
     expect(savedPlayer.progress.flags[lobbyBattleGoldFlagKey(txId)]).toBe(true)
   })
 
@@ -153,14 +177,8 @@ describe('finalizeLobbyBattleRewards', () => {
       })
 
     const first = await finalizeLobbyBattleRewards(result, player, {
-      onPlayerChange,
-      onEarnGold,
-      onGrantItem: vi.fn(async () => ({
-        ok: true as const,
-        player: savedPlayer,
-        itemId: 'iron-essence',
-        quantity: 1,
-      })),
+      ...baseDeps({ onPlayerChange, onEarnGold }),
+      onCommitProgression: mockCommit(onPlayerChange),
     })
     expect(first.failure).toBe('gold_grant')
 
@@ -176,45 +194,89 @@ describe('finalizeLobbyBattleRewards', () => {
     }
 
     const second = await finalizeLobbyBattleRewards(result, afterPartial, {
-      onPlayerChange,
-      onEarnGold,
-      onGrantItem: vi.fn(async () => ({
-        ok: true as const,
-        player: savedPlayer,
-        itemId: 'iron-essence',
-        quantity: 1,
-      })),
+      ...baseDeps({
+        onPlayerChange,
+        onEarnGold,
+        onGrantItem: vi.fn(async () => ({ ok: true as const, player: savedPlayer })),
+      }),
+      onCommitProgression: mockCommit(onPlayerChange),
     })
 
     expect(second.ok).toBe(true)
-    expect(onPlayerChange).toHaveBeenCalledTimes(4)
-    const progressionSaves = onPlayerChange.mock.calls.filter(
-      (call) => (call[0] as Player).ownedCharacters[0]?.exp === 65,
-    )
-    expect(progressionSaves).toHaveLength(1)
     expect(onEarnGold).toHaveBeenCalledTimes(2)
+  })
+
+  it('reload after gold RPC success but flag save fail — retry completes without duplicate gold call effect', async () => {
+    const player = makePlayer()
+    let savedPlayer = player
+    const onPlayerChange = vi
+      .fn()
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(true)
+    const onEarnGold = vi.fn(async () => ({
+      ok: true as const,
+      player: { ...savedPlayer, currency: { gold: 581, gem: 0 } },
+      amount: 81,
+    }))
+
+    const first = await finalizeLobbyBattleRewards(result, player, {
+      ...baseDeps({ onPlayerChange, onEarnGold }),
+      onCommitProgression: mockCommit(),
+    })
+    expect(first.failure).toBe('progression_save')
+
+    const reloadedFlags = { ...savedPlayer.progress.flags }
+    delete reloadedFlags[lobbyBattleGoldFlagKey(txId)]
+    delete reloadedFlags[rewardTransactionFlagKey(txId)]
+
+    const reloadedPlayer: Player = {
+      ...savedPlayer,
+      currency: { gold: 581, gem: 0 },
+      progress: {
+        ...savedPlayer.progress,
+        flags: {
+          ...reloadedFlags,
+          [lobbyBattleProgressionFlagKey(txId)]: true,
+        },
+      },
+    }
+
+    const second = await finalizeLobbyBattleRewards(result, reloadedPlayer, {
+      ...baseDeps({
+        onPlayerChange,
+        onEarnGold,
+        onGrantItem: vi.fn(async () => ({ ok: true as const, player: reloadedPlayer })),
+      }),
+      onCommitProgression: mockCommit(),
+    })
+
+    expect(second.ok).toBe(true)
+    expect(onEarnGold).toHaveBeenCalledTimes(2)
+    expect(onEarnGold).toHaveBeenNthCalledWith(2, 'drop', 81, txId)
   })
 
   it('alreadyComplete short-circuits without ledger or save calls', async () => {
     const player = makePlayer()
     player.progress.flags[rewardTransactionFlagKey(txId)] = true
 
+    const onEarnGold = vi.fn()
     const out = await finalizeLobbyBattleRewards(result, player, {
-      onPlayerChange: vi.fn(),
-      onEarnGold: vi.fn(),
-      onGrantItem: vi.fn(),
+      ...baseDeps({ onEarnGold }),
     })
 
     expect(out.ok).toBe(true)
     expect(out.alreadyComplete).toBe(true)
+    expect(onEarnGold).not.toHaveBeenCalled()
   })
 
-  it('grants gold only after progression save succeeds', async () => {
+  it('grants gold only after progression commit succeeds', async () => {
     const player = makePlayer()
     const order: string[] = []
-    const onPlayerChange = vi.fn(async () => {
-      order.push('save')
-      return true
+    const onCommitProgression = vi.fn(async (payload: { player: Player }) => {
+      order.push('prog')
+      return { ok: true as const, player: payload.player }
     })
     const onEarnGold = vi.fn(async () => {
       order.push('gold')
@@ -226,20 +288,10 @@ describe('finalizeLobbyBattleRewards', () => {
     })
 
     const out = await finalizeLobbyBattleRewards(victoryResult({ droppedItems: [] }), player, {
-      onPlayerChange,
-      onEarnGold,
-      onGrantItem: vi.fn(async () => ({
-        ok: true as const,
-        player,
-        itemId: 'x',
-        quantity: 1,
-      })),
+      ...baseDeps({ onEarnGold, onCommitProgression }),
     })
 
     expect(out.ok).toBe(true)
-    const saveIdx = order.indexOf('save')
-    const goldIdx = order.indexOf('gold')
-    expect(saveIdx).toBeGreaterThanOrEqual(0)
-    expect(goldIdx).toBeGreaterThan(saveIdx)
+    expect(order.indexOf('prog')).toBeLessThan(order.indexOf('gold'))
   })
 })

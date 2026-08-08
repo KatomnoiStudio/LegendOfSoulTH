@@ -708,6 +708,7 @@ export async function grantItem(
   itemId: string,
   quantity: number,
   source: ItemSource,
+  _refId?: string,
 ): Promise<ItemResult> {
   if (!getItem(itemId)) return { ok: false, error: 'ไม่พบไอเทมนี้' }
   if (!Number.isInteger(quantity) || quantity <= 0) {
