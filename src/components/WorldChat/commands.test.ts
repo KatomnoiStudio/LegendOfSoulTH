@@ -103,6 +103,13 @@ describe('resolveCommandForSender', () => {
     expect(resolveCommandForSender(false, '/giveitem spirit-incense 5')).toBeNull()
   })
 
+  it('บัญชีที่ไม่ใช่ผู้ดูแลพิมพ์คำสั่งกลุ่มผู้ดูแลแบบ arg ผิด/ขาด ก็ต้องไม่ถูกตีความเป็นคำสั่งเช่นกัน — ห้ามหลุด error message บอกวิธีใช้ออกไป (เคยพังจริง จุดนี้เคยหลุดผ่าน error-kind มาก่อน)', () => {
+    expect(resolveCommandForSender(false, '/givecharacter')).toBeNull()
+    expect(resolveCommandForSender(false, '/givegold')).toBeNull()
+    expect(resolveCommandForSender(false, '/givegold abc')).toBeNull()
+    expect(resolveCommandForSender(false, '/giveitem')).toBeNull()
+  })
+
   it('บัญชีที่ไม่ใช่ผู้ดูแลพิมพ์คำสั่งสาธารณะ (/block, /unblock, /blocklist, /help) ยังใช้ได้ปกติ — ไม่ใช่ความลับ', () => {
     expect(resolveCommandForSender(false, '/block SomePlayer')).toEqual({
       kind: 'block',

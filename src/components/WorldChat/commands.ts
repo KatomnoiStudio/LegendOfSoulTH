@@ -27,12 +27,17 @@ export type ParsedCommand =
   | { kind: 'help' }
   | { kind: 'error'; message: string }
 
-/** คำสั่งที่ต้องเป็นผู้ดูแลเท่านั้นถึงใช้ได้ — ทุกอันอื่นใช้ได้ทุกคน */
-const ADMIN_ONLY_KINDS = new Set<ParsedCommand['kind']>([
-  'give-character',
-  'give-gold',
-  'give-item',
-])
+/**
+ * ชื่อคำสั่งที่ต้องเป็นผู้ดูแลเท่านั้นถึงใช้ได้ — ทุกอันอื่นใช้ได้ทุกคน
+ *
+ * เช็คจาก**ชื่อคำสั่ง** ก่อนแปลผลเสมอ ไม่ใช่เช็คจาก kind ของผลลัพธ์หลัง parse — เพราะ
+ * ถ้าเช็คจาก kind แล้ว non-admin พิมพ์ /givecharacter (ไม่ใส่ตัวละคร) จะได้ kind: 'error'
+ * กลับมา ซึ่งไม่ตรงกับ kind ที่อยู่ในลิสต์ผู้ดูแล ข้อความ error ("ใช้: /givecharacter <ตัวละคร>")
+ * เลยหลุดไปโชว์ให้ non-admin เห็น เท่ากับใบ้ว่าคำสั่งลับนี้มีอยู่ทั้งที่ตั้งใจไม่ให้ใบ้เลย
+ * (bug จริงที่เคยเกิดตอนเปลี่ยนจาก blanket-gate เป็น per-kind gate — แก้ด้วยการเช็คชื่อ
+ * คำสั่งตรง ๆ ก่อน parse แทน ไม่มีทางหลุดผ่าน error path ได้อีก)
+ */
+const ADMIN_ONLY_COMMAND_NAMES = new Set(['givecharacter', 'givegold', 'giveitem'])
 
 /**
  * หา characterId จากคำที่ผู้ใช้พิมพ์
@@ -78,10 +83,12 @@ export const ADMIN_COMMAND_HELP = [
  * ให้เทสต์ได้ตรง ๆ โดยไม่ต้อง render
  */
 export function resolveCommandForSender(isAdmin: boolean, raw: string): ParsedCommand | null {
-  const parsed = parseCommand(raw)
-  if (!parsed) return null
-  if (parsed.kind !== 'error' && ADMIN_ONLY_KINDS.has(parsed.kind) && !isAdmin) return null
-  return parsed
+  const text = raw.trim()
+  if (!isAdmin && text.startsWith('/')) {
+    const commandName = text.slice(1).split(/\s+/)[0]?.toLowerCase()
+    if (commandName && ADMIN_ONLY_COMMAND_NAMES.has(commandName)) return null
+  }
+  return parseCommand(raw)
 }
 
 /**
