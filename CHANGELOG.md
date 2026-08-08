@@ -5,6 +5,24 @@
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-08-08
+
+P8 balance lock playtest baseline (Ring 0) + deploy of tutorial-easy stage 1 and partial failure rewards
+
+### Added
+
+- Ring 0 P8 balance lock: playtest caps/baseline in `progressionConfig` / `rewardConfig`
+- Tutorial-easy dungeon stage 1 — 2 waves, `enemyHpScale: 0.7`, `waveIntervalMs: 2500`
+- Partial failure rewards — heroExp by stage/wave progress only (`rewardProgress.ts`)
+- Supabase migration `0008_progression_state.sql` — `talent_state` / `awakening_state` + owned_characters UPDATE RLS
+- E2E reward pipeline tests (dungeon clear → heroExp → พัฒนา tab)
+
+### Changed
+
+- Failure policy `partial` for `p5-test-dungeon` (no gold/first-clear/boss on fail)
+- Talent/awakening test-fixture UI hidden (`showTalentAwakeningUi: false`); framework retained
+- `savePlayer` upserts owned_characters progression fields (Supabase)
+
 ## [0.12.0] - 2026-08-08
 
 "Continue with Google" sign-in, guest accounts, Cloudflare Turnstile CAPTCHA, and P8 Character Progression (per-hero level/EXP, skill upgrades, talent/awakening foundation)
