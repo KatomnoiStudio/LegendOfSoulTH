@@ -33,16 +33,25 @@ describe('REALTIME_STAGES มีแชปเตอร์ครบ N ด่าน
     expect(fullChapter).toBe(true)
   })
 
+  it('chapter-1 มี 10 ด่านเนื้อเรื่อง (1-1 ถึง 1-10) และบอสปิดท้าย', () => {
+    const ordered = getOrderedStages('chapter-1').filter((s) => s.showInAdventureSelect !== false)
+    expect(ordered).toHaveLength(10)
+    expect(ordered[0].id).toBe('trial-01')
+    expect(ordered[9].id).toBe('trial-10')
+    expect(ordered[9].isBoss).toBe(true)
+    expect(ordered.map((s) => s.order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+  })
+
   it('getOrderedStages เรียงตาม order ไม่ใช่ตามลำดับ object', () => {
     const ordered = getOrderedStages('chapter-1')
     for (let i = 1; i < ordered.length; i += 1) {
       expect(ordered[i].order).toBeGreaterThanOrEqual(ordered[i - 1].order)
     }
     const trial01Index = ordered.findIndex((s) => s.id === 'trial-01')
-    const trial05Index = ordered.findIndex((s) => s.id === 'trial-05')
+    const trial10Index = ordered.findIndex((s) => s.id === 'trial-10')
     expect(trial01Index).toBeGreaterThanOrEqual(0)
-    expect(trial05Index).toBeGreaterThan(trial01Index)
-    expect(ordered[trial05Index].isBoss).toBe(true)
+    expect(trial10Index).toBeGreaterThan(trial01Index)
+    expect(ordered[trial10Index].isBoss).toBe(true)
   })
 
   it('getAdventureChapters ซ่อนสนามทดสอบ dungeon-p5-test', () => {
@@ -70,9 +79,9 @@ describe('isStageUnlocked เป็น pure predicate เหนือ Player.pro
     expect(isStageUnlocked('trial-02', { 'trial_cleared_trial-01': true })).toBe(true)
   })
 
-  it('trial-05 ปลดล็อกเมื่อเคลียร์ trial-04', () => {
-    expect(isStageUnlocked('trial-05', { 'trial_cleared_trial-04': true })).toBe(true)
-    expect(isStageUnlocked('trial-05', { 'trial_cleared_trial-03': true })).toBe(false)
+  it('trial-10 ปลดล็อกเมื่อเคลียร์ trial-09', () => {
+    expect(isStageUnlocked('trial-10', { 'trial_cleared_trial-09': true })).toBe(true)
+    expect(isStageUnlocked('trial-10', { 'trial_cleared_trial-08': true })).toBe(false)
   })
 
   it('flag เป็น false (เช่น เคยแพ้) ไม่ถือว่าปลดล็อก', () => {

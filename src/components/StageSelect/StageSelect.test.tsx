@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { StageSelect } from './StageSelect'
 import { EMPTY_PROGRESS } from '../../types/player'
+import { formatStageLabel, getOrderedStages } from '../../game/realtimeBattle/stageConfig'
 
 /**
  * เทสต์ตาม Done-criteria #2 (docs/agent-blueprint/16-stage-adventure-system.md):
@@ -13,6 +14,18 @@ describe('StageSelect', () => {
   it('ไม่แสดงสนามทดสอบ dungeon-p5-test', () => {
     render(<StageSelect progress={EMPTY_PROGRESS} onSelect={vi.fn()} onClose={vi.fn()} />)
     expect(screen.queryByRole('button', { name: /ดันเจี้ยนทดสอบ/ })).not.toBeInTheDocument()
+  })
+
+  it('แสดงหัวข้อบทที่ 1 และด่าน 1-1 ถึง 1-10', () => {
+    render(<StageSelect progress={EMPTY_PROGRESS} onSelect={vi.fn()} onClose={vi.fn()} />)
+    expect(screen.getByText(/รามเกียรติ — บทที่ ๑/)).toBeInTheDocument()
+    const chapterStages = getOrderedStages('chapter-1').filter(
+      (s) => s.showInAdventureSelect !== false,
+    )
+    expect(chapterStages).toHaveLength(10)
+    for (const stage of chapterStages) {
+      expect(screen.getByText(formatStageLabel(stage))).toBeInTheDocument()
+    }
   })
 
   it('ด่านแรกกดได้ ด่านถัดไปที่ยังไม่ปลดล็อกกดไม่ได้ (disabled)', () => {
@@ -45,7 +58,7 @@ describe('StageSelect', () => {
     expect(onSelect).not.toHaveBeenCalled()
   })
 
-  it('เคลียร์ด่านแรกแล้ว ด่านบอสถัดไปปลดล็อกและกดได้', () => {
+  it('เคลียร์ด่านแรกแล้ว ด่าน 1-2 ปลดล็อกและกดได้', () => {
     const cleared = { ...EMPTY_PROGRESS, flags: { 'trial_cleared_trial-01': true } }
     render(<StageSelect progress={cleared} onSelect={vi.fn()} onClose={vi.fn()} />)
 

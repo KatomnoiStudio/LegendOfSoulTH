@@ -349,6 +349,41 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
  */
 const ARENA_SIZE = { width: 1800, height: 1100 }
 const PRESENTATION_PLAYER_SPAWN = resolvePlayerSpawn(ARENA_SIZE)
+const ARENA_CENTER: Vec2 = { x: ARENA_SIZE.width / 2, y: ARENA_SIZE.height / 2 }
+const ARENA_FAR_RIGHT: Vec2 = { x: ARENA_SIZE.width * 0.82, y: ARENA_CENTER.y }
+
+/** ข้อมูลเนื้อเรื่องแชปเตอร์ — หน้าเลือกด่านอ่านจากที่นี่ ไม่ hand-author ใน component */
+export const ADVENTURE_CHAPTERS = {
+  'chapter-1': {
+    chapterNumber: 1,
+    title: 'รามเกียรติ — บทที่ ๑',
+    subtitle: 'เส้นทางสู่วิหารแห่งจันทร์',
+  },
+} as const
+
+export type AdventureChapterId = keyof typeof ADVENTURE_CHAPTERS
+
+export function getAdventureChapter(chapterId: string) {
+  return ADVENTURE_CHAPTERS[chapterId as AdventureChapterId] ?? null
+}
+
+/** ป้ายด่านแบบ 1-1, 1-2, … จาก chapterNumber + order */
+export function formatStageLabel(stage: RealtimeBattleStage): string {
+  const meta = getAdventureChapter(stage.chapterId)
+  const chapterNum = meta?.chapterNumber ?? 1
+  return `${chapterNum}-${stage.order}`
+}
+
+export const STAGE_TYPE_LABELS: Record<StageType, string> = {
+  wave: 'ต่อสู้',
+  survival: 'เอาชีวิตรอด',
+  defend: 'ปกป้อง',
+  chase: 'ไล่ล่า',
+  hazard: 'อันตราย',
+  'mini-boss': 'มินิบอส',
+  'time-attack': 'จับเวลา',
+  custom: 'พิเศษ',
+}
 
 export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
   'trial-01': {
@@ -556,10 +591,148 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
     difficultyMultiplier: 1.1,
   },
   /**
-   * บอสปิดท้ายแชปเตอร์ 1 (§5.1 Chapter→Stage→Boss) — ใช้ BOSS_TEMPLATES + phase-transition AI
+   * ด่าน 1-5 — เงามืดในโถง (wave กลางทาง)
    */
   'trial-05': {
     id: 'trial-05',
+    name: 'เงามืดในโถง',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'wave-1',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'spirit-guardian', spawnIndex: 2 },
+        ],
+      },
+      {
+        id: 'wave-2',
+        enemies: [
+          { templateId: 'spirit-guardian', spawnIndex: 1 },
+          { templateId: 'shadow-soldier', spawnIndex: 3 },
+        ],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'chapter-1',
+    order: 5,
+    stageType: 'wave',
+    difficultyMultiplier: 1.08,
+  },
+  /**
+   * ด่าน 1-6 — ไฟไหม้ลาม (hazard)
+   */
+  'trial-06': {
+    id: 'trial-06',
+    name: 'ไฟไหม้ลาม',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'wave-1',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 2 },
+        ],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'chapter-1',
+    order: 6,
+    stageType: 'hazard',
+    hazard: { hazardHp: 180, decayPerSecond: 6 },
+    difficultyMultiplier: 1.1,
+  },
+  /**
+   * ด่าน 1-7 — ไล่ล่าอสูร (chase)
+   */
+  'trial-07': {
+    id: 'trial-07',
+    name: 'ไล่ล่าอสูร',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'wave-1',
+        enemies: [{ templateId: 'shadow-soldier', spawnIndex: 1 }],
+      },
+    ],
+    backgroundAsset: TEMPLE_LOBBY_BG,
+    chapterId: 'chapter-1',
+    order: 7,
+    stageType: 'chase',
+    chase: {
+      targetPosition: ARENA_FAR_RIGHT,
+      arrivalRadius: 90,
+      timeBudgetMs: 90_000,
+    },
+    difficultyMultiplier: 1.05,
+  },
+  /**
+   * ด่าน 1-8 — แม่ทัพปีศาจ (wave เน้น elite)
+   */
+  'trial-08': {
+    id: 'trial-08',
+    name: 'แม่ทัพปีศาจ',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'wave-1',
+        enemies: [
+          { templateId: 'demon-captain', spawnIndex: 1 },
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 2 },
+        ],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'chapter-1',
+    order: 8,
+    stageType: 'wave',
+    difficultyMultiplier: 1.12,
+  },
+  /**
+   * ด่าน 1-9 — บันทึกเวลา (time-attack)
+   */
+  'trial-09': {
+    id: 'trial-09',
+    name: 'บันทึกเวลา',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'wave-1',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 1 },
+          { templateId: 'spirit-guardian', spawnIndex: 2 },
+        ],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'chapter-1',
+    order: 9,
+    stageType: 'time-attack',
+    timeAttack: { timeBudgetMs: 75_000 },
+    difficultyMultiplier: 1.1,
+  },
+  /**
+   * ด่าน 1-10 — บอสปิดท้ายบทที่ ๑ (§5.1 Chapter→Stage→Boss)
+   */
+  'trial-10': {
+    id: 'trial-10',
     name: 'ผู้พิทักษ์วิญญาณ',
     width: ARENA_SIZE.width,
     height: ARENA_SIZE.height,
@@ -573,7 +746,7 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
     ],
     backgroundAsset: BATTLE_ART_BG,
     chapterId: 'chapter-1',
-    order: 5,
+    order: 10,
     isBoss: true,
     stageType: 'wave',
     difficultyMultiplier: 1.15,
@@ -598,6 +771,9 @@ export function getOrderedStages(chapterId?: string): RealtimeBattleStage[] {
 /** แชปเตอร์ที่แสดงในหน้าเลือกด่านผจญภัย — กรองสนามทดสอบภายใน (P5 dungeon slice) ออก */
 export function getAdventureChapters(): Array<{
   chapterId: string
+  title: string
+  subtitle?: string
+  chapterNumber: number
   stages: RealtimeBattleStage[]
 }> {
   const chapterIds = [
@@ -607,10 +783,20 @@ export function getAdventureChapters(): Array<{
         .map((stage) => stage.chapterId),
     ),
   ]
-  return chapterIds.map((chapterId) => ({
-    chapterId,
-    stages: getOrderedStages(chapterId).filter((stage) => stage.showInAdventureSelect !== false),
-  }))
+  return chapterIds
+    .map((chapterId) => {
+      const meta = getAdventureChapter(chapterId)
+      return {
+        chapterId,
+        title: meta?.title ?? chapterId,
+        subtitle: meta?.subtitle,
+        chapterNumber: meta?.chapterNumber ?? 1,
+        stages: getOrderedStages(chapterId).filter(
+          (stage) => stage.showInAdventureSelect !== false,
+        ),
+      }
+    })
+    .toSorted((a, b) => a.chapterNumber - b.chapterNumber)
 }
 
 /**

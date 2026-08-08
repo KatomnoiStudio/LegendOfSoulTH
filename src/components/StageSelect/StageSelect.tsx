@@ -7,8 +7,10 @@ import {
   tickEnergyRegen,
 } from '../../game/adventure/energySystem'
 import {
+  formatStageLabel,
   getAdventureChapters,
   isStageUnlocked,
+  STAGE_TYPE_LABELS,
   type RealtimeBattleStage,
 } from '../../game/realtimeBattle/stageConfig'
 import type { PlayerProgress } from '../../types/player'
@@ -20,11 +22,23 @@ interface StageSelectProps {
   onClose: () => void
 }
 
+function stageMetaLine(
+  stage: RealtimeBattleStage,
+  cleared: boolean,
+  unlocked: boolean,
+  affordable: boolean,
+) {
+  const parts = [STAGE_TYPE_LABELS[stage.stageType]]
+  if (stage.isBoss) parts.push('บอส')
+  if (cleared) parts.push('ผ่านแล้ว')
+  if (!unlocked) parts.push('ล็อกอยู่')
+  if (unlocked && !affordable) parts.push('พลังงานไม่พอ')
+  return parts.join(' · ')
+}
+
 /**
- * หน้าเลือกด่าน — เรนเดอร์ตรงจากข้อมูลด่านจริงใน `stageConfig.ts` ไม่มี preview
- * hand-author ต่อด่าน (§ World-class bar ของ docs/agent-blueprint/16-stage-adventure-system.md)
- *
- * ด่านที่ล็อกอยู่กดไม่ได้ — gating เป็น clear-gate only (ดูเหตุผลที่ `isStageUnlocked`)
+ * หน้าเลือกด่านเนื้อเรื่อง — เรนเดอร์จาก `stageConfig.ts` + `ADVENTURE_CHAPTERS`
+ * กดด่านแล้ว LobbyBattleSession ค่อย mount BattleScene (ไม่เข้าสนามต่อสู้ตรง)
  */
 export function StageSelect({ progress, onSelect, onClose }: StageSelectProps) {
   const { shellRef, backdropProps } = useModalA11y<HTMLDivElement>(onClose)
@@ -48,40 +62,50 @@ export function StageSelect({ progress, onSelect, onClose }: StageSelectProps) {
         tabIndex={-1}
       >
         <header className={styles.header}>
-          <h2 className={styles.headerTitle}>เลือกด่าน</h2>
+          <div className={styles.headerText}>
+            <h2 className={styles.headerTitle}>เลือกด่าน</h2>
+            <p className={styles.headerHint}>เลือกด่านแล้วเข้าสนามต่อสู้</p>
+          </div>
           <button type="button" className={styles.close} onClick={onClose} aria-label="ปิด">
             ×
           </button>
         </header>
 
         <section className={styles.panel}>
-          {chapters.map(({ chapterId, stages }) => (
-            <ul key={chapterId} className={styles.list}>
-              {stages.map((stage) => {
-                const unlocked = isStageUnlocked(stage.id, progress.flags)
-                const affordable = canAffordStageEnergy(energy, stage)
-                const cleared = progress.flags[`trial_cleared_${stage.id}`] === true
-                const selectable = unlocked && affordable
-                return (
-                  <li key={stage.id}>
-                    <button
-                      type="button"
-                      className={styles.stage}
-                      disabled={!selectable}
-                      onClick={() => handlePick(stage)}
-                    >
-                      <span className={styles.stageName}>{stage.name}</span>
-                      <span className={styles.stageMeta}>
-                        {stage.isBoss ? 'บอส' : `ด่าน ${stage.order}`}
-                        {cleared ? ' · ผ่านแล้ว' : ''}
-                        {!unlocked ? ' · ล็อกอยู่' : ''}
-                        {unlocked && !affordable ? ' · พลังงานไม่พอ' : ''}
-                      </span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
+          {chapters.map(({ chapterId, title, subtitle, stages }) => (
+            <article key={chapterId} className={styles.chapter}>
+              <header className={styles.chapterHeader}>
+                <h3 className={styles.chapterTitle}>{title}</h3>
+                {subtitle ? <p className={styles.chapterSubtitle}>{subtitle}</p> : null}
+              </header>
+              <ul className={styles.list}>
+                {stages.map((stage) => {
+                  const unlocked = isStageUnlocked(stage.id, progress.flags)
+                  const affordable = canAffordStageEnergy(energy, stage)
+                  const cleared = progress.flags[`trial_cleared_${stage.id}`] === true
+                  const selectable = unlocked && affordable
+                  const label = formatStageLabel(stage)
+                  return (
+                    <li key={stage.id}>
+                      <button
+                        type="button"
+                        className={styles.stage}
+                        disabled={!selectable}
+                        onClick={() => handlePick(stage)}
+                      >
+                        <span className={styles.stageRow}>
+                          <span className={styles.stageLabel}>{label}</span>
+                          <span className={styles.stageName}>{stage.name}</span>
+                        </span>
+                        <span className={styles.stageMeta}>
+                          {stageMetaLine(stage, cleared, unlocked, affordable)}
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </article>
           ))}
         </section>
       </div>
