@@ -1,10 +1,8 @@
-import { COMBAT_DEFAULTS } from './combatMoveSchema'
-import { faceTargetHorizontally } from './combatFacing'
 import type { RealtimeBattleEntity, Vec2 } from './types'
 
 /**
- * Soft target assist — nearest relevant living enemy, no hard lock-on UI.
- * Used for facing nudge and skill/ultimate target selection.
+ * Explicit target-lock helpers for skills that opt into `targetLock: 'nearest'`.
+ * Basic attacks never call this module to change facing (§3.3/§3.6.1).
  */
 
 export function distanceBetween(a: Vec2, b: Vec2): number {
@@ -33,21 +31,6 @@ export function findNearestLivingEnemy(
   }
 
   return best
-}
-
-/**
- * Nudge combat facing toward nearest enemy in assist range before attacks/skills.
- * Does not move the player or hard-lock camera.
- */
-export function assistCombatFacing(
-  player: RealtimeBattleEntity,
-  enemies: RealtimeBattleEntity[],
-  maxRange = COMBAT_DEFAULTS.softTargetAssistRange,
-): RealtimeBattleEntity | null {
-  const nearest = findNearestLivingEnemy(player.position, enemies, maxRange)
-  if (!nearest) return null
-  faceTargetHorizontally(player, nearest.position)
-  return nearest
 }
 
 /** Resolve locked target — drops dead/out-of-range targets. */
