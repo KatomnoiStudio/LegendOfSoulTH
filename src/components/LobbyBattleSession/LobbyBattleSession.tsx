@@ -1,16 +1,15 @@
 import { Suspense, lazy, useCallback, useRef, useState } from 'react'
 import type { CurrencyResult, GoldSource, ItemResult } from '../../data/accountRepository.shared'
 import { ErrorBoundary, SceneCrashFallback } from '../ErrorBoundary/ErrorBoundary'
-import { appendBattleHistory } from '../../game/dialogue/actions'
-import { applyBattleExp } from '../../game/realtimeBattle/RewardSystem'
 import {
   consumeStageEnergy,
   normalizeEnergy,
   tickEnergyRegen,
 } from '../../game/adventure/energySystem'
+import { finalizeLobbyBattleRewards } from '../../game/reward/lobbyBattleRewardPipeline'
 import { getRealtimeStage, isStageUnlocked } from '../../game/realtimeBattle/stageConfig'
-import { toLegacyBattleResult } from '../../game/realtimeBattle/BattleResultAdapter'
 import type { RealtimeBattleResult } from '../../game/realtimeBattle/types'
+import { reportError } from '../../lib/errors/reportError'
 import type { Player } from '../../types/player'
 import { StageSelect } from '../StageSelect/StageSelect'
 
@@ -74,46 +73,35 @@ export function LobbyBattleSession({
       savedRef.current = true
 
       void (async () => {
-        /*
-          ลำดับ: ทอง → ไอเทม → EXP/ประวัติ
-          ทอง/ไอเทมผ่าน repository (ledger) แล้วเอา player ล่าสุดมาต่อ EXP+history
-          ด้วย onPlayerChange ครั้งเดียว — ห้ามเซตทองตรงบน object แล้ว savePlayer
-        */
-        let next: Player = player
+        try {
+          const pipeline = await finalizeLobbyBattleRewards(result, player, {
+            onPlayerChange,
+            onEarnGold,
+            onGrantItem,
+          })
 
-        if (result.earnedGold > 0) {
-          const gold = await onEarnGold('drop', result.earnedGold, result.stageId)
-          if (gold.ok) next = gold.player
-        }
-
-        for (const drop of result.droppedItems) {
-          const granted = await onGrantItem(drop.itemId, drop.quantity, 'drop')
-          if (granted.ok) next = granted.player
-        }
-
-        next = applyBattleExp(next, result.earnedExp)
-
-        const legacy = toLegacyBattleResult(result)
-        const won = legacy.outcome === 'victory'
-
-        let progress = appendBattleHistory(next.progress, {
-          id: `battle-${Date.now()}`,
-          opponent: legacy.stageName,
-          result: won ? 'win' : 'lose',
-          finishedAt: legacy.finishedAt,
-          durationMs: legacy.durationMs,
-        })
-
-        if (won) {
-          progress = {
-            ...progress,
-            flags: { ...progress.flags, [`trial_cleared_${legacy.stageId}`]: true },
+          if (!pipeline.ok) {
+            savedRef.current = false
+            if (pipeline.failure === 'progression_save') {
+              // updatePlayer แสดง PLAYER_SAVE_FAIL แล้ว — อย่าออกจากห้อง
+              return
+            }
+            if (pipeline.failure === 'gold_grant') {
+              reportError('REWARD_GOLD_FAIL', 'visible')
+              return
+            }
+            if (pipeline.failure === 'item_grant') {
+              reportError('REWARD_ITEM_FAIL', 'visible')
+              return
+            }
+            return
           }
-        }
 
-        await onPlayerChange({ ...next, progress })
-        // แผงผลกดแล้วต้องกลับล็อบบี้เสมอ — ไม่งั้นค้างในห้องต่อสู้
-        onExit()
+          onExit()
+        } catch (cause: unknown) {
+          savedRef.current = false
+          reportError('BATTLE_REWARD_FAIL', 'visible', cause)
+        }
       })()
     },
     [onEarnGold, onExit, onGrantItem, onPlayerChange, player],

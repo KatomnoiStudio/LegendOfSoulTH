@@ -1,9 +1,35 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { LobbyBattleSession } from './LobbyBattleSession'
 import { createDefaultSkillLevels } from '../../game/realtimeBattle/SkillProgressionSystem'
 import type { Player } from '../../types/player'
 import { EMPTY_PROGRESS } from '../../types/player'
+import type { RealtimeBattleResult } from '../../game/realtimeBattle/types'
+
+vi.mock('../BattleScene/BattleScene', () => ({
+  BattleScene: ({ onComplete }: { onComplete: (result: RealtimeBattleResult) => void }) => (
+    <button
+      type="button"
+      onClick={() =>
+        onComplete({
+          outcome: 'victory',
+          stageId: 'trial-01',
+          stageName: 'ทดสอบ',
+          elapsedMs: 1000,
+          defeatedEnemyIds: ['e1'],
+          damageDealt: 100,
+          damageTaken: 10,
+          earnedExp: 50,
+          earnedGold: 20,
+          droppedItems: [],
+          finishedAt: '2026-08-08T08:00:00.000Z',
+        })
+      }
+    >
+      mock-complete
+    </button>
+  ),
+}))
 
 /**
  * เทสต์ตาม Done-criteria #3 (docs/agent-blueprint/16-stage-adventure-system.md):
@@ -70,5 +96,63 @@ describe('LobbyBattleSession', () => {
     )
 
     expect(screen.getByRole('button', { name: /ประตูปีศาจ/ })).toBeDisabled()
+  })
+
+  it('does not exit lobby when progression save fails — earnGold not called', async () => {
+    const onExit = vi.fn()
+    const onEarnGold = vi.fn()
+    const onPlayerChange = vi.fn(async () => false)
+
+    render(
+      <LobbyBattleSession
+        player={makePlayer()}
+        onPlayerChange={onPlayerChange}
+        onEarnGold={onEarnGold}
+        onGrantItem={vi.fn()}
+        onExit={onExit}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /ลานฝึกหน้าวิหาร/ }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'mock-complete' })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'mock-complete' }))
+
+    await waitFor(() => {
+      expect(onPlayerChange).toHaveBeenCalled()
+    })
+    expect(onEarnGold).not.toHaveBeenCalled()
+    expect(onExit).not.toHaveBeenCalled()
+  })
+
+  it('exits lobby only after progression save succeeds', async () => {
+    const onExit = vi.fn()
+    const player = makePlayer()
+
+    render(
+      <LobbyBattleSession
+        player={player}
+        onPlayerChange={vi.fn(async () => true)}
+        onEarnGold={vi.fn(async () => ({
+          ok: true as const,
+          player: { ...player, currency: { gold: 520, gem: 0 } },
+          amount: 20,
+        }))}
+        onGrantItem={vi.fn()}
+        onExit={onExit}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /ลานฝึกหน้าวิหาร/ }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'mock-complete' })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'mock-complete' }))
+
+    await waitFor(() => {
+      expect(onExit).toHaveBeenCalledTimes(1)
+    })
   })
 })
