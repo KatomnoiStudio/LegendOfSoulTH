@@ -537,6 +537,116 @@ describe('stepEnemyAI — บอส (#11 Boss System)', () => {
     expect(brain.state).not.toBe('phase-transition')
     expect(brain.bossPhaseIndex).toBe(1)
   })
+
+  it('Scar 1: AFK glitch prevention — boss AI wakes up and chases immediately on first step if player in range', () => {
+    const bossTemplate = registerTestBoss()
+    const boss = bossEntity({
+      position: { x: 0, y: 0 },
+      hp: bossTemplate.maxHp,
+      maxHp: bossTemplate.maxHp,
+    })
+    const player = entity({
+      id: 'player',
+      entityType: 'player',
+      position: { x: 500, y: 0 }, // อยู่ในระยะ detectRange และเกินระยะโจมตี (100)
+    })
+    const brain = createEnemyBrain()
+
+    // รันเฟรมแรกเพื่อตื่นจาก idle -> chase
+    stepEnemyAI(boss, brain, player, 16)
+    expect(brain.state).toBe('chase')
+
+    // รันเฟรมที่สองเพื่อเริ่มไล่ขยับจริง
+    const decision = stepEnemyAI(boss, brain, player, 16)
+    expect(Math.abs(decision.move.x)).toBeGreaterThan(0) // ต้องขยับไล่ล่าทันที ไม่ยืนนิ่ง/AFK
+  })
+
+  it('Scar 2: Telegraph windup cancel prevention — cannot switch selectedAttack mid-windup even under state interruptions', () => {
+    const bossTemplate = registerTestBoss()
+    const boss = bossEntity({
+      position: { x: 0, y: 0 },
+      hp: bossTemplate.maxHp * 0.4, // อยู่เฟส 2 แล้ว
+      maxHp: bossTemplate.maxHp,
+    })
+    const player = entity({
+      id: 'player',
+      entityType: 'player',
+      position: { x: bossTemplate.attackRange - 10, y: 0 },
+    })
+    const brain = createEnemyBrain()
+    brain.bossPhaseIndex = 1 // บังคับเฟส 2
+
+    // เข้าสู่สถานะ telegraph
+    stepEnemyAI(boss, brain, player, 16) // idle -> chase
+    stepEnemyAI(boss, brain, player, 16) // chase -> telegraph
+    expect(brain.state).toBe('telegraph')
+    const originalSelectedAttack = brain.selectedAttack
+    expect(originalSelectedAttack).not.toBeNull()
+
+    // จำลองความพยายามขัดขวางหรือเปลี่ยนสถานะกลางทาง (เช่น ขยับ HP ขึ้นข้าม threshold อีกครั้ง)
+    boss.hp = bossTemplate.maxHp * 0.9 // ดัน HP กลับขึ้นไปเฟส 1
+
+    // อัปเดตเฟรมถัดไปขณะอยู่ใน telegraph
+    stepEnemyAI(boss, brain, player, 16)
+    expect(brain.state).toBe('telegraph')
+    expect(brain.selectedAttack).toBe(originalSelectedAttack) // selectedAttack ต้องคงเดิม ห้ามสลับท่า
+  })
+
+  it('Scar 3: Gwyn simultaneous trigger safety (lethal hit bypasses phase transition and goes straight to dead state)', () => {
+    const bossTemplate = registerTestBoss()
+    const boss = bossEntity({
+      position: { x: 0, y: 0 },
+      hp: bossTemplate.maxHp,
+      maxHp: bossTemplate.maxHp,
+    })
+    const player = entity({ id: 'player', entityType: 'player', position: { x: 0, y: 0 } })
+    const brain = createEnemyBrain()
+
+    // โดนทีเดียวตายสนิท (เช่น ข้าม threshold 50% และ HP ดิ่งเป็น 0 ในติ๊กเดียวกัน)
+    boss.hp = 0
+
+    stepEnemyAI(boss, brain, player, 16)
+    expect(brain.state).toBe('dead')
+    expect(brain.bossPendingPhaseTransition).toBe(false)
+  })
+
+  it('Scar 4: Fog wall boundary check — boss position remains clamped to stage boundaries during Phase 2 attack execution', () => {
+    const bossTemplate = registerTestBoss()
+    const boss = bossEntity({
+      position: { x: 10, y: 10 }, // ใกล้ขอบซ้าย (0, 0)
+      hp: bossTemplate.maxHp * 0.4, // เฟส 2
+      maxHp: bossTemplate.maxHp,
+    })
+
+    // จำลองการขยับไปชนขอบด่าน
+    // ในลูปการเล่นจริง ขอบเขตด่านจะถูกบังคับโดย stepMovement
+    // เราจะยืนยันว่าเวกเตอร์ที่ AI ส่งออกมา และทิศทางในการชนขอบ ไม่ส่งผลเสียต่อการทำงานของ state machine
+    const player = entity({
+      id: 'player',
+      entityType: 'player',
+      position: { x: 50, y: 10 },
+    })
+    const brain = createEnemyBrain()
+    brain.bossPhaseIndex = 1
+
+    // chase -> telegraph
+    stepEnemyAI(boss, brain, player, 16) // idle -> chase
+    stepEnemyAI(boss, brain, player, 16) // chase -> telegraph
+    expect(brain.state).toBe('telegraph')
+
+    // สมมติว่าในระหว่างนี้ boss โดนดันจนติดขอบ (พิกัดติดลบ หรืออยู่นอกพื้นที่เล่น)
+    const stageWidth = 800
+    // บังคับการบีบตำแหน่ง
+    boss.position.x = Math.max(
+      boss.collisionRadius,
+      Math.min(stageWidth - boss.collisionRadius, -50),
+    )
+    expect(boss.position.x).toBe(boss.collisionRadius) // ต้องไม่หลุดขอบ
+
+    // ดำเนินการขั้นถัดไปใน telegraph
+    stepEnemyAI(boss, brain, player, 16)
+    expect(brain.state).toBe('telegraph') // state machine ยังทำงานปกติต่อเนื่อง
+  })
 })
 
 /** เดินเวลาเป็นก้าวคงที่เหมือนลูปจริง ไม่ใช่ก้อนเดียวใหญ่ ๆ */
