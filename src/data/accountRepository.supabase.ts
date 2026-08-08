@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient'
+import { reportError } from '../lib/errors/reportError'
 import { generateUid } from '../game/uid'
 import { TEAM_SIZE } from '../game/team'
 import { migrateOwnedCharacters } from '../game/progression/progressionMigration'
@@ -320,14 +321,24 @@ export function getSessionEmail(): string | null {
   return cachedSessionEmail
 }
 
+/**
+ * ค้นหาผู้เล่นอื่นจาก UID (เพิ่มเพื่อน) — ผ่าน RPC `find_player_by_uid`
+ * (supabase/migrations/0012_public_profile_lookup.sql) ไม่ query ตาราง profiles ตรง ๆ เพราะ
+ * SELECT RLS policy เดียวของตารางนั้นคือ auth.uid() = id (แถวตัวเองเท่านั้น) — query ตรงหา
+ * UID คนอื่นได้ 0 แถวเสมอ (เคย broken แบบเงียบ ๆ มาก่อน ดู .agents/rules/public-profile-lookup-law.md)
+ */
 export async function findPlayerByUid(uid: string): Promise<FriendCandidate | null> {
-  const { data } = await supabase
-    .from('profiles')
-    .select('uid,name,level,title')
-    .eq('uid', uid)
-    .maybeSingle()
-  if (!data) return null
-  return { uid: data.uid, name: data.name, level: data.level, title: data.title }
+  // returns table(...) มาเป็น array เสมอผ่าน PostgREST (ไม่ใช่ object เดี่ยว) — ไม่ chain
+  // .maybeSingle() เพราะ type ของ supabase-js แคบผิดตอนไม่มี generated Database type ให้ client
+  const { data, error } = await supabase.rpc('find_player_by_uid', { p_uid: uid })
+  // เช็ค error แยกจาก "หาไม่เจอจริง" ไว้เสมอ — เดิมไม่เช็คเลย ทำให้ RPC พัง/สิทธิ์ไม่ครบ
+  // ดูเหมือน "ไม่พบผู้เล่น" เฉย ๆ บนหน้าจอ ซึ่งเป็นสาเหตุเดิมที่ฟีเจอร์นี้พังเงียบ ๆ มาก่อน
+  // (ดู .agents/rules/public-profile-lookup-law.md) — SILENT เพราะ UI แสดงข้อความเดียวกัน
+  // ทั้งสองกรณีอยู่แล้ว รหัสมีไว้แยกสาเหตุฝั่ง log เท่านั้น
+  if (error) reportError('FRIEND_LOOKUP_FAIL', 'silent', error)
+  const row = (data as FriendCandidate[] | null)?.[0]
+  if (!row) return null
+  return { uid: row.uid, name: row.name, level: row.level, title: row.title }
 }
 
 export async function savePlayer(player: Player): Promise<boolean> {

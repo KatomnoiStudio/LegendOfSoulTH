@@ -62,7 +62,7 @@ By design, not bugs — don't file these:
   accepted unbounded client-supplied amounts and `profiles.gold`/`gem` had no column-write protection
   beyond RLS (which is row-scoped, not column-scoped) — see `supabase/migrations/0009_economy_integrity_fixes.sql`.
   Lobby battle rewards use refId-guarded RPCs and a durable pending snapshot table — see
-  `supabase/migrations/0011_reward_idempotency.sql`. Report the same _class_ of bug elsewhere.)
+  `supabase/migrations/0013_reward_idempotency.sql`. Report the same _class_ of bug elsewhere.)
 - **"Passwords are hashed client-side with no real server auth."** No longer applies to the live
   app — auth is Supabase Auth (server-side), not the old local PBKDF2 layer in
   [`src/lib/password.ts`](src/lib/password.ts) (dormant, kept only as a shared validator source).

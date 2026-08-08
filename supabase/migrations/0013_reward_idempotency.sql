@@ -1,11 +1,8 @@
 -- Reward pipeline backend idempotency (Ring 0, 2026-08-08)
 -- Ordered partial commit with per-step ledger guards — NOT one atomic EXP+gold+item RPC.
--- Builds on 0009_economy_integrity_fixes (amount caps, column ACL) and 0010_coupon_dedup_index.
---
--- Gold: unique (profile_id, currency, source, ref_id) + earn_gold skip on duplicate ref_id
--- Item: item_grant_ledger unique (profile_id, ref_id) + grant_item skip on duplicate
--- Progression: commit_lobby_battle_progression — profile flags + owned_characters EXP in one DB txn
--- Resume: pending_lobby_rewards stores battle outcome for retry after reload
+-- Builds on 0009_economy_integrity_fixes, 0010_coupon_dedup_index, 0011_rpc_rate_limit,
+-- and 0012_public_profile_lookup. Replaces earn_gold/grant_item again to add refId dedupe
+-- while preserving check_and_log_rpc_rate_limit() from 0011.
 
 -- ── Gold ledger dedupe ─────────────────────────────────────────────────────────
 create unique index if not exists currency_transactions_profile_ref_unique
@@ -23,6 +20,8 @@ declare
   v_profile_id uuid := auth.uid();
   v_max_amount constant int := 1000;
 begin
+  perform public.check_and_log_rpc_rate_limit('earn_gold', 20, 60);
+
   if p_amount <= 0 then
     raise exception 'จำนวนทองไม่ถูกต้อง';
   end if;
@@ -86,6 +85,8 @@ declare
   result public.profiles;
   v_max_quantity constant int := 100;
 begin
+  perform public.check_and_log_rpc_rate_limit('grant_item', 20, 60);
+
   if p_quantity <= 0 then
     raise exception 'จำนวนไอเทมไม่ถูกต้อง';
   end if;

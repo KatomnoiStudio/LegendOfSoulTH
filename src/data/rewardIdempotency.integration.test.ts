@@ -47,7 +47,9 @@ describe('reward idempotency migration (isolated Postgres via PGLite)', () => {
     await applyMigration(db, '0008_progression_state.sql')
     await applyMigration(db, '0009_economy_integrity_fixes.sql')
     await applyMigration(db, '0010_coupon_dedup_index.sql')
-    await applyMigration(db, '0011_reward_idempotency.sql')
+    await applyMigration(db, '0011_rpc_rate_limit.sql')
+    await applyMigration(db, '0012_public_profile_lookup.sql')
+    await applyMigration(db, '0013_reward_idempotency.sql')
     await seedProfile(db)
   })
 
