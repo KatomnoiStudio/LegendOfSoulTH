@@ -14,12 +14,8 @@ import styles from './WorldChat.module.css'
 /**
  * ช่องแชทมุมซ้ายล่างของลอบบี้ — ผู้เล่นทุกคนเห็นและใช้ได้ ไม่จำกัดเฉพาะผู้ดูแล
  *
- * "แชทโลก" ทำงานจริง (เก็บ/อ่านผ่าน localStorage — ดูข้อจำกัดเรื่องไม่มี backend ใน
- * chatStorage.ts) ⚠️ scope จริงคือ "เห็นเฉพาะบัญชีที่เคย login เบราว์เซอร์เครื่องนี้เครื่องเดียว"
- * ไม่ใช่แชทข้ามเครื่องจริง — ตั้งใจบอกผู้เล่นตรง ๆ ผ่าน SCOPE_NOTE ด้านล่าง ไม่ใช่แค่ซ่อนไว้
- * ในคอมเมนต์เหมือนก่อนหน้านี้ (CoalBoard ask-CB retroactive pass, 2026-08-06: ป้าย
- * "แชทโลก" เดิมตั้งความหวังผิดว่าเป็นแชทจริงข้ามเครื่อง ผู้เล่นคนเดียวที่ login สองบัญชีบน
- * เครื่องเดียวกันจะเห็นข้อความเก่าของตัวเองโผล่มาเหมือนคนอื่นทัก — SCOPE_NOTE แก้ตรงนี้)
+ * "แชทโลก" เก็บข้อความส่วนกลางใน Supabase และรับข้อความใหม่ผ่าน Realtime ชื่อผู้ส่งกับ
+ * timestamp มาจาก session/profile ฝั่ง server ไม่เชื่อค่าที่ client ส่งมา
  * ส่วน "แชทส่วนตัว"/"แชทกิลด์" ยังเป็นแค่แท็บที่บอกว่าเร็ว ๆ นี้ เพราะเกมยังไม่มีระบบ
  * เพื่อน-แบบเรียลไทม์/กิลด์รองรับ
  *
@@ -33,13 +29,11 @@ import styles from './WorldChat.module.css'
  */
 
 /** ผู้เล่นเห็นบรรทัดนี้ตรง ๆ ทุกครั้งที่เปิดแท็บโลก — ไม่ใช่แค่ตอน feed ว่าง */
-const SCOPE_NOTE = 'แชทนี้เห็นเฉพาะบัญชีที่เคย login เบราว์เซอร์เครื่องนี้เครื่องเดียวเท่านั้น'
+const SCOPE_NOTE = 'แชทโลกส่วนกลาง — ผู้เล่นที่เข้าสู่ระบบเห็นข้อความร่วมกันทุกอุปกรณ์'
 
 type Tab = 'world' | 'private' | 'guild'
 
 interface WorldChatProps {
-  /** ชื่อที่จะแปะไว้หน้าข้อความ */
-  playerName: string
   /** ใช้คำสั่งลับได้ไหม (ดู supabase/migrations/0004_admin_accounts.sql) — ไม่มีผลต่อหน้าตา UI เลย */
   isAdmin: boolean
   /** มอบตัวละครให้บัญชีที่ล็อกอินอยู่ (ดู useAuth.grantCharacter) — เรียกเฉพาะตอน isAdmin */
@@ -69,7 +63,6 @@ const TABS: { id: Tab; label: string }[] = [
 let systemEntrySeq = 0
 
 export function WorldChat({
-  playerName,
   isAdmin,
   onGiveCharacter,
   onGiveGoldAdmin,
@@ -78,7 +71,7 @@ export function WorldChat({
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('world')
   const [value, setValue] = useState('')
-  const [messages, setMessages] = useState<ChatMessage[]>(() => loadWorldChat())
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   // ผลลัพธ์คำสั่งผู้ดูแล เห็นเฉพาะฝั่งตัวเอง ไม่ถูกเขียนลง storage ที่คนอื่นอ่านได้
   const [systemEntries, setSystemEntries] = useState<SystemEntry[]>([])
   // รายชื่อที่บล็อกไว้ — client-local เหมือนแชทเอง (ดู blockList.ts)
@@ -87,10 +80,22 @@ export function WorldChat({
   const inputRef = useRef<HTMLInputElement>(null)
   const feedEndRef = useRef<HTMLDivElement>(null)
 
-  // รับข้อความจากแท็บ/บัญชีอื่นบนเครื่องเดียวกันแบบเรียลไทม์ผ่าน BroadcastChannel (ดู
-  // chatStorage.ts) — ไม่ยิงในแท็บที่โพสต์เอง จึงต้องอัปเดต state ตรง ๆ ตอนโพสต์ข้อความ
-  // ของตัวเองด้วย ไม่ได้พึ่ง channel นี้อย่างเดียว
-  useEffect(() => subscribeToWorldChat(() => setMessages(loadWorldChat())), [])
+  useEffect(() => {
+    let active = true
+    const refresh = () => {
+      void loadWorldChat().then((nextMessages) => {
+        if (active) setMessages(nextMessages)
+        return undefined
+      })
+    }
+
+    refresh()
+    const unsubscribe = subscribeToWorldChat(refresh)
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [])
 
   useEffect(() => {
     if (open) inputRef.current?.focus()
@@ -203,13 +208,19 @@ export function WorldChat({
       )
     }
 
-    setMessages(await postWorldChatMessage(playerName, text))
+    setBusy(true)
+    try {
+      setMessages(await postWorldChatMessage(text))
+    } catch {
+      pushSystemEntry('ส่งข้อความไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', 'error')
+    } finally {
+      setBusy(false)
+    }
   }, [
     isAdmin,
     onGiveCharacter,
     onGiveGoldAdmin,
     onGiveItemAdmin,
-    playerName,
     pushSystemEntry,
     blockedNames,
     value,

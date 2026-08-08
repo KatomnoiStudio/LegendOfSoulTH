@@ -83,66 +83,14 @@ export interface AttackDefinition {
 }
 
 /**
- * คอมโบสามไม้ของผู้เล่น (§14)
- *
- * ไม้ที่สามแรงและกระเด็นไกลกว่าสองไม้แรกชัดเจน เพื่อให้การต่อคอมโบจนจบมีรางวัลจริง
- * ไม่ใช่แค่ตีเร็วขึ้น และ recovery ของไม้สามยาวกว่าเพื่อไม่ให้วนคอมโบไม่รู้จบ
+ * คอมโบสามไม้ — ย้ายไป heroes/attackChains.ts (per-hero chains, P10)
+ * คง re-export ไว้เพื่อ backward compat กับเทสต์/โมดูลเดิม
  */
-export const PLAYER_ATTACK_CHAIN: AttackDefinition[] = [
-  {
-    id: 'monkey-attack-1',
-    animationId: 'attack-1',
-    startupMs: 110,
-    activeMs: 90,
-    recoveryMs: 180,
-    comboWindowStartMs: 110,
-    comboWindowEndMs: 700,
-    damageMultiplier: 1,
-    range: 120,
-    hitShape: 'horizontal',
-    arcDegrees: 0,
-    depthTolerance: 95,
-    knockback: 60,
-    hitstunMs: 200,
-    lungeDistance: 32,
-  },
-  {
-    id: 'monkey-attack-2',
-    animationId: 'attack-2',
-    startupMs: 100,
-    activeMs: 90,
-    recoveryMs: 190,
-    comboWindowStartMs: 100,
-    comboWindowEndMs: 700,
-    damageMultiplier: 1.15,
-    range: 128,
-    hitShape: 'horizontal',
-    arcDegrees: 0,
-    depthTolerance: 100,
-    knockback: 80,
-    lungeDistance: 36,
-  },
-  {
-    id: 'monkey-attack-3',
-    animationId: 'attack-3',
-    startupMs: 150,
-    activeMs: 120,
-    recoveryMs: 320,
-    // ไม้สุดท้ายไม่มีหน้าต่างต่อคอมโบ — จบคอมโบแล้วต้องเริ่มใหม่
-    comboWindowStartMs: 0,
-    comboWindowEndMs: 0,
-    damageMultiplier: 1.55,
-    range: 150,
-    hitShape: 'horizontal',
-    arcDegrees: 0,
-    depthTolerance: 105,
-    knockback: 210,
-    // ไม้จบคอมโบ = combo finisher ตาม §3.6.12 (knockdown เฉพาะเป้าหมาย elite/boss เท่านั้น)
-    knockdown: true,
-    hitstunMs: 200,
-    lungeDistance: 44,
-  },
-]
+export {
+  getPlayerAttackChain,
+  PLAYER_ATTACK_CHAIN,
+  HERO_ATTACK_CHAINS,
+} from '../heroes/attackChains'
 
 /**
  * ค่าจังหวะของระบบคอมโบ — อยู่ที่เดียว ห้าม hard-code กระจายหลายไฟล์ (§14)

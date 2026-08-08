@@ -10,6 +10,19 @@ import type {
 import type { Player } from '../../types/player'
 import { EMPTY_PROGRESS } from '../../types/player'
 
+const chatBackend = vi.hoisted(() => ({
+  messages: [] as { id: string; authorName: string; text: string; createdAt: string }[],
+  load: vi.fn(),
+  post: vi.fn(),
+  subscribe: vi.fn(),
+}))
+
+vi.mock('./chatStorage', () => ({
+  loadWorldChat: chatBackend.load,
+  postWorldChatMessage: chatBackend.post,
+  subscribeToWorldChat: chatBackend.subscribe,
+}))
+
 /*
   254 บรรทัด รวมคำสั่งลับผู้ดูแล (/givecharacter, /givegold, /giveitem) ที่ตั้งใจไม่ใบ้อะไร
   ใน UI เลย และคำสั่งสาธารณะ (/block, /unblock, /blocklist) ที่ตั้งใจใบ้ได้ปกติ — ถ้า
@@ -19,9 +32,20 @@ import { EMPTY_PROGRESS } from '../../types/player'
 */
 
 beforeEach(() => {
-  // ข้อความแชท/บล็อกลิสต์เก็บจริงใน localStorage (chatStorage.ts/blockList.ts) — ล้างกัน
-  // เทสต์ก่อนหน้ากระทบกัน
+  // block list ยังเป็น preference เฉพาะเครื่อง ส่วนข้อความ mock แหล่งข้อมูล Supabase แยกด้านบน
   localStorage.clear()
+  chatBackend.messages = []
+  chatBackend.load.mockImplementation(async () => [...chatBackend.messages])
+  chatBackend.post.mockImplementation(async (text: string) => {
+    chatBackend.messages.push({
+      id: `message-${chatBackend.messages.length + 1}`,
+      authorName: 'นักเดินทาง',
+      text,
+      createdAt: new Date().toISOString(),
+    })
+    return [...chatBackend.messages]
+  })
+  chatBackend.subscribe.mockReturnValue(() => {})
   // jsdom ไม่มี scrollIntoView จริง — component เรียกทุกครั้งที่ฟีดอัปเดต (ดู WorldChat.tsx)
   Element.prototype.scrollIntoView = vi.fn()
 })
@@ -62,7 +86,6 @@ function itemOk(): ItemResult {
 function renderChat(overrides: Partial<Parameters<typeof WorldChat>[0]> = {}) {
   return render(
     <WorldChat
-      playerName="นักเดินทาง"
       isAdmin={false}
       onGiveCharacter={vi.fn()}
       onGiveGoldAdmin={vi.fn()}
@@ -130,7 +153,7 @@ describe('WorldChat', () => {
   test('ผู้ดูแลพิมพ์ /givecharacter ตัวละครที่รู้จัก — เรียก onGiveCharacter และแสดงผลลัพธ์เฉพาะฝั่งตัวเอง ไม่โพสต์เข้าแชท', async () => {
     const user = userEvent.setup()
     const onGiveCharacter = vi.fn().mockResolvedValue(grantOk('pig-warrior'))
-    renderChat({ playerName: 'ผู้ดูแล', isAdmin: true, onGiveCharacter })
+    renderChat({ isAdmin: true, onGiveCharacter })
 
     await user.click(screen.getByRole('button', { name: 'เปิดช่องแชท' }))
     await user.type(screen.getByPlaceholderText('พิมพ์ข้อความ...'), '/givecharacter pig-warrior')
@@ -145,7 +168,7 @@ describe('WorldChat', () => {
   test('ผู้ดูแลพิมพ์ /givegold — เรียก onGiveGoldAdmin ด้วยจำนวนที่ถูกต้อง', async () => {
     const user = userEvent.setup()
     const onGiveGoldAdmin = vi.fn().mockResolvedValue(currencyOk())
-    renderChat({ playerName: 'ผู้ดูแล', isAdmin: true, onGiveGoldAdmin })
+    renderChat({ isAdmin: true, onGiveGoldAdmin })
 
     await user.click(screen.getByRole('button', { name: 'เปิดช่องแชท' }))
     await user.type(screen.getByPlaceholderText('พิมพ์ข้อความ...'), '/givegold 500')
@@ -171,7 +194,7 @@ describe('WorldChat', () => {
   test('ผู้ดูแลพิมพ์ /giveitem — เรียก onGiveItemAdmin ด้วย item_id และจำนวนที่ถูกต้อง', async () => {
     const user = userEvent.setup()
     const onGiveItemAdmin = vi.fn().mockResolvedValue(itemOk())
-    renderChat({ playerName: 'ผู้ดูแล', isAdmin: true, onGiveItemAdmin })
+    renderChat({ isAdmin: true, onGiveItemAdmin })
 
     await user.click(screen.getByRole('button', { name: 'เปิดช่องแชท' }))
     await user.type(screen.getByPlaceholderText('พิมพ์ข้อความ...'), '/giveitem spirit-incense 5')
@@ -198,13 +221,9 @@ describe('WorldChat', () => {
 
   test('บล็อกแล้วข้อความจากชื่อนั้นหายจากฟีดทันที (แม้เป็นข้อความเก่าที่มีอยู่แล้ว)', async () => {
     const user = userEvent.setup()
-    // ฝังข้อความเก่าจาก "ตัวป่วน" ไว้ล่วงหน้าใน localStorage เหมือนมันเคยทักมาก่อนเราเปิดแชท
-    localStorage.setItem(
-      'los:worldchat:v1',
-      JSON.stringify([
-        { id: '1', authorName: 'ตัวป่วน', text: 'สแปม', createdAt: '2026-01-01T00:00:00.000Z' },
-      ]),
-    )
+    chatBackend.messages = [
+      { id: '1', authorName: 'ตัวป่วน', text: 'สแปม', createdAt: '2026-01-01T00:00:00.000Z' },
+    ]
     renderChat()
 
     await user.click(screen.getByRole('button', { name: 'เปิดช่องแชท' }))

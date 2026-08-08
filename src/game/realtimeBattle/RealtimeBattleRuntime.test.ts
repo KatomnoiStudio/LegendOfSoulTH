@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MONKEY_SPINNING_STAFF } from './attacks'
+import { MONKEY_SPINNING_STAFF, PLAYER_ATTACK_CHAIN } from './attacks'
 import { createRealtimeBattle, createWaveEnemies } from './createRealtimeBattle'
 import { RealtimeBattleRuntime } from './RealtimeBattleRuntime'
 import { getRealtimeStage } from './stageConfig'
@@ -256,8 +256,53 @@ describe('RealtimeBattleRuntime', () => {
     expect(state.damageDealt).toBeGreaterThan(0)
     expect(enemy.hp).toBeLessThan(hpBefore)
   })
-})
 
+  it('basic attack ใช้ทิศที่ผู้เล่นหันอยู่ ไม่ auto-face หาศัตรู', () => {
+    const runtime = makeRuntime()
+    runtime.step(1000)
+    const state = runtime.getState()
+
+    state.player.combatFacing = 'left'
+    state.player.facing = 'left'
+    state.enemies[0].position = {
+      x: state.player.position.x + 80,
+      y: state.player.position.y,
+    }
+
+    runtime.requestAttack()
+    runtime.step(16)
+
+    expect(state.player.combatFacing).toBe('left')
+    expect(state.player.facing).toBe('left')
+  })
+
+  it('เดินพร้อม basic attack ได้ช่วง startup/recovery แต่ล็อกเฉพาะ active-hit window', () => {
+    const runtime = makeRuntime()
+    runtime.step(1000)
+    const state = runtime.getState()
+    const firstAttack = PLAYER_ATTACK_CHAIN[0]
+
+    runtime.setMoveInput({ x: 1, y: 0 })
+    const beforeStartup = state.player.position.x
+    runtime.requestAttack()
+    runtime.step(16)
+    expect(state.player.position.x).toBeGreaterThan(beforeStartup)
+
+    runtime.setMoveInput({ x: 0, y: 0 })
+    runtime.step(firstAttack.startupMs - 16)
+    const atActiveStart = state.player.position.x
+    runtime.setMoveInput({ x: 1, y: 0 })
+    runtime.step(16)
+    expect(state.player.position.x).toBe(atActiveStart)
+
+    runtime.setMoveInput({ x: 0, y: 0 })
+    runtime.step(firstAttack.activeMs)
+    const atRecovery = state.player.position.x
+    runtime.setMoveInput({ x: 1, y: 0 })
+    runtime.step(16)
+    expect(state.player.position.x).toBeGreaterThan(atRecovery)
+  })
+})
 
 describe('movementDuringCast runtime consumer', () => {
   function runtimeForMovementTest(): RealtimeBattleRuntime {

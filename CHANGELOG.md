@@ -5,11 +5,26 @@
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-08-09
+
+### Added
+
+- **P10 Production Batch 01** — 5 playable archetypes proving the hero pipeline before scaling to 10 → 20 → 50:
+  - Fighter: `monkey-king` (existing production art)
+  - Heavy: `pig-warrior` (new kit + combo)
+  - Ranged: `celestial-archer` (จือหลาง — placeholder sprites)
+  - Control: `nezha-warden` (นาจา — CC without knockdown)
+  - Summoner: `sand-sage` (ชาหวู่จิง — summon + heal effects)
+- Per-hero attack chains (`src/game/heroes/attackChains.ts`), skill kits (`src/game/heroes/kits/`), finisher table, gacha pool skeleton, star scaling table
+- Runtime wiring for skill `effects[]` (heal/buff/cc/summon), ally summon AI, and CC control lock
+- Art handoff doc: `docs/hero-production/PRODUCTION_BATCH_01.md`
+
 ## [0.12.5] - 2026-08-08
 
 ### Fixed
 
 - ปุ่ม **ต่อสู้** ในล็อบบี้แสดงหน้า **เลือกด่าน** ได้เสมอ — กู้รางวัลค้างจากรอบก่อนไม่ปิด overlay ทันทีอีกต่อไป
+- ปุ่ม **เริ่มการผจญภัย** (ราหู) เปิดหน้าเลือกด่านเดียวกัน — ไม่เข้า DungeonSession ตรงอีกต่อไป
 - StageSelect ใช้ z-index ระดับ scene overlay และ mount หลัง WukongAdventure เพื่อไม่ให้ฉากเดินทับ modal
 
 ## [0.12.4] - 2026-08-08
