@@ -1,0 +1,69 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import { CharacterPreview } from './CharacterPreview'
+import { ROSTER } from '../../game/characters'
+
+/*
+  ล็อกบั๊กจริงที่เจอวันที่แก้ไฟล์นี้ (2026-08-08):
+  1. auto-rotate ต้องหยุดทันทีเมื่อผู้เล่นเริ่มลาก — เดิม useEffect ไม่มี autoRotating ใน
+     deps จึงไม่ re-run ไป cleanup rAF loop เดิม (หมุนทับกับที่ผู้เล่นลากเอง, ขัด WCAG 2.2.2)
+  2. window.matchMedia ไม่มีในบางสภาพแวดล้อม (jsdom, เบราว์เซอร์เก่า) — เรียกตรง ๆ ทำ mount พังทั้งกล่อง
+*/
+
+function mockMatchMedia(reducedMotion: boolean) {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: query.includes('prefers-reduced-motion') && reducedMotion,
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  })) as unknown as typeof window.matchMedia
+}
+
+const character = ROSTER[0]
+
+describe('CharacterPreview', () => {
+  beforeEach(() => {
+    mockMatchMedia(false)
+  })
+
+  afterEach(() => {
+    // @ts-expect-error -- คืนเป็น undefined เหมือนสภาพ jsdom ปกติ ไม่ให้เทสต์อื่นเห็น mock ค้าง
+    delete window.matchMedia
+  })
+
+  test('mount ได้ไม่พัง แม้ window.matchMedia ไม่มีอยู่จริง (จำลองสภาพ jsdom/เบราว์เซอร์เก่า)', () => {
+    // @ts-expect-error -- จำลองสภาพแวดล้อมที่ไม่มี matchMedia เลย
+    delete window.matchMedia
+
+    expect(() => render(<CharacterPreview character={character} />)).not.toThrow()
+    expect(screen.getByRole('slider')).toBeInTheDocument()
+  })
+
+  test('prefers-reduced-motion เปิดอยู่ — ไม่หมุนอัตโนมัติเลย (มุมเริ่มต้นค้างที่ 0)', () => {
+    mockMatchMedia(true)
+    render(<CharacterPreview character={character} />)
+
+    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '0')
+  })
+
+  test('ลากเริ่มต้น (pointerdown) ต้องหยุด auto-rotate ทันที ไม่ทับกับมุมที่ผู้เล่นลากเอง', () => {
+    render(<CharacterPreview character={character} />)
+    const slider = screen.getByRole('slider')
+
+    slider.setPointerCapture = vi.fn()
+    slider.dispatchEvent(
+      new PointerEvent('pointerdown', { pointerId: 1, clientX: 100, bubbles: true }),
+    )
+
+    const angleAfterPointerDown = Number(slider.getAttribute('aria-valuenow'))
+
+    // ปล่อยเวลาผ่านไปเท่ากับ AUTO_ROTATE_MS เต็ม ๆ — ถ้าบั๊กเดิมกลับมา มุมจะขยับต่อเองจน
+    // ใกล้ 360 แม้ไม่มี pointermove เพิ่ม เพราะ rAF loop เดิมยังไม่ถูกยกเลิก
+    return new Promise((resolve) => {
+      window.setTimeout(() => {
+        expect(Number(slider.getAttribute('aria-valuenow'))).toBe(angleAfterPointerDown)
+        resolve(undefined)
+      }, 400)
+    })
+  })
+})
