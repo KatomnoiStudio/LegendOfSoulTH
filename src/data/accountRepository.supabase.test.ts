@@ -127,14 +127,9 @@ type QueryResult = { data: unknown; error: unknown }
   งานได้จริงจึงมาจาก Promise.prototype ตรง ๆ ไม่ใช่ของปลอม
 */
 
-/** ผลลัพธ์ทั้ง await ตรง ๆ (`await supabase.rpc(...)`) และ chain ต่อ `.maybeSingle()` ได้ */
+/** ผลลัพธ์ของ `await supabase.rpc(...)` ตรง ๆ — ไม่มี RPC wrapper ไหน chain ต่อ `.maybeSingle()` แล้ว */
 function rpcResult(data: unknown, error: { message: string } | null = null) {
-  const result: QueryResult = { data, error }
-  const promise = Promise.resolve(result) as Promise<QueryResult> & {
-    maybeSingle: () => Promise<QueryResult>
-  }
-  promise.maybeSingle = () => Promise.resolve(result)
-  return promise
+  return Promise.resolve({ data, error } as QueryResult)
 }
 
 /** chain แบบ query builder ของ Supabase (`.select().eq().maybeSingle()` ฯลฯ) — resolve ค่าเดียวกันทุกจุดจบ */
