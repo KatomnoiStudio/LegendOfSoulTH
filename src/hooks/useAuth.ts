@@ -67,6 +67,10 @@ export interface AuthState {
   isAdmin: boolean
   /** มอบตัวละครให้บัญชีนี้ — ตอนนี้เรียกจากช่องคำสั่งผู้ดูแลเท่านั้น */
   grantCharacter: (characterId: string) => Promise<CharacterGrantResult>
+  /** เสกทองให้บัญชีนี้ (ผู้ดูแลเท่านั้น) — ดู accountRepository.grantGoldAdmin */
+  grantGoldAdmin: (amount: number) => Promise<CurrencyResult>
+  /** เสกไอเทมให้บัญชีนี้ (ผู้ดูแลเท่านั้น) — ดู accountRepository.grantItemAdmin */
+  grantItemAdmin: (itemId: string, quantity: number) => Promise<ItemResult>
   /** ให้ไอเทมจากการเล่น (ดรอป/เควส) — ดู accountRepository.grantItem */
   grantItem: (
     itemId: string,
@@ -273,6 +277,26 @@ export function useAuth(): AuthState {
     [player],
   )
 
+  const grantGoldAdmin = useCallback(
+    async (amount: number) => {
+      if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
+      const result = await accounts.grantGoldAdmin(amount)
+      if (result.ok) setPlayer(result.player)
+      return result
+    },
+    [player],
+  )
+
+  const grantItemAdmin = useCallback(
+    async (itemId: string, quantity: number) => {
+      if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
+      const result = await accounts.grantItemAdmin(itemId, quantity)
+      if (result.ok) setPlayer(result.player)
+      return result
+    },
+    [player],
+  )
+
   const grantItem = useCallback(
     async (itemId: string, quantity: number, source: ItemSource, refId?: string) => {
       if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
@@ -336,6 +360,8 @@ export function useAuth(): AuthState {
     findFriendByUid,
     isAdmin,
     grantCharacter,
+    grantGoldAdmin,
+    grantItemAdmin,
     grantItem,
     commitLobbyBattleProgression,
     upsertPendingLobbyReward,

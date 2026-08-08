@@ -1,20 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getCharacter } from '../../game/characters'
-import type { CharacterGrantResult } from '../../data/accountRepository.shared'
-import { COMMAND_HELP, resolveCommandForSender } from './commands'
+import type {
+  CharacterGrantResult,
+  CurrencyResult,
+  ItemResult,
+} from '../../data/accountRepository.shared'
+import { ADMIN_COMMAND_HELP, COMMAND_HELP, resolveCommandForSender } from './commands'
 import { loadWorldChat, postWorldChatMessage, subscribeToWorldChat } from './chatStorage'
 import type { ChatMessage } from './chatStorage'
+import { blockName, loadBlockedNames, unblockName } from './blockList'
 import styles from './WorldChat.module.css'
 
 /**
  * ช่องแชทมุมซ้ายล่างของลอบบี้ — ผู้เล่นทุกคนเห็นและใช้ได้ ไม่จำกัดเฉพาะผู้ดูแล
  *
- * "แชทโลก" ทำงานจริง (เก็บ/อ่านผ่าน localStorage — ดูข้อจำกัดเรื่องไม่มี backend ใน
- * chatStorage.ts) ⚠️ scope จริงคือ "เห็นเฉพาะบัญชีที่เคย login เบราว์เซอร์เครื่องนี้เครื่องเดียว"
- * ไม่ใช่แชทข้ามเครื่องจริง — ตั้งใจบอกผู้เล่นตรง ๆ ผ่าน SCOPE_NOTE ด้านล่าง ไม่ใช่แค่ซ่อนไว้
- * ในคอมเมนต์เหมือนก่อนหน้านี้ (CoalBoard ask-CB retroactive pass, 2026-08-06: ป้าย
- * "แชทโลก" เดิมตั้งความหวังผิดว่าเป็นแชทจริงข้ามเครื่อง ผู้เล่นคนเดียวที่ login สองบัญชีบน
- * เครื่องเดียวกันจะเห็นข้อความเก่าของตัวเองโผล่มาเหมือนคนอื่นทัก — SCOPE_NOTE แก้ตรงนี้)
+ * "แชทโลก" เก็บข้อความส่วนกลางใน Supabase และรับข้อความใหม่ผ่าน Realtime ชื่อผู้ส่งกับ
+ * timestamp มาจาก session/profile ฝั่ง server ไม่เชื่อค่าที่ client ส่งมา
  * ส่วน "แชทส่วนตัว"/"แชทกิลด์" ยังเป็นแค่แท็บที่บอกว่าเร็ว ๆ นี้ เพราะเกมยังไม่มีระบบ
  * เพื่อน-แบบเรียลไทม์/กิลด์รองรับ
  *
@@ -28,17 +29,19 @@ import styles from './WorldChat.module.css'
  */
 
 /** ผู้เล่นเห็นบรรทัดนี้ตรง ๆ ทุกครั้งที่เปิดแท็บโลก — ไม่ใช่แค่ตอน feed ว่าง */
-const SCOPE_NOTE = 'แชทนี้เห็นเฉพาะบัญชีที่เคย login เบราว์เซอร์เครื่องนี้เครื่องเดียวเท่านั้น'
+const SCOPE_NOTE = 'แชทโลกส่วนกลาง — ผู้เล่นที่เข้าสู่ระบบเห็นข้อความร่วมกันทุกอุปกรณ์'
 
 type Tab = 'world' | 'private' | 'guild'
 
 interface WorldChatProps {
-  /** ชื่อที่จะแปะไว้หน้าข้อความ */
-  playerName: string
   /** ใช้คำสั่งลับได้ไหม (ดู supabase/migrations/0004_admin_accounts.sql) — ไม่มีผลต่อหน้าตา UI เลย */
   isAdmin: boolean
   /** มอบตัวละครให้บัญชีที่ล็อกอินอยู่ (ดู useAuth.grantCharacter) — เรียกเฉพาะตอน isAdmin */
   onGiveCharacter: (characterId: string) => Promise<CharacterGrantResult>
+  /** เสกทองให้บัญชีที่ล็อกอินอยู่ (ดู useAuth.grantGoldAdmin) — เรียกเฉพาะตอน isAdmin */
+  onGiveGoldAdmin: (amount: number) => Promise<CurrencyResult>
+  /** เสกไอเทมให้บัญชีที่ล็อกอินอยู่ (ดู useAuth.grantItemAdmin) — เรียกเฉพาะตอน isAdmin */
+  onGiveItemAdmin: (itemId: string, quantity: number) => Promise<ItemResult>
 }
 
 interface SystemEntry {
@@ -59,32 +62,53 @@ const TABS: { id: Tab; label: string }[] = [
 
 let systemEntrySeq = 0
 
-export function WorldChat({ playerName, isAdmin, onGiveCharacter }: WorldChatProps) {
+export function WorldChat({
+  isAdmin,
+  onGiveCharacter,
+  onGiveGoldAdmin,
+  onGiveItemAdmin,
+}: WorldChatProps) {
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('world')
   const [value, setValue] = useState('')
-  const [messages, setMessages] = useState<ChatMessage[]>(() => loadWorldChat())
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   // ผลลัพธ์คำสั่งผู้ดูแล เห็นเฉพาะฝั่งตัวเอง ไม่ถูกเขียนลง storage ที่คนอื่นอ่านได้
   const [systemEntries, setSystemEntries] = useState<SystemEntry[]>([])
+  // รายชื่อที่บล็อกไว้ — client-local เหมือนแชทเอง (ดู blockList.ts)
+  const [blockedNames, setBlockedNames] = useState<string[]>(() => loadBlockedNames())
   const [busy, setBusy] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const feedEndRef = useRef<HTMLDivElement>(null)
 
-  // รับข้อความจากแท็บ/บัญชีอื่นบนเครื่องเดียวกันแบบเรียลไทม์ผ่าน BroadcastChannel (ดู
-  // chatStorage.ts) — ไม่ยิงในแท็บที่โพสต์เอง จึงต้องอัปเดต state ตรง ๆ ตอนโพสต์ข้อความ
-  // ของตัวเองด้วย ไม่ได้พึ่ง channel นี้อย่างเดียว
-  useEffect(() => subscribeToWorldChat(() => setMessages(loadWorldChat())), [])
+  useEffect(() => {
+    let active = true
+    const refresh = () => {
+      void loadWorldChat().then((nextMessages) => {
+        if (active) setMessages(nextMessages)
+        return undefined
+      })
+    }
+
+    refresh()
+    const unsubscribe = subscribeToWorldChat(refresh)
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [])
 
   useEffect(() => {
     if (open) inputRef.current?.focus()
   }, [open, tab])
 
   const feed = useMemo<FeedEntry[]>(() => {
-    const chatEntries: FeedEntry[] = messages.map((message) => ({ ...message, kind: 'message' }))
+    const chatEntries: FeedEntry[] = messages
+      .filter((message) => !blockedNames.includes(message.authorName))
+      .map((message) => ({ ...message, kind: 'message' }))
     return [...chatEntries, ...systemEntries].toSorted((a, b) =>
       a.createdAt.localeCompare(b.createdAt),
     )
-  }, [messages, systemEntries])
+  }, [messages, systemEntries, blockedNames])
 
   // เลื่อนลงล่างสุดเสมอเมื่อมีข้อความใหม่หรือเพิ่งเปิดแท็บโลก
   useEffect(() => {
@@ -118,20 +142,54 @@ export function WorldChat({ playerName, isAdmin, onGiveCharacter }: WorldChatPro
     if (parsed) {
       if (parsed.kind === 'help') {
         for (const line of COMMAND_HELP) pushSystemEntry(line, 'ok')
+        if (isAdmin) for (const line of ADMIN_COMMAND_HELP) pushSystemEntry(line, 'ok')
         return
       }
       if (parsed.kind === 'error') {
         pushSystemEntry(parsed.message, 'error')
         return
       }
+      if (parsed.kind === 'block') {
+        setBlockedNames(blockName(parsed.name))
+        pushSystemEntry(`บล็อก "${parsed.name}" แล้ว — ไม่แสดงข้อความจากชื่อนี้อีก`, 'ok')
+        return
+      }
+      if (parsed.kind === 'unblock') {
+        setBlockedNames(unblockName(parsed.name))
+        pushSystemEntry(`เลิกบล็อก "${parsed.name}" แล้ว`, 'ok')
+        return
+      }
+      if (parsed.kind === 'blocklist') {
+        pushSystemEntry(
+          blockedNames.length === 0
+            ? 'ยังไม่ได้บล็อกใครไว้'
+            : `บล็อกไว้: ${blockedNames.join(', ')}`,
+          'ok',
+        )
+        return
+      }
       setBusy(true)
       try {
-        const result = await onGiveCharacter(parsed.characterId)
-        if (result.ok) {
-          const character = getCharacter(result.characterId)
-          pushSystemEntry(`ได้รับ ${character?.name ?? result.characterId} แล้ว`, 'ok')
-        } else {
-          pushSystemEntry(result.error, 'error')
+        if (parsed.kind === 'give-character') {
+          const result = await onGiveCharacter(parsed.characterId)
+          if (result.ok) {
+            const character = getCharacter(result.characterId)
+            pushSystemEntry(`ได้รับ ${character?.name ?? result.characterId} แล้ว`, 'ok')
+          } else {
+            pushSystemEntry(result.error, 'error')
+          }
+        } else if (parsed.kind === 'give-gold') {
+          const result = await onGiveGoldAdmin(parsed.amount)
+          pushSystemEntry(
+            result.ok ? `เสกทอง ${parsed.amount} แล้ว` : result.error,
+            result.ok ? 'ok' : 'error',
+          )
+        } else if (parsed.kind === 'give-item') {
+          const result = await onGiveItemAdmin(parsed.itemId, parsed.quantity)
+          pushSystemEntry(
+            result.ok ? `เสก ${parsed.itemId} x${parsed.quantity} แล้ว` : result.error,
+            result.ok ? 'ok' : 'error',
+          )
         }
       } finally {
         setBusy(false)
@@ -150,8 +208,23 @@ export function WorldChat({ playerName, isAdmin, onGiveCharacter }: WorldChatPro
       )
     }
 
-    setMessages(await postWorldChatMessage(playerName, text))
-  }, [isAdmin, onGiveCharacter, playerName, pushSystemEntry, value])
+    setBusy(true)
+    try {
+      setMessages(await postWorldChatMessage(text))
+    } catch {
+      pushSystemEntry('ส่งข้อความไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }, [
+    isAdmin,
+    onGiveCharacter,
+    onGiveGoldAdmin,
+    onGiveItemAdmin,
+    pushSystemEntry,
+    blockedNames,
+    value,
+  ])
 
   if (!open) {
     return (

@@ -72,6 +72,10 @@ interface LobbyPageProps {
   isAdmin: boolean
   /** มอบตัวละครให้บัญชีนี้ — เรียกจากคำสั่งลับในแชท (ดู WorldChat.tsx) */
   onGiveCharacter: (characterId: string) => Promise<CharacterGrantResult>
+  /** เสกทองให้บัญชีนี้ — เรียกจากคำสั่งลับในแชท (ผู้ดูแลเท่านั้น) */
+  onGiveGoldAdmin: (amount: number) => Promise<CurrencyResult>
+  /** เสกไอเทมให้บัญชีนี้ — เรียกจากคำสั่งลับในแชท (ผู้ดูแลเท่านั้น) */
+  onGiveItemAdmin: (itemId: string, quantity: number) => Promise<ItemResult>
   /** ส่งออก save เป็นไฟล์ JSON — คืน null เมื่อสำเร็จ (ดาวน์โหลดแล้ว) คืนข้อความเมื่อผิดพลาด */
   onExportSave: () => Promise<string | null>
   /** บัญชีนี้เชื่อมกับ Google ไว้แล้วหรือยัง — โชว์ใน SettingsModal */
@@ -98,6 +102,8 @@ export function LobbyPage({
   onFindFriend,
   isAdmin,
   onGiveCharacter,
+  onGiveGoldAdmin,
+  onGiveItemAdmin,
   onExportSave,
   hasGoogleLinked,
   onLinkGoogleAccount,
@@ -218,7 +224,12 @@ export function LobbyPage({
         เดิม (ซึ่งอีกเครื่องเพิ่งใส่ import.meta.env.DEV gate ไว้พร้อมกัน — ไม่ต้องแล้วเพราะ
         component เปลี่ยนชื่อ/พฤติกรรมไปคนละแบบ ไม่ใช่คอนโซลลับอีกต่อไป)
       */}
-      <WorldChat playerName={player.name} isAdmin={isAdmin} onGiveCharacter={onGiveCharacter} />
+      <WorldChat
+        isAdmin={isAdmin}
+        onGiveCharacter={onGiveCharacter}
+        onGiveGoldAdmin={onGiveGoldAdmin}
+        onGiveItemAdmin={onGiveItemAdmin}
+      />
 
       {/*
         เดินชมจันทร์เปิดอยู่ตลอดเวลาที่อยู่ในลอบบี้ ไม่ต้องกดปุ่มเปิดจากโปรไฟล์อีกต่อไป

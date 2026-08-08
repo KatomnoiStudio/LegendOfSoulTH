@@ -608,6 +608,31 @@ export async function grantCharacter(
   return { ok: true, player, characterId }
 }
 
+/**
+ * เสกทองให้บัญชีผู้ดูแลเอง (self-target เหมือน grantCharacter) — ผ่าน RPC แยกจาก earnGold
+ * โดยตั้งใจ (0015_admin_grant_and_chat_block.sql): เพดานสูงกว่า earnGold's 1000/ครั้งมาก
+ * (สำหรับ dev/testing) แต่ยังเช็คสิทธิ์ admin_accounts เหมือน grantCharacter ทุกประการ
+ */
+export async function grantGoldAdmin(amount: number): Promise<CurrencyResult> {
+  const { data, error } = await supabase.rpc('grant_gold_admin', { p_amount: amount })
+  if (error || !data) return { ok: false, error: error?.message ?? 'บันทึกข้อมูลไม่สำเร็จ' }
+  const player = await loadPlayer(data.id)
+  if (!player) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
+  return { ok: true, player, amount }
+}
+
+/** เสกไอเทมให้บัญชีผู้ดูแลเอง — เดียวกับ grantGoldAdmin แต่สำหรับไอเทม */
+export async function grantItemAdmin(itemId: string, quantity: number): Promise<ItemResult> {
+  const { data, error } = await supabase.rpc('grant_item_admin', {
+    p_item_id: itemId,
+    p_quantity: quantity,
+  })
+  if (error || !data) return { ok: false, error: error?.message ?? 'บันทึกข้อมูลไม่สำเร็จ' }
+  const player = await loadPlayer(data.id)
+  if (!player) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
+  return { ok: true, player }
+}
+
 /** exportSave: ยังไม่มีความหมายเดิมกับ Supabase (ไม่มี localStorage ให้ย้ายออก) */
 export async function exportSave(): Promise<
   { ok: true; json: string } | { ok: false; error: string }
