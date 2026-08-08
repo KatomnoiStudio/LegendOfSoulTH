@@ -120,6 +120,15 @@ export function DungeonSession({
     )
   }
 
+  // Cleared runs dispose the battle runtime — must not treat null runtime as "still loading".
+  if (phase === 'complete' && resultViewModel) {
+    return (
+      <div className={styles.scene}>
+        <DungeonResultPanel viewModel={resultViewModel} onContinue={handleContinue} />
+      </div>
+    )
+  }
+
   if (phase === 'loading' || !runtime || !snapshot) {
     return LOADING
   }

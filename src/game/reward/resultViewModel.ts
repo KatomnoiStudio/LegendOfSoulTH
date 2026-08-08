@@ -58,7 +58,7 @@ export function buildResultViewModel(
   result: DungeonResult,
   dungeon: DungeonDefinition,
   resolved: ResolvedReward | null,
-  grantSuccess: boolean,
+  _grantSuccess: boolean,
   nonProductionBalance: boolean,
 ): ResultViewModel {
   const stagesCleared = result.stageResults.filter((s) => s.success).length
@@ -85,7 +85,8 @@ export function buildResultViewModel(
     failureLabel: result.failureReason
       ? (FAILURE_LABELS[result.failureReason] ?? result.failureReason)
       : undefined,
-    canContinue: grantSuccess || !result.success,
+    // Continue is always enabled on the result screen — grants run on click (DungeonSession.handleContinue).
+    canContinue: true,
     nonProductionBalance,
   }
 }
