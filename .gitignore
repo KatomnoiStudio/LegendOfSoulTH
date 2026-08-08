@@ -28,6 +28,7 @@ scripts/
 
 # Per-machine/per-editor local tool config — not project config, each dev's own setup
 .claude/launch.json
+.claude/settings.local.json
 
 # Working-directory concurrency lock — machine-local, never shared (.agents/rules/workdir-concurrency-lock-law.md)
 .agents/workdir.lock
