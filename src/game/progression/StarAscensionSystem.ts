@@ -1,12 +1,17 @@
 import type { Character, CharacterStats } from '../characters'
 import type { OwnedCharacter } from '../../types/player'
+import {
+  MAX_STAR_TIER,
+  STAR_MULTIPLIERS,
+  statsAtStar as applyStarMultiplier,
+} from '../heroes/starScaling'
 
 /**
  * ระดับดาวขั้นต่ำและสูงสุด (★1 – ★6)
  * ล็อกตาม Master Blueprint §4.3 (ช่องว่างสเตตัสสูงสุดไม่เกิน 130% เทียบ ★6 กับ ★1)
  */
 export const MIN_STAR = 1
-export const MAX_STAR = 6
+export const MAX_STAR = MAX_STAR_TIER
 
 export interface StarTierConfig {
   /** จำนวนตัวซ้ำ/ชิ้นส่วนที่ต้องใช้เพื่อเลื่อนจากระดับก่อนหน้ามายังระดับนี้ */
@@ -20,12 +25,12 @@ export interface StarTierConfig {
  * ออกแบบเป็น plain data table ตาม Master Blueprint §4.3 และ Low-maintenance-cost design
  */
 export const STAR_ASCENSION_TABLE: Record<number, StarTierConfig> = {
-  1: { duplicatesRequired: 0, statMultiplier: 1.0 },
-  2: { duplicatesRequired: 1, statMultiplier: 1.06 },
-  3: { duplicatesRequired: 2, statMultiplier: 1.12 },
-  4: { duplicatesRequired: 4, statMultiplier: 1.18 },
-  5: { duplicatesRequired: 8, statMultiplier: 1.24 },
-  6: { duplicatesRequired: 12, statMultiplier: 1.3 },
+  1: { duplicatesRequired: 0, statMultiplier: STAR_MULTIPLIERS[1] ?? 1 },
+  2: { duplicatesRequired: 1, statMultiplier: STAR_MULTIPLIERS[2] ?? 1 },
+  3: { duplicatesRequired: 2, statMultiplier: STAR_MULTIPLIERS[3] ?? 1 },
+  4: { duplicatesRequired: 4, statMultiplier: STAR_MULTIPLIERS[4] ?? 1 },
+  5: { duplicatesRequired: 8, statMultiplier: STAR_MULTIPLIERS[5] ?? 1 },
+  6: { duplicatesRequired: 12, statMultiplier: STAR_MULTIPLIERS[6] ?? 1 },
 }
 
 /**
@@ -33,7 +38,7 @@ export const STAR_ASCENSION_TABLE: Record<number, StarTierConfig> = {
  */
 export function getStarMultiplier(star: number): number {
   const clamped = Math.max(MIN_STAR, Math.min(MAX_STAR, Math.floor(star)))
-  return STAR_ASCENSION_TABLE[clamped]?.statMultiplier ?? 1.0
+  return STAR_MULTIPLIERS[clamped] ?? 1
 }
 
 /**
@@ -50,13 +55,7 @@ export function getDuplicatesRequiredForStar(targetStar: number): number {
  * @param star ระดับดาว (1–6)
  */
 export function statsAtStar(character: Character, star: number): CharacterStats {
-  const multiplier = getStarMultiplier(star)
-  return {
-    hp: Math.round(character.stats.hp * multiplier),
-    atk: Math.round(character.stats.atk * multiplier),
-    def: Math.round(character.stats.def * multiplier),
-    spd: Math.round(character.stats.spd * multiplier),
-  }
+  return applyStarMultiplier(character.stats, star)
 }
 
 /**
@@ -90,7 +89,11 @@ export function canAscendStar(owned: OwnedCharacter, duplicatesAvailable: number
  * @param owned ข้อมูลตัวละครที่ครอบครอง
  * @param additionalDuplicates ตัวซ้ำที่ป้อนเพิ่มเข้ามา
  */
-export function ascendStar(
+/**
+ * Client-side preview only. Persisting an ascension must call ascend_character_star through
+ * accountRepository.supabase.ts; this helper never writes authoritative state.
+ */
+export function previewStarAscension(
   owned: OwnedCharacter,
   additionalDuplicates: number = 0,
 ): AscensionResult {

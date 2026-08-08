@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { ROSTER } from '../characters'
 import { REALTIME_CHARACTER_KITS } from '../realtimeBattle/skills'
 import type { OwnedCharacter } from '../../types/player'
-import { ascendStar, canAscendStar, getTotalStats, statsAtStar } from './StarAscensionSystem'
+import {
+  canAscendStar,
+  getTotalStats,
+  previewStarAscension,
+  statsAtStar,
+} from './StarAscensionSystem'
 import { createDefaultSkillLevels } from '../realtimeBattle/SkillProgressionSystem'
 
 const createMockOwned = (overrides?: Partial<OwnedCharacter>): OwnedCharacter => ({
@@ -24,7 +29,7 @@ describe('Star Ascension System (#15)', () => {
     const owned = createMockOwned({ star: 1, shards: 1 })
     expect(canAscendStar(owned)).toBe(true)
 
-    const result = ascendStar(owned)
+    const result = previewStarAscension(owned)
     expect(result.success).toBe(true)
     expect(result.newStar).toBe(2)
     expect(result.duplicatesRemaining).toBe(0)
@@ -51,7 +56,7 @@ describe('Star Ascension System (#15)', () => {
 
       const ratio = total6 / total1
       // Master Blueprint §4.3: power gap must stay <= 130%
-      expect(ratio).toBeLessThanOrEqual(1.305) // allow minimal rounding delta
+      expect(ratio).toBeLessThanOrEqual(1.3)
       expect(stats6.hp).toBeGreaterThanOrEqual(stats1.hp)
       expect(stats6.atk).toBeGreaterThanOrEqual(stats1.atk)
       expect(stats6.def).toBeGreaterThanOrEqual(stats1.def)
@@ -77,7 +82,7 @@ describe('Star Ascension System (#15)', () => {
       const initialStats = statsAtStar(hero, 1)
 
       const owned = createMockOwned({ star: 1, shards: 5 })
-      const result = ascendStar(owned)
+      const result = previewStarAscension(owned)
       expect(result.success).toBe(true)
 
       const upgradedStats = statsAtStar(hero, result.newStar)
@@ -98,7 +103,7 @@ describe('Star Ascension System (#15)', () => {
         awakeningState: { tier: 2, unlockedEffects: ['eff-1'] },
       })
 
-      const result = ascendStar(owned)
+      const result = previewStarAscension(owned)
       expect(result.success).toBe(true)
 
       const updatedOwned: OwnedCharacter = {
@@ -121,7 +126,7 @@ describe('Star Ascension System (#15)', () => {
       const owned = createMockOwned({ star: 3, shards: 3 }) // Star 4 requires 4 duplicates
       expect(canAscendStar(owned)).toBe(false)
 
-      const result = ascendStar(owned)
+      const result = previewStarAscension(owned)
       expect(result.success).toBe(false)
       expect(result.newStar).toBe(3)
       expect(result.duplicatesRemaining).toBe(3)
@@ -132,7 +137,7 @@ describe('Star Ascension System (#15)', () => {
       const owned = createMockOwned({ star: 3, shards: 4 })
       expect(canAscendStar(owned)).toBe(true)
 
-      const result = ascendStar(owned)
+      const result = previewStarAscension(owned)
       expect(result.success).toBe(true)
       expect(result.newStar).toBe(4)
       expect(result.duplicatesRemaining).toBe(0)
@@ -140,7 +145,7 @@ describe('Star Ascension System (#15)', () => {
 
     it('accepts ascension when duplicate count is above threshold and retains remaining duplicates', () => {
       const owned = createMockOwned({ star: 3, shards: 10 })
-      const result = ascendStar(owned)
+      const result = previewStarAscension(owned)
       expect(result.success).toBe(true)
       expect(result.newStar).toBe(4)
       expect(result.duplicatesRemaining).toBe(6)
@@ -150,7 +155,7 @@ describe('Star Ascension System (#15)', () => {
       const owned = createMockOwned({ star: 6, shards: 20 })
       expect(canAscendStar(owned)).toBe(false)
 
-      const result = ascendStar(owned)
+      const result = previewStarAscension(owned)
       expect(result.success).toBe(false)
       expect(result.newStar).toBe(6)
       expect(result.duplicatesRemaining).toBe(20)
@@ -159,9 +164,9 @@ describe('Star Ascension System (#15)', () => {
   })
 
   describe('Scar 4: Explicit outcome matches reported response without silent degraded result (FEH Rarity-mismatch degraded merge)', () => {
-    it('ascendStar returns structured result with explicit success/error indication', () => {
+    it('previewStarAscension returns structured result with explicit success/error indication', () => {
       const owned = createMockOwned({ star: 1, shards: 0 })
-      const result = ascendStar(owned)
+      const result = previewStarAscension(owned)
 
       expect(result.success).toBe(false)
       expect(typeof result.error).toBe('string')
@@ -178,7 +183,7 @@ describe('Star Ascension System (#15)', () => {
         obtainedAt: '2026-01-01T00:00:00.000Z',
       })
 
-      const result = ascendStar(owned)
+      const result = previewStarAscension(owned)
       expect(result.success).toBe(true)
 
       const nextOwned: OwnedCharacter = {

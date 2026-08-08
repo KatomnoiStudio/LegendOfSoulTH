@@ -65,6 +65,16 @@ export type ItemResult = { ok: true; player: Player } | { ok: false; error: stri
 export type CharacterGrantResult =
   { ok: true; player: Player; characterId: string } | { ok: false; error: string }
 
+export type StarAscensionResult =
+  | {
+      ok: true
+      newStar: number
+      shardsRemaining: number
+      shardsSpent: number
+      replayed: boolean
+    }
+  | { ok: false; error: string }
+
 /** ตรวจรูปแบบอีเมลแบบพอดี ๆ — ไม่เข้มจนบล็อกอีเมลที่ใช้ได้จริง */
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
