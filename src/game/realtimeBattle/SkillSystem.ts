@@ -1,5 +1,10 @@
 import { isActiveWindow, totalDurationMs, type AttackDefinition } from './attacks'
-import { getMovePhase, getStrikeIndex, resolveInterruptible } from './combatMoveSchema'
+import {
+  getMovePhase,
+  getStrikeIndex,
+  resolveCastDelayMs,
+  resolveInterruptible,
+} from './combatMoveSchema'
 import { getPlayerSkillPhase, interruptPlayerSkill, shouldInterruptMove } from './combatInterrupt'
 import type { RealtimeSkillDefinition } from './skills'
 import { isControlLocked } from './combatReaction'
@@ -135,7 +140,10 @@ export function stepSkill(
 
   player.state = 'skill'
   const telegraph = attack.telegraphMs ?? 0
-  const executeElapsed = Math.max(0, skill.sinceStartMs - telegraph)
+  const executeElapsed = Math.max(
+    0,
+    skill.sinceStartMs - telegraph - resolveCastDelayMs(attack),
+  )
   const strikeIndex = getStrikeIndex(attack, executeElapsed)
 
   return {

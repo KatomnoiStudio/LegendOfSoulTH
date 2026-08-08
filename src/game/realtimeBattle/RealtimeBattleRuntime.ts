@@ -4,6 +4,7 @@ import { createWaveEnemies, type RealtimeBattleState } from './createRealtimeBat
 import { DEFAULT_BATTLE_PRESENTATION } from './battlePresentation'
 import { resolveStageOutcome } from './StageVariationSystem'
 import { combatFacingFromVector } from './combatFacing'
+import { allowsMovementDuringCast } from './combatMoveSchema'
 import type { RandomFn } from './DamageSystem'
 import {
   createEnemyBrain,
@@ -123,7 +124,7 @@ export class RealtimeBattleRuntime {
     this.tickTimers(state.player, deltaMs)
     for (const enemy of state.enemies) this.tickTimers(enemy, deltaMs)
 
-    const castingSkill = isCastingSkill(this.playerSkill)
+    const wasCastingSkill = isCastingSkill(this.playerSkill)
 
     if (this.skillSlotRequested) {
       const slot = this.skillSlotRequested
@@ -133,7 +134,8 @@ export class RealtimeBattleRuntime {
 
     this.stepPlayerSkill(deltaMs)
 
-    if (!castingSkill && !isCastingSkill(this.playerSkill)) {
+    const castingSkill = isCastingSkill(this.playerSkill)
+    if (!wasCastingSkill && !castingSkill) {
       this.stepPlayerAttack(deltaMs)
 
       const moved = isAttacking(this.playerCombat)
@@ -146,6 +148,16 @@ export class RealtimeBattleRuntime {
       // สถานะเดิน/ยืน คุมจากผลของระบบเดินจุดเดียว ไม่ให้ component เดาเอง
       if (state.player.state === 'idle' && moved) state.player.state = 'walk'
       else if (state.player.state === 'walk' && !moved) state.player.state = 'idle'
+    } else if (
+      castingSkill &&
+      this.playerSkill.definition &&
+      allowsMovementDuringCast(this.playerSkill.definition.attack)
+    ) {
+      // Keep the skill animation/state active while applying movement physics.
+      stepMovement(state.player, this.moveInput, deltaMs, {
+        stage: state.stage,
+        blockers: state.enemies,
+      })
     }
 
     this.stepEnemies(deltaMs)
