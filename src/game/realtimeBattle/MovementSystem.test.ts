@@ -180,4 +180,40 @@ describe('stepMovement', () => {
     const diagonalDistance = Math.hypot(diagonal.position.x - 500, diagonal.position.y - 500)
     expect(diagonalDistance).toBeCloseTo(straightDistance)
   })
+
+  it('เดินเฉียงที่มุมต่างๆ ไม่เร็วกว่าความเร็วสูงสุด (Doom Diagonal Speed)', () => {
+    const angles = [0.1, 0.2, 0.4, 0.6, 0.8, 1.2, 1.5]
+    for (const angle of angles) {
+      const player = entity({ speed: 200 })
+      const input = { x: Math.cos(angle), y: Math.sin(angle) }
+      stepMovement(player, input, 1000, context())
+      const dist = Math.hypot(player.position.x - 500, player.position.y - 500)
+      expect(dist).toBeLessThanOrEqual(200.01)
+    }
+  })
+
+  it('ระบบฟิสิกส์ต้องไม่ทลวงชนทะลุสิ่งกีดขวางเมื่อเกิดแลกสไปก์ก้อนใหญ่ (Fix Your Timestep)', () => {
+    const player = entity({ position: { x: 500, y: 500 }, speed: 200, collisionRadius: 30 })
+    const blocker = entity({ id: 'blocker', position: { x: 550, y: 500 }, collisionRadius: 30 })
+
+    // ด้วยความเร็ว 200 และ deltaMs = 10000 (10 วินาที) ผู้เล่นพยายามเดินไปทางขวา 2000 พิกเซล
+    // แต่มี blocker บล็อกอยู่ที่ 550. ระยะห่างขั้นต่ำคือ 60 ดังนั้นผู้เล่นต้องหยุดที่ x = 490 และห้ามทะลุไปทางขวา
+    stepMovement(player, { x: 1, y: 0 }, 10000, { stage: stage(), blockers: [blocker] })
+
+    expect(player.position.x).toBeLessThanOrEqual(490.01)
+  })
+
+  it('การซ้อนทับกันของวัตถุหลายชิ้นต้องไม่ทำให้เกิดแรงผลักสะสมจนกระเด็น (Skyrim Physics)', () => {
+    const player = entity({ position: { x: 500, y: 500 }, collisionRadius: 30 })
+    const blockers = [
+      entity({ id: 'b1', position: { x: 500, y: 500 }, collisionRadius: 30 }),
+      entity({ id: 'b2', position: { x: 500, y: 500 }, collisionRadius: 30 }),
+      entity({ id: 'b3', position: { x: 500, y: 500 }, collisionRadius: 30 }),
+    ]
+
+    stepMovement(player, { x: 1, y: 0 }, 16.67, { stage: stage(), blockers })
+
+    const dist = Math.hypot(player.position.x - 500, player.position.y - 500)
+    expect(dist).toBeLessThanOrEqual(100)
+  })
 })
