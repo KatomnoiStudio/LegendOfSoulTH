@@ -41,7 +41,7 @@ async function main() {
     let msgId = 1
     const pending = new Map()
 
-    ws.onmessage = (event) => {
+    ws.addEventListener('message', (event) => {
       const msg = JSON.parse(event.data)
       if (msg.id && pending.has(msg.id)) {
         const { resolve, reject } = pending.get(msg.id)
@@ -49,10 +49,10 @@ async function main() {
         if (msg.error) reject(msg.error)
         else resolve(msg.result)
       }
-    }
+    })
 
     await new Promise((res) => {
-      ws.onopen = res
+      ws.addEventListener('open', res, { once: true })
     })
 
     function send(method, params = {}) {

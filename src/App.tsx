@@ -141,6 +141,7 @@ export default function App() {
           energy: {
             current: 120,
             max: 120,
+            lastRegenAt: new Date().toISOString(),
             lastUpdatedAt: new Date().toISOString(),
           },
         },
@@ -161,7 +162,7 @@ export default function App() {
         <UpdateBanner />
         <ToastProvider>
           <LobbyPage
-            player={activePlayer}
+            player={activePlayer!}
             onPlayerChange={handlePlayerChange}
 
             onEarnGold={earnGold}
