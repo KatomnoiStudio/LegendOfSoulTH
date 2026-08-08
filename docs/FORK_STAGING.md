@@ -2,7 +2,7 @@
 
 > **Upstream (product repo):** [KatomnoiStudio/LegendOfSoulTH](https://github.com/KatomnoiStudio/LegendOfSoulTH)  
 > **Live play:** https://katomnoistudio.github.io/LegendOfSoulTH/  
-> **Operator:** HetCreep · **Last synced:** 2026-08-07
+> **Operator:** HetCreep · **Last synced:** 2026-08-08
 
 Fork นี้เป็น **staging branch holder** สำหรับ Cursor Cloud Agent — delivery จริงคือ upstream PR บน `KatomnoiStudio/LegendOfSoulTH` (ดู `.agents/rules/upstream-submission-workflow.md`)
 
@@ -16,8 +16,9 @@ Fork นี้เป็น **staging branch holder** สำหรับ Cursor C
 | 2   | v0.11.0     | Result / Reward pipeline             | [#66](https://github.com/nustanakritwithai/GameTurnBase/pull/66) | [#31](https://github.com/KatomnoiStudio/LegendOfSoulTH/pull/31) | `cursor/result-reward-pipeline-35fc`   |
 | 3   | v0.11.1     | Camera +30% height + sprite tilt fix | [#67](https://github.com/nustanakritwithai/GameTurnBase/pull/67) | [#32](https://github.com/KatomnoiStudio/LegendOfSoulTH/pull/32) | `cursor/camera-height-tilt-fix-35fc`   |
 | 4   | **v0.12.0** | **P8 Character Progression**         | [#68](https://github.com/nustanakritwithai/GameTurnBase/pull/68) | [#33](https://github.com/KatomnoiStudio/LegendOfSoulTH/pull/33) | `cursor/p8-character-progression-35fc` |
+| 5   | v0.12.x     | **P8 Balance Lock (Ring 0)**         | [#70](https://github.com/nustanakritwithai/GameTurnBase/pull/70) | [#36](https://github.com/KatomnoiStudio/LegendOfSoulTH/pull/36) | `cursor/p8-balance-lock-35fc`          |
 
-**ล่าสุด (P8):** per-hero level/EXP · skill upgrade · talent/awakening foundation · reward pipeline integration · combat snapshot · save migration · roster UI (`พัฒนา` tab) · 314 tests CI green
+**ล่าสุด (P8 balance lock):** tutorial-easy stage 1 · partial failure heroExp · talent/awakening UI hidden · Supabase `0008` · 516 tests CI green
 
 ---
 
