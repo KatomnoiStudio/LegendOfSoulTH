@@ -36,6 +36,11 @@ create table if not exists public.cleanup_exempt_profiles (
   created_at timestamptz not null default now()
 );
 
+-- RLS on, zero policies for authenticated/anon — same pattern as rpc_rate_limit
+-- (0011) and currency_transactions (0001): only the SECURITY DEFINER function below
+-- (owner, bypasses RLS) ever reads or writes this table.
+alter table public.cleanup_exempt_profiles enable row level security;
+
 -- known dev/test accounts from the 0013 apply incident (MEMORY.md item 148) — both predate
 -- this migration and would otherwise be swept on the very first cron run.
 insert into public.cleanup_exempt_profiles (profile_id, reason) values
