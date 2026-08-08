@@ -213,6 +213,36 @@ describe('resolveRewards', () => {
     expect(resolved.entries).toEqual([])
   })
 
+  it('grants partial heroExp only on failure — no gold, first-clear, or boss rewards', () => {
+    const resolved = resolveRewards(definition, {
+      dungeonId: 'p5-test-dungeon',
+      runId: 'run-partial',
+      success: false,
+      stageResults: [
+        {
+          stageId: 'p5-stage-1-survival',
+          stageType: 'survival',
+          success: false,
+          clearTimeMs: 8000,
+          enemiesDefeated: 2,
+        },
+      ],
+      isFirstClear: true,
+      failureRewardPolicy: 'partial',
+      dungeonProgressRatio: 0.1,
+      combatSummary: {
+        enemiesDefeated: 2,
+        elitesDefeated: 0,
+        bossesDefeated: 1,
+        damageDealt: 0,
+        damageTaken: 0,
+      },
+    })
+    expect(resolved.entries).toEqual([{ type: 'heroExp', amount: 5 }])
+    expect(resolved.entries.some((e) => e.type === 'currency')).toBe(false)
+    expect(resolved.entries.some((e) => e.type === 'item')).toBe(false)
+  })
+
   it('same seed yields same random pool reward', () => {
     const context = {
       dungeonId: 'p5-test-dungeon',
