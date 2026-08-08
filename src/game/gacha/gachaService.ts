@@ -63,7 +63,7 @@ export function performGachaPull(
   const currentPity = player.gachaPity?.[bannerId] ?? 0
 
   let rollItems: GachaRollItem[] = []
-  let nextPity = currentPity
+  let nextPity: number
 
   if (pullCount === 1) {
     const single = resolveGachaRoll(banner, currentPity, rng)
