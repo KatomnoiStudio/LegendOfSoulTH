@@ -40,6 +40,10 @@ export interface OwnedCharacter {
   /** P8 — awakening foundation */
   awakeningState?: { tier: number; unlockedEffects?: string[] }
   progressionVersion?: number
+  /** ★1 ถึง ★6 (work contract #15 — Star Ascension System) */
+  star?: number
+  /** จำนวนชิ้นส่วน/ตัวซ้ำสะสมสำหรับเลื่อนขั้นดาว */
+  shards?: number
 }
 
 /** ไอเทมหนึ่งช่องในกระเป๋าผู้เล่น — itemId ต้องมีอยู่ใน ITEMS (ดู src/game/items.ts) */
@@ -98,6 +102,11 @@ export interface Player {
   frameId: string
   /** ความคืบหน้าเควสต์ การต่อสู้ และ flags */
   progress: PlayerProgress
+  /**
+   * ตัวนับการันตี (Pity Counter) ของแต่ละแบนเนอร์ (work contract #23 — Gacha System)
+   * เก็บเป็น Record<bannerId, currentPityCount>
+   */
+  gachaPity?: Record<string, number>
 }
 
 export interface BattleRecord {
