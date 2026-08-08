@@ -141,13 +141,30 @@ export function LobbyPage({
    * (แผงข้อมูลตอนแตะโมเดลถูกถอดออกไว้ก่อน รอดูว่าจะใส่อะไรแทนในอนาคต)
    */
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [profileOpen, setProfileOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [rosterOpen, setRosterOpen] = useState(false)
-  const [battleOpen, setBattleOpen] = useState(false)
-  const [dungeonOpen, setDungeonOpen] = useState(false)
-  const [addFriendOpen, setAddFriendOpen] = useState(false)
-  const [itemsOpen, setItemsOpen] = useState(false)
+
+  const previewModal =
+    typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('modal') : null
+
+  const [profileOpen, setProfileOpen] = useState(() => previewModal === 'profile')
+  const [settingsOpen, setSettingsOpen] = useState(() => previewModal === 'settings')
+  const [rosterOpen, setRosterOpen] = useState(() => previewModal === 'roster')
+  const [battleOpen, setBattleOpen] = useState(() => previewModal === 'battle')
+  const [dungeonOpen, setDungeonOpen] = useState(() => previewModal === 'dungeon')
+  const [addFriendOpen, setAddFriendOpen] = useState(() => previewModal === 'friend')
+  const [itemsOpen, setItemsOpen] = useState(() => previewModal === 'items')
+
+  useEffect(() => {
+    if (previewModal) {
+      setRosterOpen(previewModal === 'roster')
+      setBattleOpen(previewModal === 'battle')
+      setItemsOpen(previewModal === 'items')
+      setSettingsOpen(previewModal === 'settings')
+      setProfileOpen(previewModal === 'profile')
+      setAddFriendOpen(previewModal === 'friend')
+      setDungeonOpen(previewModal === 'dungeon')
+    }
+  }, [previewModal])
+
   // ค่าเริ่มต้นอ่านจาก engine (persist ผ่าน localStorage) — เก็บ mirror ไว้ที่นี่แค่ให้ React re-render
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings())
   const handleAudioChange = (next: AudioSettings) => {
@@ -194,6 +211,16 @@ export function LobbyPage({
           />
         </Suspense>
       </ErrorBoundary>
+
+      {/*
+        เดินชมจันทร์เปิดอยู่ตลอดเวลาที่อยู่ในลอบบี้ — เป็นฉากพื้นหลัง อยู่ก่อน HUD เสมอ
+        เพื่อไม่ให้บัง pointer events ของเมนูหลัก TopBar, SideActions, MainNavigation
+      */}
+      <WukongAdventure
+        mode="moonlight"
+        characters={ownedCharacters}
+        activeCharacterId={walkingCharacterId}
+      />
 
       <TopBar
         player={player}
@@ -243,17 +270,6 @@ export function LobbyPage({
           onExit={() => setDungeonOpen(false)}
         />
       ) : null}
-
-      {/*
-        เดินชมจันทร์เปิดอยู่ตลอดเวลาที่อยู่ในลอบบี้ ไม่ต้องกดปุ่มเปิดจากโปรไฟล์อีกต่อไป
-        คุมทิศทางด้วย WASD/คลิกพื้นได้เหมือนเดิม เลือกตัวที่จะเดินได้จากแถบเลือกขุนพล
-        (ตำแหน่งที่เดินอยู่ยังคงอยู่แม้สลับตัวละคร เพราะ component ไม่ถูก mount ใหม่)
-      */}
-      <WukongAdventure
-        mode="moonlight"
-        characters={ownedCharacters}
-        activeCharacterId={walkingCharacterId}
-      />
 
       {/*
         หน้าเลือกด่าน mount หลัง WukongAdventure — DOM + z-index สองชั้น กันฉากเดินทับ modal

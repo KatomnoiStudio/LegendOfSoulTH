@@ -75,8 +75,6 @@
   --z-scene: 0;
   --z-hud: 10;
   --z-nav: 20;
-  --z-panel: 30;
-  --z-toast: 50;
 
   /* --- Scene stack (ฉากเต็มจอ, ซ้อนกันตามลำดับ explore < controls < battle <
      battle-transition < dialogue < banner) — เดิมกระจายเป็น literal ในแต่ละไฟล์
@@ -86,6 +84,11 @@
   --z-scene-battle: 600;
   --z-scene-battle-transition: 650;
   --z-scene-dialogue: 700;
+
+  /* --- Modals, Drawers, Overlays & Toasts (เหนือฉากเกมเสมอ) --- */
+  --z-panel: 800;
+  --z-modal: 850;
+  --z-toast: 900;
   --z-banner: 1000;
 
   /* --- Adventure HUD stack (WukongAdventure.module.css เท่านั้น) --- */
