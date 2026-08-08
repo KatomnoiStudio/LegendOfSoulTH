@@ -1,14 +1,9 @@
 import { supabase } from '../lib/supabaseClient'
 import { generateUid } from '../game/uid'
 import { TEAM_SIZE } from '../game/team'
-import { createDefaultSkillLevels } from '../game/realtimeBattle/SkillProgressionSystem'
 import { migrateOwnedCharacters } from '../game/progression/progressionMigration'
-import {
-  EMPTY_PROGRESS,
-  type FriendCandidate,
-  type OwnedCharacter,
-  type Player,
-} from '../types/player'
+import { mapOwnedCharacterRow } from './accountRepository.supabase.mapping'
+import { EMPTY_PROGRESS, type FriendCandidate, type Player } from '../types/player'
 import {
   GEM_PACKAGES,
   GOLD_PACKAGES,
@@ -48,31 +43,8 @@ import {
 export type { GoldSource, GemSource, ItemSource, AuthResult, CurrencyResult, ItemResult }
 export type { CharacterGrantResult, CurrencyTransaction, FriendCandidate, GemPackage, GoldPackage }
 export { GEM_PACKAGES, GOLD_PACKAGES, PASSWORD_MIN_LENGTH, validateEmail, validatePassword }
-
-interface OwnedCharacterRow {
-  character_id: string
-  level: number
-  exp: number
-  exp_to_next: number
-  obtained_at: string
-  /** แถวเก่าก่อน migration 0005 ยังไม่มีคอลัมน์นี้ — เติม default เหมือน normalizePlayer ฝั่ง localStorage */
-  skill_levels?: OwnedCharacter['skillLevels'] | null
-}
-
-/**
- * แปลงแถว owned_characters ดิบเป็น OwnedCharacter — แยกเป็นฟังก์ชัน pure เพื่อเทสต์ shape
- * parity กับ accountRepository.ts ได้โดยไม่ต้องมี Supabase จริง (done-criterion #1)
- */
-export function mapOwnedCharacterRow(row: OwnedCharacterRow): OwnedCharacter {
-  return {
-    characterId: row.character_id,
-    level: row.level,
-    exp: row.exp,
-    expToNext: row.exp_to_next,
-    obtainedAt: row.obtained_at,
-    skillLevels: row.skill_levels ?? createDefaultSkillLevels(),
-  }
-}
+export { mapOwnedCharacterRow } from './accountRepository.supabase.mapping'
+export type { OwnedCharacterRow } from './accountRepository.supabase.mapping'
 
 interface ProfileRow {
   id: string
@@ -373,6 +345,22 @@ export async function savePlayer(player: Player): Promise<boolean> {
     .eq('id', player.id)
 
   if (error) return false
+
+  const charRows = player.ownedCharacters.map((owned) => ({
+    profile_id: player.id,
+    character_id: owned.characterId,
+    level: owned.level,
+    exp: owned.exp,
+    exp_to_next: owned.expToNext,
+    obtained_at: owned.obtainedAt,
+    skill_levels: owned.skillLevels,
+    talent_state: owned.talentState ?? { unlockedNodes: [] },
+    awakening_state: owned.awakeningState ?? { tier: 0, unlockedEffects: [] },
+  }))
+  const { error: charError } = await supabase.from('owned_characters').upsert(charRows, {
+    onConflict: 'profile_id,character_id',
+  })
+  if (charError) return false
 
   // team_slots: upsert ทั้ง 4 ช่องทับของเดิม (ตาราง PK คือ profile_id+slot_index อยู่แล้ว)
   const slotRows = player.teamSlots.map((characterId, slot_index) => ({

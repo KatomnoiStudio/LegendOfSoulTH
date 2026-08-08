@@ -17,6 +17,8 @@ import {
   ENTITY_SPRITE_ASPECT,
   ENTITY_SPRITE_HEIGHT,
   ENTITY_SPRITE_PITCH_RAD,
+  ENTITY_SPRITE_SHADOW_RADIUS,
+  resolveSpriteMeshCenterY,
 } from '../../game/realtimeBattle/entitySpritePresentation'
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
 import type { EntityState, RealtimeBattleEntity } from '../../game/realtimeBattle/types'
@@ -71,6 +73,7 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
   const mesh = useRef<Mesh>(null)
   const shadow = useRef<Mesh>(null)
   const spriteSet = useMemo(() => getBattleSpriteSet(kind), [kind])
+  const meshCenterY = useMemo(() => resolveSpriteMeshCenterY(kind), [kind])
 
   /** เฟรมเริ่มของแอนิเมชันที่ไม่วน — ต้องรู้ว่าเริ่มเล่นตอนไหนถึงจะเล่นจบแล้วค้างได้ */
   const animationStartMs = useRef(0)
@@ -128,7 +131,7 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
     <group ref={group}>
       {/* เงาใต้เท้า ช่วยให้เห็นว่าตัวละครยืนตรงไหนจริงบนพื้น */}
       <mesh ref={shadow} position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.34, 24]} />
+        <circleGeometry args={[ENTITY_SPRITE_SHADOW_RADIUS, 24]} />
         <meshBasicMaterial
           color={accent}
           transparent
@@ -138,11 +141,7 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
         />
       </mesh>
 
-      <mesh
-        ref={mesh}
-        position={[0, ENTITY_SPRITE_HEIGHT / 2, 0]}
-        rotation={[ENTITY_SPRITE_PITCH_RAD, 0, 0]}
-      >
+      <mesh ref={mesh} position={[0, meshCenterY, 0]} rotation={[ENTITY_SPRITE_PITCH_RAD, 0, 0]}>
         <planeGeometry args={[ENTITY_SPRITE_HEIGHT * ENTITY_SPRITE_ASPECT, ENTITY_SPRITE_HEIGHT]} />
         <meshBasicMaterial
           transparent

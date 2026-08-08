@@ -10,7 +10,6 @@ import {
 } from './stageConfig'
 import { resolveEnemyFormation, resolvePlayerSpawn } from './spawnFormation'
 import type { RealtimeBattleEntity } from './types'
-import { calcMaxHp } from '../battle/formulas'
 import { resolveFinalCombatStats } from '../progression/heroStatsResolver'
 
 /**
@@ -35,6 +34,8 @@ export interface RealtimeBattleState {
   objectiveHp: number | null
   /** เลือดกลไกอันตรายที่ไหลลงเรื่อย ๆ (stageType: 'hazard' เท่านั้น) — null สำหรับด่านชนิดอื่น */
   hazardHp: number | null
+  /** Stage modifier from dungeon orchestrator (e.g. tutorial-easy HP reduction). */
+  enemyHpScale: number
 }
 
 /** ความเร็วเดินของผู้เล่นในห้องต่อสู้ (หน่วย runtime ต่อวินาที) */
@@ -63,7 +64,8 @@ export function createPlayerEntity(player: Player): RealtimeBattleEntity | null 
   const owned = player.ownedCharacters.find((entry) => entry.characterId === character.id)
   const level = owned?.level ?? character.level
   const combatStats = resolveFinalCombatStats({ heroId: character.id, level }) ?? character.stats
-  const maxHp = calcMaxHp(level, combatStats.def)
+  /** Authoritative battle max HP — same source as progression/profile, not a parallel formula. */
+  const maxHp = Math.max(1, combatStats.hp)
 
   return {
     id: 'player',
@@ -97,6 +99,7 @@ export function createPlayerEntity(player: Player): RealtimeBattleEntity | null 
 export function createWaveEnemies(
   stage: RealtimeBattleStage,
   waveIndex: number,
+  enemyHpScale = 1,
 ): RealtimeBattleEntity[] {
   const wave = stage.waves[waveIndex]
   if (!wave) return []
@@ -138,6 +141,7 @@ export function createWaveEnemies(
     }
 
     const stats = resolveTierStats(template)
+    const scaledMaxHp = Math.max(1, Math.round(stats.maxHp * enemyHpScale))
     const enemy: RealtimeBattleEntity = {
       id: `enemy-${waveIndex}-${index}`,
       entityType: template.combatTier === 'boss' ? 'boss' : 'enemy',
@@ -147,8 +151,8 @@ export function createWaveEnemies(
       facing: 'left',
       combatFacing: 'left',
       state: 'idle',
-      hp: stats.maxHp,
-      maxHp: stats.maxHp,
+      hp: scaledMaxHp,
+      maxHp: scaledMaxHp,
       atk: stats.atk,
       def: stats.def,
       speed: template.speed,
@@ -172,7 +176,7 @@ export function createWaveEnemies(
 export function createRealtimeBattle(
   stageId: string,
   player: Player,
-  options?: { skipInitialWave?: boolean },
+  options?: { skipInitialWave?: boolean; enemyHpScale?: number },
 ): RealtimeBattleState | null {
   const stage = getRealtimeStage(stageId)
   if (!stage) {
@@ -188,17 +192,20 @@ export function createRealtimeBattle(
 
   playerEntity.position = resolvePlayerSpawn(stage)
 
+  const enemyHpScale = options?.enemyHpScale ?? 1
+
   return {
     stage,
     status: 'intro',
     elapsedMs: 0,
     player: playerEntity,
-    enemies: options?.skipInitialWave ? [] : createWaveEnemies(stage, 0),
+    enemies: options?.skipInitialWave ? [] : createWaveEnemies(stage, 0, enemyHpScale),
     currentWaveIndex: options?.skipInitialWave ? -1 : 0,
     defeatedEnemyIds: [],
     damageDealt: 0,
     damageTaken: 0,
     objectiveHp: stage.stageType === 'defend' ? (stage.defend?.objectiveHp ?? null) : null,
     hazardHp: stage.stageType === 'hazard' ? (stage.hazard?.hazardHp ?? null) : null,
+    enemyHpScale,
   }
 }

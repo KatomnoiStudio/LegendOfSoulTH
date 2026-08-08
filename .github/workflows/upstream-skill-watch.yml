@@ -19,8 +19,9 @@ jobs:
     name: Check upstream skill sources for new commits
     runs-on: ubuntu-latest
     permissions:
-      contents: write # commit state.json กลับเข้า repo (step สุดท้าย)
+      contents: write # commit state.json ลงกิ่งใหม่ + push (step สุดท้าย — ไม่ใช่ push ตรงเข้า master)
       issues: write # เปิด/คอมเมนต์ issue แจ้งของใหม่
+      pull-requests: write # เปิด PR ให้ state.json (master เป็น protected branch, bot ไม่ได้อยู่ใน bypass list)
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
@@ -110,11 +111,24 @@ jobs:
               --body-file "$BODY_FILE"
           fi
 
-      - name: บันทึก SHA ใหม่กลับเข้า repo
+      # เจอจริง 2026-08-08 — push ตรงเข้า master โดน branch protection บล็อก "protected branch
+      # hook declined" เพราะ github-actions[bot] ไม่ได้อยู่ใน bypass allowlist ของ Ring 0
+      # (ตั้งใจ — ดู ring0-traffic-control-law.md) เปิด PR เหมือน contributor คนอื่นแทน
+      - name: บันทึก SHA ใหม่ผ่าน PR
         if: steps.check.outputs.updated == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+          BRANCH="upstream-watch/state-$(date -u +%Y%m%d-%H%M%S)"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
           git add .github/upstream-watch/state.json
           git commit -m "chore: update upstream-skill-watch state [skip ci]"
-          git push
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "chore: update upstream-skill-watch state" \
+            --body "Auto-generated after detecting new upstream commits (see the linked issue). Safe to merge — only updates the last-seen SHA in \`.github/upstream-watch/state.json\`, no source/rule content changed here." \
+            --base master \
+            --head "$BRANCH"

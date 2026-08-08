@@ -1,9 +1,8 @@
 /**
  * Centralized mobile combat control layout — Naruto-mobile-inspired ergonomics.
  *
- * Positions use viewport-relative percentages and attack-size multipliers
- * (not fixed pixels per resolution) so controls anchor correctly across
- * 16:9 … 20:9 landscape and tablets.
+ * Positions use polar offsets from the ATK anchor (not independent pixel offsets)
+ * so the cluster scales across 16:9 … 20:9 landscape without button overlap.
  */
 
 export interface CombatUILayout {
@@ -54,21 +53,117 @@ export const COMBAT_BUTTON_SIZES = {
   minTouchTarget: 44,
 } as const
 
+/** Minimum center-to-center gap between combat buttons (logical px). */
+export const MIN_BUTTON_GAP_PX = 14
+
+export type CombatClusterSlot = 'attack' | 'skill1' | 'skill2' | 'skill3' | 'ultimate'
+
+export interface PolarButtonLayout {
+  slot: CombatClusterSlot
+  /** Degrees from straight up (0°), toward left (90°) — arc above ATK anchor. */
+  angleFromUpDeg: number
+  /** Radius as multiple of attack button diameter. ULT uses a larger radius. */
+  radiusMul: number
+}
+
 /**
- * Skill arc offsets as multiples of attack button size.
- * ATK anchors bottom-right of cluster; skills arc up-left.
+ * Skill arc from ATK anchor (bottom-right of cluster):
  *
  *        ULT
  *    S3
  *  S2      ATK
  *    S1
  */
-export const COMBAT_CLUSTER_ARC = {
-  s1: { rightMul: 1.02, bottomMul: 0.04 },
-  s2: { rightMul: 0.7, bottomMul: 0.72 },
-  s3: { rightMul: 0.4, bottomMul: 1.38 },
-  ultimate: { rightMul: 0.1, bottomMul: 1.08 },
-} as const
+export const COMBAT_CLUSTER_POLAR: readonly PolarButtonLayout[] = [
+  { slot: 'attack', angleFromUpDeg: 0, radiusMul: 0 },
+  { slot: 'skill1', angleFromUpDeg: 68, radiusMul: 1.48 },
+  { slot: 'skill2', angleFromUpDeg: 52, radiusMul: 1.5 },
+  { slot: 'skill3', angleFromUpDeg: 36, radiusMul: 1.55 },
+  { slot: 'ultimate', angleFromUpDeg: 18, radiusMul: 2.05 },
+] as const
+
+export interface ClusterOffset {
+  right: number
+  bottom: number
+}
+
+/** Polar offset from ATK anchor — right/bottom are positive CSS offsets (up-left quadrant). */
+export function buttonPolarPosition(
+  attackSize: number,
+  angleFromUpDeg: number,
+  radiusMul: number,
+  clusterGap = 0,
+): ClusterOffset {
+  if (radiusMul <= 0) return { right: 0, bottom: 0 }
+
+  const radius = attackSize * radiusMul + clusterGap
+  const rad = (angleFromUpDeg * Math.PI) / 180
+  return {
+    right: radius * Math.sin(rad),
+    bottom: radius * Math.cos(rad),
+  }
+}
+
+export function resolveClusterOffsets(
+  attackSize: number,
+  clusterGap: number,
+  layouts: readonly PolarButtonLayout[] = COMBAT_CLUSTER_POLAR,
+): Record<CombatClusterSlot, ClusterOffset> {
+  const offsets = {} as Record<CombatClusterSlot, ClusterOffset>
+  for (const layout of layouts) {
+    offsets[layout.slot] = buttonPolarPosition(
+      attackSize,
+      layout.angleFromUpDeg,
+      layout.radiusMul,
+      layout.slot === 'attack' ? 0 : clusterGap,
+    )
+  }
+  return offsets
+}
+
+interface BoundingBox {
+  right: number
+  bottom: number
+  width: number
+  height: number
+}
+
+function slotBoundingBox(offset: ClusterOffset, size: number): BoundingBox {
+  return {
+    right: offset.right,
+    bottom: offset.bottom,
+    width: size,
+    height: size,
+  }
+}
+
+function boxesOverlap(a: BoundingBox, b: BoundingBox, minGap: number): boolean {
+  const aLeft = a.right + a.width
+  const aTop = a.bottom + a.height
+  const bLeft = b.right + b.width
+  const bTop = b.bottom + b.height
+
+  const overlapX = a.right - minGap < bLeft && b.right - minGap < aLeft
+  const overlapY = a.bottom - minGap < bTop && b.bottom - minGap < aTop
+  return overlapX && overlapY
+}
+
+/** True when any pair of slot bounding boxes overlap closer than minGap. */
+export function clusterButtonsCollide(
+  offsets: Record<CombatClusterSlot, ClusterOffset>,
+  sizes: Record<CombatClusterSlot, number>,
+  minGap = MIN_BUTTON_GAP_PX,
+): boolean {
+  const slots = Object.keys(offsets) as CombatClusterSlot[]
+  for (let i = 0; i < slots.length; i += 1) {
+    for (let j = i + 1; j < slots.length; j += 1) {
+      const a = slotBoundingBox(offsets[slots[i]], sizes[slots[i]])
+      const b = slotBoundingBox(offsets[slots[j]], sizes[slots[j]])
+      if (boxesOverlap(a, b, minGap)) return true
+    }
+  }
+  return false
+}
 
 export function layoutCssVars(
   layout: CombatUILayout = DEFAULT_COMBAT_UI_LAYOUT,
@@ -78,8 +173,9 @@ export function layoutCssVars(
   const ultimateSize = COMBAT_BUTTON_SIZES.ultimate * layout.ultimateScale
   const joystickSize = 120 * layout.joystickScale
   const clusterGap = attackSize * layout.clusterGapRatio
+  const offsets = resolveClusterOffsets(attackSize, clusterGap)
 
-  return {
+  const vars: Record<string, string> = {
     '--combat-dead-zone': String(layout.deadZone),
     '--combat-joystick-x': `${layout.joystickAnchorXPercent}%`,
     '--combat-joystick-y': `${layout.joystickAnchorYPercent}%`,
@@ -94,13 +190,12 @@ export function layoutCssVars(
     '--combat-inset-bottom': `${layout.bottomInset}px`,
     '--combat-hud-vitals-scale': String(layout.hudVitalsScale),
     '--combat-hud-stage-scale': String(layout.hudStageScale),
-    '--combat-arc-s1-right': String(COMBAT_CLUSTER_ARC.s1.rightMul),
-    '--combat-arc-s1-bottom': String(COMBAT_CLUSTER_ARC.s1.bottomMul),
-    '--combat-arc-s2-right': String(COMBAT_CLUSTER_ARC.s2.rightMul),
-    '--combat-arc-s2-bottom': String(COMBAT_CLUSTER_ARC.s2.bottomMul),
-    '--combat-arc-s3-right': String(COMBAT_CLUSTER_ARC.s3.rightMul),
-    '--combat-arc-s3-bottom': String(COMBAT_CLUSTER_ARC.s3.bottomMul),
-    '--combat-arc-ult-right': String(COMBAT_CLUSTER_ARC.ultimate.rightMul),
-    '--combat-arc-ult-bottom': String(COMBAT_CLUSTER_ARC.ultimate.bottomMul),
   }
+
+  for (const [slot, offset] of Object.entries(offsets)) {
+    vars[`--combat-polar-${slot}-right`] = `${offset.right}px`
+    vars[`--combat-polar-${slot}-bottom`] = `${offset.bottom}px`
+  }
+
+  return vars
 }

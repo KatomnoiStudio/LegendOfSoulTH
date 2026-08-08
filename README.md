@@ -1,9 +1,5 @@
 # Legend of Soul-TH — Lobby
 
-> **Fork staging repo** — `nustanakritwithai/GameTurnBase`  
-> Delivery จริง → upstream [`KatomnoiStudio/LegendOfSoulTH`](https://github.com/KatomnoiStudio/LegendOfSoulTH)  
-> **สถานะ PR / เวอร์ชันล่าสุด:** [`docs/FORK_STAGING.md`](docs/FORK_STAGING.md) (v0.12.0 P8 Character Progression · fork #68 · upstream #33)
-
 [![Build, Typecheck and Lint](https://github.com/KatomnoiStudio/LegendOfSoulTH/actions/workflows/ci.yml/badge.svg)](https://github.com/KatomnoiStudio/LegendOfSoulTH/actions/workflows/ci.yml)
 [![Deploy to GitHub Pages](https://github.com/KatomnoiStudio/LegendOfSoulTH/actions/workflows/deploy.yml/badge.svg)](https://github.com/KatomnoiStudio/LegendOfSoulTH/actions/workflows/deploy.yml)
 [![CodeQL Analysis](https://github.com/KatomnoiStudio/LegendOfSoulTH/actions/workflows/codeql.yml/badge.svg)](https://github.com/KatomnoiStudio/LegendOfSoulTH/actions/workflows/codeql.yml)

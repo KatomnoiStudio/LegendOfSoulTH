@@ -1,3 +1,9 @@
+/// <reference types="node" />
+// ไฟล์นี้เดียวที่ต้องใช้ node:fs (อ่านซอร์ส CSS ตรง ๆ ดูเทสต์ล็อกสเกลด้านล่าง) — reference
+// แบบนี้ดึง type ของ node มาเฉพาะไฟล์นี้ ไม่ไปเปลี่ยน types ของทั้ง src/ ใน tsconfig.app.json
+// (@types/node มีอยู่แล้วใน node_modules สำหรับ vite.config.ts แต่ tsconfig.app.json ตั้งใจ
+// จำกัด types ไว้แค่ vite/client เพราะนี่คือโค้ดฝั่ง browser)
+import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { CharacterPreview } from './CharacterPreview'
@@ -65,5 +71,22 @@ describe('CharacterPreview', () => {
         resolve(undefined)
       }, 400)
     })
+  })
+
+  /*
+    ล็อกไว้ไม่ให้บั๊กเดิมย้อนกลับมา — เคยมี transform: scale(1.82) กับ scale(1.55) แยกกันคนละที่
+    (desktop vs @media max-width:900px) แก้แล้วเหลือ scale(var(--sprite-zoom)) จุดเดียว
+    (ดูคอมเมนต์ที่มาเต็ม ๆ ใน .tsx และ MEMORY.md item 121, 2026-08-08)
+
+    เทสต์นี้อ่านซอร์ส CSS ตรง ๆ (ไม่ใช่ computed style) — จับได้ทันทีถ้ามีใครเพิ่ม
+    transform: scale(ตัวเลข) กลับเข้ามาที่ไหนก็ตามในไฟล์นี้ ไม่ว่าจะเป็น media query ใหม่
+    breakpoint ใหม่ หรือ selector อื่น ไม่ต้องรอให้มีคนสังเกตเห็นตอน review
+  */
+  test('CSS ต้องมี transform: scale() แค่จุดเดียว (ผ่าน --sprite-zoom) ห้ามมีเลขตายตัวแอบแฝงที่ไหนอีก', () => {
+    const css = readFileSync('src/components/CharacterRoster/CharacterPreview.module.css', 'utf8')
+    // [^()]|\([^()]*\) รองรับวงเล็บซ้อนชั้นเดียว (เช่น var(--x)) ไม่ตัดจบตั้งแต่ ) ตัวแรกข้างใน
+    const scaleDeclarations = css.match(/transform:\s*scale\((?:[^()]|\([^()]*\))*\)/g) ?? []
+
+    expect(scaleDeclarations).toEqual(['transform: scale(var(--sprite-zoom))'])
   })
 })
