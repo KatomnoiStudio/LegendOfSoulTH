@@ -80,6 +80,53 @@ function hitsRadial(
   return cosAngle >= halfArcCos
 }
 
+function passesHitGeometry(
+  attacker: RealtimeBattleEntity,
+  attack: AttackDefinition,
+  target: RealtimeBattleEntity,
+): boolean {
+  if (attack.hitShape === 'horizontal') {
+    return hitsHorizontal(attacker, attack, target)
+  }
+  return hitsRadial(attacker, attack, target)
+}
+
+function filterValidTargets(
+  targets: RealtimeBattleEntity[],
+  attacker: RealtimeBattleEntity,
+  attack: AttackDefinition,
+  alreadyHit: ReadonlySet<string>,
+  elapsedMs: number,
+): RealtimeBattleEntity[] {
+  return targets.filter((target) => {
+    if (target.id === attacker.id) return false
+    if (target.state === 'dead' || target.hp <= 0) return false
+    if (alreadyHit.has(target.id)) return false
+    if (target.invulnerableUntilMs > elapsedMs) return false
+    return passesHitGeometry(attacker, attack, target)
+  })
+}
+
+function pickNearestTarget(
+  attacker: RealtimeBattleEntity,
+  candidates: RealtimeBattleEntity[],
+): RealtimeBattleEntity | null {
+  let nearest: RealtimeBattleEntity | null = null
+  let nearestDistanceSquared = Number.POSITIVE_INFINITY
+
+  for (const target of candidates) {
+    const dx = target.position.x - attacker.position.x
+    const dy = target.position.y - attacker.position.y
+    const distanceSquared = dx * dx + dy * dy
+    if (distanceSquared < nearestDistanceSquared) {
+      nearest = target
+      nearestDistanceSquared = distanceSquared
+    }
+  }
+
+  return nearest
+}
+
 /**
  * คืนรายชื่อหน่วยที่โดนท่านี้ในเฟรมนี้
  */
@@ -100,16 +147,13 @@ export function findHitTargets(
     return [target]
   }
 
-  return targets.filter((target) => {
-    if (target.id === attacker.id) return false
-    if (target.state === 'dead' || target.hp <= 0) return false
-    if (alreadyHit.has(target.id)) return false
-    if (target.invulnerableUntilMs > elapsedMs) return false
+  const candidates = filterValidTargets(targets, attacker, attack, alreadyHit, elapsedMs)
 
-    if (attack.hitShape === 'horizontal') {
-      return hitsHorizontal(attacker, attack, target)
-    }
+  if (attack.multiTarget === false) {
+    const nearest = pickNearestTarget(attacker, candidates)
+    return nearest ? [nearest] : []
+  }
 
-    return hitsRadial(attacker, attack, target)
-  })
+  // true and undefined both preserve the existing sweep behavior.
+  return candidates
 }

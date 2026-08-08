@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { MONKEY_SPINNING_STAFF } from './attacks'
 import { createRealtimeBattle, createWaveEnemies } from './createRealtimeBattle'
 import { RealtimeBattleRuntime } from './RealtimeBattleRuntime'
 import { getRealtimeStage } from './stageConfig'
@@ -254,5 +255,42 @@ describe('RealtimeBattleRuntime', () => {
 
     expect(state.damageDealt).toBeGreaterThan(0)
     expect(enemy.hp).toBeLessThan(hpBefore)
+  })
+})
+
+
+describe('movementDuringCast runtime consumer', () => {
+  function runtimeForMovementTest(): RealtimeBattleRuntime {
+    const state = createRealtimeBattle('trial-01', makePlayer())
+    if (!state) throw new Error('สร้างสถานะตั้งต้นไม่สำเร็จ')
+    return new RealtimeBattleRuntime(state)
+  }
+
+  it('moves only when the active skill explicitly opts in', () => {
+    const original = MONKEY_SPINNING_STAFF.movementDuringCast
+
+    try {
+      const lockedRuntime = runtimeForMovementTest()
+      lockedRuntime.step(1000)
+      lockedRuntime.setMoveInput({ x: 1, y: 0 })
+      const lockedStartX = lockedRuntime.getState().player.position.x
+      lockedRuntime.requestSkill('skill1')
+      lockedRuntime.step(16)
+      expect(lockedRuntime.getState().player.position.x).toBe(lockedStartX)
+
+      MONKEY_SPINNING_STAFF.movementDuringCast = true
+      const movingRuntime = runtimeForMovementTest()
+      movingRuntime.step(1000)
+      movingRuntime.setMoveInput({ x: 1, y: 0 })
+      const movingStartX = movingRuntime.getState().player.position.x
+      movingRuntime.requestSkill('skill1')
+      movingRuntime.step(16)
+
+      expect(movingRuntime.getState().player.position.x).toBeGreaterThan(movingStartX)
+      expect(movingRuntime.getState().player.state).toBe('skill')
+    } finally {
+      if (original === undefined) delete MONKEY_SPINNING_STAFF.movementDuringCast
+      else MONKEY_SPINNING_STAFF.movementDuringCast = original
+    }
   })
 })

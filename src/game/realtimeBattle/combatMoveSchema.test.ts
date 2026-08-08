@@ -7,6 +7,7 @@ import {
   getStrikeIndex,
   isExecuteActiveWindow,
   isFullMoveActiveWindow,
+  allowsMovementDuringCast,
   resolveHitstunMs,
   resolveInterruptible,
   resolveTelegraphMs,
@@ -53,5 +54,29 @@ describe('combatMoveSchema', () => {
 
   it('total duration includes telegraph', () => {
     expect(attackTotalDurationMs(ENEMY_ATTACK_MELEE)).toBe(280 + 120 + 140 + 420)
+  })
+
+  it('castDelayMs creates a wind-up phase and delays the active window', () => {
+    const attack = {
+      ...PLAYER_ATTACK_CHAIN[0],
+      castDelayMs: 250,
+      startupMs: 100,
+      activeMs: 50,
+      recoveryMs: 50,
+    }
+
+    expect(getMovePhase(attack, 249)).toBe('castDelay')
+    expect(getMovePhase(attack, 250)).toBe('startup')
+    expect(getMovePhase(attack, 350)).toBe('active')
+    expect(attackTotalDurationMs(attack)).toBe(450)
+  })
+
+  it('undefined optional cast fields preserve locked movement and the legacy timeline', () => {
+    const attack = PLAYER_ATTACK_CHAIN[0]
+    expect(allowsMovementDuringCast(attack)).toBe(false)
+    expect(allowsMovementDuringCast({ ...attack, movementDuringCast: true })).toBe(true)
+    expect(attackTotalDurationMs(attack)).toBe(
+      attack.startupMs + attack.activeMs + attack.recoveryMs,
+    )
   })
 })

@@ -298,3 +298,33 @@ describe('findHitTargets — targetLock: nearest (ระบบ #8 Skill-Targetin
     expect(hits).toHaveLength(0)
   })
 })
+
+
+describe('findHitTargets — multiTarget runtime consumer', () => {
+  it('true and undefined preserve multi-target sweep behavior', () => {
+    const near = entity({ id: 'near', position: { x: 80, y: 0 } })
+    const far = entity({ id: 'far', position: { x: 100, y: 0 } })
+
+    expect(
+      findHitTargets([near, far], query({ attack: { ...PLAYER_ATTACK, multiTarget: true } })),
+    ).toHaveLength(2)
+    expect(
+      findHitTargets([near, far], query({ attack: { ...PLAYER_ATTACK, multiTarget: undefined } })),
+    ).toHaveLength(2)
+  })
+
+  it('false selects only the nearest valid target without duplicate hits', () => {
+    const near = entity({ id: 'near', position: { x: 80, y: 0 } })
+    const far = entity({ id: 'far', position: { x: 100, y: 0 } })
+    const attack = { ...PLAYER_ATTACK, multiTarget: false }
+
+    expect(findHitTargets([far, near], query({ attack })).map((target) => target.id)).toEqual([
+      'near',
+    ])
+    expect(
+      findHitTargets([far, near], query({ attack, alreadyHit: new Set(['near']) })).map(
+        (target) => target.id,
+      ),
+    ).toEqual(['far'])
+  })
+})

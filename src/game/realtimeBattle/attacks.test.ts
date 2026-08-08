@@ -79,6 +79,10 @@ const OPTIONAL_FIELDS = [
   'interruptible',
   'phaseOverrides',
   'strikeCount',
+  // Runtime consumers: SkillSystem/combatMoveSchema, RealtimeBattleRuntime, HitboxSystem.
+  'castDelayMs',
+  'movementDuringCast',
+  'multiTarget',
 ] as const
 const KNOWN_FIELDS: readonly string[] = [...REQUIRED_FIELDS, ...OPTIONAL_FIELDS]
 

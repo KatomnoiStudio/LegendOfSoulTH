@@ -363,3 +363,23 @@ describe('targetLock: nearest (ระบบ #8 Skill-Targeting System)', () => {
     expect(skill.lockedTargetId).toBeNull()
   })
 })
+
+
+describe('castDelayMs runtime consumer', () => {
+  it('keeps the hitbox inactive until cast delay and startup both finish', () => {
+    const kit = getRealtimeSkillKit('monkey-king')
+    if (!kit) throw new Error('ไม่พบ kit หงอคง')
+
+    const base = getSkillFromKit(kit, 'skill2')
+    const definition = {
+      ...base,
+      attack: { ...base.attack, castDelayMs: 250 },
+    }
+    const unit = player()
+    const skill = createSkillState()
+
+    startSkill(unit, skill, definition, 0)
+    expect(stepSkill(unit, skill, 250 + definition.attack.startupMs - 1).hitboxActive).toBe(false)
+    expect(stepSkill(unit, skill, 1).hitboxActive).toBe(true)
+  })
+})
