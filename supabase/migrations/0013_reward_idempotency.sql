@@ -5,6 +5,27 @@
 -- while preserving check_and_log_rpc_rate_limit() from 0011.
 
 -- ── Gold ledger dedupe ─────────────────────────────────────────────────────────
+-- Pre-cleanup before the unique index below — a live-production run of this migration
+-- (2026-08-08) hit a real pre-existing duplicate: 'trial-01' drop-gold rows for the same
+-- profile inserted 74x and 5x respectively (pre-idempotency earn_gold() had no ref_id guard
+-- at all, so every retry/click during manual playtest re-credited gold). Ledger-only cleanup,
+-- same safe pattern as 0010_coupon_dedup_index.sql: keep the chronologically earliest row per
+-- (profile_id, currency, source, ref_id), drop the rest. Does NOT touch profiles.gold/gem —
+-- whatever those duplicate inserts already credited stays credited; reconciling an account's
+-- balance against its ledger is a separate, human decision (see MEMORY.md for this incident).
+delete from public.currency_transactions t
+where t.ref_id is not null
+  and t.id <> (
+    select t2.id
+    from public.currency_transactions t2
+    where t2.profile_id = t.profile_id
+      and t2.currency = t.currency
+      and t2.source = t.source
+      and t2.ref_id = t.ref_id
+    order by t2.created_at asc, t2.id asc
+    limit 1
+  );
+
 create unique index if not exists currency_transactions_profile_ref_unique
   on public.currency_transactions (profile_id, currency, source, ref_id)
   where ref_id is not null;
