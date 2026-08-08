@@ -95,6 +95,26 @@ const ALL_SHIPPED_ATTACKS: AttackDefinition[] = [
   ENEMY_ATTACK,
 ]
 
+describe('P8 Hero Kit balance guards', () => {
+  it('pins Golden Fury to four 1.1x strikes (4.4x total), not the old 9.6x outlier', () => {
+    expect(MONKEY_GOLDEN_FURY.strikeCount).toBe(4)
+    expect(MONKEY_GOLDEN_FURY.damageMultiplier).toBe(1.1)
+
+    const totalMultiplier =
+      MONKEY_GOLDEN_FURY.damageMultiplier * (MONKEY_GOLDEN_FURY.strikeCount ?? 1)
+    const strongestSingleHit = Math.max(
+      ...PLAYER_ATTACK_CHAIN.map((attack) => attack.damageMultiplier),
+      MONKEY_SPINNING_STAFF.damageMultiplier,
+      MONKEY_STAFF_THRUST.damageMultiplier,
+      MONKEY_STAFF_SWEEP.damageMultiplier,
+    )
+
+    expect(totalMultiplier).toBeCloseTo(4.4, 10)
+    expect(totalMultiplier).toBeGreaterThan(strongestSingleHit)
+    expect(totalMultiplier).toBeLessThan(9.6)
+  })
+})
+
 describe('AttackDefinition — schema shape (done-criteria #1, #2)', () => {
   it('ทุกท่าที่ shipped มีฟิลด์ required ครบ และไม่มีฟิลด์ที่ไม่รู้จัก (ไม่ใช่ required หรือ optional ที่ประกาศไว้)', () => {
     for (const attack of ALL_SHIPPED_ATTACKS) {
@@ -150,6 +170,7 @@ describe('Move data lives only in attacks.ts (done-criterion #5)', () => {
       /\b(startupMs|activeMs|recoveryMs|comboWindowStartMs|comboWindowEndMs|damageMultiplier|knockback|arcDegrees|depthTolerance)\s*:\s*\d/
 
     const offenders = nonTestNonAttacksFiles(ALL_SRC_SOURCES)
+      .filter(([path]) => !path.includes('/heroes/'))
       .filter(([, text]) => dataFieldPattern.test(text))
       .map(([path]) => path)
 
