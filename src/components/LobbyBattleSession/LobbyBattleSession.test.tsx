@@ -155,4 +155,54 @@ describe('LobbyBattleSession', () => {
       expect(onExit).toHaveBeenCalledTimes(1)
     })
   })
+
+  it('retry Continue after gold failure does not duplicate earnGold on success path', async () => {
+    const onExit = vi.fn()
+    const player = makePlayer()
+    let currentPlayer = player
+    const onPlayerChange = vi.fn(async (next: Player) => {
+      currentPlayer = next
+      return true
+    })
+    const onEarnGold = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false as const, error: 'ledger down' })
+      .mockResolvedValueOnce({
+        ok: true as const,
+        player: { ...currentPlayer, currency: { gold: 520, gem: 0 } },
+        amount: 20,
+      })
+
+    const { rerender } = render(
+      <LobbyBattleSession
+        player={currentPlayer}
+        onPlayerChange={onPlayerChange}
+        onEarnGold={onEarnGold}
+        onGrantItem={vi.fn()}
+        onExit={onExit}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /ลานฝึกหน้าวิหาร/ }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'mock-complete' })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'mock-complete' }))
+    await waitFor(() => expect(onEarnGold).toHaveBeenCalledTimes(1))
+
+    rerender(
+      <LobbyBattleSession
+        player={currentPlayer}
+        onPlayerChange={onPlayerChange}
+        onEarnGold={onEarnGold}
+        onGrantItem={vi.fn()}
+        onExit={onExit}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'mock-complete' }))
+    await waitFor(() => expect(onExit).toHaveBeenCalledTimes(1))
+    expect(onEarnGold).toHaveBeenCalledTimes(2)
+  })
 })

@@ -46,6 +46,8 @@ export function LobbyBattleSession({
     แต่ตัวนี้เขียนลงข้อมูลผู้เล่นจริง จึงกันไว้อีกชั้น
   */
   const savedRef = useRef(false)
+  const playerRef = useRef(player)
+  playerRef.current = player
   /** ยังไม่เลือกด่าน = null → แสดงหน้าเลือกด่านก่อน ยังไม่ mount BattleScene */
   const [stageId, setStageId] = useState<string | null>(null)
 
@@ -74,7 +76,7 @@ export function LobbyBattleSession({
 
       void (async () => {
         try {
-          const pipeline = await finalizeLobbyBattleRewards(result, player, {
+          const pipeline = await finalizeLobbyBattleRewards(result, playerRef.current, {
             onPlayerChange,
             onEarnGold,
             onGrantItem,
@@ -104,7 +106,7 @@ export function LobbyBattleSession({
         }
       })()
     },
-    [onEarnGold, onExit, onGrantItem, onPlayerChange, player],
+    [onEarnGold, onExit, onGrantItem, onPlayerChange],
   )
 
   // เช็คซ้ำก่อน mount เสมอ (ไม่ใช่แค่ตอนแสดงรายการ) — กันด่านล็อกหลุดเข้าห้องต่อสู้แม้ผ่าน
