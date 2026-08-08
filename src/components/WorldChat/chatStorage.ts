@@ -1,17 +1,11 @@
 import { readJson, writeJson } from '../../lib/storage'
+import { supabase } from '../../lib/supabaseClient'
+import { reportError } from '../../lib/errors/reportError'
 
 /**
- * ที่เก็บข้อความแชทโลก — localStorage เดียวกับที่ accountRepository ใช้เก็บบัญชี
- *
- * ⚠️ ข้อจำกัดสำคัญ (ตั้งใจถาวร ไม่ใช่ bug): เกมนี้ไม่มี backend เลย ข้อความจึงเห็นกันได้แค่
- * "บัญชีต่าง ๆ ที่เคยล็อกอินบนเบราว์เซอร์เครื่องนี้เครื่องเดียว" ไม่ใช่แชทข้ามเครื่องจริง —
- * ข้อจำกัดเดียวกับที่ findPlayerByUid ใน accountRepository.ts มีอยู่แล้ว ผู้เล่นเห็น scope นี้
- * ตรง ๆ ผ่าน WorldChat.tsx's scope caption ไม่ได้ซ่อนไว้แค่ในคอมเมนต์เหมือนก่อนหน้านี้
- *
- * 🔧 TODO ย้ายไป backend จริง: เมื่อมีฐานข้อมูลกลางจริง ให้ย้าย `loadWorldChat`/
- * `postWorldChatMessage` สองตัวนี้ไปคุยกับ API แทน (เปลี่ยนแค่ข้างในฟังก์ชัน หน้าตา/
- * signature ไม่ต้องเปลี่ยน) — ตอนนั้น `broadcastNewMessage`/`subscribeToWorldChat`
- * เปลี่ยนเป็น subscribe กับ realtime channel ของ backend แทน BroadcastChannel ในเครื่องนี้
+ * ที่เก็บข้อความแชทโลก — เวอร์ชันกึ่งฐานข้อมูลกลางกึ่ง Local Fallback
+ * Reference: docs/agent-blueprint/28-social-communication-system.md
+ * Master Blueprint §7.5: Data ownership - server-authoritative (Supabase, RLS-protected)
  */
 
 const CHAT_KEY = 'los:worldchat:v1'
@@ -25,21 +19,81 @@ export interface ChatMessage {
   createdAt: string
 }
 
-/** อ่านประวัติแชทโลกทั้งหมดที่มีอยู่บนเครื่องนี้ */
+/** อ่านประวัติแชทโลกทั้งหมดที่มีอยู่บนเครื่องนี้ (Synchronous fallback) */
 export function loadWorldChat(): ChatMessage[] {
   return readJson<ChatMessage[]>(CHAT_KEY) ?? []
 }
 
 /**
- * คิวเขียนแบบต่อคิว — กัน race ระหว่างสองแท็บ/บัญชีบนเบราว์เซอร์เดียวกันโพสต์พร้อมกัน
- * (อ่าน-แล้ว-เขียนทับแบบเดิมไม่มี lock ข้อความของอีกฝั่งหายได้ถ้าจังหวะชนกันพอดี)
- * ต่อคิวได้แค่ภายในแท็บเดียวกัน — race ข้ามแท็บจริง ๆ ปิดไม่ได้ถ้าไม่มี backend
- * (สองแท็บคนละ JS heap คนละคิว) แต่กรณีนี้พบยากกว่ามาก เพราะต้องกดส่งพร้อมกันจริง ๆ
+ * ดึงประวัติแชทล่าสุดจาก Supabase และบันทึกลง local cache เพื่อให้หน้าจอแสดงผลได้รวดเร็ว
+ */
+export async function syncWorldChatFromSupabase(): Promise<ChatMessage[]> {
+  try {
+    const session = (await supabase.auth.getSession()).data.session
+    if (!session?.user) {
+      return loadWorldChat()
+    }
+
+    const { data, error } = await supabase
+      .from('world_chat')
+      .select('id, author_name, text, created_at')
+      .order('created_at', { ascending: false })
+      .limit(MAX_MESSAGES)
+
+    if (error) {
+      reportError('CHAT_SYNC_FAIL', 'silent', error)
+      return loadWorldChat()
+    }
+
+    if (data) {
+      const messages: ChatMessage[] = data
+        .map((row) => ({
+          id: row.id,
+          authorName: row.author_name,
+          text: row.text,
+          createdAt: row.created_at,
+        }))
+        .toReversed()
+
+      writeJson(CHAT_KEY, messages)
+      broadcastNewMessage()
+      return messages
+    }
+  } catch (err) {
+    reportError('CHAT_SYNC_FAIL', 'silent', err)
+  }
+  return loadWorldChat()
+}
+
+/**
+ * คิวเขียนแบบต่อคิว — กัน race ระหว่างสองแท็บ/บัญชีโพสต์พร้อมกัน
  */
 let writeQueue: Promise<ChatMessage[]> = Promise.resolve([])
 
 /** โพสต์ข้อความใหม่เข้าแชทโลก คืนประวัติทั้งหมดหลังโพสต์ */
-export function postWorldChatMessage(authorName: string, text: string): Promise<ChatMessage[]> {
+export async function postWorldChatMessage(
+  authorName: string,
+  text: string,
+): Promise<ChatMessage[]> {
+  const session = (await supabase.auth.getSession()).data.session
+
+  if (session?.user) {
+    // บันทึกลง Supabase (เซิร์ฟเวอร์จะเป็นผู้แจกจ่ายผ่าน Realtime ไปยังทุกแท็บ/อุปกรณ์)
+    const { error } = await supabase.from('world_chat').insert({
+      profile_id: session.user.id,
+      author_name: authorName,
+      text: text,
+    })
+
+    if (error) {
+      reportError('CHAT_SYNC_FAIL', 'silent', error)
+      // หากบันทึกลง Supabase ล้มเหลว ให้บันทึกแบบ Local Fallback แทน
+    } else {
+      return syncWorldChatFromSupabase()
+    }
+  }
+
+  // Local fallback ในกรณีไม่ได้เข้าระบบ หรือเกิดความล้มเหลว
   const message: ChatMessage = {
     id: crypto.randomUUID(),
     authorName,
@@ -57,14 +111,7 @@ export function postWorldChatMessage(authorName: string, text: string): Promise<
 }
 
 /**
- * แจ้งแท็บอื่นบนเครื่องเดียวกันว่ามีข้อความใหม่ — ใช้ BroadcastChannel (native API,
- * Baseline widely available ตั้งแต่ มี.ค. 2022 ตาม MDN — และโค้ดด้านล่าง feature-detect
- * ก่อนใช้อยู่แล้ว ไม่ได้เชื่อตารางรองรับเฉย ๆ ส่วนฟิลด์ browserslist ใน package.json
- * ไม่มีอะไรใน build อ่าน จึงไม่ใช่หลักประกัน ดู .agents/rules/ecc/web/compatibility.md)
- * แทน window 'storage' event เดิม เพราะเป็นกลไก pub-sub ตรง ๆ ไม่ต้อง
- * พึ่งเบราว์เซอร์ refire event จากการเขียน localStorage ทางอ้อม — ยังต้องเก็บใน
- * localStorage เหมือนเดิมสำหรับ persist/backfill ตอนเปิดแท็บใหม่ BroadcastChannel
- * แค่เป็นชั้น "แจ้งเตือนสด" เพิ่มเข้ามา ไม่ได้แทนที่ localStorage
+ * แจ้งแท็บอื่นบนเครื่องเดียวกันว่ามีข้อความใหม่ (Local tab broadcast)
  */
 const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(CHAT_KEY) : null
 
@@ -72,10 +119,66 @@ function broadcastNewMessage(): void {
   channel?.postMessage('new-message')
 }
 
-/** ฟังข้อความใหม่จากแท็บอื่น — คืนฟังก์ชัน unsubscribe */
+let realtimeSubscription: unknown = null
+
+/** ฟังข้อความใหม่จากแท็บอื่นและ Realtime backend — คืนฟังก์ชัน unsubscribe */
 export function subscribeToWorldChat(onNewMessage: () => void): () => void {
-  if (!channel) return () => {}
-  const handler = () => onNewMessage()
-  channel.addEventListener('message', handler)
-  return () => channel.removeEventListener('message', handler)
+  const handlers: (() => void)[] = []
+
+  // 1. รับข่าวสารจาก BroadcastChannel ในเครื่อง
+  if (channel) {
+    const localHandler = () => onNewMessage()
+    channel.addEventListener('message', localHandler)
+    handlers.push(() => {
+      channel.removeEventListener('message', localHandler)
+    })
+  }
+
+  // 2. รับข่าวสารเรียลไทม์จาก Supabase
+  supabase.auth
+    .getSession()
+    .then(({ data: { session } }) => {
+      if (session?.user && !realtimeSubscription) {
+        // ดึงประวัติแชทเริ่มต้นครั้งแรกเมื่อเชื่อมต่อสำเร็จ
+        syncWorldChatFromSupabase()
+          .then(() => {
+            onNewMessage()
+            return null
+          })
+          .catch((err) => {
+            reportError('CHAT_SYNC_FAIL', 'silent', err)
+          })
+
+        const sub = supabase
+          .channel('public:world_chat')
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'world_chat' },
+            async () => {
+              await syncWorldChatFromSupabase()
+              onNewMessage()
+            },
+          )
+          .subscribe()
+
+        realtimeSubscription = sub
+
+        handlers.push(() => {
+          if (realtimeSubscription) {
+            supabase.removeChannel(sub)
+            realtimeSubscription = null
+          }
+        })
+      }
+      return null
+    })
+    .catch((err) => {
+      reportError('CHAT_SYNC_FAIL', 'silent', err)
+    })
+
+  return () => {
+    for (const unsubscribe of handlers) {
+      unsubscribe()
+    }
+  }
 }

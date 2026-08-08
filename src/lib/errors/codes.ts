@@ -105,6 +105,9 @@ export const ERROR_CODES = {
   // สองกรณีนี้ออกจากกันในฝั่ง log เท่านั้น — ก่อนหน้านี้แยกไม่ออกเลย ซึ่งเป็นสาเหตุที่ทำให้ฟีเจอร์
   // นี้พังเงียบ ๆ ในโปรดักชันมาก่อน (ดู .agents/rules/public-profile-lookup-law.md)
   FRIEND_LOOKUP_FAIL: 'ค้นหาผู้เล่นด้วยรหัสไม่สำเร็จ',
+
+  // แชทโลก (src/components/WorldChat/chatStorage.ts)
+  CHAT_SYNC_FAIL: 'ซิงค์ข้อมูลแชทไม่สำเร็จ',
 } as const
 
 export type ErrorCode = keyof typeof ERROR_CODES

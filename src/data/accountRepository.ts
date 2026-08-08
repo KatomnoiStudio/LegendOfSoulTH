@@ -27,6 +27,7 @@ import {
   type GoldSource,
   type ItemResult,
   type ItemSource,
+  type AccountRepositorySubset,
 } from './accountRepository.shared'
 
 /*
@@ -779,4 +780,22 @@ export async function grantCharacter(
 
   if (!saveDb(db)) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
   return { ok: true, player: updated.player, characterId }
+}
+
+// Type-level assertion to ensure this file's exports satisfy the common repository interface subset
+export const assertion: AccountRepositorySubset = {
+  register,
+  login,
+  logout,
+  getSessionPlayer,
+  getSessionEmail,
+  findPlayerByUid,
+  savePlayer,
+  earnGold,
+  redeemCoupon,
+  topUpGold,
+  topUpGems,
+  getTransactions,
+  grantItem,
+  grantCharacter,
 }
