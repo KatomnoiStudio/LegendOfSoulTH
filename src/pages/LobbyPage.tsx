@@ -6,7 +6,6 @@ import { WukongAdventure } from '../components/AdventureScene/WukongAdventure'
 import { ErrorBoundary, SceneCrashFallback } from '../components/ErrorBoundary/ErrorBoundary'
 import { LoadingScreen } from '../components/LoadingScreen/LoadingScreen'
 import { WorldChat } from '../components/WorldChat/WorldChat'
-import { DungeonSession } from '../components/DungeonSession/DungeonSession'
 import { LobbyBattleSession } from '../components/LobbyBattleSession/LobbyBattleSession'
 import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRosterModal'
 import { ItemsModal } from '../components/ItemsModal/ItemsModal'
@@ -139,7 +138,6 @@ export function LobbyPage({
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [rosterOpen, setRosterOpen] = useState(false)
   const [battleOpen, setBattleOpen] = useState(false)
-  const [dungeonOpen, setDungeonOpen] = useState(false)
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [itemsOpen, setItemsOpen] = useState(false)
   // ค่าเริ่มต้นอ่านจาก engine (persist ผ่าน localStorage) — เก็บ mirror ไว้ที่นี่แค่ให้ React re-render
@@ -205,7 +203,7 @@ export function LobbyPage({
       </div>
 
       <div className={styles.startRow}>
-        <StartAdventure onStart={() => setDungeonOpen(true)} />
+        <StartAdventure onStart={() => setBattleOpen(true)} />
       </div>
 
       <MainNavigation
@@ -221,16 +219,6 @@ export function LobbyPage({
         component เปลี่ยนชื่อ/พฤติกรรมไปคนละแบบ ไม่ใช่คอนโซลลับอีกต่อไป)
       */}
       <WorldChat playerName={player.name} isAdmin={isAdmin} onGiveCharacter={onGiveCharacter} />
-
-      {dungeonOpen ? (
-        <DungeonSession
-          player={player}
-          onPlayerChange={onPlayerChange}
-          onEarnGold={onEarnGold}
-          onGrantItem={onGrantItem}
-          onExit={() => setDungeonOpen(false)}
-        />
-      ) : null}
 
       {/*
         เดินชมจันทร์เปิดอยู่ตลอดเวลาที่อยู่ในลอบบี้ ไม่ต้องกดปุ่มเปิดจากโปรไฟล์อีกต่อไป
