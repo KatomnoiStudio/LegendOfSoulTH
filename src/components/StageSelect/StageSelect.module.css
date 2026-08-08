@@ -42,9 +42,64 @@
 .header {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
   padding: var(--sp-5) var(--sp-5) var(--sp-4);
   border-bottom: 1px solid rgb(255 255 255 / 8%);
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.headerHint {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--c-text-dim);
+}
+
+.chapter + .chapter {
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-4);
+  border-top: 1px solid rgb(255 255 255 / 8%);
+}
+
+.chapterHeader {
+  margin-bottom: var(--sp-3);
+}
+
+.chapterTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: rgb(226 183 88 / 92%);
+}
+
+.chapterSubtitle {
+  margin: 4px 0 0;
+  font-size: 0.72rem;
+  color: var(--c-text-dim);
+}
+
+.stageRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.stageLabel {
+  flex-shrink: 0;
+  min-width: 2.25rem;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: rgb(226 183 88 / 88%);
 }
 
 .headerTitle {

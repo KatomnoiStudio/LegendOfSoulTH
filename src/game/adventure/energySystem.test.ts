@@ -28,7 +28,7 @@ describe('energySystem — §5.1 skeleton', () => {
 
   it('boss stages cost more than normal stages', () => {
     const normal = getRealtimeStage('trial-01')
-    const boss = getRealtimeStage('trial-05')
+    const boss = getRealtimeStage('trial-10')
     if (!normal || !boss) throw new Error('fixture missing')
 
     expect(getStageEnergyCost(boss)).toBeGreaterThan(getStageEnergyCost(normal))

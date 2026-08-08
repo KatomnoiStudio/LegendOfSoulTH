@@ -59,8 +59,8 @@ describe('spirit-guardian-boss production data (#11 + #16)', () => {
     expect(boss.phases[0].attacks[0].telegraphMs).toBeGreaterThanOrEqual(800)
   })
 
-  it('createRealtimeBattle trial-05 มีบอส 1 ตัวที่ HP ถูก scale ด้วย difficultyMultiplier', () => {
-    const state = createRealtimeBattle('trial-05', makePlayer())
+  it('createRealtimeBattle trial-10 มีบอส 1 ตัวที่ HP ถูก scale ด้วย difficultyMultiplier', () => {
+    const state = createRealtimeBattle('trial-10', makePlayer())
     if (!state) throw new Error('fixture missing')
     expect(state.enemies).toHaveLength(1)
     const boss = state.enemies[0]
@@ -72,7 +72,7 @@ describe('spirit-guardian-boss production data (#11 + #16)', () => {
 
   it('stepEnemyAI เปลี่ยนเฟสเมื่อ HP ข้าม threshold', () => {
     const template = BOSS_TEMPLATES['spirit-guardian-boss']
-    const boss = createWaveEnemies(createRealtimeBattle('trial-05', makePlayer())!.stage, 0)[0]
+    const boss = createWaveEnemies(createRealtimeBattle('trial-10', makePlayer())!.stage, 0)[0]
     boss.hp = template.maxHp * 0.4
     boss.maxHp = template.maxHp
 
