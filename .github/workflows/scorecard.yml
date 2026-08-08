@@ -17,10 +17,16 @@ on:
     branches: [ master ]
     paths:
       # รันเฉพาะตอนแตะของที่ Scorecard ตรวจจริง ๆ ไม่ใช่ทุก commit
+      #
+      # SECURITY.md/LICENSE ไม่ได้อยู่ในลิสต์เดิม — แก้ SECURITY.md แล้ว Security-Policy
+      # alert ค้างคะแนนเก่าข้ามวันจนดูเหมือน false positive เพราะ path filter ไม่เห็นไฟล์นี้
+      # เลย ไม่ได้ trigger ใหม่ให้ (2026-08-08, HetCreep ชี้)
       - '.github/workflows/**'
       - '.github/dependabot.yml'
       - 'package.json'
       - 'package-lock.json'
+      - 'SECURITY.md'
+      - 'LICENSE'
   workflow_dispatch:
 
 permissions: read-all

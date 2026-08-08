@@ -11,6 +11,11 @@ its own login/register/session logic. Still-real limitations are documented in *
 
 ## Reporting a Vulnerability
 
+This project follows a coordinated (responsible) disclosure policy: report a suspected
+vulnerability privately first, give the maintainer a reasonable window to investigate and ship a
+fix before any public disclosure, and avoid actions that could harm real players (their accounts,
+currency, or data) while testing.
+
 Use GitHub private vulnerability reporting — it goes straight to the maintainer, not a public issue:
 
 - https://github.com/KatomnoiStudio/LegendOfSoulTH/security/advisories/new
@@ -70,10 +75,11 @@ By design, not bugs — don't file these:
   active. Combined with the 30-day stale-guest cleanup job
   (`supabase/migrations/0006_guest_cleanup.sql`), bounds how much guest-account farming can
   accumulate before it's auto-reaped.
-- **CAPTCHA (Cloudflare Turnstile)**: not yet enabled. Supabase's Dashboard toggle
-  (Authentication → Settings → Bot and Abuse Protection) is project-wide across all
-  `signUp`/`signInWithPassword`/`signInAnonymously` calls, not scoped per method — requires a
-  Cloudflare site key/secret key pair from the project owner before it can be wired client-side.
+- **CAPTCHA (Cloudflare Turnstile)**: client-side widget shipped (`AuthModal.tsx`, `VITE_TURNSTILE_SITE_KEY`).
+  Supabase's Dashboard toggle (Authentication → Settings → Attack Protection) is project-wide
+  across all `signUp`/`signInWithPassword`/`signInAnonymously` calls, not scoped per method —
+  currently disabled server-side pending a live-browser verification pass; re-enable once that's
+  confirmed working end-to-end.
 
 ## Supply-Chain / CI
 
