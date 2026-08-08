@@ -13,8 +13,8 @@
   --menu-icon-size: clamp(50px, 4.2vw, 68px);
   position: absolute;
   z-index: var(--z-nav);
-  inset-inline-start: clamp(14px, 2.4vw, 40px);
-  inset-block-end: max(18px, env(safe-area-inset-bottom));
+  inset-inline-start: max(clamp(14px, 2.4vw, 40px), env(safe-area-inset-left, 0px));
+  inset-block-end: max(18px, env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
 
@@ -38,7 +38,9 @@
   background: transparent;
   color: #eee2c5;
   filter: drop-shadow(0 7px 7px rgb(0 0 0 / 65%));
-  transition: transform 220ms cubic-bezier(.2,.8,.2,1), filter 220ms ease;
+  transition:
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 220ms ease;
 }
 
 .item::after {
@@ -51,7 +53,9 @@
   opacity: 0.25;
   background: var(--nav-accent);
   filter: blur(10px);
-  transition: opacity 220ms ease, scale 220ms ease;
+  transition:
+    opacity 220ms ease,
+    scale 220ms ease;
 }
 
 .art {
@@ -61,7 +65,9 @@
   width: var(--menu-icon-size);
   aspect-ratio: 1;
   transform-origin: 50% 78%;
-  transition: transform 260ms cubic-bezier(.2,.8,.2,1), filter 220ms ease;
+  transition:
+    transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 220ms ease;
 }
 
 .art::before {
@@ -74,7 +80,9 @@
   opacity: 0.14;
   background: radial-gradient(circle, var(--nav-accent), transparent 72%);
   filter: blur(7px);
-  transition: opacity 220ms ease, scale 220ms ease;
+  transition:
+    opacity 220ms ease,
+    scale 220ms ease;
 }
 
 .art img {
@@ -129,14 +137,27 @@
   filter: drop-shadow(0 11px 9px rgb(0 0 0 / 72%));
 }
 .item:hover .art,
-.item:focus-visible .art { transform: scale(1.13) rotate(-2deg); filter: brightness(1.13) saturate(1.1); }
+.item:focus-visible .art {
+  transform: scale(1.13) rotate(-2deg);
+  filter: brightness(1.13) saturate(1.1);
+}
 .item:hover .art::before,
-.item:focus-visible .art::before { opacity: 0.48; scale: 1.35; }
+.item:focus-visible .art::before {
+  opacity: 0.48;
+  scale: 1.35;
+}
 .item:hover::after,
-.item:focus-visible::after { opacity: 0.48; scale: 1.2; }
+.item:focus-visible::after {
+  opacity: 0.48;
+  scale: 1.2;
+}
 .item:hover .label,
-.item:focus-visible .label { color: #fff1c8; }
-.item:active { transform: translateY(-2px) scale(0.91); }
+.item:focus-visible .label {
+  color: #fff1c8;
+}
+.item:active {
+  transform: translateY(-2px) scale(0.91);
+}
 
 /*
   จอแคบ: ปุ่มราหูย้ายไปอยู่คนละแถวอยู่แล้ว เมนูจึงกลับมาวางกึ่งกลางได้
@@ -145,9 +166,24 @@
   ข้าง ๆ (ดูคอมเมนต์เดียวกันใน StartAdventure.module.css)
 */
 @media (max-width: 860px), (max-height: 480px) {
-  .nav { --menu-icon-size: clamp(36px, 7vw, 60px); inset-inline-start: 50%; translate: -50% 0; inset-block-end: max(8px, env(safe-area-inset-bottom)); }
-  .rail { justify-content: center; width: calc(100vw - 20px); gap: clamp(10px, 2.6vw, 26px); }
-  .item { width: var(--menu-icon-size); }
-  .art { width: var(--menu-icon-size); }
-  .label { font-size: 0.74rem; }
+  .nav {
+    --menu-icon-size: clamp(36px, 7vw, 60px);
+    inset-inline-start: 50%;
+    translate: -50% 0;
+    inset-block-end: max(8px, env(safe-area-inset-bottom));
+  }
+  .rail {
+    justify-content: center;
+    width: calc(100vw - 20px);
+    gap: clamp(10px, 2.6vw, 26px);
+  }
+  .item {
+    width: var(--menu-icon-size);
+  }
+  .art {
+    width: var(--menu-icon-size);
+  }
+  .label {
+    font-size: 0.74rem;
+  }
 }
