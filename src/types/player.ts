@@ -40,6 +40,13 @@ export interface OwnedCharacter {
   /** P8 — awakening foundation */
   awakeningState?: { tier: number; unlockedEffects?: string[] }
   progressionVersion?: number
+  /**
+   * ระดับดาว (work contract #15 — Star Ascension System, ★1–★6)
+   * บัญชีเก่าไม่มีฟิลด์นี้ = เริ่มต้นที่ ★1
+   */
+  star?: number
+  /** จำนวนชิ้นส่วน/ตัวซ้ำสะสมที่ใช้สำหรับเลื่อนดาว */
+  shards?: number
 }
 
 /** ไอเทมหนึ่งช่องในกระเป๋าผู้เล่น — itemId ต้องมีอยู่ใน ITEMS (ดู src/game/items.ts) */
