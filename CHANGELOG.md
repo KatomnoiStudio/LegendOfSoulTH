@@ -5,6 +5,21 @@
 
 ## [Unreleased]
 
+## [0.12.2] - 2026-08-08
+
+Deploy upstream PR #39 battle UI fixes to live (live was still on 0.12.1 build from before #39 merged — deploy gate requires a version bump)
+
+### Fixed
+
+- Battle HUD HP reads authoritative runtime snapshot (`battleVitals.ts`); `maxHp` from progression `combatStats.hp`
+- Sprite foot anchor via visual offset only (`entitySpritePresentation.ts`) — no battle coordinate changes
+- Combat skill cluster polar layout (`combatUILayout.ts`) — no per-viewport magic offsets
+- Compact `StageObjectiveHud` grid (~21vw) — no `transform: scale()`
+
+### Changed
+
+- CI: isolate `accountRepository.supabase.mapping.ts` so fork PR tests do not import `supabaseClient.ts` at module eval
+
 ## [0.12.1] - 2026-08-08
 
 P8 balance lock playtest baseline (Ring 0) + deploy of tutorial-easy stage 1 and partial failure rewards
