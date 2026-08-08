@@ -18,7 +18,7 @@ No queue slot needed — touch only on bug/extension.
 - #18 Reward (`RewardSystem.ts`), #26 Control/Input (PR #24), #27 Error/Observability (SETTLED).
 - #22 Currency (DB RPCs) — **badge caveat (found via ask-CB dogfood-methodology sweep, 2026-08-07):** its own work contract (`docs/agent-blueprint/22-currency-system.md:38`) admits zero test coverage on `earnGold`/`redeemCoupon`/`topUpGold`/`topUpGems` — the "maintain only" stamp was earned by a source-scan grep (file exists), never by a dogfood/red-team pass or by tests. Real gap, tracked under `.agents/rules/gold-standard-baseline.md`'s open component-test-coverage MUST-HAVE (AGENTS.md rule 10) — not fixed here, flagged so nobody trusts this badge more than it's earned.
 - #25 Backend/Server-Authority — baseline shipped (auth/RLS/RPC); GROWS as Tier-1/2 systems land, not a one-time ship.
-- #28 Social/Communication — shipped and working; formal blueprint-lock done (§7.5, 2026-08-08) — data-ownership server-authoritative, moderation admin-driven via `admin_accounts`.
+- #28 Social/Communication — shipped and working; formal blueprint-lock done (§7.5, 2026-08-08, revised 2026-08-09). **Moderation is player-side block/mute** (`/block`/`/unblock`/`/blocklist`, item #10 — corrected from an earlier "admin-driven" claim that was never actually true; the real exemplar, per Guardian Tales' own devs, is a per-player chat block, not an admin takedown panel). Data-ownership is **locked as server-authoritative but code doesn't match yet** — World Chat is still 100% `localStorage` (item #9, real migration work still pending).
 
 ### Tier 1 — Urgent / core (next up, blocks the rest — roadmap P3–P8, verified NOT yet in `src/`)
 
@@ -32,7 +32,8 @@ No queue slot needed — touch only on bug/extension.
 
 ### Tier 2 — Not urgent yet (sequenced later, real work, roadmap P9–P13)
 
-- #23 Gacha System, #15 Star Ascension, #13 Hero Collection (expansion) — **zero implementation found** (`grep gacha/pity` = 0 hits); pity-mechanic SKELETON locked (§7.1, 2026-08-08, soft/hard pity per Genshin's shape), rate/cost numbers still deferred to P9.
+- #23 Gacha System, #15 Star Ascension — **zero implementation found** (`grep gacha/pity` = 0 hits); pity-mechanic SKELETON locked (§7.1, 2026-08-08, soft/hard pity per Genshin's shape), rate/cost numbers still deferred to P9.
+- #13 Hero Collection (expansion) — **stale claim corrected 2026-08-09**: this row previously said "zero implementation," which is now wrong — `TASKS.md` row 24 shows it 100% graduated. **Roadmap-order divergence, item #12 of the blueprint-vs-code audit**: §10's LOCKED sequence puts P9 (Gacha/Star, this tier) before P10 (Hero Collection expansion) — it shipped in the reverse order. HetCreep's resolution: pause further Hero Collection expansion work, prioritize #23 Gacha and #15 Star Ascension next to restore the intended order before resuming #13.
 - #19 PvP/Ranked, #20 PvP Power Normalization, #21 Netcode/Networking — **zero implementation found** (`grep PvP/matchmaking` = 0 hits); blueprint's own §3.8.7/§8 already say "deferred to P12".
 
 ### Tier 3 — Decorative / optional, add on later

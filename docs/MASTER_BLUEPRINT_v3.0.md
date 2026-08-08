@@ -73,18 +73,18 @@ Adventure → Stage → Combat → Clear
 
 Do **not** plan or implement these until HetCreep reopens them:
 
-| CUT                          | Notes                                                                           |
-| ---------------------------- | ------------------------------------------------------------------------------- |
-| **Loot RPG** (gear hunt)     | Deferred — prove combat + stage loop first                                      |
-| **Equipment random affix**   | Deferred                                                                        |
-| **Set bonus**                | Deferred                                                                        |
-| **Talent tree**              | Deferred                                                                        |
-| **Awakening**                | Deferred                                                                        |
-| **MMORPG / Open World**      | Never                                                                           |
-| **3D character pipeline**    | Never for heroes                                                                |
-| **Hero switching mid-stage** | Never                                                                           |
-| **Skill 4 button**           | CUT — use **3 Skills + Ultimate**                                               |
-| **Separate Dash button**     | CUT — dodge/mobility via skills or movement design, not a dedicated dash button |
+| CUT                          | Notes                                                                                                                                                                                                                                                                                    |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Loot RPG** (gear hunt)     | Deferred — prove combat + stage loop first                                                                                                                                                                                                                                               |
+| **Equipment random affix**   | Deferred                                                                                                                                                                                                                                                                                 |
+| **Set bonus**                | Deferred                                                                                                                                                                                                                                                                                 |
+| ~~**Talent tree**~~          | **Un-deferred 2026-08-09 (item #7)** — already fully built (`progressionSchema.ts`, `progressionService.ts:unlockTalent`, live in `0008_progression_state.sql`); UI stays hidden via `showTalentAwakeningUi:false` until ready to reveal, but the system itself is no longer "not built" |
+| ~~**Awakening**~~            | **Un-deferred 2026-08-09 (item #7)** — same as Talent tree, `advanceAwakening()` fully working, DB-persisted                                                                                                                                                                             |
+| **MMORPG / Open World**      | Never                                                                                                                                                                                                                                                                                    |
+| **3D character pipeline**    | Never for heroes                                                                                                                                                                                                                                                                         |
+| **Hero switching mid-stage** | Never                                                                                                                                                                                                                                                                                    |
+| **Skill 4 button**           | CUT — use **3 Skills + Ultimate**                                                                                                                                                                                                                                                        |
+| **Separate Dash button**     | CUT — dodge/mobility via skills or movement design, not a dedicated dash button                                                                                                                                                                                                          |
 
 ---
 
@@ -97,10 +97,11 @@ Do **not** plan or implement these until HetCreep reopens them:
 - **Up/down = depth** positioning to align with enemies
 - Movement and attack direction are **separate systems**
 
-## 3.2 Attack axis (LOCKED)
+## 3.2 Attack axis (LOCKED, exception carved 2026-08-09)
 
 - Primary attacks face **LEFT or RIGHT only**
-- **Not** 360° attack
+- **Not** 360° for the **Basic Attack** specifically
+- **Skills and Ultimate MAY use a 360°/radial hit shape** — revised via the blueprint-vs-code audit (`wf_acfdbf87-87e`, item #1): the shipped Monkey King kit (`attacks.ts`) already uses `arcDegrees:360` for S1 (spinning staff) and the Ultimate (Golden Fury), which reads correctly as an AoE skill design, not a violation of the LEFT/RIGHT basic-attack lock. §14's history table entry "360° attack — SUPERSEDED" refers to the old **turn-based/basic-attack** direction system, not a blanket ban on any radial skill.
 - Depth alignment required: horizontal range + **depth tolerance** (not pixel-perfect Y)
 
 ## 3.3 Controls — mobile (LOCKED)
@@ -287,37 +288,37 @@ Combat remains a **2.5D positioning-based brawler:** player controls **movement 
 
 HetCreep: set sensible defaults first; **values below are starting points**, not final balance.
 
-| Parameter                                | Initial value                              | Notes                                                 |
-| ---------------------------------------- | ------------------------------------------ | ----------------------------------------------------- |
-| `lungeDistance` (basic, per hit)         | 32 / 36 / 44                               | Hit 1 → 2 → 3; hit 3 slightly longer                  |
-| `hitstunMs` (normal basic on hit)        | 200                                        | Short stun before resume                              |
-| `knockback` (basic)                      | keep `attacks.ts` chain values             | Tune in playtest                                      |
-| `castDelayMs` S1 / S2 / S3 / Ult         | 0\* / 250 / 320 / 480                      | \*S1 folded into existing startup                     |
-| `interruptible` (default skill)          | `true` during cast                         | Per-skill override in kit                             |
-| `interruptible` (Ultimate, all 4 phases) | `false` for the entire strike sequence     | Monkey King ult — hyper-armor throughout, see §3.7    |
-| `movementDuringCast` (default)           | `none`                                     | S3 leap uses skill-driven displacement, not free walk |
-| Mob `telegraphMs`                        | 280                                        | Normal melee enemy                                    |
-| Boss `telegraphMs`                       | 800–1200                                   | Per attack row                                        |
-| Knockdown on normal mob                  | **no**                                     | P4 mobs use Hit stun only                             |
-| Knockdown                                | elite/boss + heavy moves + combo finishers | Per move flag                                         |
-| Boss phase threshold                     | **50% HP**                                 | **2 phases** baseline                                 |
-| `getUp` i-frames                         | 200 ms                                     | After knockdown                                       |
+| Parameter                                            | Initial value                              | Notes                                                                                                                                                                              |
+| ---------------------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lungeDistance` (basic, per hit)                     | 32 / 36 / 44                               | Hit 1 → 2 → 3; hit 3 slightly longer                                                                                                                                               |
+| `hitstunMs` (normal basic on hit)                    | 200                                        | Short stun before resume                                                                                                                                                           |
+| `knockback` (basic)                                  | keep `attacks.ts` chain values             | Tune in playtest                                                                                                                                                                   |
+| `castDelayMs` S1 / S2 / S3 / Ult                     | 0\* / 250 / 320 / 480                      | \*S1 folded into existing startup                                                                                                                                                  |
+| `interruptible` (default skill)                      | `true` during cast                         | Per-skill override in kit                                                                                                                                                          |
+| `interruptible` (Ultimate, telegraph/startup/active) | `false`                                    | Monkey King ult — hyper-armor through the strike itself, **recovery is cancelable** (revised 2026-08-09, item #5 — matches shipped `attacks.ts` + `SkillSystem.test.ts`), see §3.7 |
+| `movementDuringCast` (default)                       | `none`                                     | S3 leap uses skill-driven displacement, not free walk                                                                                                                              |
+| Mob `telegraphMs`                                    | 280                                        | Normal melee enemy                                                                                                                                                                 |
+| Boss `telegraphMs`                                   | 800–1200                                   | Per attack row                                                                                                                                                                     |
+| Knockdown on normal mob                              | **no**                                     | P4 mobs use Hit stun only                                                                                                                                                          |
+| Knockdown                                            | elite/boss + heavy moves + combo finishers | Per move flag                                                                                                                                                                      |
+| Boss phase threshold                                 | **50% HP**                                 | **2 phases** baseline                                                                                                                                                              |
+| `getUp` i-frames                                     | 200 ms                                     | After knockdown                                                                                                                                                                    |
 
 ## 3.7 Reference hero kit — หนุมาน / Monkey King (LOCKED baseline)
 
 First vertical-slice kit. Other heroes follow the same **per-hero kit file** pattern.
 
-| Slot         | Name (TH)              | Design                           | Implementation notes                                                                                                                                                           |
-| ------------ | ---------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Basic**    | โจมตีปกติ              | 3-hit combo, multi-target, lunge | §3.6.11; finisher hit 3 tuned per §3.6.12                                                                                                                                      |
-| **S1**       | กระบวนทองคำ            | Spinning staff (existing)        | Radial AoE — already shipped                                                                                                                                                   |
-| **S2**       | กระบองตีระยะไกล        | Long-range staff strike          | Horizontal or line hit; **no** target lock                                                                                                                                     |
-| **S3**       | กระโดดพุ่งทุบ          | Leap jump → slam                 | Skill-driven leap displacement; slam on landing                                                                                                                                |
-| **Ultimate** | แยก 4 ร่าง → พุ่งโจมตี | Clone split → rush               | **Skill-specific nearest-target lock**; presentation uses clone animation; **code = long-range attack skill locked to nearest enemy, 4 strike phases**; not global soft-target |
+| Slot         | Name (TH)                                     | Design                                                                                        | Implementation notes                                                                                                                                                                                |
+| ------------ | --------------------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Basic**    | โจมตีปกติ                                     | 3-hit combo, multi-target, lunge                                                              | §3.6.11; finisher hit 3 tuned per §3.6.12                                                                                                                                                           |
+| **S1**       | กระบวนทองคำ                                   | Spinning staff (existing)                                                                     | Radial AoE — already shipped                                                                                                                                                                        |
+| **S2**       | กระบองตีระยะไกล                               | Long-range staff strike                                                                       | Horizontal or line hit; **no** target lock                                                                                                                                                          |
+| **S3**       | กระบองกวาดกว้าง (revised 2026-08-09, item #6) | Wide staff sweep — matches shipped `MONKEY_STAFF_SWEEP` (`hitShape:'horizontal'`), not a leap | No leap/displacement mechanic — **current kit is a placeholder**, full per-hero move design (incl. whether S3 gets a real leap later) is a separate future detailed-design pass, not committed here |
+| **Ultimate** | แยก 4 ร่าง → พุ่งโจมตี                        | Clone split → rush                                                                            | **Skill-specific nearest-target lock**; presentation uses clone animation; **code = long-range attack skill locked to nearest enemy, 4 strike phases**; not global soft-target                      |
 
 **Ultimate exception:** only this skill (and future skills explicitly flagged `targetLock: 'nearest'`) may auto-pick a target. Basic attack and S2/S3 still use manual facing/positioning unless their kit row says otherwise.
 
-**Ultimate strike-phase resolution (LOCKED, gold-standard-grounded — genre convention, e.g. Genshin/Star Rail ultimates):** all 4 strike phases hit the **same** locked target (the initial nearest-enemy lock persists through the whole sequence, not re-acquired per phase) — matches the "clone rush" flavor (4 clones converging on one target, not 4 separate picks). The entire 4-phase sequence is **non-interruptible** (hyper-armor), not just the clone/setup wind-up — an ultimate that can be stopped mid-animation reads as broken in this genre. Future `targetLock: 'nearest'` skills should default to this pattern unless their kit row states otherwise.
+**Ultimate strike-phase resolution (LOCKED, gold-standard-grounded — genre convention, e.g. Genshin/Star Rail ultimates):** all 4 strike phases hit the **same** locked target (the initial nearest-enemy lock persists through the whole sequence, not re-acquired per phase) — matches the "clone rush" flavor (4 clones converging on one target, not 4 separate picks). **Revised 2026-08-09 (item #5):** hyper-armor covers telegraph/startup/active — the strike itself can't be stopped mid-animation, which is the part that reads as broken if interruptible — but **recovery is cancelable by hitstun**, matching shipped behavior (`attacks.ts`'s `phaseOverrides`, pinned by `SkillSystem.test.ts`). Future `targetLock: 'nearest'` skills should default to this pattern (armor through the strike, not recovery) unless their kit row states otherwise.
 
 **Next design gate (OPEN):** per-hero finisher tuning tables and additional hero kits beyond Monkey King.
 
@@ -386,15 +387,15 @@ Already directionally locked in fork issue #47 ("summon effect → reuse spawn/e
 
 **Anti-pattern:** 50 heroes with identical gameplay.
 
-## 4.2 Early progression (LOCKED — simplified)
+## 4.2 Early progression (LOCKED — simplified, revised 2026-08-09 item #7)
 
-Only these layers in **phase 1**:
+Layers actually live in phase 1:
 
 ```
-Hero Level → Star → Skill Level
+Hero Level → Star → Skill Level → Talent → Awakening
 ```
 
-**Deferred:** Talent, Awakening, Equipment, Loot affixes, Set bonus.
+Talent and Awakening are un-deferred (see §2.1) — built end-to-end, UI stays hidden behind `showTalentAwakeningUi:false` until ready to reveal. **Still deferred:** Equipment, Loot affixes, Set bonus (genuinely not built).
 
 ## 4.3 Star balance note (LOCKED)
 
@@ -434,7 +435,7 @@ Required **variation** examples:
 - Time Attack
 - Custom objectives
 
-Goal: **positioning and vertical movement matter** — not repetitive arena waves.
+Goal: **positioning matters** — not repetitive arena waves. **Revised 2026-08-09 (item #8):** dropped "vertical movement" from this goal — the battle field is flat 2.5D (`Vec2{x,y}`, no height/z axis, confirmed no jump/elevation mechanic exists anywhere in the runtime); positioning variety instead comes from the 7 stage types above (chase/hazard/defend/etc.), not from a vertical axis.
 
 ## 5.3 Rewards (early)
 

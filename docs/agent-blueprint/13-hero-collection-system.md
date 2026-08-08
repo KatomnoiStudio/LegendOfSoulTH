@@ -8,6 +8,8 @@ Owns: the hero roster as unlockable _content_ (`ROSTER` in `src/game/characters.
 
 Does NOT own: the RNG/roll/pity/cost mechanics that will eventually call `grantCharacter` (that's **Gacha System #23**, not built — `accountRepository.ts:807` says outright "ยังไม่มีระบบกาชา/เควสที่มอบตัวละครได้จริง"); leveling/star-ascension/skill-level math (**Progression #14** / **Star Ascension #15** — `OwnedCharacter` has no `star` field at all today); the hero's actual combat kit/kit-file pattern (**Hero Kit/Archetype System #12**).
 
+> **Status note, 2026-08-09 (blueprint-vs-code audit item #12)**: this system (P10) shipped/graduated ahead of #23 Gacha and #15 Star Ascension (P9), reversing §10's LOCKED roadmap order. HetCreep's resolution: **pause further Hero Collection expansion work** until #23/#15 catch up — this system stays maintained (bug/extension only), not actively pushed forward, until the order is restored.
+
 ### Inputs/Outputs
 
 - In: `grantCharacter(uid: string, characterId: string): Promise<CharacterGrantResult>` — `characterId` must resolve via `getCharacter()` (`characters.ts:119-122`).
