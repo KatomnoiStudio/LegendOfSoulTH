@@ -688,8 +688,8 @@ describe('runtime กับศัตรูทั้งกอง', () => {
         const a = state.enemies[i]
         const b = state.enemies[j]
         const gap = Math.hypot(a.position.x - b.position.x, a.position.y - b.position.y)
-        // ยอมให้คลาดเคลื่อนเล็กน้อยจากการดันในเฟรมเดียวกัน
-        expect(gap).toBeGreaterThan((a.collisionRadius + b.collisionRadius) * 0.9)
+        // Visual crowd spacing is wider than gameplay collision so wide HD sprites remain readable.
+        expect(gap).toBeGreaterThan((a.collisionRadius + b.collisionRadius) * 1.4)
       }
     }
   })
