@@ -87,6 +87,10 @@ export default defineConfig(({ command }) => ({
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
+      // agent worktree เต็มโปรเจกต์อีกชุด (git worktree ของ session อื่นที่รันขนานกันอยู่) —
+      // ไม่มีอันนี้ vitest จะไล่เจอไฟล์ .test.ts ที่ชื่อซ้ำกับด้านล่างในนั้นด้วย (เช่น
+      // conditions.test.ts ของ worktree อื่น) แล้วฟ้อง "No test suite found" ปนกับผลจริง
+      '.claude/worktrees/**',
       'src/game/dialogue/conditions.test.ts',
       'src/game/dialogue/engine.test.ts',
       'src/hooks/useExploration.test.ts',
