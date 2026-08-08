@@ -104,11 +104,14 @@ export function tickKnockdownState(
   }
 }
 
+import { isCcLocked } from './statusEffects'
+
 export function isControlLocked(entity: RealtimeBattleEntity): boolean {
   return (
     entity.hitStunRemainingMs > 0 ||
     entity.state === 'knockdown' ||
     entity.state === 'getUp' ||
-    entity.state === 'dead'
+    entity.state === 'dead' ||
+    isCcLocked(entity)
   )
 }
