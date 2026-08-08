@@ -52,6 +52,24 @@ const WALK_KITS: Record<CharacterModelKind, WalkKit> = {
     idlePrefix: publicUrl('characters/tripitaka-idle'),
     idleCount: 24,
   },
+  'celestial-archer': {
+    walkPrefix: null,
+    turnPrefix: publicUrl('characters/turnaround/tripitaka-turn'),
+    idlePrefix: publicUrl('characters/tripitaka-idle'),
+    idleCount: 24,
+  },
+  'nezha-warden': {
+    walkPrefix: publicUrl('characters/walk/monkey-walk'),
+    turnPrefix: publicUrl('characters/turnaround/monkey-turn'),
+    idlePrefix: publicUrl('characters/monkey-v2-idle'),
+    idleCount: 24,
+  },
+  'sand-sage': {
+    walkPrefix: publicUrl('characters/walk/pigsy-walk'),
+    turnPrefix: publicUrl('characters/turnaround/pigsy-turn'),
+    idlePrefix: publicUrl('characters/pigsy-idle'),
+    idleCount: 24,
+  },
 }
 
 export function getWalkKit(kind: CharacterModelKind): WalkKit {

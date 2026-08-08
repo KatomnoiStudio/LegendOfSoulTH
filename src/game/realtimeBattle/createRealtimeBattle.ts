@@ -28,6 +28,8 @@ export interface RealtimeBattleState {
   elapsedMs: number
   player: RealtimeBattleEntity
   enemies: RealtimeBattleEntity[]
+  /** หน่วย summon ที่เกิดจากเอฟเฟกต์ (§3.8.3) */
+  allies: RealtimeBattleEntity[]
   currentWaveIndex: number
   defeatedEnemyIds: string[]
   damageDealt: number
@@ -268,6 +270,7 @@ export function createRealtimeBattle(
     elapsedMs: 0,
     player: playerEntity,
     enemies: options?.skipInitialWave ? [] : createWaveEnemies(stage, 0, enemyHpScale),
+    allies: [],
     currentWaveIndex: options?.skipInitialWave ? -1 : 0,
     defeatedEnemyIds: [],
     damageDealt: 0,

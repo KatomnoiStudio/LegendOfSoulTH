@@ -60,7 +60,7 @@ describe('skills registry', () => {
   })
 
   it('ตัวละครที่ไม่มี kit คืน undefined', () => {
-    expect(getRealtimeSkillKit('pig-warrior')).toBeUndefined()
+    expect(getRealtimeSkillKit('unknown-hero')).toBeUndefined()
     expect(getRealtimeSkillKit(undefined)).toBeUndefined()
   })
 })
@@ -363,7 +363,6 @@ describe('targetLock: nearest (ระบบ #8 Skill-Targeting System)', () => {
     expect(skill.lockedTargetId).toBeNull()
   })
 })
-
 
 describe('castDelayMs runtime consumer', () => {
   it('keeps the hitbox inactive until cast delay and startup both finish', () => {
