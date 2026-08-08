@@ -83,19 +83,19 @@ describe('reportError', () => {
 
 // ─── Known Scars (Excalidraw historical crash / storage failure incidents) ───
 
+function simulatedStorageSave() {
+  try {
+    throw new Error('QuotaExceededError: DOMException')
+  } catch (err) {
+    reportError('PLAYER_SAVE_FAIL', 'visible', err)
+  }
+}
+
 describe('Scar 1: Storage quota overflow write failure (Excalidraw #8395, #8805)', () => {
   test('storage write throw routes to reportError with tier visible and does not silently swallow', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const seen: string[] = []
     const off = subscribeToVisibleErrors((code) => seen.push(code))
-
-    function simulatedStorageSave() {
-      try {
-        throw new Error('QuotaExceededError: DOMException')
-      } catch (err) {
-        reportError('PLAYER_SAVE_FAIL', 'visible', err)
-      }
-    }
 
     expect(() => simulatedStorageSave()).not.toThrow()
     expect(seen).toEqual(['PLAYER_SAVE_FAIL'])
@@ -103,20 +103,20 @@ describe('Scar 1: Storage quota overflow write failure (Excalidraw #8395, #8805)
   })
 })
 
+function parseStartupData(rawJson: string) {
+  try {
+    return JSON.parse(rawJson)
+  } catch (err) {
+    reportError('STORAGE_READ_FAIL', 'visible', err)
+    return null
+  }
+}
+
 describe('Scar 2: Startup corruption before error boundary (Excalidraw #471)', () => {
   test('corrupted JSON parsing at startup routes safely through reportError without unhandled throw', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const seen: string[] = []
     const off = subscribeToVisibleErrors((code) => seen.push(code))
-
-    function parseStartupData(rawJson: string) {
-      try {
-        return JSON.parse(rawJson)
-      } catch (err) {
-        reportError('STORAGE_READ_FAIL', 'visible', err)
-        return null
-      }
-    }
 
     const result = parseStartupData('{ malformed json')
     expect(result).toBeNull()
