@@ -9,6 +9,7 @@ import { EMPTY_PROGRESS } from '../../types/player'
 import type { RealtimeBattleResult } from '../../game/realtimeBattle/types'
 import type { CurrencyResult, ItemResult } from '../../data/accountRepository.shared'
 import type { LobbyBattleProgressionRpcPayload } from '../../data/accountRepository.supabase'
+import type { PendingLobbyRewardRow } from '../../data/accountRepository.supabase'
 
 vi.mock('../BattleScene/BattleScene', () => {
   return {
@@ -115,7 +116,7 @@ function rewardMocks(
     ) => Promise<{ ok: true; player: Player } | { ok: false; error: string }>
     onRecordPending: (result: RealtimeBattleResult, transactionId: string) => Promise<boolean>
     onClearPending: (transactionId: string) => Promise<void>
-    onGetPendingRewards: () => Promise<never[]>
+    onGetPendingRewards: () => Promise<PendingLobbyRewardRow[]>
   }> = {},
 ) {
   return {
@@ -368,6 +369,47 @@ describe('LobbyBattleSession', () => {
     )
 
     // ต้องยังขึ้นหน้าต่างเลือกด่านตามปกติ
+    expect(screen.getByRole('dialog', { name: 'เลือกด่าน' })).toBeInTheDocument()
+  })
+
+  it('กู้รางวัลค้างจากรอบก่อนแล้วยังแสดงหน้าเลือกด่าน — ไม่ปิด overlay ทันที', async () => {
+    const onExit = vi.fn()
+    const pendingRow = {
+      transactionId: 'lobby:trial-01:2026-01-01T00:00:00.000Z',
+      stageId: 'trial-01',
+      stageName: 'ลานฝึกหน้าวิหาร',
+      outcome: 'victory' as const,
+      earnedExp: 200,
+      earnedGold: 100,
+      droppedItems: [] as { itemId: string; quantity: number }[],
+      durationMs: 5000,
+      finishedAt: '2026-01-01T00:00:00.000Z',
+    }
+
+    render(
+      <LobbyBattleSession
+        player={makePlayer()}
+        onPlayerChange={mockOnPlayerChange()}
+        onEarnGold={vi.fn(async (_s, amount): Promise<CurrencyResult> => ({
+          ok: true as const,
+          player: makePlayer(),
+          amount,
+        }))}
+        onGrantItem={vi.fn(async (): Promise<ItemResult> => ({
+          ok: true as const,
+          player: makePlayer(),
+        }))}
+        {...rewardMocks({
+          onGetPendingRewards: vi.fn(async () => [pendingRow]),
+        })}
+        onExit={onExit}
+      />,
+    )
+
+    expect(screen.getByRole('dialog', { name: 'เลือกด่าน' })).toBeInTheDocument()
+    await waitFor(() => {
+      expect(onExit).not.toHaveBeenCalled()
+    })
     expect(screen.getByRole('dialog', { name: 'เลือกด่าน' })).toBeInTheDocument()
   })
 

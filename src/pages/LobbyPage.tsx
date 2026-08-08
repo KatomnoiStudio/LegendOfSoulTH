@@ -232,6 +232,21 @@ export function LobbyPage({
         />
       ) : null}
 
+      {/*
+        เดินชมจันทร์เปิดอยู่ตลอดเวลาที่อยู่ในลอบบี้ ไม่ต้องกดปุ่มเปิดจากโปรไฟล์อีกต่อไป
+        คุมทิศทางด้วย WASD/คลิกพื้นได้เหมือนเดิม เลือกตัวที่จะเดินได้จากแถบเลือกขุนพล
+        (ตำแหน่งที่เดินอยู่ยังคงอยู่แม้สลับตัวละคร เพราะ component ไม่ถูก mount ใหม่)
+      */}
+      <WukongAdventure
+        mode="moonlight"
+        characters={ownedCharacters}
+        activeCharacterId={walkingCharacterId}
+      />
+
+      {/*
+        หน้าเลือกด่าน mount หลัง WukongAdventure — DOM + z-index สองชั้น กันฉากเดินทับ modal
+        (เคยใช้ --z-toast:50 ต่ำกว่า --z-scene-explore:500 ของ .scene ก่อน override moonlight)
+      */}
       {battleOpen ? (
         <LobbyBattleSession
           player={player}
@@ -245,17 +260,6 @@ export function LobbyPage({
           onExit={() => setBattleOpen(false)}
         />
       ) : null}
-
-      {/*
-        เดินชมจันทร์เปิดอยู่ตลอดเวลาที่อยู่ในลอบบี้ ไม่ต้องกดปุ่มเปิดจากโปรไฟล์อีกต่อไป
-        คุมทิศทางด้วย WASD/คลิกพื้นได้เหมือนเดิม เลือกตัวที่จะเดินได้จากแถบเลือกขุนพล
-        (ตำแหน่งที่เดินอยู่ยังคงอยู่แม้สลับตัวละคร เพราะ component ไม่ถูก mount ใหม่)
-      */}
-      <WukongAdventure
-        mode="moonlight"
-        characters={ownedCharacters}
-        activeCharacterId={walkingCharacterId}
-      />
 
       {/* หน้า Lobby ยังคง mount อยู่ข้างหลัง ฉาก 3D และแอนิเมชันตัวละครจึงไม่รีเซ็ต */}
       {rosterOpen ? (

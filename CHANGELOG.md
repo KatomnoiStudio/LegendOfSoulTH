@@ -5,6 +5,13 @@
 
 ## [Unreleased]
 
+## [0.12.5] - 2026-08-08
+
+### Fixed
+
+- ปุ่ม **ต่อสู้** ในล็อบบี้แสดงหน้า **เลือกด่าน** ได้เสมอ — กู้รางวัลค้างจากรอบก่อนไม่ปิด overlay ทันทีอีกต่อไป
+- StageSelect ใช้ z-index ระดับ scene overlay และ mount หลัง WukongAdventure เพื่อไม่ให้ฉากเดินทับ modal
+
 ## [0.12.4] - 2026-08-08
 
 Battle presentation hotfix following HetCreep's mobile review; sprite-sheet replacement remains paused for the incoming asset set
