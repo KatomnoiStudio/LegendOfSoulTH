@@ -482,9 +482,12 @@ Soft/hard pity, same shape as Genshin Impact's wish system (the exemplar this pr
 
 Retroactive lock for a system already shipped this session with no prior blueprint coverage (`src/components/WorldChat/`, `src/components/AddFriendModal/`, `supabase/migrations/0001_init.sql`'s `friends` table) — found via an ask-CB opinion-lane gap sweep, `AGENT_BLUEPRINT.md` system #28.
 
-- **Data ownership**: server-authoritative (Supabase, RLS-protected) — same §8 authority model as account/currency/hero data, not a separate exception.
-- **Moderation skeleton — LOCKED, revised 2026-08-09 (blueprint-vs-code audit item #10)**: player-side block/mute is the primary moderation mechanism — `/block <name>`, `/unblock <name>`, `/blocklist` in WorldChat, available to every player (not admin-gated), client-local per `blockList.ts` (matches WorldChat's own already-accepted client-local scope). Exemplar: Guardian Tales' own devs describe exactly this — a per-player chat block — as their actual shipped moderation feature, not an admin-panel takedown tool. The `admin_accounts`-gated hidden command layer (`supabase/migrations/0004_admin_accounts.sql`, extended by `0015_admin_grant_and_chat_block.sql`) is a **separate, unrelated** capability — dev/testing grant tools (`/givecharacter`, `/givegold`, `/giveitem`), not content moderation; the original wording claiming admin "can act on reported content" was aspirational and never actually implemented, corrected here rather than left to drift further. No automated/AI moderation, no community-reporting UI yet — those are additive later, not required for this lock to hold.
-- **Scope stays as-shipped**: World Chat (global, same-instance) + Friends (add/accept/block by UID). Private/guild chat remain the existing "coming soon" placeholders — not part of this lock, no commitment to build them.
+- **Data ownership**: server-authoritative (Supabase, RLS-protected) — `world_chat_messages` is the
+  shared source of truth; authenticated players read through RLS, post through a rate-limited RPC,
+  and receive inserts through Realtime. The server derives author identity/name/timestamp. Client
+  storage is not chat-history authority.
+- **Moderation skeleton — LOCKED, revised 2026-08-09 (blueprint-vs-code audit item #10)**: player-side block/mute is the current mechanism — `/block <name>`, `/unblock <name>`, `/blocklist` remain a client-local viewing preference even though messages are server-backed. The hidden `admin_accounts` grant commands are dev tools, not content moderation. Report/Hide/Delete/Mute administration remains an undecided additive scope; this migration does not silently choose it.
+- **Scope**: World Chat is global and cross-device for authenticated players; Friends remain UID-based. Private/guild chat remain the existing "coming soon" placeholders.
 
 ---
 
