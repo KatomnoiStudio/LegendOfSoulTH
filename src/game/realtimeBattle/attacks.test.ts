@@ -70,6 +70,7 @@ const OPTIONAL_FIELDS = [
   'targetLock',
   'effects',
   'knockdown',
+  'lungeDistance',
   // P4 combat core (upstream PR #29, reconciled into this repo's Tier-1 systems merge)
   'telegraphMs',
   'hitstunMs',
