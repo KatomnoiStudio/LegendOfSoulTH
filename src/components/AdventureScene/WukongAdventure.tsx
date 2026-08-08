@@ -87,20 +87,23 @@ function preload(urls: string[]) {
 
 /**
  * โหมดของฉาก — ใช้ระบบเดินชุดเดียวกันทั้งหมด ต่างกันแค่บรรยากาศและข้อความ
- * 'trial'     ลานฝึกวายุ — ปัจจุบันไม่มีจุดเรียกใช้ใน src/ (ปุ่ม "เริ่มการผจญภัย" เปิด
- *             GameExplorationSession/useExploration แทน — ระบบกริด 4 ทิศคนละตัวกับที่นี่)
+ * 'trial'     ลานฝึกวายุ — ปัจจุบันไม่มีจุดเรียกใช้ใน src/ (โหมดสำรวจ GameExplorationSession
+ *             ถูกปิดไว้ชั่วคราวตั้งแต่ 2026-08-07 — ปุ่ม "เริ่มการผจญภัย" เปิด StageSelect แทน)
  *             เก็บโหมดนี้ไว้เป็นค่า default เผื่อ mount ตรง ๆ ในอนาคต ไม่ใช่ dead code ที่ลืมลบ
  * 'moonlight' เดินชมจันทร์ (เข้าจาก LobbyPage mount ตรง ๆ) — ฉากเดียวกันแต่ย้อมโทนคืนเดือนเพ็ญ
  */
 export type AdventureMode = 'trial' | 'moonlight'
 
-const MODE_COPY: Record<AdventureMode, {
-  eyebrow: string
-  heading: string
-  caption: string
-  place: string
-  placeEn: string
-}> = {
+const MODE_COPY: Record<
+  AdventureMode,
+  {
+    eyebrow: string
+    heading: string
+    caption: string
+    place: string
+    placeEn: string
+  }
+> = {
   trial: {
     eyebrow: 'บทฝึกที่ ๑ · วิถีราชาวานร',
     heading: 'ลานฝึกวายุ',
@@ -257,7 +260,11 @@ export function WukongAdventure({
         event.preventDefault()
       }
       pressedRef.current.add(event.key.toLowerCase())
-      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(event.key.toLowerCase())) {
+      if (
+        ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(
+          event.key.toLowerCase(),
+        )
+      ) {
         targetRef.current = null
         setDestination(null)
       }
@@ -398,7 +405,10 @@ export function WukongAdventure({
 
   useEffect(() => {
     if (!view.moving) return
-    const timer = window.setInterval(() => setDustTick((value) => value + 1), view.running ? 105 : 165)
+    const timer = window.setInterval(
+      () => setDustTick((value) => value + 1),
+      view.running ? 105 : 165,
+    )
     return () => window.clearInterval(timer)
   }, [view.moving, view.running])
 
@@ -413,17 +423,20 @@ export function WukongAdventure({
     [courtyardScale, courtyardOffsetX, courtyardOffsetY],
   )
 
-  const onFloorPointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {
-    if (event.target !== event.currentTarget) return
-    const bounds = sceneRef.current?.getBoundingClientRect()
-    if (!bounds) return
-    const target = projectToWalkableArea({
-      x: (event.clientX - bounds.left - courtyardOffsetX) / courtyardScale,
-      y: (event.clientY - bounds.top - courtyardOffsetY) / courtyardScale,
-    })
-    targetRef.current = target
-    setDestination(target)
-  }, [courtyardScale, courtyardOffsetX, courtyardOffsetY])
+  const onFloorPointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      if (event.target !== event.currentTarget) return
+      const bounds = sceneRef.current?.getBoundingClientRect()
+      if (!bounds) return
+      const target = projectToWalkableArea({
+        x: (event.clientX - bounds.left - courtyardOffsetX) / courtyardScale,
+        y: (event.clientY - bounds.top - courtyardOffsetY) / courtyardScale,
+      })
+      targetRef.current = target
+      setDestination(target)
+    },
+    [courtyardScale, courtyardOffsetX, courtyardOffsetY],
+  )
 
   // ชื่อ `pressed` ไม่ใช่ `active` — `active` ด้านบนคือตัวละครที่กำลังแสดงอยู่ คนละเรื่องกัน
   const setVirtualDirection = (key: string, pressed: boolean) => {
@@ -464,7 +477,11 @@ export function WukongAdventure({
     if (mode === 'moonlight') return null
 
     return (
-      <section className={`${styles.scene} ${styles.moonlight}`} aria-label={copy.heading} style={BG_TEMPLE_STYLE}>
+      <section
+        className={`${styles.scene} ${styles.moonlight}`}
+        aria-label={copy.heading}
+        style={BG_TEMPLE_STYLE}
+      >
         <div className={styles.emptyCast}>
           <strong>ยังไม่มีขุนพลที่ออกเดินได้</strong>
           <p>ขุนพลที่ท่านมีอยู่ยังไม่มีชุดท่าเดิน โปรดรอการอัญเชิญขุนพลที่พร้อมออกเดิน</p>
@@ -496,9 +513,15 @@ export function WukongAdventure({
           </div>
           <div className={styles.status}>
             <span className={view.moving ? styles.activeDot : styles.idleDot} />
-            <div><small>สถานะ</small><b>{view.moving ? (view.running ? 'วิ่ง' : 'เดิน') : 'พร้อมรบ'}</b></div>
+            <div>
+              <small>สถานะ</small>
+              <b>{view.moving ? (view.running ? 'วิ่ง' : 'เดิน') : 'พร้อมรบ'}</b>
+            </div>
             <i />
-            <div><small>ทิศ</small><b>{DIRECTION_LABEL[view.direction]}</b></div>
+            <div>
+              <small>ทิศ</small>
+              <b>{DIRECTION_LABEL[view.direction]}</b>
+            </div>
           </div>
           <button className={styles.exitButton} type="button" onClick={() => onExit?.()}>
             <span aria-hidden="true">‹</span> กลับลานประลอง
@@ -526,7 +549,10 @@ export function WukongAdventure({
         <div className={styles.shadow} />
         {view.moving ? (
           <div className={styles.dust} key={dustTick} aria-hidden="true">
-            <i /><i /><i /><i />
+            <i />
+            <i />
+            <i />
+            <i />
           </div>
         ) : null}
         <img className={styles.sprite} src={spriteUrl} alt={active.name} draggable={false} />
@@ -540,20 +566,51 @@ export function WukongAdventure({
 
       {mode === 'moonlight' ? null : (
         <div className={styles.helpBar}>
-          <span><kbd>WASD</kbd><kbd>↑↓←→</kbd> เคลื่อนที่</span>
+          <span>
+            <kbd>WASD</kbd>
+            <kbd>↑↓←→</kbd> เคลื่อนที่
+          </span>
           <i />
-          <span><kbd>SHIFT</kbd> วิ่ง</span>
+          <span>
+            <kbd>SHIFT</kbd> วิ่ง
+          </span>
           <i />
-          <span><kbd className={styles.mouse}>◉</kbd> คลิกพื้นเพื่อเดิน</span>
+          <span>
+            <kbd className={styles.mouse}>◉</kbd> คลิกพื้นเพื่อเดิน
+          </span>
         </div>
       )}
 
       <div className={styles.mobilePad} aria-label="ปุ่มควบคุมทิศทาง">
-        <HoldButton label="ขึ้น" symbol="▲" keyName="w" className={styles.up} onChange={setVirtualDirection} />
-        <HoldButton label="ซ้าย" symbol="◀" keyName="a" className={styles.left} onChange={setVirtualDirection} />
+        <HoldButton
+          label="ขึ้น"
+          symbol="▲"
+          keyName="w"
+          className={styles.up}
+          onChange={setVirtualDirection}
+        />
+        <HoldButton
+          label="ซ้าย"
+          symbol="◀"
+          keyName="a"
+          className={styles.left}
+          onChange={setVirtualDirection}
+        />
         <span className={styles.padCenter}>◆</span>
-        <HoldButton label="ขวา" symbol="▶" keyName="d" className={styles.right} onChange={setVirtualDirection} />
-        <HoldButton label="ลง" symbol="▼" keyName="s" className={styles.down} onChange={setVirtualDirection} />
+        <HoldButton
+          label="ขวา"
+          symbol="▶"
+          keyName="d"
+          className={styles.right}
+          onChange={setVirtualDirection}
+        />
+        <HoldButton
+          label="ลง"
+          symbol="▼"
+          keyName="s"
+          className={styles.down}
+          onChange={setVirtualDirection}
+        />
       </div>
     </section>
   )
