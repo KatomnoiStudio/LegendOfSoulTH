@@ -40,6 +40,16 @@ describe('reward idempotency migration (isolated Postgres via PGLite)', () => {
       exception
         when duplicate_object then null;
       end $$;
+
+      do $$ begin
+        create role anon;
+      exception
+        when duplicate_object then null;
+      end $$;
+
+      create schema if not exists cron;
+      create or replace function cron.schedule(job_name text, schedule text, command text)
+      returns bigint language sql as $$ select 1::bigint $$;
     `)
 
     await applyMigration(db, '0001_init.sql')

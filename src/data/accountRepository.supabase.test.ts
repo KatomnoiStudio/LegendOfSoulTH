@@ -216,6 +216,7 @@ describe('accountRepository.supabase RPC wrapper wiring', () => {
       p_item_id: 'spirit-incense',
       p_quantity: 2,
       p_source: 'drop',
+      p_ref_id: null,
     })
   })
 
