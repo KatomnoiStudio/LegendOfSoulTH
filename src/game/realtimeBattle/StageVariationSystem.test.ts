@@ -347,6 +347,10 @@ describe('Defend เล่นจบได้จริง (Done-criteria #4)', ()
 
     killAllEnemies(state)
     runtime.step(16)
+    if (state.enemies.some((enemy) => enemy.state !== 'dead')) {
+      killAllEnemies(state)
+      runtime.step(16)
+    }
 
     expect(runtime.getSnapshot().status).toBe('victory')
 

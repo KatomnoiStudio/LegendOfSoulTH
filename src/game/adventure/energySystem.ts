@@ -2,8 +2,8 @@ import type { RealtimeBattleStage } from '../realtimeBattle/stageConfig'
 import type { PlayerEnergy } from '../../types/player'
 
 /**
- * Energy/stamina skeleton — §5.1 locked architecture (HetCreep 2026-08-08).
- * Numbers are NON-PRODUCTION stubs; tune at P11 without changing call sites.
+ * Energy/stamina — §5.1 locked numerics (Ring 0 / P11, HetCreep 2026-08-09).
+ * Pool size, regen rate, and per-stage cost are production values; tune via this file only.
  */
 export const ENERGY_CONFIG = {
   max: 120,
@@ -13,6 +13,12 @@ export const ENERGY_CONFIG = {
   costPerStage: 10,
   /** Boss-tagged stages multiply base cost by this factor */
   bossCostMultiplier: 2,
+} as const
+
+/** Gem refill skeleton — §5.1 premium refill source (UI wiring deferred). */
+export const ENERGY_REFILL_CONFIG = {
+  /** Gems spent to refill the pool to max in one action */
+  gemCostFullRefill: 50,
 } as const
 
 export function createDefaultEnergy(now = new Date()): PlayerEnergy {
@@ -70,5 +76,31 @@ export function consumeStageEnergy(energy: PlayerEnergy, stage: RealtimeBattleSt
   return {
     ...ticked,
     current: Math.max(0, ticked.current - cost),
+  }
+}
+
+export type EnergyGemRefillResult =
+  | { ok: true; energy: PlayerEnergy; gemsSpent: number }
+  | { ok: false; reason: 'insufficient_gems' | 'already_full' }
+
+/**
+ * Refill energy to max using gems — pure predicate; caller debits gems via earnGold/grant ledger.
+ */
+export function refillEnergyToMaxWithGems(
+  energy: PlayerEnergy,
+  gemBalance: number,
+  now = new Date(),
+): EnergyGemRefillResult {
+  const ticked = tickEnergyRegen(energy, now)
+  if (ticked.current >= ticked.max) {
+    return { ok: false, reason: 'already_full' }
+  }
+  if (gemBalance < ENERGY_REFILL_CONFIG.gemCostFullRefill) {
+    return { ok: false, reason: 'insufficient_gems' }
+  }
+  return {
+    ok: true,
+    energy: { ...ticked, current: ticked.max, lastRegenAt: now.toISOString() },
+    gemsSpent: ENERGY_REFILL_CONFIG.gemCostFullRefill,
   }
 }

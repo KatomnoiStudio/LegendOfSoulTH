@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   ENERGY_CONFIG,
+  ENERGY_REFILL_CONFIG,
   canAffordStageEnergy,
   consumeStageEnergy,
   createDefaultEnergy,
   getStageEnergyCost,
   normalizeEnergy,
+  refillEnergyToMaxWithGems,
   tickEnergyRegen,
 } from './energySystem'
 import { getRealtimeStage } from '../realtimeBattle/stageConfig'
@@ -49,5 +51,34 @@ describe('energySystem — §5.1 skeleton', () => {
 
     const empty = { ...createDefaultEnergy(), current: 0 }
     expect(canAffordStageEnergy(empty, stage)).toBe(false)
+  })
+
+  it('locked P11 pool: max 120, regen 60/hr, cost 10, boss 2×', () => {
+    expect(ENERGY_CONFIG.max).toBe(120)
+    expect(ENERGY_CONFIG.regenPerHour).toBe(60)
+    expect(ENERGY_CONFIG.costPerStage).toBe(10)
+    expect(ENERGY_CONFIG.bossCostMultiplier).toBe(2)
+
+    const boss = getRealtimeStage('trial-10')
+    if (!boss) throw new Error('fixture missing')
+    expect(getStageEnergyCost(boss)).toBe(20)
+  })
+
+  it('refillEnergyToMaxWithGems spends gems and fills pool', () => {
+    const low = { ...createDefaultEnergy(), current: 10 }
+    const result = refillEnergyToMaxWithGems(low, ENERGY_REFILL_CONFIG.gemCostFullRefill)
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.energy.current).toBe(ENERGY_CONFIG.max)
+      expect(result.gemsSpent).toBe(ENERGY_REFILL_CONFIG.gemCostFullRefill)
+    }
+  })
+
+  it('refillEnergyToMaxWithGems rejects when gems insufficient or pool full', () => {
+    const full = createDefaultEnergy()
+    expect(refillEnergyToMaxWithGems(full, 999).ok).toBe(false)
+
+    const low = { ...createDefaultEnergy(), current: 5 }
+    expect(refillEnergyToMaxWithGems(low, 0).ok).toBe(false)
   })
 })

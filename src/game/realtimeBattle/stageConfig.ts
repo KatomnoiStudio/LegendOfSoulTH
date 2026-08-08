@@ -210,6 +210,12 @@ export interface HazardStageParams {
   decayPerSecond: number
 }
 
+/** Design pacing target — §5.1 normal 2–5 min, boss 5–8 min (metadata only, not enforced). */
+export interface StageTargetDurationMs {
+  min: number
+  max: number
+}
+
 export interface RealtimeBattleStage {
   id: string
   name: string
@@ -238,12 +244,14 @@ export interface RealtimeBattleStage {
    */
   showInAdventureSelect?: boolean
   /**
-   * ตัวคูณความยากของด่าน — data-table stub (§5.1, tune ที่ P11)
+   * ตัวคูณความยากของด่าน — data-driven per stage (P11 locked table)
    * คูณ maxHp/atk/def ตอนสร้างศัตรูใน createWaveEnemies
    */
   difficultyMultiplier?: number
   /** ค่า energy ที่ใช้ต่อครั้ง — default จาก ENERGY_CONFIG.costPerStage */
   energyCost?: number
+  /** เป้าหมายระยะเวลาเล่นต่อด่าน (ms) — สำหรับ balance/doc เท่านั้น */
+  targetDurationMs?: StageTargetDurationMs
 
   /** ประเภทด่าน (§17 Stage Variation System) — กำหนดเงื่อนไขแพ้ชนะที่ StageVariationSystem.ts ใช้ */
   stageType: StageType
@@ -407,6 +415,8 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
     chapterId: 'chapter-1',
     order: 1,
     stageType: 'wave',
+    difficultyMultiplier: 1,
+    targetDurationMs: { min: 120_000, max: 180_000 },
   },
   'trial-02': {
     id: 'trial-02',
@@ -437,6 +447,7 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
     order: 2,
     stageType: 'wave',
     difficultyMultiplier: 1.05,
+    targetDurationMs: { min: 150_000, max: 240_000 },
   },
   /**
    * P5 dungeon vertical slice arenas (PR #30) — เก็บแค่รูปร่างสนาม/waves ให้ createRealtimeBattle
@@ -553,6 +564,14 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
         enemies: [
           { templateId: 'shadow-soldier', spawnIndex: 0 },
           { templateId: 'shadow-soldier', spawnIndex: 1 },
+          { templateId: 'spirit-guardian', spawnIndex: 2 },
+        ],
+      },
+      {
+        id: 'wave-2',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'demon-captain', spawnIndex: 1 },
         ],
       },
     ],
@@ -560,7 +579,9 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
     chapterId: 'chapter-1',
     order: 3,
     stageType: 'survival',
-    survival: { durationMs: 60_000 },
+    survival: { durationMs: 90_000 },
+    difficultyMultiplier: 1.03,
+    targetDurationMs: { min: 120_000, max: 180_000 },
   },
   /**
    * ด่าน Defend (§5.2/§17) — เคลียร์ทุกคลื่นเหมือน wave แต่แพ้ทันทีถ้า objectiveHp หมดก่อน
@@ -582,6 +603,13 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
           { templateId: 'spirit-guardian', spawnIndex: 2 },
         ],
       },
+      {
+        id: 'wave-2',
+        enemies: [
+          { templateId: 'demon-captain', spawnIndex: 1 },
+          { templateId: 'shadow-soldier', spawnIndex: 3 },
+        ],
+      },
     ],
     backgroundAsset: BATTLE_ART_BG,
     chapterId: 'chapter-1',
@@ -589,6 +617,7 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
     stageType: 'defend',
     defend: { objectiveHp: 300, position: { x: ARENA_SIZE.width / 2, y: ARENA_SIZE.height / 2 } },
     difficultyMultiplier: 1.1,
+    targetDurationMs: { min: 150_000, max: 240_000 },
   },
   /**
    * ด่าน 1-5 — เงามืดในโถง (wave กลางทาง)
@@ -615,12 +644,21 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
           { templateId: 'shadow-soldier', spawnIndex: 3 },
         ],
       },
+      {
+        id: 'wave-3',
+        enemies: [
+          { templateId: 'demon-captain', spawnIndex: 1 },
+          { templateId: 'spirit-guardian', spawnIndex: 2 },
+          { templateId: 'shadow-soldier', spawnIndex: 4 },
+        ],
+      },
     ],
     backgroundAsset: BATTLE_ART_BG,
     chapterId: 'chapter-1',
     order: 5,
     stageType: 'wave',
     difficultyMultiplier: 1.08,
+    targetDurationMs: { min: 180_000, max: 300_000 },
   },
   /**
    * ด่าน 1-6 — ไฟไหม้ลาม (hazard)
@@ -640,13 +678,21 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
           { templateId: 'shadow-soldier', spawnIndex: 2 },
         ],
       },
+      {
+        id: 'wave-2',
+        enemies: [
+          { templateId: 'spirit-guardian', spawnIndex: 1 },
+          { templateId: 'demon-captain', spawnIndex: 3 },
+        ],
+      },
     ],
     backgroundAsset: BATTLE_ART_BG,
     chapterId: 'chapter-1',
     order: 6,
     stageType: 'hazard',
-    hazard: { hazardHp: 180, decayPerSecond: 6 },
-    difficultyMultiplier: 1.1,
+    hazard: { hazardHp: 200, decayPerSecond: 5 },
+    difficultyMultiplier: 1.12,
+    targetDurationMs: { min: 150_000, max: 270_000 },
   },
   /**
    * ด่าน 1-7 — ไล่ล่าอสูร (chase)
@@ -674,13 +720,14 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
       timeBudgetMs: 90_000,
     },
     difficultyMultiplier: 1.05,
+    targetDurationMs: { min: 120_000, max: 180_000 },
   },
   /**
-   * ด่าน 1-8 — แม่ทัพปีศาจ (wave เน้น elite)
+   * ด่าน 1-8 — ขุนศึกปีศาจ (mini-boss + คลื่นรองรับ)
    */
   'trial-08': {
     id: 'trial-08',
-    name: 'แม่ทัพปีศาจ',
+    name: 'ขุนศึกปีศาจ',
     width: ARENA_SIZE.width,
     height: ARENA_SIZE.height,
     playerSpawn: PRESENTATION_PLAYER_SPAWN,
@@ -689,17 +736,25 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
       {
         id: 'wave-1',
         enemies: [
-          { templateId: 'demon-captain', spawnIndex: 1 },
           { templateId: 'shadow-soldier', spawnIndex: 0 },
           { templateId: 'shadow-soldier', spawnIndex: 2 },
+        ],
+      },
+      {
+        id: 'wave-2',
+        enemies: [
+          { templateId: 'demon-warlord', spawnIndex: 1 },
+          { templateId: 'spirit-guardian', spawnIndex: 3 },
         ],
       },
     ],
     backgroundAsset: BATTLE_ART_BG,
     chapterId: 'chapter-1',
     order: 8,
-    stageType: 'wave',
-    difficultyMultiplier: 1.12,
+    stageType: 'mini-boss',
+    miniBoss: { templateId: 'demon-warlord' },
+    difficultyMultiplier: 1.15,
+    targetDurationMs: { min: 180_000, max: 300_000 },
   },
   /**
    * ด่าน 1-9 — บันทึกเวลา (time-attack)
@@ -720,6 +775,13 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
           { templateId: 'spirit-guardian', spawnIndex: 2 },
         ],
       },
+      {
+        id: 'wave-2',
+        enemies: [
+          { templateId: 'demon-captain', spawnIndex: 1 },
+          { templateId: 'spirit-guardian', spawnIndex: 3 },
+        ],
+      },
     ],
     backgroundAsset: BATTLE_ART_BG,
     chapterId: 'chapter-1',
@@ -727,6 +789,7 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
     stageType: 'time-attack',
     timeAttack: { timeBudgetMs: 75_000 },
     difficultyMultiplier: 1.1,
+    targetDurationMs: { min: 150_000, max: 240_000 },
   },
   /**
    * ด่าน 1-10 — บอสปิดท้ายบทที่ ๑ (§5.1 Chapter→Stage→Boss)
@@ -749,7 +812,9 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
     order: 10,
     isBoss: true,
     stageType: 'wave',
-    difficultyMultiplier: 1.15,
+    difficultyMultiplier: 1.2,
+    energyCost: 10,
+    targetDurationMs: { min: 300_000, max: 480_000 },
   },
 }
 
@@ -802,8 +867,7 @@ export function getAdventureChapters(): Array<{
 /**
  * ด่านแรกของแชปเตอร์ปลดล็อกเสมอ ด่านถัดไปต้องเคลียร์ด่านก่อนหน้าก่อน (clear-gate only)
  *
- * ระบบ stamina/energy — โครงสร้างล็อกแล้ว (§5.1, HetCreep 2026-08-08) ดู adventure/energySystem.ts
- * ตัวเลข pool/regen/cost ยังเป็น stub NON-PRODUCTION — tune ที่ P11
+ * ระบบ stamina/energy — โครงสร้าง + ตัวเลขล็อกแล้ว (§5.1, P11) ดู adventure/energySystem.ts
  */
 export function isStageUnlocked(stageId: string, flags: Record<string, boolean>): boolean {
   const stage = REALTIME_STAGES[stageId]
