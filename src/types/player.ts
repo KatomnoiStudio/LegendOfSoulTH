@@ -40,6 +40,10 @@ export interface OwnedCharacter {
   /** P8 — awakening foundation */
   awakeningState?: { tier: number; unlockedEffects?: string[] }
   progressionVersion?: number
+  /** P9 — star ascension (§4.2) default ★1 */
+  star?: number
+  /** shard จาก duplicate gacha — ใช้ ascension */
+  duplicateShards?: number
 }
 
 /** ไอเทมหนึ่งช่องในกระเป๋าผู้เล่น — itemId ต้องมีอยู่ใน ITEMS (ดู src/game/items.ts) */
@@ -119,12 +123,18 @@ export interface PlayerEnergy {
   lastRegenAt: string
 }
 
+/** P9 — gacha pity counters per banner (§7.1 skeleton) */
+export interface PlayerGachaProgress {
+  pity?: Record<string, { pullsSinceLastPityRarity: number }>
+}
+
 export interface PlayerProgress {
   flags: Record<string, boolean>
   defeatedNpcIds: string[]
   battleHistory: BattleRecord[]
   /** Omitted on legacy saves — normalize via adventure/energySystem.ts */
   energy?: PlayerEnergy
+  gacha?: PlayerGachaProgress
 }
 
 export const EMPTY_PROGRESS: PlayerProgress = {

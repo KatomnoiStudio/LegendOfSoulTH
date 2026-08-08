@@ -88,7 +88,9 @@ export function createPlayerEntity(player: Player): RealtimeBattleEntity | null 
 
   const owned = player.ownedCharacters.find((entry) => entry.characterId === character.id)
   const level = owned?.level ?? character.level
-  const combatStats = resolveFinalCombatStats({ heroId: character.id, level }) ?? character.stats
+  const star = owned?.star ?? 1
+  const combatStats =
+    resolveFinalCombatStats({ heroId: character.id, level, star }) ?? character.stats
   /** Authoritative battle max HP — same source as progression/profile, not a parallel formula. */
   const maxHp = Math.max(1, combatStats.hp)
 
