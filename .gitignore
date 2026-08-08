@@ -32,6 +32,9 @@ scripts/
 # Cursor IDE local config — machine/cloud-agent only, not project config
 .cursor/
 
+# Antigravity (Gemini) local agent config — same class as .cursor/ above
+.gemini/
+
 # Personal/off-project notes — see .agents/rules/personal-scope-law.md
 # (never goes in the shared, mandatory-read MEMORY.md)
 MEMORY.local.md
