@@ -123,3 +123,27 @@ describe('AddFriendModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 })
+
+// ─── Known Scars (Guardian Tales Friend capacity & save failure precedents) ───
+
+describe('Scar 3: Friend addition failure & capacity error handling (Guardian Tales Sept 2023)', () => {
+  test('onPlayerChange failure shows error toast and does not display false success message', async () => {
+    const user = userEvent.setup()
+    const player = makePlayer()
+    const onSearch = vi.fn().mockResolvedValue(candidate)
+    const onPlayerChange = vi.fn().mockResolvedValue(false) // จำลองความล้มเหลว (เช่น เกินลิมิตหรือบันทึกไม่ผ่าน)
+
+    renderModal({ player, onSearch, onPlayerChange })
+
+    await user.type(screen.getByLabelText('รหัสผู้เล่น (UID)'), candidate.uid)
+    await user.click(screen.getByRole('button', { name: 'ค้นหา' }))
+
+    expect(await screen.findByText('เพื่อนซี้')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'เพิ่มเพื่อน' }))
+
+    expect(onPlayerChange).toHaveBeenCalledWith({ ...player, friends: [candidate] })
+    expect(await screen.findByText('บันทึกไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม')).toBeInTheDocument()
+    expect(screen.queryByText('เพิ่มเพื่อนซี้เป็นเพื่อนแล้ว')).not.toBeInTheDocument()
+  })
+})
