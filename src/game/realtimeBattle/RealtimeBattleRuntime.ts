@@ -4,7 +4,7 @@ import { createWaveEnemies, type RealtimeBattleState } from './createRealtimeBat
 import { DEFAULT_BATTLE_PRESENTATION } from './battlePresentation'
 import { resolveStageOutcome } from './StageVariationSystem'
 import { combatFacingFromVector } from './combatFacing'
-import { allowsMovementDuringCast } from './combatMoveSchema'
+import { allowsMovementDuringCast, isFullMoveActiveWindow } from './combatMoveSchema'
 import type { RandomFn } from './DamageSystem'
 import {
   createEnemyBrain,
@@ -16,7 +16,7 @@ import {
 } from './EnemyAISystem'
 import { findHitTargets } from './HitboxSystem'
 import { clampToArena, resolveCircleOverlap, stepMovement } from './MovementSystem'
-import { assistCombatFacing, findNearestLivingEnemy, resolveLockedTarget } from './softTarget'
+import { findNearestLivingEnemy, resolveLockedTarget } from './softTarget'
 import {
   applyHitStop,
   cancelCombo,
@@ -138,7 +138,11 @@ export class RealtimeBattleRuntime {
     if (!wasCastingSkill && !castingSkill) {
       this.stepPlayerAttack(deltaMs)
 
-      const moved = isAttacking(this.playerCombat)
+      const activeBasicAttack = this.playerCombat.attack
+      const movementLockedByActiveHit = activeBasicAttack
+        ? isFullMoveActiveWindow(activeBasicAttack, this.playerCombat.sinceStartMs)
+        : false
+      const moved = movementLockedByActiveHit
         ? false
         : stepMovement(state.player, this.moveInput, deltaMs, {
             stage: state.stage,
@@ -185,7 +189,6 @@ export class RealtimeBattleRuntime {
 
     if (this.attackRequested) {
       this.attackRequested = false
-      assistCombatFacing(state.player, state.enemies)
       state.player.combatFacing = combatFacingFromVector(this.moveInput, state.player.combatFacing)
       pressAttack(state.player, this.playerCombat)
     }
