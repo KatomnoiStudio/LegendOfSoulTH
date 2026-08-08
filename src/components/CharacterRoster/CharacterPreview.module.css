@@ -78,15 +78,19 @@
 }
 
 /*
-   กล่องภาพตัวละคร — ขนาดคงที่ตามอัตราส่วนของไฟล์เฟรม (640x512)
+   กล่องภาพตัวละคร — ขนาดคงที่ตามอัตราส่วนของไฟล์เฟรม (396x376 หลัง re-crop 2026-08-08)
    ทุกเฟรมซ้อนทับกันที่พิกัดเดียวกันเป๊ะ เปลี่ยนแค่ opacity
    จึงไม่มีการขยับ ไม่มีการขยาย-หด และแนวเท้าคงที่ทุกเฟรม
+
+   396x376 = 640x512 crop ด้วย rect เดียวกันร่วมทั้ง 3 ตัวละคร (union ของ safe bbox ต่อตัว
+   จาก alpha-channel scan) — ไม่ใช่ per-character rect เพราะต้องคง single aspect-ratio/
+   single SPRITE_ZOOM (ดูเหตุผลเต็มใน CharacterPreview.tsx จุดที่ประกาศ SPRITE_ZOOM)
 */
 .figure {
   position: relative;
   width: 100%;
   max-width: 540px;
-  aspect-ratio: 640 / 512;
+  aspect-ratio: 396 / 376;
   flex: none;
   cursor: grab;
   touch-action: none;
