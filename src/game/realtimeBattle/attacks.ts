@@ -58,6 +58,11 @@ export interface AttackDefinition {
    * ไม่ใส่ = ท่าปกติ ไม่ทำ knockdown (พฤติกรรมเดิม)
    */
   knockdown?: boolean
+  /**
+   * ระยะทางพุ่งตัวละครไปข้างหน้า (§3.6.2/§3.6.11) ระหว่างช่วง startupMs
+   * ไม่ใส่ = ไม่พุ่ง (พฤติกรรมเดิม)
+   */
+  lungeDistance?: number
 
   /** Wind-up before startup — enemy telegraph (ms). Default 0 for player attacks. */
   telegraphMs?: number
@@ -95,6 +100,7 @@ export const PLAYER_ATTACK_CHAIN: AttackDefinition[] = [
     depthTolerance: 95,
     knockback: 60,
     hitstunMs: 200,
+    lungeDistance: 32,
   },
   {
     id: 'monkey-attack-2',
@@ -110,6 +116,7 @@ export const PLAYER_ATTACK_CHAIN: AttackDefinition[] = [
     arcDegrees: 0,
     depthTolerance: 100,
     knockback: 80,
+    lungeDistance: 36,
   },
   {
     id: 'monkey-attack-3',
@@ -129,6 +136,7 @@ export const PLAYER_ATTACK_CHAIN: AttackDefinition[] = [
     // ไม้จบคอมโบ = combo finisher ตาม §3.6.12 (knockdown เฉพาะเป้าหมาย elite/boss เท่านั้น)
     knockdown: true,
     hitstunMs: 200,
+    lungeDistance: 44,
   },
 ]
 
