@@ -7,16 +7,32 @@ import { ROSTER } from '../../game/characters'
  * "ลงมือทำ" แยกกัน ไฟล์นี้แค่บอกว่าผู้ใช้สั่งอะไร ส่วนการแก้ข้อมูลจริงเป็นหน้าที่ของ
  * accountRepository ผ่าน useAuth
  *
- * ⚠️ ไม่มี UI ไหนในเกมบอกใบ้ว่าคำสั่งเหล่านี้มีอยู่ (ไม่มี placeholder/hint ในช่องพิมพ์) —
+ * ⚠️ ไม่มี UI ไหนในเกมบอกใบ้ว่าคำสั่งผู้ดูแลเหล่านี้มีอยู่ (ไม่มี placeholder/hint ในช่องพิมพ์) —
  * ตั้งใจให้ช่องแชทดูเป็นแชทปกติสำหรับผู้เล่นทั่วไป ผู้ดูแลต้องรู้คำสั่งเองอยู่แล้ว
- * สิทธิ์ผู้ดูแลเช็คจากตาราง admin_accounts ฝั่ง Supabase แล้ว (ดู supabase/migrations/0004_admin_accounts.sql) —
- * เป็นขอบเขตความปลอดภัยจริงระดับ RLS/RPC ไม่ใช่แค่ client-side gate เหมือนเดิม
+ * สิทธิ์ผู้ดูแลเช็คจากตาราง admin_accounts ฝั่ง Supabase แล้ว (ดู supabase/migrations/0004_admin_accounts.sql,
+ * 0015_admin_grant_and_chat_block.sql) — เป็นขอบเขตความปลอดภัยจริงระดับ RLS/RPC ไม่ใช่แค่
+ * client-side gate เหมือนเดิม
+ *
+ * ต่างจากคำสั่งผู้ดูแล — /block /unblock /blocklist เป็นคำสั่งสำหรับผู้เล่นทุกคน (ไม่เช็ค
+ * isAdmin เลย) จึง**ต้อง**ใบ้ผ่าน /help ปกติ ไม่ใช่ความลับ (blueprint divergence #10)
  */
 
 export type ParsedCommand =
   | { kind: 'give-character'; characterId: string }
+  | { kind: 'give-gold'; amount: number }
+  | { kind: 'give-item'; itemId: string; quantity: number }
+  | { kind: 'block'; name: string }
+  | { kind: 'unblock'; name: string }
+  | { kind: 'blocklist' }
   | { kind: 'help' }
   | { kind: 'error'; message: string }
+
+/** คำสั่งที่ต้องเป็นผู้ดูแลเท่านั้นถึงใช้ได้ — ทุกอันอื่นใช้ได้ทุกคน */
+const ADMIN_ONLY_KINDS = new Set<ParsedCommand['kind']>([
+  'give-character',
+  'give-gold',
+  'give-item',
+])
 
 /**
  * หา characterId จากคำที่ผู้ใช้พิมพ์
@@ -42,17 +58,30 @@ function resolveCharacterId(input: string): string | null {
 }
 
 export const COMMAND_HELP = [
-  '/givecharacter <ตัวละคร> — มอบตัวละครให้บัญชีนี้ เช่น /givecharacter pig',
+  '/block <ชื่อ> — ไม่แสดงข้อความจากชื่อนี้อีก เช่น /block SomePlayer',
+  '/unblock <ชื่อ> — เลิกบล็อกชื่อนี้',
+  '/blocklist — ดูรายชื่อที่บล็อกไว้',
   '/help — แสดงคำสั่งทั้งหมด',
+]
+
+/** ใบ้เฉพาะผู้ดูแล ต่อท้าย COMMAND_HELP ตอนเป็นผู้ดูแลเท่านั้น (ยังคงไม่ใบ้ให้ผู้เล่นทั่วไปเห็น) */
+export const ADMIN_COMMAND_HELP = [
+  '/givecharacter <ตัวละคร> — มอบตัวละครให้บัญชีนี้ เช่น /givecharacter pig',
+  '/givegold <จำนวน> — เสกทองให้บัญชีนี้',
+  '/giveitem <item_id> <จำนวน> — เสกไอเทมให้บัญชีนี้',
 ]
 
 /**
  * ตัดสินว่าข้อความที่พิมพ์มาควรถูกตีความเป็นคำสั่งหรือไม่ — จุดเดียวที่คุมเส้นแบ่งความปลอดภัย
  * นี้ (บัญชีไม่ใช่ผู้ดูแล หรือผู้ดูแลพลาดสลับไปบัญชีอื่น = ข้อความขึ้นต้น / ก็ยังต้องถูกส่ง
- * เป็นแชทธรรมดา ไม่ใช่คำสั่ง) แยกออกมาจาก WorldChat.tsx ให้เทสต์ได้ตรง ๆ โดยไม่ต้อง render
+ * เป็นแชทธรรมดา ไม่ใช่คำสั่ง — แต่เฉพาะคำสั่งกลุ่มผู้ดูแลเท่านั้น) แยกออกมาจาก WorldChat.tsx
+ * ให้เทสต์ได้ตรง ๆ โดยไม่ต้อง render
  */
 export function resolveCommandForSender(isAdmin: boolean, raw: string): ParsedCommand | null {
-  return isAdmin ? parseCommand(raw) : null
+  const parsed = parseCommand(raw)
+  if (!parsed) return null
+  if (parsed.kind !== 'error' && ADMIN_ONLY_KINDS.has(parsed.kind) && !isAdmin) return null
+  return parsed
 }
 
 /**
@@ -69,6 +98,18 @@ export function parseCommand(raw: string): ParsedCommand | null {
 
   if (command === 'help') return { kind: 'help' }
 
+  if (command === 'block' || command === 'unblock') {
+    const targetName = args.join(' ').trim()
+    if (targetName.length === 0) {
+      return { kind: 'error', message: `ใช้: /${command} <ชื่อ>` }
+    }
+    return command === 'block'
+      ? { kind: 'block', name: targetName }
+      : { kind: 'unblock', name: targetName }
+  }
+
+  if (command === 'blocklist') return { kind: 'blocklist' }
+
   if (command === 'givecharacter') {
     if (args.length === 0) {
       return { kind: 'error', message: 'ใช้: /givecharacter <ตัวละคร> เช่น /givecharacter pig' }
@@ -82,6 +123,26 @@ export function parseCommand(raw: string): ParsedCommand | null {
       }
     }
     return { kind: 'give-character', characterId }
+  }
+
+  if (command === 'givegold') {
+    const amount = Number(args[0])
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return { kind: 'error', message: 'ใช้: /givegold <จำนวน> เช่น /givegold 1000' }
+    }
+    return { kind: 'give-gold', amount: Math.floor(amount) }
+  }
+
+  if (command === 'giveitem') {
+    const itemId = args[0]
+    const quantity = Number(args[1])
+    if (!itemId || !Number.isFinite(quantity) || quantity <= 0) {
+      return {
+        kind: 'error',
+        message: 'ใช้: /giveitem <item_id> <จำนวน> เช่น /giveitem spirit-incense 5',
+      }
+    }
+    return { kind: 'give-item', itemId, quantity: Math.floor(quantity) }
   }
 
   return {

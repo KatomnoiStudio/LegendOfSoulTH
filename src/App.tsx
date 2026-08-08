@@ -38,6 +38,8 @@ export default function App() {
     findFriendByUid,
     isAdmin,
     grantCharacter,
+    grantGoldAdmin,
+    grantItemAdmin,
     grantItem,
     commitLobbyBattleProgression,
     upsertPendingLobbyReward,
@@ -69,6 +71,8 @@ export default function App() {
             onFindFriend={findFriendByUid}
             isAdmin={isAdmin}
             onGiveCharacter={grantCharacter}
+            onGiveGoldAdmin={grantGoldAdmin}
+            onGiveItemAdmin={grantItemAdmin}
             onExportSave={exportSave}
             hasGoogleLinked={hasGoogleLinked}
             onLinkGoogleAccount={linkGoogleAccount}

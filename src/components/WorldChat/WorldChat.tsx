@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getCharacter } from '../../game/characters'
-import type { CharacterGrantResult } from '../../data/accountRepository.shared'
-import { COMMAND_HELP, resolveCommandForSender } from './commands'
+import type {
+  CharacterGrantResult,
+  CurrencyResult,
+  ItemResult,
+} from '../../data/accountRepository.shared'
+import { ADMIN_COMMAND_HELP, COMMAND_HELP, resolveCommandForSender } from './commands'
 import { loadWorldChat, postWorldChatMessage, subscribeToWorldChat } from './chatStorage'
 import type { ChatMessage } from './chatStorage'
+import { blockName, loadBlockedNames, unblockName } from './blockList'
 import styles from './WorldChat.module.css'
 
 /**
@@ -39,6 +44,10 @@ interface WorldChatProps {
   isAdmin: boolean
   /** มอบตัวละครให้บัญชีที่ล็อกอินอยู่ (ดู useAuth.grantCharacter) — เรียกเฉพาะตอน isAdmin */
   onGiveCharacter: (characterId: string) => Promise<CharacterGrantResult>
+  /** เสกทองให้บัญชีที่ล็อกอินอยู่ (ดู useAuth.grantGoldAdmin) — เรียกเฉพาะตอน isAdmin */
+  onGiveGoldAdmin: (amount: number) => Promise<CurrencyResult>
+  /** เสกไอเทมให้บัญชีที่ล็อกอินอยู่ (ดู useAuth.grantItemAdmin) — เรียกเฉพาะตอน isAdmin */
+  onGiveItemAdmin: (itemId: string, quantity: number) => Promise<ItemResult>
 }
 
 interface SystemEntry {
@@ -59,13 +68,21 @@ const TABS: { id: Tab; label: string }[] = [
 
 let systemEntrySeq = 0
 
-export function WorldChat({ playerName, isAdmin, onGiveCharacter }: WorldChatProps) {
+export function WorldChat({
+  playerName,
+  isAdmin,
+  onGiveCharacter,
+  onGiveGoldAdmin,
+  onGiveItemAdmin,
+}: WorldChatProps) {
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('world')
   const [value, setValue] = useState('')
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadWorldChat())
   // ผลลัพธ์คำสั่งผู้ดูแล เห็นเฉพาะฝั่งตัวเอง ไม่ถูกเขียนลง storage ที่คนอื่นอ่านได้
   const [systemEntries, setSystemEntries] = useState<SystemEntry[]>([])
+  // รายชื่อที่บล็อกไว้ — client-local เหมือนแชทเอง (ดู blockList.ts)
+  const [blockedNames, setBlockedNames] = useState<string[]>(() => loadBlockedNames())
   const [busy, setBusy] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const feedEndRef = useRef<HTMLDivElement>(null)
@@ -80,11 +97,13 @@ export function WorldChat({ playerName, isAdmin, onGiveCharacter }: WorldChatPro
   }, [open, tab])
 
   const feed = useMemo<FeedEntry[]>(() => {
-    const chatEntries: FeedEntry[] = messages.map((message) => ({ ...message, kind: 'message' }))
+    const chatEntries: FeedEntry[] = messages
+      .filter((message) => !blockedNames.includes(message.authorName))
+      .map((message) => ({ ...message, kind: 'message' }))
     return [...chatEntries, ...systemEntries].toSorted((a, b) =>
       a.createdAt.localeCompare(b.createdAt),
     )
-  }, [messages, systemEntries])
+  }, [messages, systemEntries, blockedNames])
 
   // เลื่อนลงล่างสุดเสมอเมื่อมีข้อความใหม่หรือเพิ่งเปิดแท็บโลก
   useEffect(() => {
@@ -118,20 +137,54 @@ export function WorldChat({ playerName, isAdmin, onGiveCharacter }: WorldChatPro
     if (parsed) {
       if (parsed.kind === 'help') {
         for (const line of COMMAND_HELP) pushSystemEntry(line, 'ok')
+        if (isAdmin) for (const line of ADMIN_COMMAND_HELP) pushSystemEntry(line, 'ok')
         return
       }
       if (parsed.kind === 'error') {
         pushSystemEntry(parsed.message, 'error')
         return
       }
+      if (parsed.kind === 'block') {
+        setBlockedNames(blockName(parsed.name))
+        pushSystemEntry(`บล็อก "${parsed.name}" แล้ว — ไม่แสดงข้อความจากชื่อนี้อีก`, 'ok')
+        return
+      }
+      if (parsed.kind === 'unblock') {
+        setBlockedNames(unblockName(parsed.name))
+        pushSystemEntry(`เลิกบล็อก "${parsed.name}" แล้ว`, 'ok')
+        return
+      }
+      if (parsed.kind === 'blocklist') {
+        pushSystemEntry(
+          blockedNames.length === 0
+            ? 'ยังไม่ได้บล็อกใครไว้'
+            : `บล็อกไว้: ${blockedNames.join(', ')}`,
+          'ok',
+        )
+        return
+      }
       setBusy(true)
       try {
-        const result = await onGiveCharacter(parsed.characterId)
-        if (result.ok) {
-          const character = getCharacter(result.characterId)
-          pushSystemEntry(`ได้รับ ${character?.name ?? result.characterId} แล้ว`, 'ok')
-        } else {
-          pushSystemEntry(result.error, 'error')
+        if (parsed.kind === 'give-character') {
+          const result = await onGiveCharacter(parsed.characterId)
+          if (result.ok) {
+            const character = getCharacter(result.characterId)
+            pushSystemEntry(`ได้รับ ${character?.name ?? result.characterId} แล้ว`, 'ok')
+          } else {
+            pushSystemEntry(result.error, 'error')
+          }
+        } else if (parsed.kind === 'give-gold') {
+          const result = await onGiveGoldAdmin(parsed.amount)
+          pushSystemEntry(
+            result.ok ? `เสกทอง ${parsed.amount} แล้ว` : result.error,
+            result.ok ? 'ok' : 'error',
+          )
+        } else if (parsed.kind === 'give-item') {
+          const result = await onGiveItemAdmin(parsed.itemId, parsed.quantity)
+          pushSystemEntry(
+            result.ok ? `เสก ${parsed.itemId} x${parsed.quantity} แล้ว` : result.error,
+            result.ok ? 'ok' : 'error',
+          )
         }
       } finally {
         setBusy(false)
@@ -151,7 +204,16 @@ export function WorldChat({ playerName, isAdmin, onGiveCharacter }: WorldChatPro
     }
 
     setMessages(await postWorldChatMessage(playerName, text))
-  }, [isAdmin, onGiveCharacter, playerName, pushSystemEntry, value])
+  }, [
+    isAdmin,
+    onGiveCharacter,
+    onGiveGoldAdmin,
+    onGiveItemAdmin,
+    playerName,
+    pushSystemEntry,
+    blockedNames,
+    value,
+  ])
 
   if (!open) {
     return (
