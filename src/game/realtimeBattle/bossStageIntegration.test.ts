@@ -34,7 +34,7 @@ function makePlayer(): Player {
   }
 }
 
-describe('spirit-guardian-boss production data (#11 Boss System)', () => {
+describe('spirit-guardian-boss production data (#11 + #16)', () => {
   it('BOSS_TEMPLATES มี spirit-guardian-boss พร้อม 2 เฟส', () => {
     const boss = getBossTemplate('spirit-guardian-boss')
     expect(boss).not.toBeNull()
@@ -59,9 +59,20 @@ describe('spirit-guardian-boss production data (#11 Boss System)', () => {
     expect(boss.phases[0].attacks[0].telegraphMs).toBeGreaterThanOrEqual(800)
   })
 
+  it('createRealtimeBattle trial-05 มีบอส 1 ตัวที่ HP ถูก scale ด้วย difficultyMultiplier', () => {
+    const state = createRealtimeBattle('trial-05', makePlayer())
+    if (!state) throw new Error('fixture missing')
+    expect(state.enemies).toHaveLength(1)
+    const boss = state.enemies[0]
+    expect(boss.entityType).toBe('boss')
+    const template = BOSS_TEMPLATES['spirit-guardian-boss']
+    const expectedHp = Math.round(template.maxHp * (state.stage.difficultyMultiplier ?? 1))
+    expect(boss.maxHp).toBe(expectedHp)
+  })
+
   it('stepEnemyAI เปลี่ยนเฟสเมื่อ HP ข้าม threshold', () => {
     const template = BOSS_TEMPLATES['spirit-guardian-boss']
-    const boss = createWaveEnemies(createRealtimeBattle('p5-boss-arena', makePlayer())!.stage, 0)[0]
+    const boss = createWaveEnemies(createRealtimeBattle('trial-05', makePlayer())!.stage, 0)[0]
     boss.hp = template.maxHp * 0.4
     boss.maxHp = template.maxHp
 
