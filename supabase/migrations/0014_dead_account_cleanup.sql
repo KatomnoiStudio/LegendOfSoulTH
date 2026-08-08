@@ -40,7 +40,8 @@ create table if not exists public.cleanup_exempt_profiles (
 -- this migration and would otherwise be swept on the very first cron run.
 insert into public.cleanup_exempt_profiles (profile_id, reason) values
   ('e79a973f-fd52-4b84-8e6a-c53a0394db88', 'dev/test account (a@a.com) — item 148'),
-  ('d0a7b94f-5d95-4e52-8d8f-ebdd835cf695', 'dev/test account (kaoshock123, DemoGODRTX) — item 148')
+  ('d0a7b94f-5d95-4e52-8d8f-ebdd835cf695', 'dev/test account (kaoshock123, DemoGODRTX) — item 148'),
+  ('9baf5833-89d4-401e-9ece-14e46a27a228', 'standing reusable smoke-test account (smoketest-prod-verify@katomnoi.studio)')
 on conflict (profile_id) do nothing;
 
 -- (2) automatic exemption for any account that ever made a real top-up — derived from data,
