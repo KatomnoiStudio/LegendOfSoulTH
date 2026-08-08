@@ -13,7 +13,7 @@ const BG_RAHU_STYLE: CSSProperties = {
   ['--bg-rahu' as string]: `url(${publicUrl('ui/thai/rahu-button-frame.webp')})`,
 }
 
-/** ปุ่มหลักของหน้า Lobby สำหรับเข้าสู่ฉากผจญภัยจริง */
+/** ปุ่มหลักของหน้า Lobby — เปิดหน้าเลือกด่าน (LobbyBattleSession → StageSelect) */
 export function StartAdventure({ onStart }: StartAdventureProps) {
   return (
     <div className={styles.wrap}>
