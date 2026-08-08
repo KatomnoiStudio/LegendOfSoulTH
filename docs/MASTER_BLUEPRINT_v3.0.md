@@ -320,7 +320,7 @@ First vertical-slice kit. Other heroes follow the same **per-hero kit file** pat
 
 **Ultimate strike-phase resolution (LOCKED, gold-standard-grounded — genre convention, e.g. Genshin/Star Rail ultimates):** all 4 strike phases hit the **same** locked target (the initial nearest-enemy lock persists through the whole sequence, not re-acquired per phase) — matches the "clone rush" flavor (4 clones converging on one target, not 4 separate picks). **Revised 2026-08-09 (item #5):** hyper-armor covers telegraph/startup/active — the strike itself can't be stopped mid-animation, which is the part that reads as broken if interruptible — but **recovery is cancelable by hitstun**, matching shipped behavior (`attacks.ts`'s `phaseOverrides`, pinned by `SkillSystem.test.ts`). Future `targetLock: 'nearest'` skills should default to this pattern (armor through the strike, not recovery) unless their kit row states otherwise.
 
-**Next design gate (OPEN):** per-hero finisher tuning tables and additional hero kits beyond Monkey King.
+**Next design gate (PARTIALLY CLOSED, 2026-08-09):** CoalBoard opinion-lane (ask CB) fixed 2 internal-consistency bugs — Lv11+ EXP formula (was non-monotonic at the Lv10→11 seam) and Ultimate's 4-strike damage scale (was a 9.6x-ATK outlier vs the rest of the kit, now 4.4x) — see `progressionConfig.ts`/`attacks.ts`. **Still OPEN:** absolute finisher/S2/S3 damage magnitude and additional hero kits beyond Monkey King — the board explicitly declined to invent these, since no enemy HP curve exists beyond one test dungeon; real playtest content is the blocker, not more research.
 
 ---
 

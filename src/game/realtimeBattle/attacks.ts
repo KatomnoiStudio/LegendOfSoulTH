@@ -179,7 +179,7 @@ export const MONKEY_SPINNING_STAFF: AttackDefinition = {
   knockback: 140,
 }
 
-/** สกิล 2 — พุ่งไม้เท้าแนวนอน (placeholder content, P3 framework) */
+/** สกิล 2 — พุ่งไม้เท้าแนวนอน (magnitude still playtest-pending — placeholder content, P3 framework) */
 export const MONKEY_STAFF_THRUST: AttackDefinition = {
   id: 'monkey-staff-thrust',
   animationId: 'attack-2',
@@ -196,7 +196,7 @@ export const MONKEY_STAFF_THRUST: AttackDefinition = {
   knockback: 120,
 }
 
-/** สกิล 3 — กวาดไม้กว้าง (placeholder content, P3 framework) */
+/** สกิล 3 — กวาดไม้กว้าง (magnitude still playtest-pending — placeholder content, P3 framework) */
 export const MONKEY_STAFF_SWEEP: AttackDefinition = {
   id: 'monkey-staff-sweep',
   animationId: 'attack-3',
@@ -214,10 +214,16 @@ export const MONKEY_STAFF_SWEEP: AttackDefinition = {
 }
 
 /**
- * อัลติเมท — กระบวนทองคำรุนแรง (placeholder content, P3 framework)
+ * อัลติเมท — กระบวนทองคำรุนแรง
  *
  * targetLock: 'nearest' — ล็อกศัตรูที่ใกล้สุดตอนเริ่มร่าย คงเป้านั้นไว้ตลอด active window
  * เดียวที่มีตอนนี้ (ระบบ #8, ดู docs/agent-blueprint/08-skill-targeting-system.md)
+ *
+ * damageMultiplier 2026-08-09 (CoalBoard opinion-lane, ask CB): เดิม 2.4 คูณอิสระต่อ strike
+ * (strikeCount 4, ไม่มีการหาร per-strike ใน SkillSystem/DamageSystem) รวมแล้ว 9.6x ATK ต่อการร่ายครั้ง
+ * — หลุด scale จากคีย์ทั้งชุด (combo finisher 1.55x, S1 1.65x, S3 1.5x) ปรับเหลือ 1.1 ต่อ strike
+ * (รวม 4.4x ≈ 2.8x ของ finisher — ยังเป็น payoff สูงสุดในชุดแต่ไม่ใช่ outlier). ตัวเลขสัมบูรณ์สุดท้าย
+ * ยังรอ playtest — นี่คือ internal-consistency fix ไม่ใช่ final lock.
  */
 export const MONKEY_GOLDEN_FURY: AttackDefinition = {
   id: 'monkey-golden-fury',
@@ -227,7 +233,7 @@ export const MONKEY_GOLDEN_FURY: AttackDefinition = {
   recoveryMs: 620,
   comboWindowStartMs: 0,
   comboWindowEndMs: 0,
-  damageMultiplier: 2.4,
+  damageMultiplier: 1.1,
   range: 175,
   hitShape: 'radial',
   arcDegrees: 360,
