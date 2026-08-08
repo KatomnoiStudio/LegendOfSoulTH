@@ -3,6 +3,8 @@
 > **Operator / Human User**: `HetCreep`
 > **Repository**: `KatomnoiStudio/LegendOfSoulTH`
 > **Default Branch**: `master`
+> **Last Updated**: 2026-08-09T02:10:00+07:00 by `Claude Code` — Hero Kit #12/DF20: CoalBoard opinion-lane (ask CB, 4 blind seats) fixed the Lv11+ EXP formula regression and the Ultimate damage-scale outlier; `ffb741c`. TASKS.md row DF20 stays 90% (Ring 0 instruction) pending playtest graduation.
+> **Last Updated (prior)**: 2026-08-09T00:25:00+07:00 by `Cursor Agent` — v0.12.5 fix: ปุ่มต่อสู้แสดงหน้าเลือกด่าน (pending-reward recovery ไม่ปิด overlay + StageSelect z-index/DOM order).
 > **Last Updated**: 2026-08-09T03:15:00+07:00 by `Cursor Agent` — P10 Production Batch 01 (5 archetypes, v0.13.0): per-hero kits/combos, 3 new roster heroes, summon/CC runtime, gacha+star skeleton; see `docs/hero-production/PRODUCTION_BATCH_01.md`.
 > **RULES_VERSION last synced: 26** (local `master`, this session) — bumped 17→18 (multi-dev task queue law) →19 (Agent Blueprint execution-order rule) →20 (Ring 0 traffic control law) →21 (claim protocol made Ring-0-locked) →22 (break-glass claim fallback for repo-admin devs) →23 (security doc sync law, from a `/gold-standard` AUDIT) →24 (tasks/memory parity law, HetCreep asked directly after catching TASKS.md drift twice) →25 (working-directory concurrency lock law, added after Claude/Antigravity live collision) within this same session. **Unrelated note carried forward**: an earlier version of this line read "19" citing a pending fork PR #59 (Cursor Agent, cloud) that was never found merged to `origin/master` — this session passed through 19 independently via 17→18→19→20→21→22→23→24→25, not a confirmation of that PR landing. Still worth reconciling numbering with PR #59 if/when it lands.
 

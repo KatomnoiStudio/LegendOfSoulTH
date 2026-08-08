@@ -50,6 +50,12 @@
   --r-lg: 18px;
   --r-pill: 999px;
 
+  /* --- Safe Area Insets (Worldwide Device Responsive Anchors) --- */
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+
   /* --- Sizes — เฉพาะค่าที่ซ้ำจริงยืนยันแล้วเท่านั้น (ask-CB 2 รอบ 2026-08-06 ปฏิเสธ scale
      กว้าง/สูงแบบทั่วไป — ค่าส่วนใหญ่ในโปรเจกต์ finetune เฉพาะจุดจริง บังคับรวมจะพังของที่ตั้งใจ
      ต่างกันไว้ เช่น naga-frame ที่ผูกกับภาพพื้นหลัง — ห้ามเพิ่ม --sz-* ใหม่แบบเดา ต้องยืนยันซ้ำจริง

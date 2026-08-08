@@ -9,8 +9,8 @@
 .panel {
   position: absolute;
   z-index: calc(var(--z-nav) + 1);
-  inset-inline-start: clamp(14px, 2.4vw, 40px);
-  inset-block-end: calc(max(18px, env(safe-area-inset-bottom)) + 128px);
+  inset-inline-start: max(clamp(14px, 2.4vw, 40px), env(safe-area-inset-left, 0px));
+  inset-block-end: calc(max(18px, env(safe-area-inset-bottom, 0px)) + 128px);
 }
 
 .launcher {
@@ -27,7 +27,9 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-shadow: 0 2px 4px #000;
-  transition: color 180ms ease, border-color 180ms ease;
+  transition:
+    color 180ms ease,
+    border-color 180ms ease;
 }
 .launcher:hover,
 .launcher:focus-visible {
@@ -50,9 +52,18 @@
   width: min(320px, 42vw);
   height: 260px;
   border: 1px solid rgb(229 184 75 / 52%);
-  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  clip-path: polygon(
+    10px 0,
+    100% 0,
+    100% calc(100% - 10px),
+    calc(100% - 10px) 100%,
+    0 100%,
+    0 10px
+  );
   background: linear-gradient(155deg, rgb(28 11 25 / 94%), rgb(7 24 32 / 96%));
-  box-shadow: 0 10px 26px rgb(0 0 0 / 62%), inset 0 0 0 3px rgb(4 8 20 / 55%);
+  box-shadow:
+    0 10px 26px rgb(0 0 0 / 62%),
+    inset 0 0 0 3px rgb(4 8 20 / 55%);
   backdrop-filter: blur(8px);
 }
 
@@ -75,11 +86,19 @@
   font-weight: 700;
   letter-spacing: 0.03em;
   text-shadow: 0 2px 4px #000;
-  transition: color 160ms ease, border-color 160ms ease;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease;
 }
 .tab:hover,
-.tab:focus-visible { outline: none; color: rgb(242 217 142 / 78%); }
-.tabActive { color: #ffeab4; border-bottom-color: #e5bd68; }
+.tab:focus-visible {
+  outline: none;
+  color: rgb(242 217 142 / 78%);
+}
+.tabActive {
+  color: #ffeab4;
+  border-bottom-color: #e5bd68;
+}
 .close {
   display: grid;
   place-items: center;
@@ -94,7 +113,10 @@
   transition: color 160ms ease;
 }
 .close:hover,
-.close:focus-visible { outline: none; color: #ffeab4; }
+.close:focus-visible {
+  outline: none;
+  color: #ffeab4;
+}
 
 .scopeNote {
   flex: none;
@@ -119,10 +141,20 @@
   font-size: 0.62rem;
   line-height: 1.4;
 }
-.message { word-break: break-word; }
-.author { color: #e5bd68; font-weight: 700; }
-.author::after { content: ': '; color: rgb(226 198 148 / 55%); }
-.text { color: #e4e9e6; }
+.message {
+  word-break: break-word;
+}
+.author {
+  color: #e5bd68;
+  font-weight: 700;
+}
+.author::after {
+  content: ': ';
+  color: rgb(226 198 148 / 55%);
+}
+.text {
+  color: #e4e9e6;
+}
 .systemOk,
 .systemError {
   padding: 2px 6px;
@@ -130,8 +162,14 @@
   font-size: 0.58rem;
   font-style: italic;
 }
-.systemOk { border-color: #7fdcae; color: #7fdcae; }
-.systemError { border-color: var(--c-danger-text); color: var(--c-danger-text); }
+.systemOk {
+  border-color: #7fdcae;
+  color: #7fdcae;
+}
+.systemError {
+  border-color: var(--c-danger-text);
+  color: var(--c-danger-text);
+}
 .hint {
   margin: auto;
   padding: 12px;
@@ -159,9 +197,16 @@
   font-size: 0.64rem;
   letter-spacing: 0.02em;
 }
-.input:focus { outline: none; border-color: rgb(229 184 75 / 55%); }
-.input::placeholder { color: rgb(196 214 216 / 32%); }
-.input:disabled { opacity: 0.5; }
+.input:focus {
+  outline: none;
+  border-color: rgb(229 184 75 / 55%);
+}
+.input::placeholder {
+  color: rgb(196 214 216 / 32%);
+}
+.input:disabled {
+  opacity: 0.5;
+}
 .send {
   flex: none;
   padding: 5px 12px;
@@ -173,8 +218,14 @@
   font-weight: 800;
   transition: filter 180ms ease;
 }
-.send:hover:not(:disabled) { filter: brightness(1.12); }
-.send:disabled { cursor: not-allowed; filter: saturate(0.3) brightness(0.7); opacity: 0.6; }
+.send:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+.send:disabled {
+  cursor: not-allowed;
+  filter: saturate(0.3) brightness(0.7);
+  opacity: 0.6;
+}
 
 /* จอแคบ: เมนูหลักย้ายไปกลางจอและเตี้ยลง ช่องแชทจึงขยับลงมาใกล้ขอบได้ */
 @media (max-width: 860px) {
@@ -183,5 +234,8 @@
     inset-inline-start: 10px;
     inset-block-end: calc(max(8px, env(safe-area-inset-bottom)) + 96px);
   }
-  .panel { width: min(280px, 78vw); height: 220px; }
+  .panel {
+    width: min(280px, 78vw);
+    height: 220px;
+  }
 }

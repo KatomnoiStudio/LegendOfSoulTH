@@ -6,7 +6,10 @@
   z-index: var(--z-scene-battle-transition);
   display: grid;
   place-items: center;
-  padding: var(--sp-4);
+  padding: max(var(--sp-4), env(safe-area-inset-top, 0px))
+    max(var(--sp-4), env(safe-area-inset-right, 0px))
+    max(var(--sp-4), env(safe-area-inset-bottom, 0px))
+    max(var(--sp-4), env(safe-area-inset-left, 0px));
   background:
     radial-gradient(circle at 50% 42%, rgb(132 75 28 / 14%), transparent 28%),
     radial-gradient(ellipse 70% 60% at 50% 45%, rgb(6 14 26 / 76%), rgb(2 5 12 / 92%));
