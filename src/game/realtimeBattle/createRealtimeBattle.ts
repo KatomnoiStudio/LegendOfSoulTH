@@ -10,7 +10,6 @@ import {
 } from './stageConfig'
 import { resolveEnemyFormation, resolvePlayerSpawn } from './spawnFormation'
 import type { RealtimeBattleEntity } from './types'
-import { calcMaxHp } from '../battle/formulas'
 import { resolveFinalCombatStats } from '../progression/heroStatsResolver'
 
 /**
@@ -65,7 +64,8 @@ export function createPlayerEntity(player: Player): RealtimeBattleEntity | null 
   const owned = player.ownedCharacters.find((entry) => entry.characterId === character.id)
   const level = owned?.level ?? character.level
   const combatStats = resolveFinalCombatStats({ heroId: character.id, level }) ?? character.stats
-  const maxHp = calcMaxHp(level, combatStats.def)
+  /** Authoritative battle max HP — same source as progression/profile, not a parallel formula. */
+  const maxHp = Math.max(1, combatStats.hp)
 
   return {
     id: 'player',
