@@ -50,6 +50,8 @@ describe('reward idempotency migration (isolated Postgres via PGLite)', () => {
       create schema if not exists cron;
       create or replace function cron.schedule(job_name text, schedule text, command text)
       returns bigint language sql as $$ select 1::bigint $$;
+
+      create publication supabase_realtime;
     `)
 
     await applyMigration(db, '0001_init.sql')
@@ -61,7 +63,8 @@ describe('reward idempotency migration (isolated Postgres via PGLite)', () => {
     await applyMigration(db, '0012_public_profile_lookup.sql')
     await applyMigration(db, '0013_reward_idempotency.sql')
     await seedProfile(db)
-  })
+    await applyMigration(db, '20260808180354_world_chat_server_authority.sql')
+  }, 20_000)
 
   afterAll(async () => {
     await db.close()
@@ -206,5 +209,31 @@ describe('reward idempotency migration (isolated Postgres via PGLite)', () => {
       [TEST_USER, txId],
     )
     expect(afterClear.rows[0]?.count).toBe('0')
+  })
+
+  it('World Chat derives author and timestamp from the authenticated profile', async () => {
+    const posted = await db.query<{
+      author_name: string
+      text: string
+      created_at: Date
+    }>(`select * from public.post_world_chat_message('  สวัสดีชาวโลก  ')`)
+
+    expect(posted.rows[0]?.author_name).toBe('Tester')
+    expect(posted.rows[0]?.text).toBe('สวัสดีชาวโลก')
+    expect(posted.rows[0]?.created_at).toBeTruthy()
+  })
+
+  it('World Chat rejects invalid content and enforces ten posts per minute', async () => {
+    await expect(db.query(`select * from public.post_world_chat_message('   ')`)).rejects.toThrow()
+    await expect(
+      db.query(`select * from public.post_world_chat_message($1)`, ['x'.repeat(281)]),
+    ).rejects.toThrow()
+
+    for (let index = 0; index < 9; index += 1) {
+      await db.query(`select * from public.post_world_chat_message($1)`, [`ข้อความ ${index}`])
+    }
+    await expect(
+      db.query(`select * from public.post_world_chat_message('เกินลิมิต')`),
+    ).rejects.toThrow('เรียกใช้งานถี่เกินไป')
   })
 })

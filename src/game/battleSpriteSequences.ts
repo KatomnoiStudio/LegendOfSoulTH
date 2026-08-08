@@ -151,6 +151,9 @@ const BATTLE_SPRITE_SETS: Record<CharacterModelKind, BattleSpriteSet> = {
   'monkey-king': MONKEY_KING_SET,
   'pig-warrior': PIG_WARRIOR_SET,
   'pilgrim-monk': PILGRIM_MONK_SET,
+  'celestial-archer': PILGRIM_MONK_SET,
+  'nezha-warden': MONKEY_KING_SET,
+  'sand-sage': PIG_WARRIOR_SET,
 }
 
 export function getBattleSpriteSet(kind: CharacterModelKind): BattleSpriteSet {
