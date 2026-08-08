@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`
 > **Repository**: `KatomnoiStudio/LegendOfSoulTH`
 > **Default Branch**: `master`
-> **Last Updated**: 2026-08-08T by `Cursor Agent` — fix CI for upstream PR #39 (supabase mapping split + CI env fallback for fork PRs).
+> **Last Updated**: 2026-08-08T by `Cursor Agent` — v0.12.2 on fork master (PR #72 merged); upstream merge blocked (cursor[bot] 403).
 > **RULES_VERSION last synced: 24** (local `master`, this session) — bumped 17→18 (multi-dev task queue law) →19 (Agent Blueprint execution-order rule) →20 (Ring 0 traffic control law) →21 (claim protocol made Ring-0-locked) →22 (break-glass claim fallback for repo-admin devs) →23 (security doc sync law, from a `/gold-standard` AUDIT) →24 (tasks/memory parity law, HetCreep asked directly after catching TASKS.md drift twice) within this same session. **Unrelated note carried forward**: an earlier version of this line read "19" citing a pending fork PR #59 (Cursor Agent, cloud) that was never found merged to `origin/master` — this session passed through 19 independently via 17→18→19→20→21→22→23→24, not a confirmation of that PR landing. Still worth reconciling numbering with PR #59 if/when it lands.
 
 > **2026-08-06 overhaul**: this file had grown to 65+ interleaved, verbose items (two colliding numbering
@@ -28,7 +28,7 @@
 ## 🎯 Current Status
 
 - **Repo**: upstream #29–#35 merged · **v0.12.0** on `master` · PR **#36** open (P8 balance lock).
-- **Version**: **0.12.1** (P8 balance lock deploy — #36 + cleanup #35 on live after merge).
+- **Version**: **0.12.2** on fork `master` (PR #72 merged @ `2973659`) — upstream still **0.12.1**; live redeploys when Ring 0 merges upstream PR from `nustanakritwithai:master`.
 - **Org/Live**: `KatomnoiStudio` — https://katomnoistudio.github.io/LegendOfSoulTH/
 - **Backend**: Supabase Auth+Postgres live, wired via `useAuth.ts` (item 41/87). `accountRepository.ts` (localStorage) stays as a dormant fallback seam only.
 - **Master Blueprint v3.0**: P0–P3 DONE · §3.6/§3.7 LOCKED · mobile combat UI done (§3.3) · P4 LANDED (item 109) · P5 dungeon slice + reward pipeline LANDED (items 111-112) · P8 per-hero progression LANDED (item 119, numerics still NON-PRODUCTION).
