@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Player } from '../../types/player'
 import { EMPTY_PROGRESS } from '../../types/player'
-import { progressionConfig } from './progressionConfig'
+import { getExpToNextForLevel, progressionConfig } from './progressionConfig'
 import { applyHeroExpToProgress } from './heroExpService'
 import {
   createInitialOwnedCharacterProgress,
@@ -41,6 +41,23 @@ function stubPlayer(overrides: Partial<Player> = {}): Player {
 }
 
 describe('applyHeroExpToProgress', () => {
+  it('keeps the locked Lv10→11 seam monotonic through the level cap', () => {
+    expect(getExpToNextForLevel(10)).toBe(1200)
+    expect(getExpToNextForLevel(11)).toBe(1420)
+
+    const thresholds = Array.from({ length: progressionConfig.maxHeroLevel - 1 }, (_, index) =>
+      getExpToNextForLevel(index + 1),
+    )
+    for (let index = 1; index < thresholds.length; index++) {
+      expect(thresholds[index]).toBeGreaterThan(thresholds[index - 1] ?? 0)
+    }
+  })
+
+  it('keeps P8 visibly non-production until the manual playtest gate passes', () => {
+    expect(progressionConfig.nonProductionBalance).toBe(true)
+    expect(progressionConfig.showTalentAwakeningUi).toBe(false)
+  })
+
   it('gains EXP below threshold without leveling', () => {
     const result = applyHeroExpToProgress({
       heroId: 'monkey-king',

@@ -1,10 +1,5 @@
-import {
-  COMBO_CONFIG,
-  isActiveWindow,
-  PLAYER_ATTACK_CHAIN,
-  totalDurationMs,
-  type AttackDefinition,
-} from './attacks'
+import { COMBO_CONFIG, isActiveWindow, totalDurationMs, type AttackDefinition } from './attacks'
+import { getPlayerAttackChain } from '../heroes/attackChains'
 import { getPlayerAttackPhase, interruptPlayerCombo, shouldInterruptMove } from './combatInterrupt'
 import { isControlLocked } from './combatReaction'
 import type { RealtimeBattleEntity } from './types'
@@ -90,14 +85,15 @@ function beginNextAttack(player: RealtimeBattleEntity, combo: ComboState): void 
   // ปล่อยนานเกินไป = คอมโบขาด กลับไปเริ่มไม้แรก
   if (combo.sinceLastFinishMs > COMBO_CONFIG.comboResetMs) combo.chainIndex = 0
 
-  const attack = PLAYER_ATTACK_CHAIN[combo.chainIndex] ?? PLAYER_ATTACK_CHAIN[0]
+  const chain = getPlayerAttackChain(player.characterId)
+  const attack = chain[combo.chainIndex] ?? chain[0]
 
   combo.attack = attack
   combo.sinceStartMs = 0
   combo.hitTargets.clear()
   combo.bufferedInputAgeMs = null
   // ไม้ถัดไปวนกลับไม้แรกเมื่อจบคอมโบ
-  combo.chainIndex = (combo.chainIndex + 1) % PLAYER_ATTACK_CHAIN.length
+  combo.chainIndex = (combo.chainIndex + 1) % chain.length
 
   player.state = 'attack'
   player.velocity = { x: 0, y: 0 }
