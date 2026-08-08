@@ -1,6 +1,7 @@
 import { ENEMY_ATTACK_MELEE } from './attacks'
 import { applyCombatReaction, tickKnockdownState } from './combatReaction'
 import { createWaveEnemies, type RealtimeBattleState } from './createRealtimeBattle'
+import { DEFAULT_BATTLE_PRESENTATION } from './battlePresentation'
 import { resolveStageOutcome } from './StageVariationSystem'
 import { combatFacingFromVector } from './combatFacing'
 import type { RandomFn } from './DamageSystem'
@@ -442,13 +443,15 @@ export class RealtimeBattleRuntime {
       for (let j = i + 1; j < alive.length; j += 1) {
         const a = alive[i]
         const b = alive[j]
-        // ดันเฉพาะตัวหลังออกจากตัวหน้า ทำให้ผลลัพธ์ไม่ขึ้นกับลำดับที่วนเจอ
-        b.position = resolveCircleOverlap(
+        // Crowd radius is presentation spacing only. Hitbox/hurtbox/collisionRadius remain unchanged.
+        const crowdMul = DEFAULT_BATTLE_PRESENTATION.enemyCrowdSeparationMul
+        const separated = resolveCircleOverlap(
           b.position,
-          b.collisionRadius,
+          b.collisionRadius * crowdMul,
           a.position,
-          a.collisionRadius,
+          a.collisionRadius * crowdMul,
         )
+        b.position = clampToArena(separated, b.collisionRadius, state.stage)
       }
     }
   }
