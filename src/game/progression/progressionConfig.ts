@@ -42,8 +42,14 @@ export const PLACEHOLDER_HERO_EXP_TABLE: HeroExpTableEntry[] = [
 export function getExpToNextForLevel(level: number): number {
   const entry = PLACEHOLDER_HERO_EXP_TABLE.find((row) => row.level === level)
   if (entry) return entry.expToNext
-  // TUNABLE — not part of final balance lock (Ring 0: Lv11+ formula temporary).
-  return Math.max(100, Math.round(100 + level * 80))
+  /*
+    2026-08-09 (CoalBoard opinion-lane, ask CB — realtime/reality/feeling/outdim converged):
+    old formula (100 + level*80) was non-monotonic at the seam — Lv11 (980) < Lv10's locked 1200.
+    10n²+10n+100 is not a new guess: it's the exact continuation of the locked Lv1-10 table
+    (delta(n) = 20n holds for n=4..10 in PLACEHOLDER_HERO_EXP_TABLE; this formula reproduces
+    every locked row exactly for n=3..10). Magnitude still tunable — shape is not a guess.
+  */
+  return 10 * level * level + 10 * level + 100
 }
 
 /** Per-level stat growth — Ring 0 playtest baseline (HP +12, ATK +2, DEF +1.5, SPD +0.5). */

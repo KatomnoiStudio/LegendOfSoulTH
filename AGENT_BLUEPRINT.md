@@ -18,7 +18,7 @@ No queue slot needed — touch only on bug/extension.
 - #18 Reward (`RewardSystem.ts`), #26 Control/Input (PR #24), #27 Error/Observability (SETTLED).
 - #22 Currency (DB RPCs) — **badge caveat (found via ask-CB dogfood-methodology sweep, 2026-08-07):** its own work contract (`docs/agent-blueprint/22-currency-system.md:38`) admits zero test coverage on `earnGold`/`redeemCoupon`/`topUpGold`/`topUpGems` — the "maintain only" stamp was earned by a source-scan grep (file exists), never by a dogfood/red-team pass or by tests. Real gap, tracked under `.agents/rules/gold-standard-baseline.md`'s open component-test-coverage MUST-HAVE (AGENTS.md rule 10) — not fixed here, flagged so nobody trusts this badge more than it's earned.
 - #25 Backend/Server-Authority — baseline shipped (auth/RLS/RPC); GROWS as Tier-1/2 systems land, not a one-time ship.
-- #28 Social/Communication — shipped and working; formal blueprint-lock done (§7.5, 2026-08-08, revised 2026-08-09). **Moderation is player-side block/mute** (`/block`/`/unblock`/`/blocklist`, item #10 — corrected from an earlier "admin-driven" claim that was never actually true; the real exemplar, per Guardian Tales' own devs, is a per-player chat block, not an admin takedown panel). Data-ownership is **locked as server-authoritative but code doesn't match yet** — World Chat is still 100% `localStorage` (item #9, real migration work still pending).
+- #28 Social/Communication — World Chat server-authority migration implemented (Postgres/RLS/RPC/Realtime); production remains pending migration apply. Player-local block preference stays separate from message authority.
 
 ### Tier 1 — Urgent / core (next up, blocks the rest — roadmap P3–P8, verified NOT yet in `src/`)
 
@@ -122,7 +122,7 @@ No queue slot needed — touch only on bug/extension.
 
 ### Social
 
-28. **Social / Communication System** — World Chat (`src/components/WorldChat/`, incl. an admin sub-command grammar) + Friends (`src/components/AddFriendModal/`, request/accept/block). Live, DB-backed (`public.friends` table + RLS, `supabase/migrations/0001_init.sql`), wired unconditionally into the lobby (`src/pages/LobbyPage.tsx`). **Gap**: zero coverage in `docs/MASTER_BLUEPRINT_v3.0.md` — no product-locked decision on data ownership, moderation policy, or server-authority classification for this feature. Source: **NONE — flagged for HetCreep**, not yet in the master blueprint.
+28. **Social / Communication System** — World Chat (`src/components/WorldChat/`, server-backed via `world_chat_messages` + RLS/RPC/Realtime) + Friends (`src/components/AddFriendModal/`). Data ownership locked in §7.5; player-local block preferences are not message authority. Source: §7.5, §8.
     → full work contract: [`docs/agent-blueprint/28-social-communication-system.md`](docs/agent-blueprint/28-social-communication-system.md)
 
 ---

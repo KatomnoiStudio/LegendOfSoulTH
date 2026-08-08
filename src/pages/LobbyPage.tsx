@@ -6,7 +6,6 @@ import { WukongAdventure } from '../components/AdventureScene/WukongAdventure'
 import { ErrorBoundary, SceneCrashFallback } from '../components/ErrorBoundary/ErrorBoundary'
 import { LoadingScreen } from '../components/LoadingScreen/LoadingScreen'
 import { WorldChat } from '../components/WorldChat/WorldChat'
-import { DungeonSession } from '../components/DungeonSession/DungeonSession'
 import { LobbyBattleSession } from '../components/LobbyBattleSession/LobbyBattleSession'
 import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRosterModal'
 import { ItemsModal } from '../components/ItemsModal/ItemsModal'
@@ -141,7 +140,6 @@ export function LobbyPage({
    * (แผงข้อมูลตอนแตะโมเดลถูกถอดออกไว้ก่อน รอดูว่าจะใส่อะไรแทนในอนาคต)
    */
   const [selectedId, setSelectedId] = useState<string | null>(null)
-
   const previewModal =
     typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('modal') : null
 
@@ -149,7 +147,6 @@ export function LobbyPage({
   const [settingsOpen, setSettingsOpen] = useState(() => previewModal === 'settings')
   const [rosterOpen, setRosterOpen] = useState(() => previewModal === 'roster')
   const [battleOpen, setBattleOpen] = useState(() => previewModal === 'battle')
-  const [dungeonOpen, setDungeonOpen] = useState(() => previewModal === 'dungeon')
   const [addFriendOpen, setAddFriendOpen] = useState(() => previewModal === 'friend')
   const [itemsOpen, setItemsOpen] = useState(() => previewModal === 'items')
 
@@ -161,10 +158,8 @@ export function LobbyPage({
       setSettingsOpen(previewModal === 'settings')
       setProfileOpen(previewModal === 'profile')
       setAddFriendOpen(previewModal === 'friend')
-      setDungeonOpen(previewModal === 'dungeon')
     }
   }, [previewModal])
-
   // ค่าเริ่มต้นอ่านจาก engine (persist ผ่าน localStorage) — เก็บ mirror ไว้ที่นี่แค่ให้ React re-render
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings())
   const handleAudioChange = (next: AudioSettings) => {
@@ -238,7 +233,7 @@ export function LobbyPage({
       </div>
 
       <div className={styles.startRow}>
-        <StartAdventure onStart={() => setDungeonOpen(true)} />
+        <StartAdventure onStart={() => setBattleOpen(true)} />
       </div>
 
       <MainNavigation
@@ -254,22 +249,11 @@ export function LobbyPage({
         component เปลี่ยนชื่อ/พฤติกรรมไปคนละแบบ ไม่ใช่คอนโซลลับอีกต่อไป)
       */}
       <WorldChat
-        playerName={player.name}
         isAdmin={isAdmin}
         onGiveCharacter={onGiveCharacter}
         onGiveGoldAdmin={onGiveGoldAdmin}
         onGiveItemAdmin={onGiveItemAdmin}
       />
-
-      {dungeonOpen ? (
-        <DungeonSession
-          player={player}
-          onPlayerChange={onPlayerChange}
-          onEarnGold={onEarnGold}
-          onGrantItem={onGrantItem}
-          onExit={() => setDungeonOpen(false)}
-        />
-      ) : null}
 
       {/*
         หน้าเลือกด่าน mount หลัง WukongAdventure — DOM + z-index สองชั้น กันฉากเดินทับ modal

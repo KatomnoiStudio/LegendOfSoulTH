@@ -102,8 +102,13 @@ describe('Hero Collection System (#13)', () => {
       const roles = ROSTER.map((character) => character.role)
       const uniqueRoles = new Set(roles)
 
-      // ตรวจสอบว่าจำนวนบทบาททั้งหมด เท่ากับจำนวนบทบาทที่ไม่ซ้ำกัน
       expect(roles.length).toBe(uniqueRoles.size)
+    })
+
+    test('Production Batch 01 heroes ต้องมี archetype ไม่ซ้ำกัน', () => {
+      const batch = ROSTER.filter((c) => c.productionBatch === 'batch-01')
+      const archetypes = batch.map((c) => c.archetype)
+      expect(new Set(archetypes).size).toBe(archetypes.length)
     })
   })
 

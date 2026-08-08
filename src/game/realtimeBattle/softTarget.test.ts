@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assistCombatFacing, findNearestLivingEnemy } from './softTarget'
+import { findNearestLivingEnemy } from './softTarget'
 import type { RealtimeBattleEntity } from './types'
 
 function enemy(id: string, x: number, hp = 100): RealtimeBattleEntity {
@@ -47,16 +47,5 @@ describe('softTarget', () => {
     const second = findNearestLivingEnemy(playerPos, enemies)
     expect(first?.id).toBe('a')
     expect(second?.id).toBe('b')
-  })
-
-  it('assistCombatFacing nudges player toward nearest enemy', () => {
-    const p = {
-      ...enemy('player', 0),
-      entityType: 'player' as const,
-      combatFacing: 'left' as const,
-    }
-    const result = assistCombatFacing(p, [enemy('e1', 100)])
-    expect(result?.id).toBe('e1')
-    expect(p.combatFacing).toBe('right')
   })
 })

@@ -7,7 +7,6 @@ export const COMBAT_DEFAULTS = {
   knockdownMs: 700,
   getUpMs: 450,
   getUpInvulnerableMs: 200,
-  softTargetAssistRange: 220,
 } as const
 
 export type MovePhase = 'telegraph' | 'castDelay' | 'startup' | 'active' | 'recovery'
