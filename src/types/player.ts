@@ -33,8 +33,16 @@ export interface OwnedCharacter {
    * เลเวลสกิล 4 ช่อง (work contract #14 — Progression System)
    * บัญชีเก่าก่อนมีฟิลด์นี้ไม่มีใน localStorage/Supabase แถวเก่า — อ่านผ่าน
    * normalizePlayer / migrateOwnedCharacters เสมอ อย่า deref ตรง ๆ จากข้อมูลดิบ
+  /**
+   * ระดับดาว (★1–★6) ตามข้อตกลง Star Ascension System (#15)
+   * ค่าเริ่มต้นคือ 1 ดาว
    */
-  skillLevels: SkillLevels
+  star?: number
+  /**
+   * จำนวนเศษตัวละครซ้ำที่ครอบครองอยู่เพื่อใช้เลื่อนขั้นดาว
+   * ค่าเริ่มต้นคือ 0
+   */
+  shards?: number
   /** P8 — talent foundation */
   talentState?: { unlockedNodes: string[] }
   /** P8 — awakening foundation */
