@@ -91,21 +91,21 @@ describe('getEffectiveLevels', () => {
 
 // ─── Known Scars (Summoners War / Chronicles historical incidents) ───────────
 
+interface RankRecord {
+  wins: number
+  losses: number
+  rating: number
+}
+
+function recordOutcome(record: RankRecord, outcome: 'win' | 'lose'): RankRecord {
+  if (outcome === 'win') {
+    return { ...record, wins: record.wins + 1, rating: record.rating + 15 }
+  }
+  return { ...record, losses: record.losses + 1, rating: Math.max(0, record.rating - 10) }
+}
+
 describe('Scar 1: Ranked match outcome recording state consistency (Sky Arena 100% win bug)', () => {
   test('loss and win outcomes update rank/rating deterministically without skipping loss', () => {
-    interface RankRecord {
-      wins: number
-      losses: number
-      rating: number
-    }
-
-    function recordOutcome(record: RankRecord, outcome: 'win' | 'lose'): RankRecord {
-      if (outcome === 'win') {
-        return { ...record, wins: record.wins + 1, rating: record.rating + 15 }
-      }
-      return { ...record, losses: record.losses + 1, rating: Math.max(0, record.rating - 10) }
-    }
-
     let rank: RankRecord = { wins: 10, losses: 0, rating: 1150 }
     rank = recordOutcome(rank, 'lose')
     expect(rank.losses).toBe(1)
