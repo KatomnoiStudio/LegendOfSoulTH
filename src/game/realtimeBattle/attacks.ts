@@ -76,6 +76,10 @@ export interface AttackDefinition {
   phaseOverrides?: MovePhaseOverrides
   /** Multi-hit active window slices (ultimate). */
   strikeCount?: number
+  /** Hero Kit missing fields per Done-criterion #1 */
+  castDelayMs?: number
+  movementDuringCast?: boolean
+  multiTarget?: boolean
 }
 
 /**
