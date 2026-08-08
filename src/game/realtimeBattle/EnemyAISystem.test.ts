@@ -647,6 +647,113 @@ describe('stepEnemyAI — บอส (#11 Boss System)', () => {
     stepEnemyAI(boss, brain, player, 16)
     expect(brain.state).toBe('telegraph') // state machine ยังทำงานปกติต่อเนื่อง
   })
+
+  describe('Scar 1: stuck aware/chase transition checks', () => {
+    it('transitions from idle to chase correctly under various spawn and boundary crossing scenarios', () => {
+      const kit = getEnemyTemplate('shadow-soldier')
+      if (!kit) throw new Error('shadow-soldier template missing')
+
+      // Case A: Just spawned (idle)
+      const enemy = entity({ position: { x: 0, y: 0 } })
+      const player = entity({
+        id: 'player',
+        entityType: 'player',
+        position: { x: kit.detectRange - 10, y: 0 },
+      })
+      const brain = createEnemyBrain()
+      expect(brain.state).toBe('idle')
+
+      // Should transition to chase on first step, then start walking on second step
+      stepEnemyAI(enemy, brain, player, 16)
+      expect(brain.state).toBe('chase')
+      let decision = stepEnemyAI(enemy, brain, player, 16)
+      expect(decision.move.x).toBeGreaterThan(0)
+
+      // Case B: Exiting 'hit' back to idle/chase
+      brain.state = 'hit'
+      enemy.hitStunRemainingMs = 0
+      stepEnemyAI(enemy, brain, player, 16)
+      expect(brain.state).toBe('chase')
+      decision = stepEnemyAI(enemy, brain, player, 16)
+      expect(decision.move.x).toBeGreaterThan(0)
+
+      // Case C: Exiting 'recover' back to idle/chase
+      brain.state = 'recover'
+      brain.stateElapsedMs = 300 // RECOVER_MS is 260
+      stepEnemyAI(enemy, brain, player, 16)
+      expect(brain.state).toBe('chase')
+      decision = stepEnemyAI(enemy, brain, player, 16)
+      expect(decision.move.x).toBeGreaterThan(0)
+
+      // Case D: Different deltaMs sizes when crossing boundary
+      const enemyD = entity({ position: { x: 0, y: 0 } })
+      const playerD = entity({
+        id: 'player',
+        entityType: 'player',
+        position: { x: kit.detectRange - 5, y: 0 },
+      })
+
+      const brainD1 = createEnemyBrain()
+      stepEnemyAI(enemyD, brainD1, playerD, 1) // deltaMs = 1ms
+      expect(brainD1.state).toBe('chase')
+
+      const brainD2 = createEnemyBrain()
+      stepEnemyAI(enemyD, brainD2, playerD, 1000) // deltaMs = 1000ms
+      expect(brainD2.state).toBe('chase')
+    })
+  })
+
+  describe('Scar 2: boundary position clamp mismatch checks', () => {
+    it('correctly decides movement vectors and state transitions even when pinned against boundaries', () => {
+      const kit = getEnemyTemplate('shadow-soldier')
+      if (!kit) throw new Error('shadow-soldier template missing')
+
+      const enemy = entity({ position: { x: 34, y: 34 } }) // pinned at corner (collisionRadius = 34)
+      const player = entity({ id: 'player', entityType: 'player', position: { x: 120, y: 34 } })
+      const brain = createEnemyBrain()
+
+      // Player is outside attack range, so AI should chase
+      stepEnemyAI(enemy, brain, player, 16)
+      expect(brain.state).toBe('chase')
+      let decision = stepEnemyAI(enemy, brain, player, 16)
+      expect(enemy.state).toBe('walk')
+      // Vector should point directly right (towards player)
+      expect(decision.move.x).toBeCloseTo(1)
+      expect(decision.move.y).toBeCloseTo(0)
+
+      // Even if enemy position is clamped by MovementSystem (doesn't move), state evaluation is clean
+      player.position = { x: 74, y: 34 } // distance is 40px (<= attackRange)
+      decision = stepEnemyAI(enemy, brain, player, 16)
+      // Should transition to telegraph
+      expect(brain.state).toBe('telegraph')
+      expect(decision.move).toEqual({ x: 0, y: 0 })
+    })
+  })
+
+  describe('Scar 3: reload/reconnect session desync simulation checks', () => {
+    it('cleanly resets enemy state to idle/chase and avoids double hits when brain is re-initialized mid-attack', () => {
+      const kit = getEnemyTemplate('shadow-soldier')
+      if (!kit) throw new Error('shadow-soldier template missing')
+
+      const enemy = entity({ position: { x: 0, y: 0 }, state: 'attack' })
+      const player = entity({ id: 'player', entityType: 'player', position: { x: 200, y: 0 } })
+
+      // Simulate a reloaded brain
+      const freshBrain = createEnemyBrain()
+      expect(freshBrain.state).toBe('idle')
+      expect(freshBrain.selectedAttack).toBeNull()
+
+      // stepEnemyAI should evaluate the idle state, reset the enemy's state to idle (or chase), and output zero movement
+      stepEnemyAI(enemy, freshBrain, player, 16)
+      expect(freshBrain.state).toBe('chase') // transitioned immediately to chase because player is within range
+
+      const decision = stepEnemyAI(enemy, freshBrain, player, 16)
+      expect(enemy.state).toBe('walk')
+      expect(decision.move.x).toBeGreaterThan(0)
+      expect(freshBrain.selectedAttack).toBeNull()
+      expect(freshBrain.hitTargets.size).toBe(0)
+    })
+  })
 })
 
 /** เดินเวลาเป็นก้าวคงที่เหมือนลูปจริง ไม่ใช่ก้อนเดียวใหญ่ ๆ */
@@ -691,8 +798,8 @@ describe('runtime กับศัตรูทั้งกอง', () => {
         const a = state.enemies[i]
         const b = state.enemies[j]
         const gap = Math.hypot(a.position.x - b.position.x, a.position.y - b.position.y)
-        // ยอมให้คลาดเคลื่อนเล็กน้อยจากการดันในเฟรมเดียวกัน
-        expect(gap).toBeGreaterThan((a.collisionRadius + b.collisionRadius) * 0.9)
+        // Visual crowd spacing is wider than gameplay collision so wide HD sprites remain readable.
+        expect(gap).toBeGreaterThan((a.collisionRadius + b.collisionRadius) * 1.4)
       }
     }
   })
