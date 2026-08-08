@@ -44,7 +44,7 @@
 | DF3  | Combat Facing System Dogfood              | #2     | Antigravity | 🟢 graduated   | 100% | 2026-08-08 | Graduated. Dogfood pass complete; 3 historical scars verified via tests (PR #46).   |
 | DF4  | Basic Attack System Dogfood               | #3     | —           | ⚪ not started | 0%   | —          | Pre-existing 60%. Dogfood pass pending.                                             |
 | DF5  | Skill/Cast System Dogfood                 | #4     | —           | ⚪ not started | 0%   | —          | Pre-existing 60%. Dogfood pass pending.                                             |
-| DF6  | Hit Reaction System Dogfood               | #6     | Antigravity | 🟡 claimed     | 60%  | 2026-08-08 | Pre-existing 60%. Dogfood pass pending. (Antigravity dogfood loop in progress)      |
+| DF6  | Hit Reaction System Dogfood               | #6     | Antigravity | 🟢 graduated   | 100% | 2026-08-08 | Graduated. Dogfood pass complete; 3 historical scars verified via tests (PR #47).   |
 | DF7  | Enemy AI System Dogfood                   | #9     | —           | ⚪ not started | 0%   | —          | Pre-existing 60%. Dogfood pass pending.                                             |
 | DF8  | Reward System Dogfood                     | #18    | —           | ⚪ not started | 0%   | —          | Shipped 70%. Dogfood pass pending for both trees.                                   |
 | DF9  | Backend / Server-Authority System Dogfood | #25    | —           | ⚪ not started | 0%   | —          | Shipped 65%. Dogfood pass pending.                                                  |

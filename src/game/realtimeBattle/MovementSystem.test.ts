@@ -180,4 +180,41 @@ describe('stepMovement', () => {
     const diagonalDistance = Math.hypot(diagonal.position.x - 500, diagonal.position.y - 500)
     expect(diagonalDistance).toBeCloseTo(straightDistance)
   })
+
+  it('Done-criterion 4: rejects movement input while hitStunRemainingMs > 0, and accepts it immediately when 0', () => {
+    const player = entity({ hitStunRemainingMs: 100, position: { x: 500, y: 500 } })
+
+    // Case 1: hitStunRemainingMs > 0 -> should reject movement
+    let moved = stepMovement(player, { x: 1, y: 0 }, 50, context())
+    expect(moved).toBe(false)
+    expect(player.position).toEqual({ x: 500, y: 500 })
+
+    // Case 2: hitStunRemainingMs becomes 0 -> should accept movement
+    player.hitStunRemainingMs = 0
+    moved = stepMovement(player, { x: 1, y: 0 }, 50, context())
+    expect(moved).toBe(true)
+    expect(player.position.x).toBeGreaterThan(500)
+  })
+
+  it('Scar 3: target knocked into wall/boundary can recover and move away normally', () => {
+    // Place target near the right boundary: width is 1000, collisionRadius is 30.
+    // Near boundary position: x = 970 (exactly touching).
+    const target = entity({
+      position: { x: 970, y: 500 },
+      hitStunRemainingMs: 100,
+    })
+
+    // Try to move left (away from boundary) while stunned -> should reject
+    let moved = stepMovement(target, { x: -1, y: 0 }, 50, context())
+    expect(moved).toBe(false)
+    expect(target.position.x).toBe(970)
+
+    // Stun expires
+    target.hitStunRemainingMs = 0
+
+    // Try to move left (away from boundary) -> should allow and succeed
+    moved = stepMovement(target, { x: -1, y: 0 }, 50, context())
+    expect(moved).toBe(true)
+    expect(target.position.x).toBeLessThan(970)
+  })
 })

@@ -208,4 +208,25 @@ describe('findHitTargets — targetLock: nearest (ระบบ #8 Skill-Targetin
     )
     expect(hits).toEqual([])
   })
+
+  it('Scar 1: target invulnerability window prevents subsequent hits during elapsedMs', () => {
+    const target = entity({ id: 'target', position: { x: 50, y: 0 } })
+    const testAttacker = entity({
+      id: 'player',
+      entityType: 'player',
+      combatFacing: 'right',
+      position: { x: 0, y: 0 },
+    })
+
+    // Initial hit at 1000ms sets target's invulnerability until 1120ms
+    target.invulnerableUntilMs = 1120
+
+    // Query hitbox at 1100ms -> should filter target out
+    let hits = findHitTargets([target], query({ attacker: testAttacker, elapsedMs: 1100 }))
+    expect(hits).toHaveLength(0)
+
+    // Query hitbox at 1121ms -> should hit the target
+    hits = findHitTargets([target], query({ attacker: testAttacker, elapsedMs: 1121 }))
+    expect(hits.map((t) => t.id)).toEqual(['target'])
+  })
 })
