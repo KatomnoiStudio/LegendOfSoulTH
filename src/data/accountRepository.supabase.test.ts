@@ -257,3 +257,52 @@ describe('accountRepository.supabase RPC wrapper wiring', () => {
     expect(reportErrorMock).toHaveBeenCalledWith('FRIEND_LOOKUP_FAIL', 'silent', rpcError)
   })
 })
+
+// ─── Known Scars (Path of Exile economy & transaction authority precedents) ───
+
+describe('Scar 1: Lost response & retry idempotency protection (PoE Rollback dupe incident)', () => {
+  test('earnGold passes refId to server RPC ensuring idempotent drop transaction', async () => {
+    const { earnGold } = await import('./accountRepository.supabase')
+    rpcMock.mockReturnValue(rpcResult({ profile: { id: 'profile-1', gold: 600 }, amount: 100 }))
+
+    const result = await earnGold('uid-ignored', 'drop', 100, 'stage-1-clear')
+
+    expect(rpcMock).toHaveBeenCalledWith('earn_gold', {
+      p_source: 'drop',
+      p_amount: 100,
+      p_ref_id: 'stage-1-clear',
+    })
+    expect(result.ok).toBe(true)
+  })
+})
+
+describe('Scar 2: Concurrent submission serialized via atomic RPC (PoE Concurrent instance race)', () => {
+  test('redeemCoupon routes through single atomic RPC call preventing multi-read TOCTOU', async () => {
+    const { redeemCoupon } = await import('./accountRepository.supabase')
+    rpcMock.mockReturnValue(rpcResult({ profile: { id: 'profile-1' }, amount: 500 }))
+
+    const result = await redeemCoupon('uid-ignored', 'PROMO2026')
+
+    expect(rpcMock).toHaveBeenCalledWith('redeem_coupon', { p_code: 'PROMO2026' })
+    expect(result.ok).toBe(true)
+  })
+})
+
+describe('Scar 3: Atomic cost & bounded grant validation (PoE Freedom of Faith infinite print incident)', () => {
+  test('earnGold rejects unbounded amount before triggering DB transaction', async () => {
+    const { earnGold } = await import('./accountRepository.supabase')
+    rpcMock.mockReturnValue(rpcResult(null, { message: 'จำนวนทองเกินขีดจำกัดต่อครั้ง' }))
+
+    const result = await earnGold('uid-ignored', 'drop', 99999999)
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toBe('จำนวนทองเกินขีดจำกัดต่อครั้ง')
+    }
+    expect(rpcMock).toHaveBeenCalledWith('earn_gold', {
+      p_source: 'drop',
+      p_amount: 99999999,
+      p_ref_id: null,
+    })
+  })
+})
