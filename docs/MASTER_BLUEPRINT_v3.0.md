@@ -113,7 +113,7 @@ Do **not** plan or implement these until HetCreep reopens them:
 |                  | **Skill 3**      |
 |                  | **Ultimate**     |
 
-**Layout (LOCKED 2026-08-07):** joystick **bottom-left**; **S1 · S2 · S3 · Ultimate** in a row **above** the attack button; **Basic Attack** = **largest button, bottom-right**. Walk and press Attack/Skill simultaneously (separate pointer ids).
+**Layout (REVISED + LOCKED 2026-08-08, HetCreep):** joystick **bottom-left**; **S1 → S2 → S3 → Ultimate** form a curved right-thumb **Combat Cluster around** the attack button; **Basic Attack** = **largest button, bottom-right**. Buttons must remain inside device safe areas, keep at least 48px touch targets, and never overlap at supported landscape sizes. Walk and press Attack/Skill simultaneously (separate pointer ids). This supersedes the 2026-08-07 straight-row arrangement.
 
 **Button presentation (LOCKED 2026-08-07):**
 
