@@ -2,7 +2,8 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  z-index: var(--z-toast);
+  /* เหนือ WukongAdventure moonlight (z-scene-explore) — อย่าใช้ --z-toast (50) เพราะต่ำกว่า 500 */
+  z-index: var(--z-scene-battle-transition);
   display: grid;
   place-items: center;
   padding: var(--sp-4);

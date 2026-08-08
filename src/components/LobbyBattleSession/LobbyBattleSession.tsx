@@ -102,11 +102,9 @@ export function LobbyBattleSession({
           playerRef.current,
           buildRewardDeps(),
         )
-        if (pipeline.ok) {
-          savedRef.current = true
-          onExit()
-          return
-        }
+        // กู้รางวัลค้างจากรอบก่อน — อย่าปิด overlay ทันที ผู้เล่นกด "ต่อสู้" เพื่อเลือกด่าน
+        // ถ้า onExit() ตรงนี้จะเห็นแค่กลับล็อบบี้ทันที (ไม่มีหน้าเลือกด่านเลย)
+        if (pipeline.ok) return
       }
     })()
 
