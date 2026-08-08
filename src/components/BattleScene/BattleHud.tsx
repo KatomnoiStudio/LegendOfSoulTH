@@ -1,3 +1,4 @@
+import { deriveHpRatio, selectPrimaryEnemyHpTarget } from '../../game/realtimeBattle/battleVitals'
 import type { RealtimeBattleSnapshot } from '../../game/realtimeBattle/types'
 import styles from './BattleScene.module.css'
 
@@ -12,11 +13,12 @@ export function BattleHud({
   onExit: () => void
 }) {
   const { player } = snapshot
-  const hpRatio = player.maxHp > 0 ? Math.max(0, player.hp / player.maxHp) : 0
-  const enemiesLeft = snapshot.enemies.filter((enemy) => enemy.hp > 0).length
-  const primaryEnemy = snapshot.enemies.find((enemy) => enemy.hp > 0)
-  const enemyHpRatio =
-    primaryEnemy && primaryEnemy.maxHp > 0 ? Math.max(0, primaryEnemy.hp / primaryEnemy.maxHp) : 0
+  const hpRatio = deriveHpRatio(player.hp, player.maxHp)
+  const enemiesLeft = snapshot.enemies.filter(
+    (enemy) => enemy.hp > 0 && enemy.state !== 'dead',
+  ).length
+  const primaryEnemy = selectPrimaryEnemyHpTarget(snapshot.enemies)
+  const enemyHpRatio = primaryEnemy ? deriveHpRatio(primaryEnemy.hp, primaryEnemy.maxHp) : 0
 
   return (
     <div className={styles.hud}>

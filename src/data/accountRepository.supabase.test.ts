@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { createDefaultSkillLevels } from '../game/realtimeBattle/SkillProgressionSystem'
-import { mapOwnedCharacterRow } from './accountRepository.supabase'
+import { mapOwnedCharacterRow } from './accountRepository.supabase.mapping'
 
 /*
   work contract #14 (docs/agent-blueprint/14-progression-system.md) done-criterion #1:

@@ -622,6 +622,7 @@ export class RealtimeBattleRuntime {
       player.state = 'dead'
       this.checkBattleEnd()
     }
+    this.publish()
   }
 
   moveEntityTo(entityId: string, x: number, y: number): void {

@@ -6,32 +6,27 @@ export function StageObjectiveHud({ snapshot }: { snapshot: StageRuntimeSnapshot
   if (!snapshot) return null
   const { objective, timerRemainingMs, timerElapsedMs, enemiesRemaining, stageName } = snapshot
 
+  const objectiveValue =
+    objective.target > 0
+      ? `${objective.current}/${objective.target}`
+      : (objective.detail ?? String(objective.current))
+
+  const timerValue =
+    timerRemainingMs !== null
+      ? `${Math.ceil(timerRemainingMs / 1000)}s`
+      : `${Math.ceil(timerElapsedMs / 1000)}s`
+
   return (
     <div className={styles.stageObjectiveHud} aria-live="polite">
       <div className={styles.stageObjectiveTitle}>{stageName}</div>
-      <div className={styles.stageObjectiveRow}>
-        <span>{objective.label}</span>
-        <strong>
-          {objective.target > 0
-            ? `${objective.current}/${objective.target}`
-            : (objective.detail ?? objective.current)}
-        </strong>
+      <div className={styles.stageObjectiveGrid}>
+        <span className={styles.stageObjectiveLabel}>{objective.label}</span>
+        <strong className={styles.stageObjectiveValue}>{objectiveValue}</strong>
+        <span className={styles.stageObjectiveLabel}>ศัตรู</span>
+        <strong className={styles.stageObjectiveValue}>{enemiesRemaining}</strong>
+        <span className={styles.stageObjectiveLabel}>เวลา</span>
+        <strong className={styles.stageObjectiveValue}>{timerValue}</strong>
       </div>
-      <div className={styles.stageObjectiveRow}>
-        <span>ศัตรู</span>
-        <strong>{enemiesRemaining}</strong>
-      </div>
-      {timerRemainingMs !== null ? (
-        <div className={styles.stageObjectiveRow}>
-          <span>เวลา</span>
-          <strong>{Math.ceil(timerRemainingMs / 1000)}s</strong>
-        </div>
-      ) : (
-        <div className={styles.stageObjectiveRow}>
-          <span>เวลา</span>
-          <strong>{Math.ceil(timerElapsedMs / 1000)}s</strong>
-        </div>
-      )}
     </div>
   )
 }

@@ -260,32 +260,47 @@
   }
 }
 
-/* P5 stage objective overlay */
+/* P5 stage objective overlay — compact grid, ≤~21vw on mobile landscape */
 .stageObjectiveHud {
   position: absolute;
-  left: max(var(--sp-3), env(safe-area-inset-left, 0px));
-  bottom: calc(var(--combat-cluster-height, 9rem) + var(--sp-4));
+  left: max(var(--sp-2), env(safe-area-inset-left, 0px));
+  bottom: calc(var(--combat-cluster-height, 9rem) + var(--sp-3));
   z-index: 4;
-  min-width: 10rem;
-  padding: var(--sp-2) var(--sp-3);
-  border-radius: var(--r-md);
+  width: min(21vw, 11.5rem);
+  max-width: 22%;
+  padding: calc(var(--sp-2) * 0.72) calc(var(--sp-2) * 0.85);
+  border-radius: calc(var(--r-md) * 0.82);
   background: rgb(6 7 13 / 78%);
   border: 1px solid var(--c-border);
   color: var(--c-text);
-  font-size: 0.8125rem;
+  font-size: 0.72rem;
   pointer-events: none;
 }
 
 .stageObjectiveTitle {
   font-weight: 700;
+  font-size: 0.82rem;
   color: var(--c-gold);
-  margin-bottom: var(--sp-1);
+  margin-bottom: calc(var(--sp-1) * 0.75);
+  line-height: 1.2;
 }
 
-.stageObjectiveRow {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--sp-3);
+.stageObjectiveGrid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--sp-2);
+  row-gap: calc(var(--sp-1) * 0.55);
+  align-items: baseline;
+}
+
+.stageObjectiveLabel {
+  color: rgb(255 255 255 / 72%);
+}
+
+.stageObjectiveValue {
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Mobile combat controls (Naruto-mobile-inspired layout) ── */
@@ -417,40 +432,28 @@
 }
 
 .combatSlotAttack {
-  right: 0;
-  bottom: 0;
+  right: var(--combat-polar-attack-right, 0px);
+  bottom: var(--combat-polar-attack-bottom, 0px);
 }
 
 .combatSlotS1 {
-  right: calc(
-    var(--combat-attack-size, 92px) * var(--combat-arc-s1-right, 1.02) +
-      var(--combat-cluster-gap, 10px)
-  );
-  bottom: calc(var(--combat-attack-size, 92px) * var(--combat-arc-s1-bottom, 0.04));
+  right: var(--combat-polar-skill1-right, 0px);
+  bottom: var(--combat-polar-skill1-bottom, 0px);
 }
 
 .combatSlotS2 {
-  right: calc(
-    var(--combat-attack-size, 92px) * var(--combat-arc-s2-right, 0.7) +
-      var(--combat-cluster-gap, 10px)
-  );
-  bottom: calc(var(--combat-attack-size, 92px) * var(--combat-arc-s2-bottom, 0.72));
+  right: var(--combat-polar-skill2-right, 0px);
+  bottom: var(--combat-polar-skill2-bottom, 0px);
 }
 
 .combatSlotS3 {
-  right: calc(
-    var(--combat-attack-size, 92px) * var(--combat-arc-s3-right, 0.4) +
-      var(--combat-cluster-gap, 10px)
-  );
-  bottom: calc(var(--combat-attack-size, 92px) * var(--combat-arc-s3-bottom, 1.38));
+  right: var(--combat-polar-skill3-right, 0px);
+  bottom: var(--combat-polar-skill3-bottom, 0px);
 }
 
 .combatSlotUltimate {
-  right: calc(var(--combat-attack-size, 92px) * var(--combat-arc-ult-right, 0.1));
-  bottom: calc(
-    var(--combat-attack-size, 92px) * var(--combat-arc-ult-bottom, 1.08) +
-      var(--combat-cluster-gap, 10px)
-  );
+  right: var(--combat-polar-ultimate-right, 0px);
+  bottom: var(--combat-polar-ultimate-bottom, 0px);
 }
 
 .combatBtnReady {

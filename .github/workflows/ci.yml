@@ -58,6 +58,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # fork PR ไม่ได้รับ org secrets — ใส่ placeholder ที่ไม่ใช่ JWT (gitleaks จับ jwt ใน yaml)
+      # mapping test ไม่ต้องพึ่งค่านี้แล้ว แต่ build ยัง bundle supabaseClient.ts
+      - name: Prepare Supabase env for CI
+        shell: bash
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$VITE_SUPABASE_URL" ]; then
+            echo "VITE_SUPABASE_URL=https://ci-placeholder.supabase.co" >> "$GITHUB_ENV"
+          else
+            echo "VITE_SUPABASE_URL=$VITE_SUPABASE_URL" >> "$GITHUB_ENV"
+          fi
+          if [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
+            echo "VITE_SUPABASE_ANON_KEY=ci-build-placeholder-anon-key" >> "$GITHUB_ENV"
+          else
+            echo "VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY" >> "$GITHUB_ENV"
+          fi
+
       - name: Build 3D Models
         run: npm run build:models
 
@@ -73,14 +92,6 @@ jobs:
         # shell: bash บังคับ — `set -o pipefail`/`tee` เป็น bash syntax, pwsh (default shell
         # ของ windows-latest) parse ไม่ผ่าน; Git Bash มากับ windows runner อยู่แล้ว
         shell: bash
-        # VITE_SUPABASE_URL/ANON_KEY จำเป็นตั้งแต่ accountRepository.supabase.test.ts มีอยู่ —
-        # import ของมันลาก supabaseClient.ts เข้ามา ซึ่ง throw ทันทีตอน module evaluate ถ้าไม่มี
-        # ค่านี้ (ดู supabaseClient.ts) แม้เทสต์เองจะ test แค่ pure mapping ไม่แตะ Supabase จริงเลย
-        # secrets เดียวกับ step "Build Application" ด้านล่าง ไม่ใช่ค่าลับจริง (anon key ออกแบบมา
-        # ให้ฝังใน client bundle ได้อยู่แล้ว — ดูคอมเมนต์ supabaseClient.ts)
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
           set -o pipefail
           npm run test:coverage 2>&1 | tee test-output.log
@@ -99,11 +110,7 @@ jobs:
 
       - name: Build Application
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          # public site key (ไม่ใช่ secret จริง — ออกแบบมาให้ฝังใน client bundle ได้ เหมือน anon
-          # key ด้านบน) ไม่มีค่านี้ตอน build ทำให้ AuthModal.tsx ข้าม render widget ไปเงียบ ๆ
-          # ถ้า Supabase เปิด CAPTCHA บังคับไว้ real login จะพังทั้งเว็บ (เกิดจริงมาแล้ว 2026-08-08)
+          # public site key (ไม่ใช่ secret จริง — ออกแบบมาให้ฝังใน client bundle ได้)
           VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
         run: npm run build
 
