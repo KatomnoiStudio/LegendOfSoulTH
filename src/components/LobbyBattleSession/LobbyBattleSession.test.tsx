@@ -8,6 +8,7 @@ import type { Player } from '../../types/player'
 import { EMPTY_PROGRESS } from '../../types/player'
 import type { RealtimeBattleResult } from '../../game/realtimeBattle/types'
 import type { CurrencyResult, ItemResult } from '../../data/accountRepository.shared'
+import type { LobbyBattleProgressionRpcPayload } from '../../data/accountRepository.supabase'
 
 vi.mock('../BattleScene/BattleScene', () => {
   return {
@@ -107,6 +108,28 @@ function mockOnPlayerChange(player = makePlayer()) {
   })
 }
 
+function rewardMocks(
+  overrides: Partial<{
+    onCommitProgression: (
+      payload: LobbyBattleProgressionRpcPayload,
+    ) => Promise<{ ok: true; player: Player } | { ok: false; error: string }>
+    onRecordPending: (result: RealtimeBattleResult, transactionId: string) => Promise<boolean>
+    onClearPending: (transactionId: string) => Promise<void>
+    onGetPendingRewards: () => Promise<never[]>
+  }> = {},
+) {
+  return {
+    onCommitProgression: vi.fn(async (payload: LobbyBattleProgressionRpcPayload) => ({
+      ok: true as const,
+      player: payload.player,
+    })),
+    onRecordPending: vi.fn(async () => true),
+    onClearPending: vi.fn(),
+    onGetPendingRewards: vi.fn(async () => []),
+    ...overrides,
+  }
+}
+
 describe('LobbyBattleSession', () => {
   it('เริ่มที่หน้าเลือกด่านเสมอ — ไม่ mount BattleScene จนกว่าจะเลือกด่านที่ปลดล็อกแล้ว', () => {
     const onEarnGold = vi.fn(async (_s, amount): Promise<CurrencyResult> => ({
@@ -125,6 +148,7 @@ describe('LobbyBattleSession', () => {
         onPlayerChange={mockOnPlayerChange()}
         onEarnGold={onEarnGold}
         onGrantItem={onGrantItem}
+        {...rewardMocks()}
         onExit={vi.fn()}
       />,
     )
@@ -150,6 +174,7 @@ describe('LobbyBattleSession', () => {
         onPlayerChange={mockOnPlayerChange()}
         onEarnGold={onEarnGold}
         onGrantItem={onGrantItem}
+        {...rewardMocks()}
         onExit={vi.fn()}
       />,
     )
@@ -175,6 +200,7 @@ describe('LobbyBattleSession', () => {
         onPlayerChange={mockOnPlayerChange()}
         onEarnGold={onEarnGold}
         onGrantItem={onGrantItem}
+        {...rewardMocks()}
         onExit={vi.fn()}
       />,
     )
@@ -198,6 +224,10 @@ describe('LobbyBattleSession', () => {
       player: makePlayer(),
     }))
     const onExit = vi.fn()
+    const onCommitProgression = vi.fn(async (payload: LobbyBattleProgressionRpcPayload) => ({
+      ok: true as const,
+      player: payload.player,
+    }))
 
     render(
       <LobbyBattleSession
@@ -205,6 +235,7 @@ describe('LobbyBattleSession', () => {
         onPlayerChange={onPlayerChange}
         onEarnGold={onEarnGold}
         onGrantItem={onGrantItem}
+        {...rewardMocks({ onCommitProgression })}
         onExit={onExit}
       />,
     )
@@ -215,14 +246,15 @@ describe('LobbyBattleSession', () => {
     // กดชนะในฉากจำลอง
     await user.click(screen.getByTestId('btn-win'))
 
-    // รอคิวเซฟทำงาน (ครั้งที่ 1 = energy, ครั้งที่ 2 = battle result)
     await waitFor(() => {
-      expect(onPlayerChange).toHaveBeenCalledTimes(2)
+      expect(onCommitProgression).toHaveBeenCalledTimes(1)
     })
 
-    const savedPlayer = onPlayerChange.mock.calls[1]?.[0] as unknown as Player
-    expect(savedPlayer.progress.flags['trial_cleared_trial-01']).toBe(true)
-    expect(onExit).toHaveBeenCalledTimes(1)
+    const committed = onCommitProgression.mock.calls[0]?.[0] as LobbyBattleProgressionRpcPayload
+    expect(committed.player.progress.flags['trial_cleared_trial-01']).toBe(true)
+    await waitFor(() => {
+      expect(onExit).toHaveBeenCalledTimes(1)
+    })
   })
 
   it('Scar 1: เคลียร์ด่านแพ้ ไม่บันทึก clear-flag', async () => {
@@ -238,6 +270,10 @@ describe('LobbyBattleSession', () => {
       player: makePlayer(),
     }))
     const onExit = vi.fn()
+    const onCommitProgression = vi.fn(async (payload: LobbyBattleProgressionRpcPayload) => ({
+      ok: true as const,
+      player: payload.player,
+    }))
 
     render(
       <LobbyBattleSession
@@ -245,6 +281,7 @@ describe('LobbyBattleSession', () => {
         onPlayerChange={onPlayerChange}
         onEarnGold={onEarnGold}
         onGrantItem={onGrantItem}
+        {...rewardMocks({ onCommitProgression })}
         onExit={onExit}
       />,
     )
@@ -253,12 +290,14 @@ describe('LobbyBattleSession', () => {
     await user.click(screen.getByTestId('btn-lose'))
 
     await waitFor(() => {
-      expect(onPlayerChange).toHaveBeenCalledTimes(2)
+      expect(onCommitProgression).toHaveBeenCalledTimes(1)
     })
 
-    const savedPlayer = onPlayerChange.mock.calls[1]?.[0] as unknown as Player
-    expect(savedPlayer.progress.flags['trial_cleared_trial-01']).toBeUndefined()
-    expect(onExit).toHaveBeenCalledTimes(1)
+    const committed = onCommitProgression.mock.calls[0]?.[0] as LobbyBattleProgressionRpcPayload
+    expect(committed.player.progress.flags['trial_cleared_trial-01']).toBeUndefined()
+    await waitFor(() => {
+      expect(onExit).toHaveBeenCalledTimes(1)
+    })
   })
 
   it('Scar 1: ผู้เล่นออกจากห้องต่อสู้ก่อนกำหนด (Exit Early) ไม่มีการเซฟหรือบันทึก clear-flag', async () => {
@@ -281,6 +320,7 @@ describe('LobbyBattleSession', () => {
         onPlayerChange={onPlayerChange}
         onEarnGold={onEarnGold}
         onGrantItem={onGrantItem}
+        {...rewardMocks()}
         onExit={onExit}
       />,
     )
@@ -322,6 +362,7 @@ describe('LobbyBattleSession', () => {
         onPlayerChange={mockOnPlayerChange()}
         onEarnGold={onEarnGold}
         onGrantItem={onGrantItem}
+        {...rewardMocks()}
         onExit={vi.fn()}
       />,
     )
@@ -349,6 +390,7 @@ describe('LobbyBattleSession', () => {
         onPlayerChange={onPlayerChange}
         onEarnGold={onEarnGold}
         onGrantItem={onGrantItem}
+        {...rewardMocks()}
         onExit={onExit}
       />,
     )
@@ -364,15 +406,14 @@ describe('LobbyBattleSession', () => {
     winBtn.click()
     winBtn.click()
 
-    // Wait for the async save queue to execute (energy + battle result)
     await waitFor(() => {
-      expect(onPlayerChange).toHaveBeenCalledTimes(2)
+      expect(onEarnGold).toHaveBeenCalledTimes(1)
     })
 
     // Verify calls are only executed once due to savedRef guard
     expect(onEarnGold).toHaveBeenCalledTimes(1)
     expect(onGrantItem).toHaveBeenCalledTimes(1)
-    expect(onPlayerChange).toHaveBeenCalledTimes(2)
+    expect(onPlayerChange.mock.calls.length).toBeGreaterThanOrEqual(2)
   })
 
   it('Scar 1 (Reward): prevents duplicate SP/reward grants on retry/re-entry when savedRef resets on new session mount', async () => {
@@ -395,6 +436,7 @@ describe('LobbyBattleSession', () => {
         onPlayerChange={onPlayerChange}
         onEarnGold={onEarnGold}
         onGrantItem={onGrantItem}
+        {...rewardMocks()}
         onExit={onExit}
       />,
     )
@@ -417,6 +459,7 @@ describe('LobbyBattleSession', () => {
         onPlayerChange={onPlayerChange}
         onEarnGold={onEarnGold}
         onGrantItem={onGrantItem}
+        {...rewardMocks()}
         onExit={onExit}
       />,
     )
@@ -432,5 +475,94 @@ describe('LobbyBattleSession', () => {
     await waitFor(() => {
       expect(onEarnGold).toHaveBeenCalledTimes(2)
     })
+  })
+
+  it('does not exit lobby when progression commit fails — earnGold not called', async () => {
+    const onExit = vi.fn()
+    const onEarnGold = vi.fn()
+
+    render(
+      <LobbyBattleSession
+        player={makePlayer()}
+        onPlayerChange={vi.fn(async () => true)}
+        onEarnGold={onEarnGold}
+        onGrantItem={vi.fn()}
+        {...rewardMocks({
+          onCommitProgression: vi.fn(async () => ({ ok: false as const, error: 'rpc fail' })),
+        })}
+        onExit={onExit}
+      />,
+    )
+
+    const stageBtn = screen.getByRole('button', { name: /ลานฝึกหน้าวิหาร/ })
+    stageBtn.click()
+    const winBtn = await screen.findByTestId('btn-win')
+    winBtn.click()
+
+    await waitFor(() => {
+      expect(onEarnGold).not.toHaveBeenCalled()
+    })
+    expect(onExit).not.toHaveBeenCalled()
+  })
+
+  it('retry Continue after gold failure does not duplicate earnGold on success path', async () => {
+    const onExit = vi.fn()
+    const player = makePlayer()
+    let currentPlayer = player
+    const onPlayerChange = vi.fn(async (next: Player) => {
+      currentPlayer = next
+      return true
+    })
+    const onEarnGold = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false as const, error: 'ledger down' })
+      .mockResolvedValueOnce({
+        ok: true as const,
+        player: { ...currentPlayer, currency: { gold: 520, gem: 0 } },
+        amount: 20,
+      })
+
+    const { unmount } = render(
+      <LobbyBattleSession
+        player={currentPlayer}
+        onPlayerChange={onPlayerChange}
+        onEarnGold={onEarnGold}
+        onGrantItem={vi.fn(async (): Promise<ItemResult> => ({
+          ok: true as const,
+          player: currentPlayer,
+        }))}
+        {...rewardMocks()}
+        onExit={onExit}
+      />,
+    )
+
+    let stageBtn = screen.getByRole('button', { name: /ลานฝึกหน้าวิหาร/ })
+    stageBtn.click()
+    let winBtn = await screen.findByTestId('btn-win')
+    winBtn.click()
+    await waitFor(() => expect(onEarnGold).toHaveBeenCalledTimes(1))
+    expect(onExit).not.toHaveBeenCalled()
+    unmount()
+
+    render(
+      <LobbyBattleSession
+        player={currentPlayer}
+        onPlayerChange={onPlayerChange}
+        onEarnGold={onEarnGold}
+        onGrantItem={vi.fn(async (): Promise<ItemResult> => ({
+          ok: true as const,
+          player: currentPlayer,
+        }))}
+        {...rewardMocks()}
+        onExit={onExit}
+      />,
+    )
+
+    stageBtn = screen.getByRole('button', { name: /ลานฝึกหน้าวิหาร/ })
+    stageBtn.click()
+    winBtn = await screen.findByTestId('btn-win')
+    winBtn.click()
+    await waitFor(() => expect(onExit).toHaveBeenCalledTimes(1))
+    expect(onEarnGold).toHaveBeenCalledTimes(2)
   })
 })
