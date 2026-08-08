@@ -101,7 +101,7 @@ describe('LobbyBattleSession', () => {
   it('does not exit lobby when progression save fails — earnGold not called', async () => {
     const onExit = vi.fn()
     const onEarnGold = vi.fn()
-    const onPlayerChange = vi.fn(async () => false)
+    const onPlayerChange = vi.fn().mockResolvedValueOnce(true).mockResolvedValueOnce(false)
 
     render(
       <LobbyBattleSession
@@ -121,7 +121,7 @@ describe('LobbyBattleSession', () => {
     fireEvent.click(screen.getByRole('button', { name: 'mock-complete' }))
 
     await waitFor(() => {
-      expect(onPlayerChange).toHaveBeenCalled()
+      expect(onPlayerChange).toHaveBeenCalledTimes(2)
     })
     expect(onEarnGold).not.toHaveBeenCalled()
     expect(onExit).not.toHaveBeenCalled()
