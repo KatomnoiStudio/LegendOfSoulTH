@@ -3,7 +3,7 @@
 > **Operator / Human User**: `HetCreep`
 > **Repository**: `KatomnoiStudio/LegendOfSoulTH`
 > **Default Branch**: `master`
-> **Last Updated**: 2026-08-09T02:52:00+07:00 by `Codex` — accepted Ring-0 ownership of DF20/P8 on PR #83, synced it to current `master`, and added balance regression guards; see item 159.
+> **Last Updated**: 2026-08-09T03:15:00+07:00 by `Cursor Agent` — P10 Production Batch 01 (5 archetypes, v0.13.0): per-hero kits/combos, 3 new roster heroes, summon/CC runtime, gacha+star skeleton; see `docs/hero-production/PRODUCTION_BATCH_01.md`.
 > **RULES_VERSION last synced: 26** (local `master`, this session) — bumped 17→18 (multi-dev task queue law) →19 (Agent Blueprint execution-order rule) →20 (Ring 0 traffic control law) →21 (claim protocol made Ring-0-locked) →22 (break-glass claim fallback for repo-admin devs) →23 (security doc sync law, from a `/gold-standard` AUDIT) →24 (tasks/memory parity law, HetCreep asked directly after catching TASKS.md drift twice) →25 (working-directory concurrency lock law, added after Claude/Antigravity live collision) within this same session. **Unrelated note carried forward**: an earlier version of this line read "19" citing a pending fork PR #59 (Cursor Agent, cloud) that was never found merged to `origin/master` — this session passed through 19 independently via 17→18→19→20→21→22→23→24→25, not a confirmation of that PR landing. Still worth reconciling numbering with PR #59 if/when it lands.
 
 > **2026-08-06 overhaul**: this file had grown to 65+ interleaved, verbose items (two colliding numbering
@@ -27,12 +27,12 @@
 
 ## 🎯 Current Status
 
-- **Repo**: upstream `master` @ `2a1e3e2` · **v0.12.5** (pending deploy) · recent: PR #68–#71 + migration `0014` dead-account cleanup.
-- **Version**: **0.12.5** — deploy gate bump for battle stage-select fix (pending-reward recovery no longer closes overlay on open; StageSelect z-index/DOM order). Prior **0.12.4** live had Chapter 1 10-stage select code but some players saw "กดต่อสู้แล้วไม่เข้าเลือกด่าน" (item 155).
+- **Repo**: upstream `master` @ `f6f849c` · **v0.13.0** (PR pending) · P10 Batch 01 hero pipeline this session.
+- **Version**: **0.13.0** — Production Batch 01 (5 archetypes); deploy gate requires `GAME_INFO.version` bump.
 - **Org/Live**: `KatomnoiStudio` — https://katomnoistudio.github.io/LegendOfSoulTH/
 - **Backend**: Supabase Auth+Postgres live, wired via `useAuth.ts` (item 41/87). `accountRepository.ts` (localStorage) stays as a dormant fallback seam only.
 - **Master Blueprint v3.0**: P0–P3 DONE · §3.6/§3.7 LOCKED · mobile combat UI done (§3.3) · P4 LANDED (item 109) · P5 dungeon slice + reward pipeline LANDED (items 111-112) · P8 per-hero progression LANDED (item 119, numerics still NON-PRODUCTION) · Basic Attack Lunge Distance closed (item 124).
-- **Battle (current)**: realtime, 2.5D side-down, telegraph→hitstun→interrupt→knockdown/getUp lifecycle (P4), hard target-lock + soft-target assist, camera 30°+8-dir sprites +30% height fix (item 113). **Adventure (ปุ่มต่อสู้ + เริ่มการผจญภัย)**: ทั้งสองปุ่ม → `LobbyBattleSession` → `StageSelect` → `BattleScene` — Chapter 1 **10 stages** (`trial-01`..`trial-10`, labels 1-1..1-10, item 154). **Dungeon (P5 slice)**: `DungeonSession` ยังอยู่ในโค้ดแต่ไม่มีปุ่ม UI จนกว่าจะมี DungeonSelect (item 152). Combat controls: curved `S1→S2→S3→ULT` arc around ATK (item 153).
+- **Battle (current)**: realtime 2.5D · ต่อสู้/เริ่มผจญภัย → StageSelect → BattleScene (Ch.1 10 stages). **Hero Batch 01**: monkey-king (Fighter), pig-warrior (Heavy), celestial-archer (Ranged), nezha-warden (Control), sand-sage (Summoner) — 3 ตัวใหม่ placeholder sprites (`docs/hero-production/PRODUCTION_BATCH_01.md`). pilgrim-monk → Batch 02.
 - **P8 balance lock** (Ring 0, 2026-08-09): DF20 ownership is Codex on PR #83 · caps + playtest baseline in `progressionConfig.ts`/`rewardConfig.ts` · Lv11+ EXP uses the monotonic continuation `10n²+10n+100` · Ultimate is 4×1.1 = 4.4x ATK total · stage 1 tutorial-easy (2 waves, HP×0.7, 2500ms interval) · failure `partial` = heroExp by progress only · `nonProductionBalance` banner stays · talent/awakening UI hidden (`showTalentAwakeningUi: false`).
 - **Still open**: measured mobile playtest/TTK dataset for S2/S3/basic-finisher magnitude and the full playtest round required before dropping the NON-PRODUCTION banner. Do not infer final literals from the current test dungeon alone.
 - **Gold-standard**: current figure is item 99's **77%** (12-dim AUDIT+FILL+ADOPT). An earlier ~84% figure merged in via PR #25 is SUPERSEDED — different scoring pass/day, don't average or reconcile.

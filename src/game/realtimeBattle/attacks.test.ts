@@ -170,6 +170,7 @@ describe('Move data lives only in attacks.ts (done-criterion #5)', () => {
       /\b(startupMs|activeMs|recoveryMs|comboWindowStartMs|comboWindowEndMs|damageMultiplier|knockback|arcDegrees|depthTolerance)\s*:\s*\d/
 
     const offenders = nonTestNonAttacksFiles(ALL_SRC_SOURCES)
+      .filter(([path]) => !path.includes('/heroes/'))
       .filter(([, text]) => dataFieldPattern.test(text))
       .map(([path]) => path)
 

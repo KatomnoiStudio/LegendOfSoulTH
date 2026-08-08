@@ -1,4 +1,6 @@
-import { ENEMY_ATTACK_MELEE } from './attacks'
+import { ENEMY_ATTACK_MELEE, type AttackDefinition } from './attacks'
+import { stepAllyAI } from './AllyAISystem'
+import { applyAttackEffects } from './battleEffects'
 import { applyCombatReaction, tickKnockdownState } from './combatReaction'
 import { createWaveEnemies, type RealtimeBattleState } from './createRealtimeBattle'
 import { DEFAULT_BATTLE_PRESENTATION } from './battlePresentation'
@@ -43,6 +45,7 @@ import type {
   Vec2,
 } from './types'
 import { addUltimateGauge, ULTIMATE_GAUGE_CONFIG } from './ultimateGauge'
+import { tickStatusEffects } from './statusEffects'
 
 /**
  * หัวใจของห้องต่อสู้ real-time — ถือสถานะทั้งหมดไว้ "นอก React state"
@@ -123,6 +126,7 @@ export class RealtimeBattleRuntime {
 
     this.tickTimers(state.player, deltaMs)
     for (const enemy of state.enemies) this.tickTimers(enemy, deltaMs)
+    for (const ally of state.allies) this.tickTimers(ally, deltaMs)
 
     const wasCastingSkill = isCastingSkill(this.playerSkill)
 
@@ -165,6 +169,7 @@ export class RealtimeBattleRuntime {
     }
 
     this.stepEnemies(deltaMs)
+    this.stepAllies(deltaMs)
     this.separateEnemies()
     this.checkBattleEnd(deltaMs)
 
@@ -309,55 +314,101 @@ export class RealtimeBattleRuntime {
     this.publish()
   }
 
-  /** เดินท่าสกิลของผู้เล่น แล้วลงดาเมจถ้าอยู่ใน active frame */
+  /** เดินท่าสกิลของผู้เล่น แล้วลงดาเมจ/เอฟเฟกต์ถ้าอยู่ใน active frame */
   private stepPlayerSkill(deltaMs: number): void {
     const state = this.state
     const tick = stepSkill(state.player, this.playerSkill, deltaMs)
-    if (!tick.hitboxActive || !tick.attack) return
+    if (!tick.attack) return
 
-    let candidateTargets = state.enemies
-    const locked = resolveLockedTarget(this.playerSkill.lockedTargetId, state.enemies)
-    if (locked) candidateTargets = [locked]
+    if (tick.hitboxActive) {
+      let candidateTargets = state.enemies
+      const locked = resolveLockedTarget(this.playerSkill.lockedTargetId, state.enemies)
+      if (locked) candidateTargets = [locked]
 
-    const alreadyHit =
-      tick.strikeIndex >= 0 ? this.playerSkill.strikeHits : this.playerSkill.hitTargets
+      const alreadyHit =
+        tick.strikeIndex >= 0 ? this.playerSkill.strikeHits : this.playerSkill.hitTargets
 
-    const targets = findHitTargets(candidateTargets, {
-      attacker: state.player,
-      attack: tick.attack,
-      alreadyHit,
-      elapsedMs: state.elapsedMs,
-      lockedTargetId: this.playerSkill.lockedTargetId ?? undefined,
-    })
-
-    for (const target of targets) {
-      if (tick.strikeIndex >= 0) {
-        const strikeKey = `${target.id}:${tick.strikeIndex}`
-        if (this.playerSkill.strikeHits.has(strikeKey)) continue
-        this.playerSkill.strikeHits.add(strikeKey)
-      } else {
-        this.playerSkill.hitTargets.add(target.id)
-      }
-
-      const outcome = applyCombatReaction({
+      const targets = findHitTargets(candidateTargets, {
         attacker: state.player,
-        target,
         attack: tick.attack,
+        alreadyHit,
         elapsedMs: state.elapsedMs,
-        random: this.random,
+        lockedTargetId: this.playerSkill.lockedTargetId ?? undefined,
       })
 
-      state.damageDealt += outcome.amount
-      target.position = clampToArena(target.position, target.collisionRadius, state.stage)
+      for (const target of targets) {
+        if (tick.strikeIndex >= 0) {
+          const strikeKey = `${target.id}:${tick.strikeIndex}`
+          if (this.playerSkill.strikeHits.has(strikeKey)) continue
+          this.playerSkill.strikeHits.add(strikeKey)
+        } else {
+          this.playerSkill.hitTargets.add(target.id)
+        }
 
-      if (outcome.defeated && !state.defeatedEnemyIds.includes(target.id)) {
-        state.defeatedEnemyIds.push(target.id)
+        const outcome = applyCombatReaction({
+          attacker: state.player,
+          target,
+          attack: tick.attack,
+          elapsedMs: state.elapsedMs,
+          random: this.random,
+        })
+
+        state.damageDealt += outcome.amount
+        target.position = clampToArena(target.position, target.collisionRadius, state.stage)
+
+        if (outcome.defeated && !state.defeatedEnemyIds.includes(target.id)) {
+          state.defeatedEnemyIds.push(target.id)
+        }
+
+        this.pushDamageEvent(target, outcome.amount, outcome.critical)
+        this.grantUltimateGaugeOnHit(outcome.defeated, 'skill')
+        this.publish()
       }
 
-      this.pushDamageEvent(target, outcome.amount, outcome.critical)
-      this.grantUltimateGaugeOnHit(outcome.defeated, 'skill')
-      this.publish()
+      this.maybeApplySkillSideEffects(tick.attack)
     }
+  }
+
+  private maybeApplySkillSideEffects(attack: AttackDefinition): void {
+    if (this.playerSkill.sideEffectsApplied || !attack.effects?.length) return
+    this.playerSkill.sideEffectsApplied = true
+
+    const state = this.state
+    const spawned = applyAttackEffects(
+      attack,
+      {
+        owner: state.player,
+        allies: state.allies,
+        enemies: state.enemies,
+      },
+      `skill-${state.elapsedMs}`,
+    )
+
+    for (const ally of spawned) {
+      ally.position = {
+        x: state.player.position.x + (state.player.combatFacing === 'right' ? 48 : -48),
+        y: state.player.position.y,
+      }
+      state.allies.push(ally)
+    }
+  }
+
+  private stepAllies(deltaMs: number): void {
+    const state = this.state
+    const livingEnemies = state.enemies.filter((enemy) => enemy.state !== 'dead' && enemy.hp > 0)
+    if (livingEnemies.length === 0) return
+
+    for (const ally of state.allies) {
+      stepAllyAI(ally, livingEnemies, state.stage, deltaMs, state.elapsedMs, (target, amount) => {
+        state.damageDealt += amount
+        if (target.hp <= 0 && !state.defeatedEnemyIds.includes(target.id)) {
+          state.defeatedEnemyIds.push(target.id)
+        }
+        this.pushDamageEvent(target, amount, false)
+      })
+    }
+
+    state.allies = state.allies.filter((ally) => ally.state !== 'dead' && ally.hp > 0)
   }
 
   private pushEffectEvent(
@@ -563,6 +614,7 @@ export class RealtimeBattleRuntime {
     entity.skillCooldownsMs.skill3 = Math.max(0, entity.skillCooldownsMs.skill3 - deltaMs)
     entity.hitStunRemainingMs = Math.max(0, entity.hitStunRemainingMs - deltaMs)
     tickKnockdownState(entity, deltaMs, this.state.elapsedMs)
+    tickStatusEffects(entity, deltaMs)
 
     if (entity.hitStunRemainingMs <= 0 && entity.state === 'hit') {
       entity.state = 'idle'
