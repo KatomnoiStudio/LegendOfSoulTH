@@ -232,6 +232,18 @@ export interface RealtimeBattleStage {
   order: number
   /** ด่านบอสปิดท้ายแชปเตอร์ — ใช้แค่ติดป้ายในหน้าเลือกด่าน ไม่มีผลต่อ gating */
   isBoss?: boolean
+  /**
+   * false = สนามทดสอบภายใน (เช่น P5 dungeon slice) — ซ่อนจากหน้าเลือกด่านผจญภัย
+   * default true เมื่อไม่ระบุ
+   */
+  showInAdventureSelect?: boolean
+  /**
+   * ตัวคูณความยากของด่าน — data-table stub (§5.1, tune ที่ P11)
+   * คูณ maxHp/atk/def ตอนสร้างศัตรูใน createWaveEnemies
+   */
+  difficultyMultiplier?: number
+  /** ค่า energy ที่ใช้ต่อครั้ง — default จาก ENERGY_CONFIG.costPerStage */
+  energyCost?: number
 
   /** ประเภทด่าน (§17 Stage Variation System) — กำหนดเงื่อนไขแพ้ชนะที่ StageVariationSystem.ts ใช้ */
   stageType: StageType
@@ -388,8 +400,8 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
     backgroundAsset: BATTLE_ART_BG,
     chapterId: 'chapter-1',
     order: 2,
-    isBoss: true,
     stageType: 'wave',
+    difficultyMultiplier: 1.05,
   },
   /**
    * P5 dungeon vertical slice arenas (PR #30) — เก็บแค่รูปร่างสนาม/waves ให้ createRealtimeBattle
@@ -426,6 +438,7 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
     chapterId: 'dungeon-p5-test',
     order: 1,
     stageType: 'wave',
+    showInAdventureSelect: false,
   },
   'p5-hazard-arena': {
     id: 'p5-hazard-arena',
@@ -447,6 +460,7 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
     chapterId: 'dungeon-p5-test',
     order: 2,
     stageType: 'wave',
+    showInAdventureSelect: false,
   },
   'p5-elite-arena': {
     id: 'p5-elite-arena',
@@ -465,6 +479,7 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
     chapterId: 'dungeon-p5-test',
     order: 3,
     stageType: 'wave',
+    showInAdventureSelect: false,
   },
   'p5-boss-arena': {
     id: 'p5-boss-arena',
@@ -484,6 +499,7 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
     order: 4,
     isBoss: true,
     stageType: 'wave',
+    showInAdventureSelect: false,
   },
   /**
    * ด่าน Survival (§5.2/§17) — ไม่ต้องฆ่าศัตรูให้หมด แค่รอดให้ครบเวลา
@@ -537,6 +553,30 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
     order: 4,
     stageType: 'defend',
     defend: { objectiveHp: 300, position: { x: ARENA_SIZE.width / 2, y: ARENA_SIZE.height / 2 } },
+    difficultyMultiplier: 1.1,
+  },
+  /**
+   * บอสปิดท้ายแชปเตอร์ 1 (§5.1 Chapter→Stage→Boss) — ใช้ BOSS_TEMPLATES + phase-transition AI
+   */
+  'trial-05': {
+    id: 'trial-05',
+    name: 'ผู้พิทักษ์วิญญาณ',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'wave-1',
+        enemies: [{ templateId: 'spirit-guardian-boss', spawnIndex: 1 }],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'chapter-1',
+    order: 5,
+    isBoss: true,
+    stageType: 'wave',
+    difficultyMultiplier: 1.15,
   },
 }
 
@@ -555,13 +595,29 @@ export function getOrderedStages(chapterId?: string): RealtimeBattleStage[] {
     .toSorted((a, b) => a.order - b.order)
 }
 
+/** แชปเตอร์ที่แสดงในหน้าเลือกด่านผจญภัย — กรองสนามทดสอบภายใน (P5 dungeon slice) ออก */
+export function getAdventureChapters(): Array<{
+  chapterId: string
+  stages: RealtimeBattleStage[]
+}> {
+  const chapterIds = [
+    ...new Set(
+      Object.values(REALTIME_STAGES)
+        .filter((stage) => stage.showInAdventureSelect !== false)
+        .map((stage) => stage.chapterId),
+    ),
+  ]
+  return chapterIds.map((chapterId) => ({
+    chapterId,
+    stages: getOrderedStages(chapterId).filter((stage) => stage.showInAdventureSelect !== false),
+  }))
+}
+
 /**
  * ด่านแรกของแชปเตอร์ปลดล็อกเสมอ ด่านถัดไปต้องเคลียร์ด่านก่อนหน้าก่อน (clear-gate only)
  *
- * ระบบ stamina/energy ที่ล็อกไว้เป็น "โครงสร้าง" ใน MASTER_BLUEPRINT_v3.0.md:419 ยังไม่ถูกสร้าง
- * ที่นี่โดยตั้งใจ — ตัวเลข (pool/regen/cost) ถูกเลื่อนไป P7/P11 และตัวนับฝั่ง client
- * โกงได้ตรง ๆ ตราบใดที่ Backend/Server-Authority (#25) ยังเป็นแค่ "early seam" (§8)
- * ดู docs/agent-blueprint/16-stage-adventure-system.md § Stay-current note
+ * ระบบ stamina/energy — โครงสร้างล็อกแล้ว (§5.1, HetCreep 2026-08-08) ดู adventure/energySystem.ts
+ * ตัวเลข pool/regen/cost ยังเป็น stub NON-PRODUCTION — tune ที่ P11
  */
 export function isStageUnlocked(stageId: string, flags: Record<string, boolean>): boolean {
   const stage = REALTIME_STAGES[stageId]

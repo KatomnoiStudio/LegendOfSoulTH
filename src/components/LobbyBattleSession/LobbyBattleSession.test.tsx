@@ -100,6 +100,13 @@ function makePlayer(): Player {
   }
 }
 
+function mockOnPlayerChange(player = makePlayer()) {
+  return vi.fn(async (next: Player) => {
+    Object.assign(player, next)
+    return true
+  })
+}
+
 describe('LobbyBattleSession', () => {
   it('เริ่มที่หน้าเลือกด่านเสมอ — ไม่ mount BattleScene จนกว่าจะเลือกด่านที่ปลดล็อกแล้ว', () => {
     const onEarnGold = vi.fn(async (_s, amount): Promise<CurrencyResult> => ({
@@ -115,7 +122,7 @@ describe('LobbyBattleSession', () => {
     render(
       <LobbyBattleSession
         player={makePlayer()}
-        onPlayerChange={vi.fn()}
+        onPlayerChange={mockOnPlayerChange()}
         onEarnGold={onEarnGold}
         onGrantItem={onGrantItem}
         onExit={vi.fn()}
@@ -140,7 +147,7 @@ describe('LobbyBattleSession', () => {
     render(
       <LobbyBattleSession
         player={makePlayer()}
-        onPlayerChange={vi.fn()}
+        onPlayerChange={mockOnPlayerChange()}
         onEarnGold={onEarnGold}
         onGrantItem={onGrantItem}
         onExit={vi.fn()}
@@ -165,7 +172,7 @@ describe('LobbyBattleSession', () => {
     render(
       <LobbyBattleSession
         player={makePlayer()}
-        onPlayerChange={vi.fn()}
+        onPlayerChange={mockOnPlayerChange()}
         onEarnGold={onEarnGold}
         onGrantItem={onGrantItem}
         onExit={vi.fn()}
@@ -208,12 +215,12 @@ describe('LobbyBattleSession', () => {
     // กดชนะในฉากจำลอง
     await user.click(screen.getByTestId('btn-win'))
 
-    // รอคิวเซฟทำงาน
+    // รอคิวเซฟทำงาน (ครั้งที่ 1 = energy, ครั้งที่ 2 = battle result)
     await waitFor(() => {
-      expect(onPlayerChange).toHaveBeenCalledTimes(1)
+      expect(onPlayerChange).toHaveBeenCalledTimes(2)
     })
 
-    const savedPlayer = onPlayerChange.mock.calls[0]?.[0] as unknown as Player
+    const savedPlayer = onPlayerChange.mock.calls[1]?.[0] as unknown as Player
     expect(savedPlayer.progress.flags['trial_cleared_trial-01']).toBe(true)
     expect(onExit).toHaveBeenCalledTimes(1)
   })
@@ -246,10 +253,10 @@ describe('LobbyBattleSession', () => {
     await user.click(screen.getByTestId('btn-lose'))
 
     await waitFor(() => {
-      expect(onPlayerChange).toHaveBeenCalledTimes(1)
+      expect(onPlayerChange).toHaveBeenCalledTimes(2)
     })
 
-    const savedPlayer = onPlayerChange.mock.calls[0]?.[0] as unknown as Player
+    const savedPlayer = onPlayerChange.mock.calls[1]?.[0] as unknown as Player
     expect(savedPlayer.progress.flags['trial_cleared_trial-01']).toBeUndefined()
     expect(onExit).toHaveBeenCalledTimes(1)
   })
@@ -282,7 +289,7 @@ describe('LobbyBattleSession', () => {
     await user.click(screen.getByTestId('btn-exit'))
 
     expect(onExit).toHaveBeenCalledTimes(1)
-    expect(onPlayerChange).not.toHaveBeenCalled()
+    expect(onPlayerChange).toHaveBeenCalledTimes(1) // energy only — no battle save on early exit
   })
 
   it('Scar 2: ทุกด่านที่มีอยู่ในสารบัญ REALTIME_STAGES ต้องสามารถดึงค่าได้จริงและไม่เป็น null', () => {
@@ -312,7 +319,7 @@ describe('LobbyBattleSession', () => {
     render(
       <LobbyBattleSession
         player={brokenPlayer}
-        onPlayerChange={vi.fn()}
+        onPlayerChange={mockOnPlayerChange()}
         onEarnGold={onEarnGold}
         onGrantItem={onGrantItem}
         onExit={vi.fn()}
@@ -357,15 +364,15 @@ describe('LobbyBattleSession', () => {
     winBtn.click()
     winBtn.click()
 
-    // Wait for the async save queue to execute
+    // Wait for the async save queue to execute (energy + battle result)
     await waitFor(() => {
-      expect(onPlayerChange).toHaveBeenCalledTimes(1)
+      expect(onPlayerChange).toHaveBeenCalledTimes(2)
     })
 
     // Verify calls are only executed once due to savedRef guard
     expect(onEarnGold).toHaveBeenCalledTimes(1)
     expect(onGrantItem).toHaveBeenCalledTimes(1)
-    expect(onPlayerChange).toHaveBeenCalledTimes(1)
+    expect(onPlayerChange).toHaveBeenCalledTimes(2)
   })
 
   it('Scar 1 (Reward): prevents duplicate SP/reward grants on retry/re-entry when savedRef resets on new session mount', async () => {

@@ -69,6 +69,18 @@ function resolveSpawnTemplate(templateId: string): SpawnTemplate | null {
   return null
 }
 
+function scaleStats(
+  stats: { maxHp: number; atk: number; def: number },
+  multiplier: number,
+): { maxHp: number; atk: number; def: number } {
+  if (multiplier === 1) return stats
+  return {
+    maxHp: Math.max(1, Math.round(stats.maxHp * multiplier)),
+    atk: Math.max(1, Math.round(stats.atk * multiplier)),
+    def: Math.max(0, Math.round(stats.def * multiplier)),
+  }
+}
+
 export function createPlayerEntity(player: Player): RealtimeBattleEntity | null {
   const leadId = player.teamSlots.find((id): id is string => id !== null) ?? null
   const character = getCharacter(leadId)
@@ -117,6 +129,8 @@ export function createWaveEnemies(
   const wave = stage.waves[waveIndex]
   if (!wave) return []
 
+  const difficultyMultiplier = stage.difficultyMultiplier ?? 1
+
   const resolved = wave.enemies.map((entry) => ({
     entry,
     spawn: resolveSpawnTemplate(entry.templateId),
@@ -159,7 +173,11 @@ export function createWaveEnemies(
 
     if (item.spawn.kind === 'boss') {
       const { template } = item.spawn
-      const scaledMaxHp = Math.max(1, Math.round(template.maxHp * enemyHpScale))
+      const stats = scaleStats(
+        { maxHp: template.maxHp, atk: template.atk, def: template.def },
+        difficultyMultiplier,
+      )
+      const scaledMaxHp = Math.max(1, Math.round(stats.maxHp * enemyHpScale))
       const enemy: RealtimeBattleEntity = {
         id: `enemy-${waveIndex}-${index}`,
         entityType: 'boss',
@@ -171,8 +189,8 @@ export function createWaveEnemies(
         state: 'idle',
         hp: scaledMaxHp,
         maxHp: scaledMaxHp,
-        atk: template.atk,
-        def: template.def,
+        atk: stats.atk,
+        def: stats.def,
         speed: template.speed,
         collisionRadius: template.collisionRadius,
         hurtboxRadius: template.hurtboxRadius,
@@ -190,7 +208,7 @@ export function createWaveEnemies(
     }
 
     const { template } = item.spawn
-    const stats = resolveTierStats(template)
+    const stats = scaleStats(resolveTierStats(template), difficultyMultiplier)
     const scaledMaxHp = Math.max(1, Math.round(stats.maxHp * enemyHpScale))
     const enemy: RealtimeBattleEntity = {
       id: `enemy-${waveIndex}-${index}`,
