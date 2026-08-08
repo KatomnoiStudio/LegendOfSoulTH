@@ -51,6 +51,14 @@ describe('spirit-guardian-boss production data (#11 + #16)', () => {
     expect(boss.combatTier).toBe('boss')
   })
 
+  it('spirit-guardian-boss มี attack rows ครบทั้ง 2 เฟส (P6 production wiring)', () => {
+    const boss = getBossTemplate('spirit-guardian-boss')
+    if (!boss) throw new Error('fixture missing')
+    expect(boss.phases[0].attacks.length).toBeGreaterThan(0)
+    expect(boss.phases[1].attacks.length).toBeGreaterThan(0)
+    expect(boss.phases[0].attacks[0].telegraphMs).toBeGreaterThanOrEqual(800)
+  })
+
   it('createRealtimeBattle trial-05 มีบอส 1 ตัวที่ HP ถูก scale ด้วย difficultyMultiplier', () => {
     const state = createRealtimeBattle('trial-05', makePlayer())
     if (!state) throw new Error('fixture missing')
