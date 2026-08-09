@@ -20,19 +20,19 @@ No queue slot needed — touch only on bug/extension.
 - #25 Backend/Server-Authority — baseline shipped (auth/RLS/RPC); GROWS as Tier-1/2 systems land, not a one-time ship.
 - #28 Social/Communication — World Chat server-authority migration implemented (Postgres/RLS/RPC/Realtime); production remains pending migration apply. Player-local block preference stays separate from message authority.
 
-### Tier 1 — Urgent / core (next up, blocks the rest — roadmap P3–P8, verified NOT yet in `src/`)
+### Tier 1 — Urgent / core (roadmap P3–P8) — **stale as a whole, corrected 2026-08-09**: this tier read "verified NOT yet in `src/`" as of its 2026-08-07 source-scan; every bullet below has since shipped per `TASKS.md`. Kept as its own tier only pending a deliberate reclassification pass, not because the work remains undone.
 
-- #5 Per-Move Property Schema — formalize as the real shared contract; #3/#4/#6/#7/#8 all silently depend on it existing.
-- #7 Effects System (heal/buff/cc/summon) — §3.7's locked Monkey King kit needs this; `SkillSystem.ts` currently reads damage-only.
-- #8 Skill-Targeting System — small, but the Ultimate's `targetLock:'nearest'` exception needs it to function per the locked kit.
-- #11 Boss System, #10 Elite/Mini-boss Tier — **zero implementation found** (`grep boss` = 1 stray type-field hit only). Blocks P6 (boss prototype) and vertical-slice-A (§11).
-- #16 Stage/Adventure System, #17 Stage Variation System — `stageConfig.ts` exists but partial; blocks P5/P7.
-- #12 Hero Kit/Archetype System — needed the moment a 2nd hero ships (P8 boundary); currently single-hero-implicit.
-- #14 Progression System (Hero Level/Skill Level) — **zero implementation found**; blocks P8.
+- #5 Per-Move Property Schema — shipped, graduated 100% (`TASKS.md` row 13); #3/#4/#6/#7/#8 now consume the real shared `AttackDefinition`/`combatMoveSchema.ts` contract.
+- #7 Effects System (heal/buff/cc/summon) — shipped, graduated 100% (`TASKS.md` row 14); `EffectsSystem.ts` implements heal/buff/cc/summon, `SkillSystem.ts` is no longer damage-only.
+- #8 Skill-Targeting System — shipped, graduated 100% (`TASKS.md` row 15); `softTarget.ts` implements `targetLock:'nearest'`.
+- #11 Boss System, #10 Elite/Mini-boss Tier — shipped, graduated 100% (`TASKS.md` rows 16-17); `EliteTierSystem.ts` and boss-phase attacks in `stageConfig.ts` exist with real coverage.
+- #16 Stage/Adventure System, #17 Stage Variation System — shipped, graduated 100% (`TASKS.md` rows 18-19); `StageVariationSystem.ts` implements the 7 stage types wired into `stageConfig.ts`.
+- #12 Hero Kit/Archetype System — 90% CI-green (`TASKS.md` row 20); 5+ heroes now ship (Production Batch 01, `src/game/heroes/`) so it is no longer single-hero-implicit — held at 90% pending Ring 0's real per-move numbers and a playtest graduation pass, not pending a second hero.
+- #14 Progression System (Hero Level/Skill Level) — **shipped, 🟢 graduated 2026-08-08** (`TASKS.md` row 21 / DF21, 100%); this row previously said "zero implementation found," which is now wrong (stale claim corrected 2026-08-09, same pattern as the #13 fix immediately below).
 
 ### Tier 2 — Not urgent yet (sequenced later, real work, roadmap P9–P13)
 
-- #23 Gacha System, #15 Star Ascension — **zero implementation found** (`grep gacha/pity` = 0 hits); pity-mechanic SKELETON locked (§7.1, 2026-08-08, soft/hard pity per Genshin's shape), rate/cost numbers still deferred to P9.
+- #23 Gacha System, #15 Star Ascension — **stale, corrected 2026-08-09**: this previously said 'zero implementation found,' which PR #97 and its Codex follow-up made wrong. Both are now 90% CI-green with live, atomic/idempotent server RPCs (`perform_gacha_pull`, `ascend_character_star`) — real production rate numbers shipped (a 5%/25%/70% pool on a 5-hero Standard Banner), not a deferred skeleton. See `TASKS.md` rows 22-23; both remain below 100% pending final production-migration verification, not pending a build.
 - #13 Hero Collection (expansion) — **stale claim corrected 2026-08-09**: this row previously said "zero implementation," which is now wrong — `TASKS.md` row 24 shows it 100% graduated. **Roadmap-order divergence, item #12 of the blueprint-vs-code audit**: §10's LOCKED sequence puts P9 (Gacha/Star, this tier) before P10 (Hero Collection expansion) — it shipped in the reverse order. HetCreep's resolution: pause further Hero Collection expansion work, prioritize #23 Gacha and #15 Star Ascension next to restore the intended order before resuming #13.
 - #20 PvP Power Normalization is implemented on its stacked PR; #21 now has a private room-code
   prototype with JWT Edge authority, private receive-only Realtime snapshots, prediction/reconcile,

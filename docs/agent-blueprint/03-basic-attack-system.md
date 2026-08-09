@@ -4,13 +4,13 @@
 
 ### Scope
 
-Owns the player's 3-hit basic-attack chain: sequencing/state machine (`ComboSystem.ts`), per-hit timing/hitbox/damage data (`PLAYER_ATTACK_CHAIN` in `attacks.ts`), combo-window/reset/input-buffer/hit-stop rules (`COMBO_CONFIG`), and driving the per-hit horizontal multi-target hitbox query (`HitboxSystem.findHitTargets`, `hitsHorizontal`). Does **not** own: damage math (`DamageSystem.calcDamage`/`applyDamage`), knockback/hit-stun resolution beyond calling `applyDamage` (Hit Reaction System, #6), skill casting (`SkillSystem.ts`, #4), enemy AI (#9), or per-hero finisher tuning as a registry — today there is exactly one hero (Monkey King) and `PLAYER_ATTACK_CHAIN` is a single hardcoded array, not yet the "per-kit finisher" mechanism §3.6.11 describes.
+Owns the player's 3-hit basic-attack chain: sequencing/state machine (`ComboSystem.ts`), per-hit timing/hitbox/damage data (`HERO_ATTACK_CHAINS` in `heroes/attackChains.ts`, re-exported from `attacks.ts`), combo-window/reset/input-buffer/hit-stop rules (`COMBO_CONFIG`), and driving the per-hit horizontal multi-target hitbox query (`HitboxSystem.findHitTargets`, `hitsHorizontal`). Does **not** own: damage math (`DamageSystem.calcDamage`/`applyDamage`), knockback/hit-stun resolution beyond calling `applyDamage` (Hit Reaction System, #6), skill casting (`SkillSystem.ts`, #4), enemy AI (#9). Per-hero finisher tuning now IS a registry — five heroes ship per-kit chains (monkey-king, pig-warrior, celestial-archer, nezha-warden, sand-sage) built via `buildMeleeCombo`/`buildRangedCombo`, each with its own `finisherKnockdown`/`finisherEffects`; this is the "per-kit finisher" mechanism §3.6.11 describes. `PLAYER_ATTACK_CHAIN` survives only as a `@deprecated` alias for `MONKEY_KING_ATTACK_CHAIN`.
 
 ### Inputs/Outputs
 
 - In: `pressAttack(player: RealtimeBattleEntity, combo: ComboState)` on button press; `stepCombo(player, combo, deltaMs: number)` every frame.
-- `ComboState` (mutable, `ComboSystem.ts:25-38`): `attack: AttackDefinition | null`, `chainIndex`, `sinceStartMs`, `sinceLastFinishMs`, `bufferedInputAgeMs`, `hitTargets: Set<string>`, `hitStopRemainingMs`.
-- Out: `ComboTick { hitboxActive: boolean, attack: AttackDefinition | null }` (`ComboSystem.ts:105-108`) — consumed by `RealtimeBattleRuntime.ts:166-194`, which on `hitboxActive` calls `findHitTargets` then `applyDamage` per target.
+- `ComboState` (mutable, `ComboSystem.ts:22-35`): `attack: AttackDefinition | null`, `chainIndex`, `sinceStartMs`, `sinceLastFinishMs`, `bufferedInputAgeMs`, `hitTargets: Set<string>`, `hitStopRemainingMs`.
+- Out: `ComboTick { hitboxActive: boolean, attack: AttackDefinition | null }` (`ComboSystem.ts:103-106`) — consumed by `RealtimeBattleRuntime.ts:238-244`, which on `hitboxActive` calls `findHitTargets` then `applyDamage` per target.
 - Data contract per hit: `AttackDefinition` (`attacks.ts:15-42`) — `startupMs/activeMs/recoveryMs`, `comboWindowStartMs/EndMs`, `damageMultiplier`, `range`, `hitShape: 'horizontal'|'radial'`, `arcDegrees`, `depthTolerance`, `knockback`. Note: no `lungeDistance` field exists on this type despite being named in the locked schema (§3.6.7) — see Done-criteria #8. (`knockdown` is also named in §3.6.7/§3.6.12 but is out of scope here — see Dependencies, Hit Reaction System #6.)
 
 ### Dependencies
@@ -31,15 +31,15 @@ Owns the player's 3-hit basic-attack chain: sequencing/state machine (`ComboSyst
 5. `player.hitStunRemainingMs > 0` during an active combo hit cancels it outright (chainIndex → 0, no partial credit) — `ComboSystem.ts:147-155`.
 6. All enemies inside the horizontal hitbox (`range` + `depthTolerance`, facing-gated) take damage in one active window, not just the nearest — multi-target, not single-target selection (§3.6.2).
 7. `npm test -- ComboSystem HitboxSystem DamageSystem RealtimeBattleRuntime` green.
-8. **Lunge gap to close or explicitly defer, not silently skip** (`.agents/rules/master-blueprint-law.md`): §3.6.2/§3.6.11 lock an attack **lunge** (`lungeDistance` 32/36/44 per hit) — this does not exist in code today (`AttackDefinition` has no `lungeDistance` field; grep for "lunge" across `src/` returns zero files). This is in-scope for this system per the blueprint's one-line charter ("multi-target hitbox, lunge (not magnet), 3-hit combo"). Either implement it before calling this system done, or get HetCreep sign-off to mark it DEFERRED. (The separate finisher-**knockdown** gap named in §3.6.12 is out of scope for this contract — see Dependencies, Hit Reaction System #6, whose own done-criteria should track it instead.)
+8. **Lunge gap — CLOSED 2026-08-08** (TASKS.md row #4/DF4): §3.6.2/§3.6.11 lock an attack **lunge** (`lungeDistance` 32/36/44 per hit for Monkey King). `AttackDefinition.lungeDistance` (`attacks.ts:65`) exists and is populated per hero/per hit in `heroes/attackChains.ts` and `heroes/kits/*.ts`, and is consumed at `RealtimeBattleRuntime.ts:206-216` to move the player forward during `startupMs`, with dedicated coverage in `lungeMovement.test.ts` (5 tests). No further action needed. (The separate finisher-**knockdown** gap named in §3.6.12 is out of scope for this contract — see Dependencies, Hit Reaction System #6, whose own done-criteria should track it instead.)
 
 ### World-class bar
 
-Exemplar: **Hades** (Supergiant Games, 2020) — its Stygius sword basic combo is the widely-cited reference for "a basic attack that feels good": each swing carries the character slightly forward (lunge), input is buffered generously while the combo _window itself_ stays tight, and hits carry hit-stop. This project's `COMBO_CONFIG` already separates `inputBufferMs` from the per-hit `comboWindow`, matching that structure — the piece still missing is the per-hit forward lunge itself (see Done-criteria #8), which is the one concrete pattern worth finishing to match Hades' feel.
+Exemplar: **Hades** (Supergiant Games, 2020) — its Stygius sword basic combo is the widely-cited reference for "a basic attack that feels good": each swing carries the character slightly forward (lunge), input is buffered generously while the combo _window itself_ stays tight, and hits carry hit-stop. This project's `COMBO_CONFIG` already separates `inputBufferMs` from the per-hit `comboWindow`, matching that structure — the per-hit forward lunge itself now ships too (see Done-criteria #8; `RealtimeBattleRuntime.ts:206-216`), so this system's basic-attack feel already covers the concrete pattern this exemplar calls out.
 
 ### Stay-current note
 
-`PLAYER_ATTACK_CHAIN` is one flat array assuming a single hero; once a second hero kit lands (#12, Hero Kit/Archetype System) this will need to become per-hero-keyed data rather than a single hardcoded export — revisit at that point, not before.
+This already happened: `heroes/attackChains.ts` now exports `HERO_ATTACK_CHAINS`, a per-hero-keyed `Record<string, AttackDefinition[]>` covering 5 heroes (monkey-king, pig-warrior, celestial-archer, nezha-warden, sand-sage). `PLAYER_ATTACK_CHAIN` survives only as a `@deprecated` alias for `MONKEY_KING_ATTACK_CHAIN`, kept for backward compat with existing tests/imports.
 
 ### Low-maintenance-cost design
 

@@ -4,15 +4,15 @@
 
 ### Scope
 
-Owns two things, locked at §3.8.4/§5.2: (1) the **Elite tier** — stat-multiplier profile + knockdown-eligibility for a non-mob enemy (§3.6.8 line 234, §3.6.12 line 302) — and (2) **Mini-boss**, defined as an Elite-tier encounter used as a stage centerpiece (§5.2 line 433) that explicitly does **not** run the Boss phase-transition system (§3.6.9). Does not own: the Boss phase-transition state machine itself (§3.6.9 — separate, also unbuilt); the enemy AI state machine core (`EnemyAISystem.ts`, reused as-is); per-move telegraph/attack data (`attacks.ts`); CC-as-status-effect (§3.8.6, separate); summon AI (§3.8.3, separate); PvP hit-reaction tier mapping (§3.8.7, deferred to P12).
+Owns two things, locked at §3.8.4/§5.2: (1) the **Elite tier** — stat-multiplier profile + knockdown-eligibility for a non-mob enemy (§3.6.8 line 234, §3.6.12 line 302) — and (2) **Mini-boss**, defined as an Elite-tier encounter used as a stage centerpiece (§5.2 line 433) that explicitly does **not** run the Boss phase-transition system (§3.6.9). Does not own: the Boss phase-transition state machine itself (§3.6.9 — separate; shipped 2026-08-08 via #11 Boss System, PR #57 — see the `'phase-transition'` `EnemyAIState` in `EnemyAISystem.ts` and `BOSS_TEMPLATES` in `stageConfig.ts`); the enemy AI state machine core (`EnemyAISystem.ts`, reused as-is); per-move telegraph/attack data (`attacks.ts`); CC-as-status-effect (§3.8.6, separate); summon AI (§3.8.3, separate); PvP hit-reaction tier mapping (§3.8.7, deferred to P12).
 
 ### Inputs/Outputs
 
-**Not implemented in code today** — no `tier`/`elite`/`boss` discriminant exists anywhere except the bare `EntityType = 'player' | 'enemy' | 'boss'` union (`src/game/realtimeBattle/types.ts:31`), and `RealtimeEnemyTemplate` (`src/game/realtimeBattle/stageConfig.ts:29-54`) has no tier field — only flat `maxHp/atk/def/speed/...`. Proposed contract, grounded in existing shapes:
+**Implemented in code** (shipped 2026-08-08, PR #58 — TASKS.md rows #17/DF17, both graduated 100%): `EnemyTier = 'normal' | 'elite'` (`src/game/realtimeBattle/types.ts:33`), `RealtimeEnemyTemplate.tier` (`stageConfig.ts:64`), and the elite stat-multiplier table `ELITE_STAT_MULTIPLIER` (`stageConfig.ts:78-82`) all exist as specified below:
 
-- **In:** add `tier: 'normal' | 'elite'` to `RealtimeEnemyTemplate`, plus an elite stat-multiplier row (data-driven table, same file) — not a new type.
-- **In:** `BattleWaveDefinition.enemies[]` (`stageConfig.ts:56-58`) marks one spawn's `templateId` as the mini-boss for that wave — no schema change needed, just data.
-- **Out:** `EnemyBrain`/`RealtimeBattleEntity` carry the resolved tier so `EnemyAISystem.stepEnemyAI` (`EnemyAISystem.ts:76+`) and the damage/hitbox knockdown gate can branch on it — reusing the existing `EnemyAIState = 'idle'|'chase'|'attack'|'recover'|'hit'|'dead'` (`EnemyAISystem.ts:17`), extended with Knockdown/GetUp per §3.6.8, no new states beyond that.
+- **In:** `tier: EnemyTier` on `RealtimeEnemyTemplate` (`stageConfig.ts:64`), plus `ELITE_STAT_MULTIPLIER` (`stageConfig.ts:78-82`) as a data-driven table, not a new type.
+- **In:** `BattleWaveDefinition.enemies[]` (`stageConfig.ts:161-163`) marks one spawn's `templateId` as the mini-boss for that wave via `MiniBossStageParams.templateId` (`stageConfig.ts:192-195`) — no schema change, just data (e.g. `trial-08`, `stageConfig.ts:754-755`).
+- **Out:** `EnemyBrain`/`RealtimeBattleEntity` carry the resolved tier (`RealtimeBattleEntity.tier`/`combatTier`, `types.ts:101,113`) so `EnemyAISystem.stepEnemyAI` and the damage/hitbox knockdown gate (`isKnockdownEligible` in `DamageSystem.ts`) branch on it — `EntityState` already includes `'knockdown'`/`'getUp'` (`types.ts:29-30`).
 
 ### Dependencies
 
@@ -24,7 +24,7 @@ Owns two things, locked at §3.8.4/§5.2: (1) the **Elite tier** — stat-multip
 
 ### Done-criteria
 
-1. `RealtimeEnemyTemplate` gains a `tier` field consumed by **one knockdown-gating code path, built once and shared by `'elite'` and `'boss'`, not duplicated per tier** — this is new code (grep of `src/game/realtimeBattle` confirms zero existing `knockdown`/`getUp` logic today, and `entityType: 'boss'` is never instantiated anywhere in that directory, only declared in the `EntityType` union at `types.ts:31` — there is no pre-existing "boss path" to extend, so the gate must be built from scratch and shaped to serve both tiers from day one).
+1. `RealtimeEnemyTemplate` gains a `tier` field consumed by **one knockdown-gating code path, built once and shared by `'elite'` and `'boss'`, not duplicated per tier** — shipped as `isKnockdownEligible` in `DamageSystem.ts`, pinned by `EliteTierSystem.test.ts`'s Done-criterion 1 block (line 77+), which asserts identical eligibility for `tier: 'elite'` and `entityType: 'boss'` off the same gate.
 2. A wave can flag one spawn Elite/mini-boss; it plays out using only the existing `idle|chase|attack|recover|hit|dead(+Knockdown/GetUp)` states — no `PhaseTransition`/invulnerable state ever fires for it.
 3. Regression test: an Elite entity hit by a knockdown-flagged move enters Knockdown + 200ms i-frame (§3.6.12 line 304) identically to a `'boss'` entity; a `'normal'` entity under the identical hit does not knock down (pins the tier gate per AGENTS.md rule 12).
 4. Test asserts a mini-boss entity goes from full HP to death with no HP-threshold branch ever setting an invulnerable/phase flag (there is currently no such flag to check against — see Stay-current note).
@@ -34,9 +34,9 @@ Owns two things, locked at §3.8.4/§5.2: (1) the **Elite tier** — stat-multip
 
 Exemplar: **Genshin Impact's overworld Elite enemy tier** — officially tagged "Elite" enemies sit one rung above common mobs and below true multi-phase Weekly/Trounce Bosses. The specimens that actually fit the pattern worth borrowing are the **stat-boosted variants of common enemies** — e.g. Mitachurl/Samachurl-line Elites — which run the _same_ base AI/move-data table as their common Hilichurl-line counterparts with a stat/moveset multiplier layered on, not a bespoke kit. (Hypostases and Ruin Guards are also tagged "Elite" in-game but are the wrong example for this specific point — they run bespoke, unique mechanics found on no common mob, closer in spirit to a mini-boss with its own kit than to a shared-AI stat-multiplier enemy — so they're excluded here even though the category name is real.) This reuse discipline — shared AI core, multiplier on top, no bespoke fork — is exactly what this blueprint already locks for Summoner AI (§3.8.3, fork issue #47: "ไม่สร้าง AI core ใหม่"), and matches the doc's own citation convention (§3.8.1 Guardian Tales, §3.8.2/§3.7 Genshin/Star Rail, §3.8.5 Summoners War) and its requirement to cite the exemplar accurately (line 328).
 
-### Stay-current note
+### Stay-current note (resolved 2026-08-08)
 
-The Boss phase-transition system (§3.6.9) doesn't exist in code yet either — today "mini-boss never phase-transitions" can only be tested as "no invulnerable flag exists," which is a weak negative assertion. Once §3.6.9 actually ships, the mini-boss test needs to positively assert the PhaseTransition state is skipped, not just absent.
+The Boss phase-transition system (§3.6.9) shipped 2026-08-08 (#11 Boss System, PR #57) — `EnemyAISystem.ts` now has a real `'phase-transition'` `EnemyAIState`. `EliteTierSystem.test.ts`'s Done-criterion 2 test already does what this note called for: it positively asserts `seenStates.has('phase-transition')` is `false` across a full mini-boss AI run, not just that an invulnerable flag is absent.
 
 ### Low-maintenance-cost design
 

@@ -4,19 +4,19 @@
 
 ### Scope
 
-Owns the data-driven definition of each hero's moveset (basic 3-hit combo + S1/S2/S3/ultimate) and the archetype-specific targeting/effect resolution rules that let non-melee kits (Support/Ranged/Summoner/Control) reuse the same combat schema instead of forking code (blueprint §3.7, §3.8). It does **not** own: the enemy/boss AI state machine itself (§3.6.8 — hero kit only feeds a `summon` effect into it per §3.8.3), gacha/star-ascension math, PvP matchmaking, or skill-button UI (`src/components/BattleScene/*`). Currently shipped scope is narrower than the locked design: only one hero (Monkey King, melee/Fighter) has a real kit; Support/Ranged/Summoner/Control are design-locked resolutions with **zero implementing code**.
+Owns the data-driven definition of each hero's moveset (basic 3-hit combo + S1/S2/S3/ultimate) and the archetype-specific targeting/effect resolution rules that let non-melee kits (Support/Ranged/Summoner/Control) reuse the same combat schema instead of forking code (blueprint §3.7, §3.8). It does **not** own: the enemy/boss AI state machine itself (§3.6.8 — hero kit only feeds a `summon` effect into it per §3.8.3), gacha/star-ascension math, PvP matchmaking, or skill-button UI (`src/components/BattleScene/*`). Currently shipped scope: 5 heroes have real kits (`src/game/heroes/heroProductionBatch.ts` PRODUCTION_BATCH_01) covering Fighter (monkey-king), Heavy (pig-warrior), Ranged (celestial-archer), Control (nezha-warden), and Summoner (sand-sage) — see `src/game/heroes/kits/index.ts`. Only the Support archetype remains a design-locked resolution with **zero implementing code**; no roster entry uses it yet.
 
 ### Inputs/Outputs
 
 - In: `characterId: string` → `getRealtimeSkillKit()` → `RealtimeSkillKit { characterId, skill1, skill2, skill3, ultimate: RealtimeSkillDefinition }` (`src/game/realtimeBattle/skills.ts:18-35`).
 - Each `RealtimeSkillDefinition` wraps an `AttackDefinition` (`src/game/realtimeBattle/attacks.ts:15-42`): timing (`startupMs/activeMs/recoveryMs`, combo window), `damageMultiplier`, `range`, `hitShape: 'horizontal'|'radial'`, `arcDegrees`, `depthTolerance`, `knockback`.
 - Out: consumed by `HitboxSystem`/`DamageSystem`/`ComboSystem`/`SkillSystem` (`src/game/realtimeBattle/*.ts`) to resolve hits against enemy entities.
-- **Not yet real**: `castDelayMs`, `interruptible`, `movementDuringCast`, `knockdown`, `multiTarget`, `effects[]` (heal/buff/cc/summon), `targetLock`, `lungeDistance`, `hitstunMs` — all locked as required fields by §3.6.7/§3.6.12/§3.7 but absent from the actual `AttackDefinition` interface today.
+- All of `castDelayMs`, `interruptible`, `movementDuringCast`, `knockdown`, `multiTarget`, `effects[]` (heal/buff/cc/summon), `targetLock`, `lungeDistance`, `hitstunMs` per §3.6.7/§3.6.12/§3.7 are now real fields on `AttackDefinition` (`src/game/realtimeBattle/attacks.ts:49-82`) and are exercised by shipped kits (e.g. `MONKEY_GOLDEN_FURY`, `celestialArcher.ts`'s `archer-pin-shot`/`archer-rain`).
 
 ### Dependencies
 
-- **Depends on**: combat/hitbox-damage-combo runtime (`src/game/realtimeBattle/`) as its consumer; enemy system for the summon effect's reused state machine (§3.8.3 — summons run enemy AI's `Idle→Chase→Telegraph→AttackActive→Recovery`); hero/progression system for Hero Level/Skill Level scaling feeding `attacker.atk` (§3.8.5 design lock, **not yet implemented** — grepping `src/` for `skillLevel`/`heroLevel` returns zero hits and no progression module exists; `damageMultiplier` itself is a fixed per-move constant in `attacks.ts`, e.g. `MONKEY_GOLDEN_FURY`'s `2.4`, per `DamageSystem.calcDamage`: `base = attacker.atk * attack.damageMultiplier * variance` — any future level scaling would feed `atk`, not `damageMultiplier`).
-- **Feeds**: pvp system, which must normalize Hero Level/Skill Level to ranked baseline before applying this system's kit data (§3.8.5/§6.2 design lock, **not yet implemented** — no PvP module exists anywhere in `src/`) — this system does not enforce that normalization itself.
+- **Depends on**: combat/hitbox-damage-combo runtime (`src/game/realtimeBattle/`) as its consumer; enemy system for the summon effect's reused state machine (§3.8.3 — summons run enemy AI's `Idle→Chase→Telegraph→AttackActive→Recovery`); hero/progression system for Hero Level/Skill Level scaling feeding `attacker.atk` (§3.8.5 design lock — implemented: `src/game/progression/` + `src/game/realtimeBattle/SkillProgressionSystem.ts` track `heroLevel`/`skillLevels`, TASKS.md row 21 graduated 100%); `damageMultiplier` itself remains a fixed per-move constant in `attacks.ts` (e.g. `MONKEY_GOLDEN_FURY`'s `1.1` per strike as of the 2026-08-09 internal-consistency fix, `strikeCount: 4`), per `DamageSystem.calcDamage`: `base = attacker.atk * attack.damageMultiplier * variance` — level scaling feeds `atk`, not `damageMultiplier`, as designed.
+- **Feeds**: pvp system, which normalizes Hero Level/Skill Level to ranked baseline before applying this system's kit data (§3.8.5/§6.2 design lock — implemented in `src/game/pvp/rankedNormalization.ts`'s `toRankedHeroSnapshot()`, a pure match-scoped projection never persisted back to the account) — this system does not enforce that normalization itself.
 
 ### Done-criteria
 
@@ -32,7 +32,7 @@ Owns the data-driven definition of each hero's moveset (basic 3-hit combo + S1/S
 
 ### Stay-current note
 
-The "per-hero kit file pattern" is named in the blueprint (line 308) but today is one file (`skills.ts`) with a single `Record` entry — as the roster grows past a handful of heroes this will plausibly need splitting into literal per-hero files to stay navigable; not urgent at n=1.
+The "per-hero kit file pattern" named in the blueprint (line 308) has already shipped: `src/game/heroes/kits/` holds one file per hero (`monkeyKing.ts`, `pigWarrior.ts`, `celestialArcher.ts`, `nezhaWarden.ts`, `sandSage.ts`), aggregated into `HERO_SKILL_KITS` by `kits/index.ts`; `skills.ts` only re-exports it as `REALTIME_CHARACTER_KITS`. Roster is at n=5 today.
 
 ### Low-maintenance-cost design
 
