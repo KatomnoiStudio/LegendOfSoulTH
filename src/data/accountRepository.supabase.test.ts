@@ -226,6 +226,33 @@ describe('accountRepository.supabase RPC wrapper wiring', () => {
     expect(rpcMock).toHaveBeenCalledWith('redeem_coupon', { p_code: 'WELCOME2026' })
   })
 
+  test('ascendCharacterStar: ส่ง request ID และ hero ID ไป RPC โดย Client ไม่แก้ดาวเอง', async () => {
+    const { ascendCharacterStar } = await import('./accountRepository.supabase')
+    rpcMock.mockReturnValue(
+      rpcResult([
+        { new_star: 2, shards_remaining: 0, shards_spent: 1, replayed: false },
+      ]),
+    )
+
+    const result = await ascendCharacterStar(
+      'uid-ignored',
+      'monkey-king',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    )
+
+    expect(rpcMock).toHaveBeenCalledWith('ascend_character_star', {
+      p_request_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      p_character_id: 'monkey-king',
+    })
+    expect(result).toEqual({
+      ok: true,
+      newStar: 2,
+      shardsRemaining: 0,
+      shardsSpent: 1,
+      replayed: false,
+    })
+  })
+
   test('findPlayerByUid: เรียก RPC find_player_by_uid ไม่ query ตาราง profiles ตรง ๆ อีกต่อไป (item 145)', async () => {
     const { findPlayerByUid } = await import('./accountRepository.supabase')
     // returns table(...) มาเป็น array ผ่าน PostgREST เสมอ ไม่ใช่ object เดี่ยว

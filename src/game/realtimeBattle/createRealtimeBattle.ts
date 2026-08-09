@@ -13,6 +13,7 @@ import {
 import { resolveEnemyFormation, resolvePlayerSpawn } from './spawnFormation'
 import type { RealtimeBattleEntity } from './types'
 import { resolveFinalCombatStats } from '../progression/heroStatsResolver'
+import { statsAtStar } from '../heroes/starScaling'
 
 /**
  * สร้างสถานะตั้งต้นของห้องต่อสู้ real-time จากข้อมูลผู้เล่นจริง
@@ -90,7 +91,8 @@ export function createPlayerEntity(player: Player): RealtimeBattleEntity | null 
 
   const owned = player.ownedCharacters.find((entry) => entry.characterId === character.id)
   const level = owned?.level ?? character.level
-  const combatStats = resolveFinalCombatStats({ heroId: character.id, level }) ?? character.stats
+  const leveledStats = resolveFinalCombatStats({ heroId: character.id, level }) ?? character.stats
+  const combatStats = statsAtStar(leveledStats, owned?.star ?? 1)
   /** Authoritative battle max HP — same source as progression/profile, not a parallel formula. */
   const maxHp = Math.max(1, combatStats.hp)
 

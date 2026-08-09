@@ -2,8 +2,9 @@
 
 Legend of Soul-TH is a small hobby game (React + Vite, deployed to GitHub Pages) with a real
 backend: **Supabase (Auth + Postgres + Row Level Security)**, live since 2026-08-07. All account,
-currency, character, admin-status, and World Chat data lives server-side, RLS-protected; the client never
-mutates it directly. Read [`src/data/accountRepository.supabase.ts`](src/data/accountRepository.supabase.ts)
+currency, character, Star/Shard, admin-status, and World Chat data lives server-side, RLS-protected;
+the client never mutates valuable state directly. Read
+[`src/data/accountRepository.supabase.ts`](src/data/accountRepository.supabase.ts)
 and [`supabase/migrations/`](supabase/migrations/) for exactly what's enforced where before filing
 a report. The older client-only `accountRepository.ts`/`password.ts` (localStorage + local PBKDF2)
 is **dormant, kept only for the shared validators it re-exports** — `useAuth.ts` no longer imports
@@ -48,6 +49,8 @@ In scope:
   (self-granting currency/characters/admin status, reading another player's row, etc.)
 - World Chat identity/authority bypasses: posting as another profile, forging the server timestamp,
   bypassing the 10-message/minute throttle, or writing directly to `world_chat_messages`
+- Star Ascension authority bypasses: inserting an owned Hero directly, writing `star`/`shards`,
+  reusing an idempotency request for another Hero, or bypassing the 1/2/4/8/12 shard ladder
 
 ## Out of Scope
 
@@ -64,7 +67,13 @@ By design, not bugs — don't file these:
   accepted unbounded client-supplied amounts and `profiles.gold`/`gem` had no column-write protection
   beyond RLS (which is row-scoped, not column-scoped) — see `supabase/migrations/0009_economy_integrity_fixes.sql`.
   Lobby battle rewards use refId-guarded RPCs and a durable pending snapshot table — see
-  `supabase/migrations/0013_reward_idempotency.sql`. Report the same _class_ of bug elsewhere.)
+  `supabase/migrations/0013_reward_idempotency.sql`. Star Ascension uses an authenticated,
+  atomic, idempotent RPC and a private-write audit ledger — see
+  `supabase/migrations/20260808204905_p9_star_ascension_server_authority.sql`. Report the same
+  _class_ of bug elsewhere.)
+- **"I changed Star/Shard values in React state or called the preview calculator."** The preview
+  is presentation-only. Report it only if the change persists in Supabase without a valid
+  `ascend_character_star` transaction.
 - **"I can locally hide/show a World Chat author by editing my block list."** `/block` is a
   client-local viewing preference by design. Chat rows themselves remain server-authoritative.
 - **"Passwords are hashed client-side with no real server auth."** No longer applies to the live

@@ -153,9 +153,7 @@ describe('Production Batch 01 — gacha & star scaling', () => {
   })
 
   it('STAR_MULTIPLIERS มีครบ ★1–★6', () => {
-    for (let star = 1; star <= 6; star += 1) {
-      expect(STAR_MULTIPLIERS[star]).toBeGreaterThan(0)
-    }
+    expect(STAR_MULTIPLIERS).toEqual({ 1: 1, 2: 1.06, 3: 1.12, 4: 1.18, 5: 1.24, 6: 1.3 })
   })
 })
 
