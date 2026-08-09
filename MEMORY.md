@@ -3,6 +3,7 @@
 > **Operator / Human User**: `HetCreep`
 > **Repository**: `KatomnoiStudio/LegendOfSoulTH`
 > **Default Branch**: `master`
+> **Current local branch release update**: 2026-08-09T19:49:00+07:00 by `Codex / primary` for Operator `HetCreep` — bumped the Erlang feature branch to `v0.16.0`; `package.json`, `GAME_INFO.version`, and CHANGELOG agree. Verified locally; pending PR #99 merge.
 > **Current local branch update**: 2026-08-09T19:07:00+07:00 by `Codex / primary` for Operator `HetCreep` — added the admin-only `/givecharacter erlang` path, roster entry, and Erlang runtime sprite registry entries. Verified locally; awaiting an explicit request before push.
 > **Last Updated**: 2026-08-10T03:40:00+07:00 by `Claude Code` — full doc-vs-code fidelity audit: 63 agents, 147 stale doc claims corrected across AGENTS.md/AGENT_BLUEPRINT.md/28 system contracts/`.agents/rules/`/MASTER_BLUEPRINT/TASKS/MEMORY, README.md rewritten for its real (agent/dev) audience, 3 real design forks handed off for a human decision (item 178).
 > **Last Updated (prior)**: 2026-08-10T01:15:00+07:00 by `Claude Code` — v0.15.2: closed the PvP gate leak found by rot-canary over v0.15.1 (item 177). Gacha is live and verified; PvP stays gated until its Edge Function is deployed.

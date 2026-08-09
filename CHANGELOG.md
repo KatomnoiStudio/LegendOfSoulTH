@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-08-09
+
+### Added
+
+- **Erlang Shen** is now available in the hero roster with his runtime idle, normal-attack,
+  and Skill 1 sprite sequences. An administrator can grant him to the active account with
+  `/givecharacter erlang`.
+
 ## [0.15.2] - 2026-08-10
 
 ### Fixed
