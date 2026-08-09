@@ -223,10 +223,12 @@ describe('P9 Gacha server authority (isolated Postgres via PGLite)', () => {
     }
     const PITY_THRESHOLD = 30
     const PULLS = 1000
-    // Binomial std dev at n=1000 for the smallest rate (5%) is ~0.7pp — 3pp is >4 std devs,
-    // safe from normal-variance flakes while still catching a genuinely broken table (e.g.
-    // rates swapped, or pity silently not firing).
-    const TOLERANCE = 0.03
+    // Tolerance is 4.5 binomial std devs PER RARITY, computed from that rarity's own rate —
+    // a flat 3pp was ~4σ for the 5% rate but only ~2.1σ for the 25%/70% rates at n≈1000,
+    // i.e. a ~5% random CI failure rate (rot-canary caught it; an actual 3.1pp epic deviation
+    // was observed in-session). 4.5σ ≈ 1e-5 flake odds per rarity while a swapped table
+    // (rates 45pp apart) or a dead pool row still fails by an order of magnitude.
+    const TOLERANCE_SIGMA = 4.5
 
     beforeAll(async () => {
       await db.exec(`
@@ -235,7 +237,7 @@ describe('P9 Gacha server authority (isolated Postgres via PGLite)', () => {
       `)
     }, 20_000)
 
-    it(`observed rarity distribution of natural (non-pity) rolls over ${PULLS} pulls stays within ${TOLERANCE * 100}pp of configured drop_rate`, async () => {
+    it(`observed rarity distribution of natural (non-pity) rolls over ${PULLS} pulls stays within ${TOLERANCE_SIGMA} std devs of configured drop_rate`, async () => {
       // Forced pity structurally raises the realized legendary rate above the configured 5%
       // (it inserts extra legendaries a plain independent-trials process wouldn't produce), so
       // checking the RAW distribution against drop_rate would fail even with a perfectly
@@ -264,10 +266,12 @@ describe('P9 Gacha server authority (isolated Postgres via PGLite)', () => {
 
       for (const [rarity, expectedRate] of Object.entries(RATES)) {
         const observedRate = (counts[rarity] ?? 0) / naturalCount
+        const tolerance =
+          TOLERANCE_SIGMA * Math.sqrt((expectedRate * (1 - expectedRate)) / naturalCount)
         expect(
           Math.abs(observedRate - expectedRate),
-          `${rarity}: expected ~${expectedRate}, observed ${observedRate} over ${naturalCount} natural pulls (counts: ${JSON.stringify(counts)}, pityHits: ${pityHits})`,
-        ).toBeLessThan(TOLERANCE)
+          `${rarity}: expected ~${expectedRate} ±${tolerance.toFixed(4)}, observed ${observedRate} over ${naturalCount} natural pulls (counts: ${JSON.stringify(counts)}, pityHits: ${pityHits})`,
+        ).toBeLessThan(tolerance)
       }
     }, 60_000)
 
