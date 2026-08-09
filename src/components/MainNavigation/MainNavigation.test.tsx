@@ -89,14 +89,22 @@ describe('MainNavigation', () => {
     expect(screen.queryByText('อัญเชิญ — เร็ว ๆ นี้')).not.toBeInTheDocument()
   })
 
-  test('กด "PvP" เรียก private room flow โดยไม่เปิดหน้า PvE', async () => {
+  /*
+    v0.15.0 shipped the PvP button to live while its room RPCs and the `pvp-authority` Edge
+    Function were still undeployed, so every tap produced an error the player could not act on.
+    The button is now gated behind `PVP_BACKEND_DEPLOYED` and falls through to the coming-soon
+    toast. This test pins the gate; when the backend is deployed and the flag flips, replace it
+    with the original expectation that `onOpenPvP` fires.
+  */
+  test('กด "PvP" ยังไม่เปิด modal ตราบใดที่ backend ยังไม่ deploy — ขึ้น toast เร็ว ๆ นี้แทน', async () => {
     const user = userEvent.setup()
     const { onOpenPvP, onOpenBattle } = renderNav()
 
     await user.click(screen.getByRole('button', { name: 'PvP' }))
 
-    expect(onOpenPvP).toHaveBeenCalledTimes(1)
+    expect(onOpenPvP).not.toHaveBeenCalled()
     expect(onOpenBattle).not.toHaveBeenCalled()
+    expect(await screen.findByText('PvP — เร็ว ๆ นี้')).toBeInTheDocument()
   })
 
   test('กดเมนูที่ยังไม่เปิด (เช่น "กิลด์") ไม่เรียก callback ไหนเลย แต่ขึ้น toast comingSoon', async () => {

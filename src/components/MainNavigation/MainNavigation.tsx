@@ -15,6 +15,14 @@ interface NavItem {
   icon?: ReactNode
 }
 
+/**
+ * PvP backend readiness — flip to `true` only when BOTH are true on the production project:
+ * `20260809064000_p12_private_pvp_rooms.sql` applied, and the `pvp-authority` Edge Function
+ * deployed and verified with two real clients. Until then the nav button falls through to the
+ * coming-soon toast instead of opening a modal that can only fail.
+ */
+const PVP_BACKEND_DEPLOYED = false
+
 const NAV_ITEMS: NavItem[] = [
   {
     id: 'battle',
@@ -73,7 +81,20 @@ export function MainNavigation({
       onOpenBattle()
       return
     }
+    /*
+      PvP is built and merged (#21, PR #96) but deliberately still routed to the coming-soon
+      toast on live: its room RPCs and the `pvp-authority` Edge Function are not deployed to the
+      production Supabase project yet, so opening the modal would only produce an error the player
+      can do nothing about. v0.15.0 shipped this button live in exactly that broken state for a
+      short window — this gate is the fix. Flip PVP_BACKEND_DEPLOYED once the migration
+      (`20260809064000_p12_private_pvp_rooms.sql`) is applied AND the Edge Function is deployed
+      and verified with two real clients.
+    */
     if (id === 'pvp') {
+      if (!PVP_BACKEND_DEPLOYED) {
+        comingSoon(label)
+        return
+      }
       onOpenPvP()
       return
     }

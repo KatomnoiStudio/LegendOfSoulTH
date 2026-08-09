@@ -5,6 +5,22 @@
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-08-09
+
+### Fixed
+
+- **The PvP button reached live in v0.15.0 while its backend did not.** Merging #96 bumped the
+  version, which is what the deploy gate keys off, so the button shipped before
+  `20260809064000_p12_private_pvp_rooms.sql` was applied and before the `pvp-authority` Edge
+  Function was deployed — every tap produced an error the player could do nothing about. The
+  button now falls through to the coming-soon toast until `PVP_BACKEND_DEPLOYED` is flipped, which
+  should happen only after the migration is applied AND the Edge Function is deployed and verified
+  with two real clients.
+- The Gacha (**อัญเชิญ**) button shipped in the same state; its migration has since been applied to
+  production and verified read-only (RPC present, four tables with RLS enabled, banner rate table
+  summing to exactly 1.000000, `EXECUTE` granted to `authenticated` but not `anon`), so that button
+  now works rather than being gated.
+
 ## [0.15.0] - 2026-08-09
 
 ### Added
