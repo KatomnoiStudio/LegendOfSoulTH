@@ -55,6 +55,11 @@ In scope:
   sending input as the other player, publishing a forged authoritative snapshot/result, reading
   another room's private Realtime topic, reviving a participant after reconnect grace, replaying an
   older state version, or bypassing the compare-and-swap state version
+- session-token exposure: anything that puts a user's `access_token`/`refresh_token` somewhere it
+  outlives the tab — a URL the browser records in history, a log, an error report, a referrer. Auth
+  uses the PKCE flow (`flowType: 'pkce'`, `src/lib/supabaseClient.ts`) specifically so the callback
+  carries a one-time `?code=` instead of a JWT fragment; a change that reverts to the implicit flow,
+  or an OAuth `redirectTo` that does not land on the app itself, reopens this and is in scope
 
 ## Out of Scope
 
