@@ -9,6 +9,12 @@
 
 ### Added
 
+- Private 1v1 PvP room prototype (#21): six-character invite codes, a JWT-verified Edge Function
+  as the sole authority, client prediction with authoritative reconciliation, participant-only
+  Realtime snapshots, and reconnect/forfeit handling. Not deployed — the migration and Edge
+  Function still need applying before it works live.
+- Ranked power normalization (#20) — Hero Level and skill levels are pinned to their caps for
+  ranked play; star is deliberately the only progression gap left.
 - Lobby Standard Banner with five disclosed Hero playstyles, authenticated server-side RNG,
   atomic Gem debit, hard pity, duplicate shards, and request-id replay protection
 - Active-Hero selection in the Character Roster; the selected Hero is saved to the current
