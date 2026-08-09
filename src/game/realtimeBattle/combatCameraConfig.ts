@@ -80,7 +80,9 @@ export const DEFAULT_COMBAT_CAMERA_CONFIG: CombatCameraConfig = {
   depthCompositionBias: 0.35,
   horizontalViewMargin: 0.9,
   referenceCharacterHeight: 1.6,
-  targetCharacterScreenHeightRatio: COMBAT_CAMERA_V082_BASELINE.targetCharacterScreenHeightRatio,
+  // ลดขนาดตัวละครบนจอเล็กน้อย เพื่อให้กล้องถอยออกและเห็นสนามกว้างขึ้น
+  // โดยไม่เปลี่ยนพิกัดหรือ hitbox ของการต่อสู้
+  targetCharacterScreenHeightRatio: 0.24,
   minCombatSpanWorld: 2.8,
   maxCombatSpanWorld: 7.5,
   bossDistanceModifier: 0.92,
