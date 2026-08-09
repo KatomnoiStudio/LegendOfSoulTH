@@ -370,9 +370,11 @@ Already directionally locked in fork issue #47 ("summon effect → reuse spawn/e
 
 **Resolution:** CC (stun/root/silence) is applied via `effects[]`'s `cc` kind, carrying its own `ccType`/`ccDurationMs` — it is a **status-effect application**, not a knockdown, and is therefore **not** subject to the elite/boss-only knockdown restriction. A Control kit can stun a normal mob; it just doesn't trigger the knockdown/hit-reaction state machine (§3.6.8) when it does. Heavy and Assassin need no dedicated resolution: Heavy is already a named knockdown trigger (§3.6.5), and Assassin-style mobility is already covered by the generic lunge/leap schema (§3.6.7) — there's no facing-based "backstab" concept possible in an L/R-only attack model, so nothing further to define.
 
-### 3.8.7 PvP hit-reaction tier — deferred to P12
+### 3.8.7 PvP hit-reaction tier — RESOLVED, opposing player-hero = elite tier
 
-§3.6.5/§3.6.9's knockdown tiers (normal/elite/boss) are written for PvE; §6.3 doesn't state which tier an opposing player-hero maps to (knockdown-immune like a normal mob, or knockdown-eligible like an elite?). Not blocking before P12 (PvP prototype) — resolve alongside the PvP netcode model when that work actually starts.
+§3.6.5/§3.6.9's knockdown tiers (normal/elite/boss) are written for PvE; §6.3 didn't originally state which tier an opposing player-hero maps to (knockdown-immune like a normal mob, or knockdown-eligible like an elite?).
+
+**Resolution (shipped, P12 private PvP prototype — `src/game/pvp/PvPAuthorityEngine.ts:145`):** every PvP combatant is constructed with `combatTier: 'elite'` — an opposing player-hero is knockdown-eligible per the existing elite-tier rules (§3.6.8/§3.6.12), not knockdown-immune like a normal mob.
 
 ---
 

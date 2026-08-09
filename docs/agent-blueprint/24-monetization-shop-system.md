@@ -4,40 +4,40 @@
 
 ### Scope
 
-Owns the **purchase-selection UI and client-side buy request** for currency top-ups: `CurrencyShopModal` (`src/components/CurrencyShopModal/CurrencyShopModal.tsx`), its package catalog (`GOLD_PACKAGES`/`GEM_PACKAGES`, `src/data/accountRepository.ts:250-275`), and the `topUpGold`/`topUpGems` call it triggers, wired into `TopBar.tsx:100-106`. Does **not** own: the currency ledger/balance itself or `earnGold`/`redeemCoupon` (that's system #22 Currency System); gacha pull mechanics, rates, or pity (#23 Gacha System); a real payment gateway (none exists — see §5/§6); or the skins/season-pass/starter-pack catalog (MASTER_BLUEPRINT_v3.0.md:470, "Secondary (later)... TBD" — zero code for these exists anywhere in `src/`).
+Owns the **purchase-selection UI and client-side buy request** for currency top-ups: `CurrencyShopModal` (`src/components/CurrencyShopModal/CurrencyShopModal.tsx`), its package catalog (`GOLD_PACKAGES`/`GEM_PACKAGES`, `src/data/accountRepository.shared.ts:28-53`), and the `topUpGold`/`topUpGems` call it triggers, wired into `TopBar.tsx:114-120`. Does **not** own: the currency ledger/balance itself or `earnGold`/`redeemCoupon` (that's system #22 Currency System); gacha pull mechanics, rates, or pity (#23 Gacha System); a real payment gateway (none exists — see §5/§6); or the skins/season-pass/starter-pack catalog (MASTER_BLUEPRINT_v3.0.md:471, "Secondary (later)... TBD" — zero code for these exists anywhere in `src/`).
 
 ### Inputs/Outputs
 
-- **In**: `currency: 'gold' | 'gem'`, a `packageId` (string) the player taps, chosen from `GoldPackage`/`GemPackage = { id: string; amount: number; priceLabel: string }` (`accountRepository.ts:250-275`).
-- **Out**: `Promise<CurrencyResult>` = `{ ok: true; player: Player; amount: number } | { ok: false; error: string }` (`accountRepository.ts:627-628`).
+- **In**: `currency: 'gold' | 'gem'`, a `packageId` (string) the player taps, chosen from `GoldPackage`/`GemPackage = { id: string; amount: number; priceLabel: string }` (`accountRepository.shared.ts:28-53`).
+- **Out**: `Promise<CurrencyResult>` = `{ ok: true; player: Player; amount: number } | { ok: false; error: string }` (`accountRepository.shared.ts:57-58`).
 - Component contract: `CurrencyShopModalProps = { currency: ShopCurrency; onBuy: (packageId: string) => Promise<CurrencyResult>; onClose: () => void }` (`CurrencyShopModal.tsx:16-21`).
 
 ### Dependencies
 
 - **Currency System (#22)**: this shop's buy call is the only path into `earnGold`-adjacent balance mutation for real-money currency; it feeds the ledger, doesn't own it.
-- **Backend / Server-Authority System (#25, §8)**: on the Supabase (production) backend, `topUpGold`/`topUpGems` are stubs that always return `{ok:false}` — "ระบบเติมเงินยังไม่เปิดให้ใช้งาน" (`accountRepository.supabase.ts:266-272`). Only the local/demo backend (`accountRepository.ts:653-695`) actually credits currency, unconditionally, with no payment verification.
+- **Backend / Server-Authority System (#25, §8)**: on the Supabase (production) backend, `topUpGold`/`topUpGems` are stubs that always return `{ok:false}` — "ระบบเติมเงินยังไม่เปิดให้ใช้งาน" (`accountRepository.supabase.ts:501-507`). Only the local/demo backend (`accountRepository.ts:600-642`) actually credits currency, unconditionally, with no payment verification.
 - **Gacha System (#23)**: feeds it — gems bought here are the stated gacha currency (§7 "Core: Hero Gacha + star ascension").
 - No dependency on combat/enemy/hero/adventure/pvp/social systems.
 
 ### Done-criteria
 
-1. `topUpGold`/`topUpGems` on the Supabase backend credit currency only after a verified payment callback — not the current always-fail stub (`accountRepository.supabase.ts:267-272`).
-2. A server-side RPC (`SECURITY DEFINER`, same pattern as `earn_gold`/`redeem_coupon`, `accountRepository.supabase.ts:245,257`) grants currency from a webhook — client-asserted "purchase succeeded" is never trusted.
+1. `topUpGold`/`topUpGems` on the Supabase backend credit currency only after a verified payment callback — not the current always-fail stub (`accountRepository.supabase.ts:501-507`).
+2. A server-side RPC (`SECURITY DEFINER`, same pattern as `earn_gold`/`redeem_coupon`, `accountRepository.supabase.ts:480,492`) grants currency from a webhook — client-asserted "purchase succeeded" is never trusted.
 3. Package catalog (id/amount/price) is validated server-side against the same source `CurrencyShopModal` renders from — today `priceLabel` is a display-only string with no server-side price check.
 4. E2E test: buying `gold-small` credits exactly 1000 gold once, is idempotent under webhook retry, and lands in `currency_transactions` with `source='topup'`.
-5. No purchasable SKU maps to combat power — audit passes §7's "must not sell best power primarily via direct purchase" (MASTER_BLUEPRINT_v3.0.md:471).
+5. No purchasable SKU maps to combat power — audit passes §7's "must not sell best power primarily via direct purchase" (MASTER_BLUEPRINT_v3.0.md:472).
 
 ### World-class bar
 
-The bar here isn't a specific competitor's architecture — it's the baseline every commercial app with in-app purchases meets (App Store/Play Store review requires it, and any payment processor enforces it): **server-side receipt/webhook verification before crediting currency, full stop — the client never gets to assert "I paid."** That's this project's current gap (done-criterion 2). No named-exemplar detail is being borrowed here (no specific receipt-validation service, anti-fraud, or rate-limit design) because none is needed — the fix is the industry-standard shape, and the `earn_gold`/`redeem_coupon` RPC pattern already used for other currency paths (`accountRepository.supabase.ts:245,257`) is the template to extend, not a new one to invent.
+The bar here isn't a specific competitor's architecture — it's the baseline every commercial app with in-app purchases meets (App Store/Play Store review requires it, and any payment processor enforces it): **server-side receipt/webhook verification before crediting currency, full stop — the client never gets to assert "I paid."** That's this project's current gap (done-criterion 2). No named-exemplar detail is being borrowed here (no specific receipt-validation service, anti-fraud, or rate-limit design) because none is needed — the fix is the industry-standard shape, and the `earn_gold`/`redeem_coupon` RPC pattern already used for other currency paths (`accountRepository.supabase.ts:480,492`) is the template to extend, not a new one to invent.
 
 ### Stay-current note
 
-The actual payment gateway is undecided — `accountRepository.supabase.ts:266` cites "fork issue #19, ยังไม่มี RPC (ไม่มี payment gateway จริง)" — and distribution channel (web vs. wrapped app) determines the choice (Omise/2C2P/TrueMoney for web vs. Apple/Google IAP for app stores), so the integration shape here will change once that's decided and §7's monetization moves off P14-deferred.
+The actual payment gateway is undecided — `accountRepository.supabase.ts:501` cites "ยังไม่มี RPC (ไม่มี payment gateway จริง — ดู fork issue #19)" — and distribution channel (web vs. wrapped app) determines the choice (Omise/2C2P/TrueMoney for web vs. Apple/Google IAP for app stores), so the integration shape here will change once that's decided and §7's monetization moves off P14-deferred.
 
 ### Low-maintenance-cost design
 
-Keep `GOLD_PACKAGES`/`GEM_PACKAGES` in `accountRepository.ts` as the **single data-driven catalog** both the UI and future server-side price verification read from — don't fork a second list. And don't build a payment-gateway abstraction/interface now: zero real gateways are wired today, so an interface for "gateway #1 of 1" is exactly the premature abstraction this project's own style avoids (see AGENTS.md rule 12, proven-good-do-it-now — nothing proven yet to abstract over). When a gateway is actually chosen, wire it directly into `topUpGold`/`topUpGems` following the existing `earn_gold`/`redeem_coupon` RPC pattern; also respect `.agents/rules/currency-ledger-retention.md` (AGENTS.md item 14) — `topup` transactions must never be pruned once real money is involved.
+Keep `GOLD_PACKAGES`/`GEM_PACKAGES` in `accountRepository.shared.ts` as the **single data-driven catalog** both the UI and future server-side price verification read from — don't fork a second list. And don't build a payment-gateway abstraction/interface now: zero real gateways are wired today, so an interface for "gateway #1 of 1" is exactly the premature abstraction this project's own style avoids (see AGENTS.md rule 12, proven-good-do-it-now — nothing proven yet to abstract over). When a gateway is actually chosen, wire it directly into `topUpGold`/`topUpGems` following the existing `earn_gold`/`redeem_coupon` RPC pattern; also respect `.agents/rules/currency-ledger-retention.md` (AGENTS.md item 14) — `topup` transactions must never be pruned once real money is involved.
 
 **Note on the exemplar**: `docs/agent-blueprint/24-monetization-shop-system.md`'s "World-class bar" section does not actually cite a named shipped game/engine. It explicitly declines to: _"The bar here isn't a specific competitor's architecture... No named-exemplar detail is being borrowed here (no specific receipt-validation service, anti-fraud, or rate-limit design) because none is needed."_ (Verified verbatim against the file, lines 30-32.) Per the task instruction for this case, three well-documented real precedents were substituted, each matching a specific failure shape this system's done-criteria (1, 2, 4, 5) call out.
 

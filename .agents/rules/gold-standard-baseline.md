@@ -43,20 +43,23 @@ stay closed, not as an open checklist). 6 remains the one open gap.
    `npx lint-staged` → `oxlint` on staged files), catching lint failures before commit,
    not just in CI.
 
-6. **Component/integration test coverage** — PARTIALLY CLOSED, narrowed scope. As of the
-   2026-08-07 FINAL AUDIT (see section below) there are **28 test files / 197 tests**,
-   including **4 `*.test.tsx` files** (`AuthModal`, `ErrorBoundary`, `GlobalErrorBanner`,
-   `EnemyHealthBar`) using `@testing-library/react` — each one pins a bug this project
-   actually hit, per `proven-good-do-it-now.md`, not written on spec. 4 of ~58 components
-   have a rendering-level test; the remaining ~54 do not. Coverage: **32.17% statements /
-   29.57% branches / 24.78% functions / 32.77% lines** (`npm run test:coverage`, measured
-   live 2026-08-07 — functions is the weakest axis). No threshold enforced yet, same
-   reasoning as before: a threshold that passes today would still guard almost nothing.
+6. **Component/integration test coverage** — PARTIALLY CLOSED, narrowed scope. As of
+   2026-08-09 there are **106 test files** under `src/` (up from the 2026-08-07 audit's 28),
+   including **23 `*.test.tsx` files** using `@testing-library/react` across 20 of the
+   repo's 35 top-level components (`AddFriendModal`, `AuthModal`, `BattleScene`,
+   `CharacterRoster`, `CurrencyShopModal`, `DungeonSession`, `ErrorBoundary`, `GachaModal`,
+   `GlobalErrorBanner`, `ItemsModal`, `LobbyBattleSession`, `MainNavigation`, `NameModal`,
+   `ProfileModal`, `PvPRoom`, `SettingsModal`, `StageSelect`, `TopBar`, `UpdateBanner`,
+   `WorldChat`) — up from 4 of ~58. 15 components still have no rendering-level test. The
+   2026-08-07 coverage percentages (32.17% statements / 29.57% branches / 24.78% functions /
+   32.77% lines) are stale given the file-count growth above — re-run `npm run test:coverage`
+   before citing a coverage number again. No threshold enforced yet, same reasoning as
+   before: a threshold that passes today would still guard almost nothing.
 
-   Property-based/fuzz testing also closed this pass (`fast-check`, 4 `*.fuzz.test.ts` files)
-   — an EXCELLENCE-tier item the 2026-08-06 pass didn't even list, closed anyway.
+   Property-based/fuzz testing: **7** `*.fuzz.test.ts` files now (up from the 4 recorded
+   2026-08-07) — an EXCELLENCE-tier item the 2026-08-06 pass didn't even list, closed anyway.
 
-   Remains **OPEN as a sweep**: covering the other ~54 components on spec is still a weighed
+   Remains **OPEN as a sweep**: covering the remaining components on spec is still a weighed
    decision, not a proven-good default — state cost/benefit and recommend, per the rule.
 
 ---
