@@ -102,21 +102,31 @@ describe('mapOwnedCharacterRow', () => {
   Postgres project — nothing here would catch it before this).
 */
 
-const { supabaseMock, rpcMock, fromMock, reportErrorMock } = vi.hoisted(() => {
-  const rpcFn = vi.fn()
-  const fromFn = vi.fn()
-  const reportErrorFn = vi.fn()
-  return {
-    rpcMock: rpcFn,
-    fromMock: fromFn,
-    reportErrorMock: reportErrorFn,
-    supabaseMock: {
-      rpc: rpcFn,
-      from: fromFn,
-      auth: { onAuthStateChange: vi.fn(), getSession: vi.fn() },
-    },
-  }
-})
+const { supabaseMock, rpcMock, fromMock, reportErrorMock, signInWithOAuthMock, linkIdentityMock } =
+  vi.hoisted(() => {
+    const rpcFn = vi.fn()
+    const fromFn = vi.fn()
+    const reportErrorFn = vi.fn()
+    const signInWithOAuthFn = vi.fn()
+    const linkIdentityFn = vi.fn()
+    return {
+      rpcMock: rpcFn,
+      fromMock: fromFn,
+      reportErrorMock: reportErrorFn,
+      signInWithOAuthMock: signInWithOAuthFn,
+      linkIdentityMock: linkIdentityFn,
+      supabaseMock: {
+        rpc: rpcFn,
+        from: fromFn,
+        auth: {
+          onAuthStateChange: vi.fn(),
+          getSession: vi.fn(),
+          signInWithOAuth: signInWithOAuthFn,
+          linkIdentity: linkIdentityFn,
+        },
+      },
+    }
+  })
 
 vi.mock('../lib/supabaseClient', () => ({ supabase: supabaseMock }))
 vi.mock('../lib/errors/reportError', () => ({ reportError: reportErrorMock }))
@@ -375,5 +385,61 @@ describe('Scar 3: Atomic cost & bounded grant validation (PoE Freedom of Faith i
       p_amount: 99999999,
       p_ref_id: null,
     })
+  })
+})
+
+/*
+  OAuth redirect target — pins a real production bug found 2026-08-09.
+
+  Both OAuth entry points used to pass `window.location.origin` as `redirectTo`. The app is a
+  GitHub Pages *project site* served under `/LegendOfSoulTH/`, and `origin` always strips the
+  path, so Google redirected users to the org root — where no app (and therefore no supabase-js)
+  exists to consume the callback. Under the old implicit flow that left the raw session JWT
+  sitting in the address bar and the browser history, and the user was never actually signed in.
+
+  These tests fail if anyone reintroduces a bare-origin redirect.
+*/
+describe('OAuth redirect URL', () => {
+  beforeEach(() => {
+    signInWithOAuthMock.mockReset()
+    linkIdentityMock.mockReset()
+    signInWithOAuthMock.mockResolvedValue({ data: {}, error: null })
+    linkIdentityMock.mockResolvedValue({ data: {}, error: null })
+  })
+
+  test('resolveOAuthRedirectUrl ต่อ base path เข้ากับ origin — ไม่ใช่ origin เปล่า (บั๊กจริง 2026-08-09)', async () => {
+    const { resolveOAuthRedirectUrl } = await import('./accountRepository.supabase')
+
+    // GitHub Pages project site — เคสที่พังจริงบน production
+    expect(resolveOAuthRedirectUrl('https://katomnoistudio.github.io', '/LegendOfSoulTH/')).toBe(
+      'https://katomnoistudio.github.io/LegendOfSoulTH/',
+    )
+    // dev server / user site — base '/' ต้องยังทำงานเหมือนเดิม
+    expect(resolveOAuthRedirectUrl('http://localhost:5173', '/')).toBe('http://localhost:5173/')
+  })
+
+  test('signInWithGoogle ส่ง redirectTo ที่ครอบ base path ไม่ใช่ origin เปล่า', async () => {
+    const { signInWithGoogle } = await import('./accountRepository.supabase')
+
+    await signInWithGoogle()
+
+    expect(signInWithOAuthMock).toHaveBeenCalledTimes(1)
+    const redirectTo = signInWithOAuthMock.mock.calls[0][0].options.redirectTo as string
+    expect(signInWithOAuthMock.mock.calls[0][0].provider).toBe('google')
+    // ต้องขึ้นต้นด้วย origin และ "ยาวกว่า" origin เสมอเมื่อ base ไม่ใช่ '/' — กันการถอยกลับไปใช้ origin เปล่า
+    expect(redirectTo.startsWith(window.location.origin)).toBe(true)
+    expect(redirectTo).toBe(new URL(import.meta.env.BASE_URL, window.location.origin).href)
+  })
+
+  test('linkGoogleIdentity ใช้ redirectTo ตัวเดียวกับ signInWithGoogle — ไม่หลุดไปคนละค่า', async () => {
+    const repo = await import('./accountRepository.supabase')
+
+    await repo.signInWithGoogle()
+    await repo.linkGoogleIdentity()
+
+    const signInRedirect = signInWithOAuthMock.mock.calls[0][0].options.redirectTo
+    const linkRedirect = linkIdentityMock.mock.calls[0][0].options.redirectTo
+    expect(linkIdentityMock.mock.calls[0][0].provider).toBe('google')
+    expect(linkRedirect).toBe(signInRedirect)
   })
 })

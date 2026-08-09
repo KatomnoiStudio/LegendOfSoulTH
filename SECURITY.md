@@ -54,6 +54,11 @@ In scope:
 - Gacha authority bypasses: controlling a roll from the client, changing a banner/cost after a
   request ID is committed, spending Gem twice on retry, bypassing pity, or directly writing
   `gacha_pity`, pull history, owned Heroes, or duplicate shards
+- session-token exposure: anything that puts a user's `access_token`/`refresh_token` somewhere it
+  outlives the tab — a URL the browser records in history, a log, an error report, a referrer. Auth
+  uses the PKCE flow (`flowType: 'pkce'`, `src/lib/supabaseClient.ts`) specifically so the callback
+  carries a one-time `?code=` instead of a JWT fragment; a change that reverts to the implicit flow,
+  or an OAuth `redirectTo` that does not land on the app itself, reopens this and is in scope
 
 ## Out of Scope
 
