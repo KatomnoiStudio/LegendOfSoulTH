@@ -26,6 +26,8 @@ export interface RealtimeBattleState {
   stage: RealtimeBattleStage
   status: 'loading' | 'intro' | 'running' | 'victory' | 'defeat' | 'exiting'
   elapsedMs: number
+  /** เวลาที่ผู้เล่นอยู่ในสถานะ running จริง — ไม่รวมช่วง intro */
+  stageElapsedMs: number
   player: RealtimeBattleEntity
   enemies: RealtimeBattleEntity[]
   currentWaveIndex: number
@@ -266,6 +268,7 @@ export function createRealtimeBattle(
     stage,
     status: 'intro',
     elapsedMs: 0,
+    stageElapsedMs: 0,
     player: playerEntity,
     enemies: options?.skipInitialWave ? [] : createWaveEnemies(stage, 0, enemyHpScale),
     currentWaveIndex: options?.skipInitialWave ? -1 : 0,
