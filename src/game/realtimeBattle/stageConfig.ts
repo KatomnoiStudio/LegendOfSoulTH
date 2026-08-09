@@ -79,7 +79,7 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
   'shadow-soldier': {
     id: 'shadow-soldier',
     name: 'ทหารเงา',
-    spriteKind: 'pig-warrior',
+    spriteKind: 'spear-warrior',
     accent: '#8b7cff',
     maxHp: 210,
     atk: 55,
@@ -94,7 +94,7 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
   'demon-captain': {
     id: 'demon-captain',
     name: 'แม่ทัพปีศาจ',
-    spriteKind: 'pig-warrior',
+    spriteKind: 'spear-warrior',
     accent: '#ff6a5c',
     maxHp: 340,
     atk: 72,
@@ -109,7 +109,7 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
   'spirit-guardian': {
     id: 'spirit-guardian',
     name: 'ผู้พิทักษ์วิญญาณ',
-    spriteKind: 'pilgrim-monk',
+    spriteKind: 'spear-warrior',
     accent: '#6dffb8',
     maxHp: 260,
     atk: 62,

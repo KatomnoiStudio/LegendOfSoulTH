@@ -1,12 +1,14 @@
 import { publicUrl } from '../lib/publicUrl'
 import type { OwnedCharacter } from '../types/player'
 
-export type CharacterModelKind = 'monkey-king' | 'pig-warrior' | 'pilgrim-monk'
+export type CharacterModelKind = 'monkey-king' | 'pig-warrior' | 'pilgrim-monk' | 'spear-warrior'
 
 /** สไปรต์ idle เริ่มต้นของแต่ละตัวละคร ใช้เป็น fallback เมื่อไม่มี model.spriteUrl ให้ใช้ */
-export const MONKEY_SPRITE_URL = publicUrl('characters/monkey-v2-idle-0.webp')
+export const MONKEY_SPRITE_URL = publicUrl('characters/wukong-idle-0.webp')
 export const PIGSY_SPRITE_URL = publicUrl('characters/pigsy-idle-0.webp')
 export const TRIPITAKA_SPRITE_URL = publicUrl('characters/tripitaka-idle-0.webp')
+export const SPEAR_WARRIOR_SPRITE_URL = publicUrl('characters/erlang-shen-v6-idle-0.webp')
+export const SPEAR_WARRIOR_CHARACTER_ID = 'spear-warrior'
 export type CharacterOrigin = 'Myth' | 'History' | 'Original'
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary'
 
@@ -56,7 +58,7 @@ export interface Character {
    เพราะเป็นข้อมูลของบัญชีผู้เล่น ไม่ใช่ของตัวละคร — ดู src/game/team.ts
 */
 
-export const ROSTER: Character[] = [
+const LEGACY_ROSTER: Character[] = [
   {
     id: 'monkey-king',
     name: 'ซุนหงอคง',
@@ -74,6 +76,25 @@ export const ROSTER: Character[] = [
       kind: 'monkey-king',
       spriteUrl: MONKEY_SPRITE_URL,
       accent: '#ffd765',
+    },
+  },
+  {
+    id: SPEAR_WARRIOR_CHARACTER_ID,
+    name: 'แม่ทัพขนนก',
+    epithet: 'หอกศักดิ์สิทธิ์แห่งนภา',
+    origin: 'Original',
+    lore: 'แม่ทัพผู้รักษาคำสัตย์ ใช้หอกยาวและขนนกศักดิ์สิทธิ์นำทางกองทัพผ่านสมรภูมิ',
+    role: 'นักรบหอก',
+    element: 'ลม',
+    rarity: 'legendary',
+    level: 1,
+    exp: 0,
+    expToNext: 500,
+    stats: { hp: 1120, atk: 88, def: 76, spd: 90 },
+    model: {
+      kind: 'spear-warrior',
+      spriteUrl: SPEAR_WARRIOR_SPRITE_URL,
+      accent: '#d7b35b',
     },
   },
   {
@@ -115,6 +136,11 @@ export const ROSTER: Character[] = [
     },
   },
 ]
+
+/** Only Erlang Shen remains available; legacy entries are retained solely for old-save decoding. */
+export const ROSTER: Character[] = LEGACY_ROSTER.filter(
+  (character) => character.id === SPEAR_WARRIOR_CHARACTER_ID,
+)
 
 export function getCharacter(id: string | null): Character | null {
   if (!id) return null

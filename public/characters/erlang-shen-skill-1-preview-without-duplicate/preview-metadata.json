@@ -1,0 +1,25 @@
+{
+  "preview_only": true,
+  "source_runtime_frames": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+  ],
+  "removed_runtime_frame": 15,
+  "frame_count": 15,
+  "removed_frame_reason": "pixel-identical duplicate of runtime frame 0",
+  "per_frame_crop_or_trim": false,
+  "per_frame_scale_or_anchor_change": false
+}

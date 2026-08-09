@@ -14,7 +14,7 @@ import {
   type ComboState,
 } from './ComboSystem'
 import { createDashState, isDashing, startDash, stepDash, type DashState } from './DashSystem'
-import { getRealtimeSkillForCharacter } from './skills'
+import { getRealtimeSkillForCharacter, type SkillAnimationId } from './skills'
 import {
   canStartSkill,
   createSkillState,
@@ -80,7 +80,7 @@ export class RealtimeBattleRuntime {
   /** ผู้เล่นสั่งโจมตี/พุ่ง/สกิลค้างไว้ รอให้เฟรมจำลองถัดไปหยิบไปใช้ */
   private attackRequested = false
   private dashRequested = false
-  private skillRequested = false
+  private requestedSkillAnimationId: SkillAnimationId | null = null
   /** ตัวสุ่มที่ระบบดาเมจใช้ — เทสต์ป้อนค่าคงที่เข้ามาแทนได้ */
   private random: RandomFn
   private eventCounter = 0
@@ -114,9 +114,10 @@ export class RealtimeBattleRuntime {
 
     const castingSkill = isCastingSkill(this.playerSkill)
 
-    if (this.skillRequested) {
-      this.skillRequested = false
-      this.tryStartPlayerSkill()
+    if (this.requestedSkillAnimationId) {
+      const animationId = this.requestedSkillAnimationId
+      this.requestedSkillAnimationId = null
+      this.tryStartPlayerSkill(animationId)
     }
 
     this.stepPlayerSkill(deltaMs)
@@ -136,12 +137,13 @@ export class RealtimeBattleRuntime {
         มาแทรกกลางคัน ระยะพุ่งจะสั้นลงแบบเดาไม่ได้ และ i-frame จะไม่คุ้มกับคูลดาวน์
       */
       const dashing = stepDash(state.player, this.playerDash, deltaMs, state.stage)
-      const moved = dashing || isAttacking(this.playerCombat)
-        ? false
-        : stepMovement(state.player, this.moveInput, deltaMs, {
-            stage: state.stage,
-            blockers: state.enemies,
-          })
+      const moved =
+        dashing || isAttacking(this.playerCombat)
+          ? false
+          : stepMovement(state.player, this.moveInput, deltaMs, {
+              stage: state.stage,
+              blockers: state.enemies,
+            })
 
       // สถานะเดิน/ยืน คุมจากผลของระบบเดินจุดเดียว ไม่ให้ component เดาเอง
       if (state.player.state === 'idle' && moved) state.player.state = 'walk'
@@ -212,9 +214,9 @@ export class RealtimeBattleRuntime {
     if (targets.length > 0) applyHitStop(this.playerCombat)
   }
 
-  private tryStartPlayerSkill(): void {
+  private tryStartPlayerSkill(animationId: SkillAnimationId): void {
     const state = this.state
-    const definition = getRealtimeSkillForCharacter(state.player.characterId)
+    const definition = getRealtimeSkillForCharacter(state.player.characterId, animationId)
     if (!definition) return
 
     if (
@@ -230,7 +232,7 @@ export class RealtimeBattleRuntime {
 
     cancelCombo(state.player, this.playerCombat)
     startSkill(state.player, this.playerSkill, definition, state.elapsedMs)
-    this.pushEffectEvent('skill-spin', state.player.position, 700)
+    if (animationId === 'skill-1') this.pushEffectEvent('skill-spin', state.player.position, 700)
     this.publish()
   }
 
@@ -265,6 +267,9 @@ export class RealtimeBattleRuntime {
       }
 
       this.pushDamageEvent(target, outcome.amount, outcome.critical)
+      if (tick.attack.animationId === 'skill-1') {
+        this.pushEffectEvent('skill-lightning', target.position, 400)
+      }
       this.publish()
     }
   }
@@ -348,8 +353,8 @@ export class RealtimeBattleRuntime {
   }
 
   /** สั่งให้ผู้เล่นใช้สกิลในเฟรมจำลองถัดไป */
-  requestSkill(): void {
-    this.skillRequested = true
+  requestSkill(animationId: SkillAnimationId = 'skill-1'): void {
+    this.requestedSkillAnimationId = animationId
   }
 
   /**
@@ -393,7 +398,12 @@ export class RealtimeBattleRuntime {
         const a = alive[i]
         const b = alive[j]
         // ดันเฉพาะตัวหลังออกจากตัวหน้า ทำให้ผลลัพธ์ไม่ขึ้นกับลำดับที่วนเจอ
-        b.position = resolveCircleOverlap(b.position, b.collisionRadius, a.position, a.collisionRadius)
+        b.position = resolveCircleOverlap(
+          b.position,
+          b.collisionRadius,
+          a.position,
+          a.collisionRadius,
+        )
       }
     }
   }
@@ -491,7 +501,11 @@ export class RealtimeBattleRuntime {
    * จะเห็น 'exiting' แทนผลจริง
    */
   requestExit(): void {
-    if (this.state.status === 'exiting' || this.state.status === 'victory' || this.state.status === 'defeat') {
+    if (
+      this.state.status === 'exiting' ||
+      this.state.status === 'victory' ||
+      this.state.status === 'defeat'
+    ) {
       return
     }
     this.state.status = 'exiting'
@@ -526,7 +540,11 @@ export class RealtimeBattleRuntime {
       stageName: state.stage.name,
       status: state.status,
       elapsedMs: state.elapsedMs,
-      player: { ...state.player, position: { ...state.player.position }, velocity: { ...state.player.velocity } },
+      player: {
+        ...state.player,
+        position: { ...state.player.position },
+        velocity: { ...state.player.velocity },
+      },
       enemies: state.enemies.map((enemy) => ({
         ...enemy,
         position: { ...enemy.position },

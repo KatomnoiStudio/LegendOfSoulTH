@@ -1,4 +1,9 @@
-import { MONKEY_SPINNING_STAFF, SKILL_CONFIG, type AttackDefinition } from './attacks'
+import {
+  ERLANG_GOLDEN_LIGHTNING,
+  MONKEY_SPINNING_STAFF,
+  SKILL_CONFIG,
+  type AttackDefinition,
+} from './attacks'
 
 /**
  * ทะเบียนสกิลของห้องต่อสู้ real-time (§18)
@@ -18,20 +23,36 @@ export interface RealtimeSkillDefinition {
   invulnerableMs: number
 }
 
-export const REALTIME_CHARACTER_SKILLS: Record<string, RealtimeSkillDefinition> = {
-  'monkey-king': {
-    id: 'spinning-golden-staff',
-    name: 'กระบวนทองคำ',
-    characterId: 'monkey-king',
-    attack: MONKEY_SPINNING_STAFF,
-    cooldownMs: SKILL_CONFIG.cooldownMs,
-    invulnerableMs: SKILL_CONFIG.invulnerableMs,
+export type SkillAnimationId = 'skill-1' | 'skill-2'
+
+export const REALTIME_CHARACTER_SKILLS: Record<
+  string,
+  Partial<Record<SkillAnimationId, RealtimeSkillDefinition>>
+> = {
+  'spear-warrior': {
+    'skill-1': {
+      id: 'spinning-golden-staff',
+      name: 'กระบวนทองคำ',
+      characterId: 'spear-warrior',
+      attack: MONKEY_SPINNING_STAFF,
+      cooldownMs: SKILL_CONFIG.cooldownMs,
+      invulnerableMs: SKILL_CONFIG.invulnerableMs,
+    },
+    'skill-2': {
+      id: 'erlang-golden-lightning',
+      name: 'อสนีทองคำ',
+      characterId: 'spear-warrior',
+      attack: ERLANG_GOLDEN_LIGHTNING,
+      cooldownMs: SKILL_CONFIG.cooldownMs,
+      invulnerableMs: SKILL_CONFIG.invulnerableMs,
+    },
   },
 }
 
 export function getRealtimeSkillForCharacter(
   characterId: string | undefined,
+  animationId: SkillAnimationId = 'skill-1',
 ): RealtimeSkillDefinition | undefined {
   if (!characterId) return undefined
-  return REALTIME_CHARACTER_SKILLS[characterId]
+  return REALTIME_CHARACTER_SKILLS[characterId]?.[animationId]
 }

@@ -2,78 +2,65 @@ import { describe, expect, it } from 'vitest'
 import { parseCommand, resolveCommandForSender } from './commands'
 
 describe('parseCommand', () => {
-  it('ข้อความว่างไม่ถือเป็นคำสั่ง', () => {
+  it('grants Erlang by alias or full character id', () => {
+    expect(parseCommand('/givecharacter erlang')).toEqual({
+      kind: 'give-character',
+      characterId: 'spear-warrior',
+    })
+    expect(parseCommand('/givecharacter spear-warrior')).toEqual({
+      kind: 'give-character',
+      characterId: 'spear-warrior',
+    })
+  })
+
+  it('treats empty and ordinary chat as chat, not commands', () => {
     expect(parseCommand('')).toBeNull()
     expect(parseCommand('   ')).toBeNull()
+    expect(parseCommand('hello')).toBeNull()
+    expect(parseCommand('givecharacter erlang')).toBeNull()
   })
 
-  it('ข้อความแชทธรรมดาที่ไม่ขึ้นต้นด้วย / ไม่ถือเป็นคำสั่ง (ต้องส่งเป็นแชทปกติ)', () => {
-    expect(parseCommand('สวัสดีครับ')).toBeNull()
-    expect(parseCommand('givecharacter pig')).toBeNull()
-  })
-
-  it('/givecharacter pig แปลงชื่อย่อเป็น id จริงได้', () => {
-    expect(parseCommand('/givecharacter pig')).toEqual({
+  it('matches command names without case sensitivity', () => {
+    expect(parseCommand('/GiveCharacter erlang')).toEqual({
       kind: 'give-character',
-      characterId: 'pig-warrior',
+      characterId: 'spear-warrior',
     })
   })
 
-  it('รับ id เต็มและชื่อไทยได้ด้วย', () => {
-    expect(parseCommand('/givecharacter pig-warrior')).toEqual({
-      kind: 'give-character',
-      characterId: 'pig-warrior',
-    })
-    expect(parseCommand('/givecharacter ตือโป๊ยก่าย')).toEqual({
-      kind: 'give-character',
-      characterId: 'pig-warrior',
-    })
+  it('rejects deleted and unknown characters', () => {
+    expect(parseCommand('/givecharacter monkey-king')?.kind).toBe('error')
+    expect(parseCommand('/givecharacter pig-warrior')?.kind).toBe('error')
+    expect(parseCommand('/givecharacter pilgrim-monk')?.kind).toBe('error')
+    expect(parseCommand('/givecharacter dragon')?.kind).toBe('error')
   })
 
-  it('ชื่อคำสั่งไม่สนตัวพิมพ์เล็กใหญ่', () => {
-    expect(parseCommand('/GiveCharacter pig')).toEqual({
-      kind: 'give-character',
-      characterId: 'pig-warrior',
-    })
-  })
-
-  it('ไม่ใส่ชื่อตัวละครต้องได้ข้อความบอกวิธีใช้', () => {
+  it('returns usage when the character is omitted', () => {
     expect(parseCommand('/givecharacter')).toEqual({
       kind: 'error',
-      message: expect.stringContaining('/givecharacter <ตัวละคร>'),
+      message: expect.stringContaining('/givecharacter'),
     })
   })
 
-  it('ตัวละครที่ไม่มีจริงต้องไม่ถูกเดาให้', () => {
-    const result = parseCommand('/givecharacter dragon')
-    expect(result?.kind).toBe('error')
-  })
-
-  it('คำสั่งที่ไม่รู้จักต้องไม่ถูกตีความเป็นคำสั่งอื่น', () => {
-    const result = parseCommand('/deleteeverything')
-    expect(result).toEqual({ kind: 'error', message: expect.stringContaining('ไม่รู้จักคำสั่ง') })
-  })
-
-  it('/help ใช้ได้', () => {
+  it('rejects unknown commands and supports help', () => {
+    expect(parseCommand('/deleteeverything')?.kind).toBe('error')
     expect(parseCommand('/help')).toEqual({ kind: 'help' })
   })
 })
 
 describe('resolveCommandForSender', () => {
-  it('บัญชีที่ไม่ใช่ผู้ดูแลพิมพ์ /givecharacter ต้องไม่ถูกตีความเป็นคำสั่งเลย (ต้องส่งเป็นแชทปกติ)', () => {
-    expect(resolveCommandForSender(false, '/givecharacter pig')).toBeNull()
+  it('does not execute commands from non-admin accounts', () => {
+    expect(resolveCommandForSender(false, '/givecharacter erlang')).toBeNull()
     expect(resolveCommandForSender(false, '/help')).toBeNull()
-    expect(resolveCommandForSender(false, '/deleteeverything')).toBeNull()
   })
 
-  it('บัญชีผู้ดูแลพิมพ์ /givecharacter ต้องถูกตีความเป็นคำสั่งตามปกติ', () => {
-    expect(resolveCommandForSender(true, '/givecharacter pig')).toEqual({
+  it('allows an admin to grant Erlang', () => {
+    expect(resolveCommandForSender(true, '/givecharacter erlang')).toEqual({
       kind: 'give-character',
-      characterId: 'pig-warrior',
+      characterId: 'spear-warrior',
     })
   })
 
-  it('บัญชีผู้ดูแลพิมพ์ข้อความแชทธรรมดา (ไม่ขึ้นต้นด้วย /) ยังคงเป็นแชทปกติเหมือนบัญชีทั่วไป', () => {
-    expect(resolveCommandForSender(true, 'สวัสดีครับ')).toBeNull()
+  it('keeps normal admin messages as ordinary chat', () => {
+    expect(resolveCommandForSender(true, 'hello')).toBeNull()
   })
 })

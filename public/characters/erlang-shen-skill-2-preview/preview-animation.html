@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="th"><meta charset="utf-8"><title>Erlang Skill 2 Preview</title>
+<style>body{margin:0;background:#171b22;color:#fff;font:16px system-ui;text-align:center}main{max-width:900px;margin:24px auto}img{width:800px;max-width:100%;background:repeating-conic-gradient(#d7dde5 0 25%,#b0b8c5 0 50%) 50%/32px 32px}button{margin:8px;padding:8px 14px}</style>
+<main><h1>Skill 2 — 12 Fixed-Grid Frames</h1><p id="label"></p><img id="frame" alt="Erlang Skill 2 animation preview"><br><button id="prev">ก่อนหน้า</button><button id="play">หยุด</button><button id="next">ถัดไป</button></main>
+<script>const frames=[
+  '../erlang-shen-skill-2-0.webp?v=20260809-skill2-qc-pass',
+  '../erlang-shen-skill-2-1.webp?v=20260809-skill2-qc-pass',
+  '../erlang-shen-skill-2-2.webp?v=20260809-skill2-qc-pass',
+  '../erlang-shen-skill-2-3.webp?v=20260809-skill2-qc-pass',
+  '../erlang-shen-skill-2-4.webp?v=20260809-skill2-qc-pass',
+  '../erlang-shen-skill-2-5.webp?v=20260809-skill2-qc-pass',
+  '../erlang-shen-skill-2-6.webp?v=20260809-skill2-qc-pass',
+  '../erlang-shen-skill-2-7.webp?v=20260809-skill2-qc-pass',
+  '../erlang-shen-skill-2-8.webp?v=20260809-skill2-qc-pass',
+  '../erlang-shen-skill-2-9.webp?v=20260809-skill2-qc-pass',
+  '../erlang-shen-skill-2-10.webp?v=20260809-skill2-qc-pass',
+  '../erlang-shen-skill-2-11.webp?v=20260809-skill2-qc-pass'
+];let i=0,playing=true;const image=document.querySelector('#frame'),label=document.querySelector('#label');function show(){image.src=frames[i];label.textContent=`FRAME ${String(i+1).padStart(2,'0')} / ${frames.length}`;}function step(){i=(i+1)%frames.length;show();}let timer=setInterval(()=>{if(playing)step()},90);document.querySelector('#prev').onclick=()=>{i=(i+frames.length-1)%frames.length;show()};document.querySelector('#next').onclick=step;document.querySelector('#play').onclick=e=>{playing=!playing;e.target.textContent=playing?'หยุด':'เล่น'};show();</script>

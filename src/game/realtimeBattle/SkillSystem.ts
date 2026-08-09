@@ -56,6 +56,7 @@ export function startSkill(
   skill.hitTargets.clear()
 
   player.state = 'skill'
+  player.attackAnimationId = definition.attack.animationId
   player.velocity = { x: 0, y: 0 }
   player.skillCooldownRemainingMs = definition.cooldownMs
   player.invulnerableUntilMs = elapsedMs + definition.invulnerableMs
@@ -81,6 +82,7 @@ export function stepSkill(
     skill.definition = null
     skill.hitTargets.clear()
     skill.sinceStartMs = 0
+    player.attackAnimationId = undefined
     return { hitboxActive: false, attack: null }
   }
 
@@ -92,6 +94,7 @@ export function stepSkill(
     skill.hitTargets.clear()
     skill.sinceStartMs = 0
     if (player.state === 'skill') player.state = 'idle'
+    player.attackAnimationId = undefined
     return { hitboxActive: false, attack: null }
   }
 

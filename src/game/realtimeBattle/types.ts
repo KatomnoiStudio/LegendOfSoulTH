@@ -21,14 +21,7 @@ export interface Vec2 {
 }
 
 export type Direction8 =
-  | 'up'
-  | 'up-right'
-  | 'right'
-  | 'down-right'
-  | 'down'
-  | 'down-left'
-  | 'left'
-  | 'up-left'
+  'up' | 'up-right' | 'right' | 'down-right' | 'down' | 'down-left' | 'left' | 'up-left'
 
 export type EntityState = 'idle' | 'walk' | 'attack' | 'skill' | 'dash' | 'hit' | 'dead'
 
@@ -43,6 +36,8 @@ export interface RealtimeBattleEntity {
   velocity: Vec2
   facing: Direction8
   state: EntityState
+  /** ภาพ Normal Attack ที่สุ่มไว้สำหรับไม้ปัจจุบัน ห้ามสุ่มใหม่ระหว่างเล่นเฟรม */
+  attackAnimationId?: 'attack-1' | 'attack-2' | 'attack-3' | 'skill-1' | 'skill-2'
 
   hp: number
   maxHp: number
@@ -79,7 +74,8 @@ export interface DamageEvent {
   createdAtMs: number
 }
 
-export type BattleEffectKind = 'hit-spark' | 'dash-trail' | 'skill-spin' | 'death' | 'spawn'
+export type BattleEffectKind =
+  'hit-spark' | 'dash-trail' | 'skill-spin' | 'skill-lightning' | 'death' | 'spawn'
 
 export interface BattleEffectEvent {
   id: string

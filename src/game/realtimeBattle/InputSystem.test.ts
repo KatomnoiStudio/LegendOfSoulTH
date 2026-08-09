@@ -82,4 +82,12 @@ describe('InputSystem', () => {
     key('keydown', 'KeyQ')
     expect(input.getMoveVector()).toEqual({ x: 0, y: 0 })
   })
+
+  it('queues the selected Skill 2 instead of silently falling back to Skill 1', () => {
+    const input = new InputSystem()
+
+    input.pressSkill('skill-2')
+    expect(input.consumeSkill()).toBe('skill-2')
+    expect(input.consumeSkill()).toBeUndefined()
+  })
 })

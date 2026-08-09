@@ -10,10 +10,7 @@ import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRos
 import { ItemsModal } from '../components/ItemsModal/ItemsModal'
 import { MainNavigation } from '../components/MainNavigation/MainNavigation'
 import { ProfileModal } from '../components/ProfileModal/ProfileModal'
-import {
-  SettingsModal,
-  type AudioSettings,
-} from '../components/SettingsModal/SettingsModal'
+import { SettingsModal, type AudioSettings } from '../components/SettingsModal/SettingsModal'
 import { getAudioSettings, initAudioEngine, setAudioSettings } from '../lib/audio/AudioEngine'
 import { getPerformanceSettings, setPerformanceSettings } from '../lib/performanceSettings'
 import type { QualityOverride } from '../hooks/usePerformanceQuality'
@@ -95,6 +92,7 @@ export function LobbyPage({
   /** ตัวที่กำลังเดินอยู่ในฉากเดินชมจันทร์ — null คือยังไม่เคยเลือก ใช้ตัวแรกที่เดินได้เป็นค่าเริ่มต้น
    * เปลี่ยนได้จากปุ่ม "เดินชมจันทร์" ในโปรไฟล์ทางเดียว (แถบเลือกที่เคยลอยอยู่กลางฉากถูกถอดออกแล้ว) */
   const [walkingCharacterId, setWalkingCharacterId] = useState<string | null>(null)
+  const [attackPreviewRequestId, setAttackPreviewRequestId] = useState(0)
   /**
    * ตัวละครที่ถูกแตะในฉาก — ตอนนี้ใช้แค่แสดงวงแหวนใต้เท้าและกระตุ้นท่าประจำตัว
    * (แผงข้อมูลตอนแตะโมเดลถูกถอดออกไว้ก่อน รอดูว่าจะใส่อะไรแทนในอนาคต)
@@ -106,6 +104,9 @@ export function LobbyPage({
   const [battleOpen, setBattleOpen] = useState(false)
   const [addFriendOpen, setAddFriendOpen] = useState(false)
   const [itemsOpen, setItemsOpen] = useState(false)
+  const activeWalkingCharacter =
+    walkableCharacters.find((entry) => entry.id === walkingCharacterId) ?? walkableCharacters[0]
+  const canPreviewErlangAttack = activeWalkingCharacter?.model.kind === 'spear-warrior'
   // ค่าเริ่มต้นอ่านจาก engine (persist ผ่าน localStorage) — เก็บ mirror ไว้ที่นี่แค่ให้ React re-render
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings())
   const handleAudioChange = (next: AudioSettings) => {
@@ -159,6 +160,15 @@ export function LobbyPage({
       </div>
 
       <div className={styles.startRow}>
+        {canPreviewErlangAttack ? (
+          <button
+            className={styles.attackPreviewButton}
+            type="button"
+            onClick={() => setAttackPreviewRequestId((value) => value + 1)}
+          >
+            ทดสอบโจมตี
+          </button>
+        ) : null}
         <StartAdventure onStart={() => setBattleOpen(true)} />
       </div>
 
@@ -193,10 +203,13 @@ export function LobbyPage({
         mode="moonlight"
         characters={ownedCharacters}
         activeCharacterId={walkingCharacterId}
+        attackPreviewRequestId={attackPreviewRequestId}
       />
 
       {/* หน้า Lobby ยังคง mount อยู่ข้างหลัง ฉาก 3D และแอนิเมชันตัวละครจึงไม่รีเซ็ต */}
-      {rosterOpen ? <CharacterRosterModal player={player} onClose={() => setRosterOpen(false)} /> : null}
+      {rosterOpen ? (
+        <CharacterRosterModal player={player} onClose={() => setRosterOpen(false)} />
+      ) : null}
 
       {profileOpen ? (
         <ProfileModal

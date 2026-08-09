@@ -24,12 +24,16 @@ export interface SpriteSequence {
 
 /** ช่วยสร้างรายชื่อไฟล์เฟรมที่ตั้งชื่อเรียงเลขต่อกัน (ผ่าน publicUrl เสมอ ดู src/lib/publicUrl.ts) */
 function frames(prefix: string, count: number): string[] {
-  return Array.from({ length: count }, (_, index) => publicUrl(`characters/${prefix}-${index}.webp`))
+  return Array.from({ length: count }, (_, index) =>
+    publicUrl(`characters/${prefix}-${index}.webp`),
+  )
 }
 
 /** ชุดเฟรมหมุน 8 ทิศของตัวละครหนึ่งตัว */
 function turnFrames(prefix: string): string[] {
-  return Array.from({ length: 8 }, (_, index) => publicUrl(`characters/turnaround/${prefix}-${index}.webp`))
+  return Array.from({ length: 8 }, (_, index) =>
+    publicUrl(`characters/turnaround/${prefix}-${index}.webp`),
+  )
 }
 
 /**
@@ -41,10 +45,10 @@ function turnFrames(prefix: string): string[] {
  */
 const SEQUENCES: Record<CharacterModelKind, SpriteSequence> = {
   'monkey-king': {
-    idleUrls: frames('monkey-v2-idle', 24),
-    actionUrls: frames('monkey-v2', 10),
-    turnUrls: turnFrames('monkey-turn'),
-    actionOrder: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
+    idleUrls: frames('wukong-idle', 8),
+    actionUrls: frames('wukong-gesture', 8),
+    turnUrls: turnFrames('wukong-turn'),
+    actionOrder: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1, 0],
     idleRate: 8,
     actionRate: 8,
     autoPeriod: 11.4,
@@ -66,6 +70,15 @@ const SEQUENCES: Record<CharacterModelKind, SpriteSequence> = {
     idleRate: 8,
     actionRate: 8,
     autoPeriod: 9.6,
+  },
+  'spear-warrior': {
+    idleUrls: frames('erlang-shen-v6-idle', 25),
+    actionUrls: [],
+    turnUrls: [],
+    actionOrder: [],
+    idleRate: 1,
+    actionRate: 1,
+    autoPeriod: 12,
   },
 }
 

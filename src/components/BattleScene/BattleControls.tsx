@@ -1,5 +1,6 @@
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
 import type { Vec2 } from '../../game/realtimeBattle/types'
+import type { SkillAnimationId } from '../../game/realtimeBattle/skills'
 import { AttackButton } from './AttackButton'
 import { BattleJoystick } from './BattleJoystick'
 import { DashButton } from './DashButton'
@@ -24,7 +25,7 @@ export function BattleControls({
   onMove: (vector: Vec2) => void
   onAttack: () => void
   onDash: () => void
-  onSkill: () => void
+  onSkill: (animationId: SkillAnimationId) => void
 }) {
   return (
     <div className={styles.controls}>
@@ -32,7 +33,8 @@ export function BattleControls({
         <BattleJoystick onChange={onMove} />
       </div>
       <div className={styles.controlsRight}>
-        <SkillButton runtime={runtime} onPress={onSkill} />
+        <SkillButton runtime={runtime} animationId="skill-1" onPress={onSkill} />
+        <SkillButton runtime={runtime} animationId="skill-2" onPress={onSkill} />
         <DashButton runtime={runtime} onPress={onDash} />
         <AttackButton onPress={onAttack} />
       </div>

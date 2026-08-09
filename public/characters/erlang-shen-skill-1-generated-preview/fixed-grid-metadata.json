@@ -1,0 +1,224 @@
+{
+  "source_sheet_count": 4,
+  "source_sizes": [
+    [
+      1254,
+      1254
+    ],
+    [
+      1254,
+      1254
+    ],
+    [
+      1254,
+      1254
+    ],
+    [
+      1254,
+      1254
+    ]
+  ],
+  "source_grid_per_sheet": [
+    2,
+    2
+  ],
+  "source_cell_sizes": [
+    [
+      627,
+      627
+    ],
+    [
+      627,
+      627
+    ],
+    [
+      627,
+      627
+    ],
+    [
+      627,
+      627
+    ]
+  ],
+  "recovery_source_canvas_size": [
+    1390,
+    1132
+  ],
+  "recovery_source_canvas_normalized_to": [
+    770,
+    627
+  ],
+  "recovery_source_canvas_scale_strategy": "contain-uniform",
+  "recovery_source_canvas_contain_scale": 0.553886925795053,
+  "recovery_uses_shared_cell_scale": true,
+  "output_cell_size": [
+    640,
+    512
+  ],
+  "frame_count": 16,
+  "whole_row_scales": [
+    0.807,
+    0.807,
+    0.807,
+    0.807,
+    0.807,
+    0.807,
+    0.807,
+    0.807
+  ],
+  "whole_row_paste_x": [
+    67,
+    67,
+    67,
+    67,
+    67,
+    67,
+    67,
+    67
+  ],
+  "whole_row_paste_y": [
+    28,
+    28,
+    28,
+    28,
+    28,
+    28,
+    28,
+    28
+  ],
+  "shared_safety_border": 3,
+  "alpha_matte_cutoff": 32,
+  "per_frame_crop_or_trim": false,
+  "per_frame_scale_and_anchor": false,
+  "per_frame_translation_to_shared_root": true,
+  "per_frame_normalization_scales": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "normalized_character_bboxes": [
+    [
+      182,
+      71,
+      460,
+      481
+    ],
+    [
+      162,
+      111,
+      480,
+      481
+    ],
+    [
+      192,
+      134,
+      449,
+      481
+    ],
+    [
+      118,
+      190,
+      524,
+      481
+    ],
+    [
+      126,
+      199,
+      516,
+      481
+    ],
+    [
+      157,
+      199,
+      484,
+      481
+    ],
+    [
+      157,
+      166,
+      486,
+      481
+    ],
+    [
+      205,
+      147,
+      437,
+      481
+    ],
+    [
+      148,
+      233,
+      495,
+      481
+    ],
+    [
+      163,
+      235,
+      480,
+      481
+    ],
+    [
+      166,
+      204,
+      475,
+      481
+    ],
+    [
+      200,
+      192,
+      443,
+      481
+    ],
+    [
+      145,
+      191,
+      496,
+      481
+    ],
+    [
+      155,
+      124,
+      488,
+      481
+    ],
+    [
+      164,
+      109,
+      477,
+      481
+    ],
+    [
+      178,
+      110,
+      465,
+      481
+    ]
+  ],
+  "target_character_geometry": {
+    "shared_cell_scale": 0.807,
+    "bottom": 480,
+    "center_x": 321
+  },
+  "canonical_idle_frames": [],
+  "cross_frame_spill_removed": {
+    "14": [
+      110,
+      425,
+      140,
+      460
+    ]
+  }
+}

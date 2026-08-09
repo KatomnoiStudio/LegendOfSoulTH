@@ -15,7 +15,7 @@
 export interface AttackDefinition {
   id: string
   /** ชุดเฟรมที่จะเล่น (ดู src/game/battleSpriteSequences.ts) */
-  animationId: 'attack-1' | 'attack-2' | 'attack-3' | 'skill-1'
+  animationId: 'attack-1' | 'attack-2' | 'attack-3' | 'skill-1' | 'skill-2'
 
   startupMs: number
   activeMs: number
@@ -116,6 +116,23 @@ export const MONKEY_SPINNING_STAFF: AttackDefinition = {
   startupMs: 180,
   activeMs: 420,
   recoveryMs: 520,
+  comboWindowStartMs: 0,
+  comboWindowEndMs: 0,
+  damageMultiplier: 1.65,
+  range: 158,
+  arcDegrees: 360,
+  knockback: 140,
+}
+
+/** Erlang's second, gold-lightning skill uses its own one-shot animation. */
+export const ERLANG_GOLDEN_LIGHTNING: AttackDefinition = {
+  id: 'erlang-golden-lightning',
+  animationId: 'skill-2',
+  // Six casts play at 10fps. The sixth is the final skill frame; the next
+  // visual frame is canonical Idle, so do not hold a recovery pose here.
+  startupMs: 200,
+  activeMs: 200,
+  recoveryMs: 200,
   comboWindowStartMs: 0,
   comboWindowEndMs: 0,
   damageMultiplier: 1.65,

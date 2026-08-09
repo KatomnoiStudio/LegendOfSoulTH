@@ -1,0 +1,26 @@
+{
+  "source": "C:\\Users\\ดาแร้ง\\Downloads\\ChatGPT Image 9 ส.ค. 2569 12_22_06.png",
+  "source_size": [
+    1448,
+    1086
+  ],
+  "padded_size": [
+    1448,
+    1088
+  ],
+  "grid": [
+    4,
+    4
+  ],
+  "cell_size": [
+    362,
+    272
+  ],
+  "frame_count": 16,
+  "crop_or_trim": false,
+  "resize": false,
+  "padding": {
+    "right": 0,
+    "bottom": 2
+  }
+}

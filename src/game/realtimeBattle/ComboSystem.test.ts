@@ -37,13 +37,38 @@ function player(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
 }
 
 /** เดินท่าปัจจุบันจนจบพอดี */
-function finishCurrentAttack(unit: RealtimeBattleEntity, combo: ReturnType<typeof createComboState>) {
+function finishCurrentAttack(
+  unit: RealtimeBattleEntity,
+  combo: ReturnType<typeof createComboState>,
+) {
   const attack = combo.attack
   if (!attack) return
   stepCombo(unit, combo, totalDurationMs(attack) + 1)
 }
 
 describe('ComboSystem', () => {
+  it('ล็อกท่าใหม่ของ Erlang ไว้ตลอด Normal Attack เมื่อสุ่มได้ครึ่งบน', () => {
+    const unit = player({ characterId: 'spear-warrior' })
+    const combo = createComboState()
+
+    pressAttack(unit, combo, () => 0.5)
+    expect(unit.attackAnimationId).toBe('attack-2')
+
+    stepCombo(unit, combo, 100, () => 0)
+    expect(unit.attackAnimationId).toBe('attack-2')
+  })
+
+  it('ล็อก Normal Attack ท่าที่สามของ Erlang ไว้ตลอดไม้เมื่อสุ่มได้ช่วงบน', () => {
+    const unit = player({ characterId: 'spear-warrior' })
+    const combo = createComboState()
+
+    pressAttack(unit, combo, () => 0.9)
+    expect(unit.attackAnimationId).toBe('attack-3')
+
+    stepCombo(unit, combo, 100, () => 0)
+    expect(unit.attackAnimationId).toBe('attack-3')
+  })
+
   it('กดครั้งแรกเริ่มไม้ที่หนึ่ง', () => {
     const unit = player()
     const combo = createComboState()
@@ -152,7 +177,9 @@ describe('ComboSystem', () => {
   it('ไม้ที่สามกระเด็นแรงกว่าสองไม้แรก', () => {
     expect(PLAYER_ATTACK_CHAIN[2].knockback).toBeGreaterThan(PLAYER_ATTACK_CHAIN[0].knockback)
     expect(PLAYER_ATTACK_CHAIN[2].knockback).toBeGreaterThan(PLAYER_ATTACK_CHAIN[1].knockback)
-    expect(PLAYER_ATTACK_CHAIN[2].damageMultiplier).toBeGreaterThan(PLAYER_ATTACK_CHAIN[1].damageMultiplier)
+    expect(PLAYER_ATTACK_CHAIN[2].damageMultiplier).toBeGreaterThan(
+      PLAYER_ATTACK_CHAIN[1].damageMultiplier,
+    )
   })
 
   it('โดนตีจนเซระหว่างคอมโบ = ท่าถูกยกเลิกและคอมโบขาด', () => {

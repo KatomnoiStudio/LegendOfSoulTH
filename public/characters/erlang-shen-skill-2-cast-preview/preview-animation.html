@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="th"><meta charset="utf-8"><title>Erlang Skill 2 — Casting Preview</title>
+<style>body{margin:0;background:#171b22;color:#fff;font:16px system-ui;text-align:center}main{max-width:900px;margin:24px auto}.stage{width:800px;height:640px;max-width:100%;margin:auto;position:relative;overflow:hidden;background:repeating-conic-gradient(#d7dde5 0 25%,#b0b8c5 0 50%) 50%/32px 32px}.stage img{position:absolute;inset:0;width:800px;height:640px}.stage img.cast{transform:translate(-7.488987px,70.264317px) scale(1.018722467);transform-origin:top left}.stage img.idle{transform:none}button{margin:8px;padding:8px 14px}</style>
+<main><h1>Skill 2 — ร่ายคาถา 6 เฟรม → Idle</h1><p id="label"></p><div class="stage"><img id="frame" alt="Erlang casting then idle preview"></div><br><button id="prev">ก่อนหน้า</button><button id="play">หยุด</button><button id="next">ถัดไป</button></main>
+<script>const frames=[
+  { url: '../erlang-shen-skill-2-cast-0.webp?v=20260809-cast-body-runtime-aligned', label: 'CAST 01 / 06', duration: 100, kind: 'cast' },
+  { url: '../erlang-shen-skill-2-cast-1.webp?v=20260809-cast-body-runtime-aligned', label: 'CAST 02 / 06', duration: 100, kind: 'cast' },
+  { url: '../erlang-shen-skill-2-cast-2.webp?v=20260809-cast-body-runtime-aligned', label: 'CAST 03 / 06', duration: 100, kind: 'cast' },
+  { url: '../erlang-shen-skill-2-cast-3.webp?v=20260809-cast-body-runtime-aligned', label: 'CAST 04 / 06', duration: 100, kind: 'cast' },
+  { url: '../erlang-shen-skill-2-cast-4.webp?v=20260809-cast-body-runtime-aligned', label: 'CAST 05 / 06', duration: 100, kind: 'cast' },
+  { url: '../erlang-shen-skill-2-cast-5.webp?v=20260809-cast-body-runtime-aligned', label: 'CAST 06 / 06', duration: 100, kind: 'cast' },
+  { url: '../erlang-shen-v6-idle-0.webp?v=20260809-cast-body-runtime-aligned', label: 'IDLE', duration: 900, kind: 'idle' }
+];let i=0,playing=true,timer;const image=document.querySelector('#frame'),label=document.querySelector('#label');function show(){image.src=frames[i].url;image.className=frames[i].kind;label.textContent=frames[i].label;}function step(){i=(i+1)%frames.length;show();}function tick(){clearTimeout(timer);if(playing)timer=setTimeout(()=>{step();tick()},frames[i].duration)}document.querySelector('#prev').onclick=()=>{i=(i+frames.length-1)%frames.length;show();tick()};document.querySelector('#next').onclick=()=>{step();tick()};document.querySelector('#play').onclick=e=>{playing=!playing;e.target.textContent=playing?'หยุด':'เล่น';tick()};show();tick();</script>

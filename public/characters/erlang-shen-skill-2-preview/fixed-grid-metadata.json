@@ -1,0 +1,65 @@
+{
+  "source": "assets/raw/characters/erlang-shen-skill-2-green-source-4x3.png",
+  "source_size": [
+    1448,
+    1086
+  ],
+  "source_grid": [
+    4,
+    3
+  ],
+  "source_cell_size": [
+    362,
+    362
+  ],
+  "output_size": [
+    800,
+    760
+  ],
+  "frame_count": 12,
+  "shared_scale": 1.8226600985221675,
+  "scale_strategy": "one-uniform-high-quality-upscale-for-all-frames",
+  "per_frame_crop_or_trim": false,
+  "per_frame_scale_or_zoom": false,
+  "per_frame_whole_canvas_translation_only": true,
+  "target_root": [
+    400,
+    620
+  ],
+  "source_root_x": [
+    164,
+    171,
+    177,
+    180,
+    151,
+    157,
+    170,
+    174,
+    174,
+    167,
+    169,
+    169
+  ],
+  "source_foot_y": [
+    325,
+    322,
+    324,
+    323,
+    280,
+    280,
+    280,
+    280,
+    260,
+    260,
+    260,
+    267
+  ],
+  "webp": {
+    "lossless": true
+  },
+  "matte_key": {
+    "type": "green chroma hue with inherited magenta-artifact cleanup",
+    "transparent_when": "green>=45, green>=red+10, green>=blue+10; or min(red,blue)>=green+10"
+  },
+  "grid_border_cleared_px": 6
+}

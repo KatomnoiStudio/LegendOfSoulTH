@@ -27,11 +27,17 @@ function makePlayer(): Player {
     expToNext: 100,
     currency: { gold: 0, gem: 0 },
     ownedCharacters: [
-      { characterId: 'monkey-king', level: 12, exp: 0, expToNext: 100, obtainedAt: '2026-01-01T00:00:00.000Z' },
+      {
+        characterId: 'spear-warrior',
+        level: 12,
+        exp: 0,
+        expToNext: 100,
+        obtainedAt: '2026-01-01T00:00:00.000Z',
+      },
     ],
     inventory: [],
     friends: [],
-    teamSlots: ['monkey-king', null, null, null],
+    teamSlots: ['spear-warrior', null, null, null],
     frameId: 'default',
     progress: EMPTY_PROGRESS,
   }

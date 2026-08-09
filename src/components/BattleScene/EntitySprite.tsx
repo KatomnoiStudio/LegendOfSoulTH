@@ -24,6 +24,29 @@ import type { EntityState, RealtimeBattleEntity } from '../../game/realtimeBattl
 /** อัตราส่วนของภาพตัวละคร (กว้าง:สูง) — ชุดเฟรมทุกตัวใช้สัดส่วนเดียวกัน */
 const SPRITE_ASPECT = 1.2508
 const SPRITE_HEIGHT = 1.6
+const SPRITE_WIDTH = SPRITE_HEIGHT * SPRITE_ASPECT
+const IDLE_PIXEL_WORLD_SIZE = SPRITE_HEIGHT / 512
+const IDLE_VISIBLE_FOOT_WORLD_Y = SPRITE_HEIGHT - 480 * IDLE_PIXEL_WORLD_SIZE
+const SKILL_2_CAST_PIXEL_SCALE = 370 / 454
+const SKILL_2_CAST_SIZE = { width: 800, height: 640, footY: 520 }
+
+function spriteGeometry(animationId: BattleAnimationId) {
+  if (animationId !== 'skill-2') {
+    return { width: SPRITE_WIDTH, height: SPRITE_HEIGHT, meshY: SPRITE_HEIGHT / 2 }
+  }
+
+  // Cast frames retain their native source pixels. One shared renderer scale
+  // makes Erlang's 454 px body match Idle's 370 px body; all six frames use
+  // the same X/Y root and no frame-level zoom.
+  const pixelWorldSize = IDLE_PIXEL_WORLD_SIZE * SKILL_2_CAST_PIXEL_SCALE
+  const width = SKILL_2_CAST_SIZE.width * pixelWorldSize
+  const height = SKILL_2_CAST_SIZE.height * pixelWorldSize
+  return {
+    width,
+    height,
+    meshY: IDLE_VISIBLE_FOOT_WORLD_Y + SKILL_2_CAST_SIZE.footY * pixelWorldSize - height / 2,
+  }
+}
 
 interface EntitySpriteProps {
   runtime: RealtimeBattleRuntime
@@ -90,7 +113,10 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
       (entity.position.y - half.y) * WORLD_SCALE,
     )
 
-    const animationId = animationForState(entity.state)
+    const animationId =
+      entity.state === 'attack' || entity.state === 'skill'
+        ? (entity.attackAnimationId ?? 'attack-1')
+        : animationForState(entity.state)
     const elapsedMs = runtime.getState().elapsedMs
     if (animationId !== currentAnimation.current) {
       currentAnimation.current = animationId
@@ -98,14 +124,15 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
     }
 
     const animation = spriteSet[animationId]
+    const geometry = spriteGeometry(animationId)
+    mesh.current.scale.set(geometry.width / SPRITE_WIDTH, geometry.height / SPRITE_HEIGHT, 1)
+    mesh.current.position.y = geometry.meshY
     const frames = animation.frames[toSpriteDirection(entity.facing)]
     if (frames.length === 0) return
 
     const localSeconds = Math.max(0, elapsedMs - animationStartMs.current) / 1000
     const rawIndex = Math.floor(localSeconds * animation.rate)
-    const index = animation.loop
-      ? rawIndex % frames.length
-      : Math.min(frames.length - 1, rawIndex)
+    const index = animation.loop ? rawIndex % frames.length : Math.min(frames.length - 1, rawIndex)
 
     const texture = getBattleTexture(frames[index])
     const material = mesh.current.material as MeshBasicMaterial
@@ -125,11 +152,17 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
       {/* เงาใต้เท้า ช่วยให้เห็นว่าตัวละครยืนตรงไหนจริงบนพื้น */}
       <mesh ref={shadow} position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.34, 24]} />
-        <meshBasicMaterial color={accent} transparent opacity={0.22} depthWrite={false} toneMapped={false} />
+        <meshBasicMaterial
+          color={accent}
+          transparent
+          opacity={0.22}
+          depthWrite={false}
+          toneMapped={false}
+        />
       </mesh>
 
       <mesh ref={mesh} position={[0, SPRITE_HEIGHT / 2, 0]} rotation={[-Math.PI / 8, 0, 0]}>
-        <planeGeometry args={[SPRITE_HEIGHT * SPRITE_ASPECT, SPRITE_HEIGHT]} />
+        <planeGeometry args={[SPRITE_WIDTH, SPRITE_HEIGHT]} />
         <meshBasicMaterial
           transparent
           alphaTest={0.025}

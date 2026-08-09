@@ -5,6 +5,8 @@ import {
   totalDurationMs,
   type AttackDefinition,
 } from './attacks'
+import { getCharacter } from '../characters'
+import { selectNormalAttackAnimation } from '../battleSpriteSequences'
 import type { RealtimeBattleEntity } from './types'
 
 /**
@@ -72,11 +74,15 @@ export function currentComboStep(combo: ComboState): number {
 }
 
 /** บันทึกว่าผู้เล่นกดปุ่มโจมตี — อาจเริ่มท่าทันที หรือถูกเก็บเข้า buffer */
-export function pressAttack(player: RealtimeBattleEntity, combo: ComboState): void {
+export function pressAttack(
+  player: RealtimeBattleEntity,
+  combo: ComboState,
+  random: () => number = Math.random,
+): void {
   if (player.state === 'dead' || player.hitStunRemainingMs > 0) return
 
   if (combo.attack === null) {
-    beginNextAttack(player, combo)
+    beginNextAttack(player, combo, random)
     return
   }
 
@@ -84,7 +90,11 @@ export function pressAttack(player: RealtimeBattleEntity, combo: ComboState): vo
   combo.bufferedInputAgeMs = 0
 }
 
-function beginNextAttack(player: RealtimeBattleEntity, combo: ComboState): void {
+function beginNextAttack(
+  player: RealtimeBattleEntity,
+  combo: ComboState,
+  random: () => number = Math.random,
+): void {
   // ปล่อยนานเกินไป = คอมโบขาด กลับไปเริ่มไม้แรก
   if (combo.sinceLastFinishMs > COMBO_CONFIG.comboResetMs) combo.chainIndex = 0
 
@@ -97,6 +107,8 @@ function beginNextAttack(player: RealtimeBattleEntity, combo: ComboState): void 
   // ไม้ถัดไปวนกลับไม้แรกเมื่อจบคอมโบ
   combo.chainIndex = (combo.chainIndex + 1) % PLAYER_ATTACK_CHAIN.length
 
+  const kind = getCharacter(player.characterId ?? null)?.model.kind ?? 'spear-warrior'
+  player.attackAnimationId = selectNormalAttackAnimation(kind, random)
   player.state = 'attack'
   player.velocity = { x: 0, y: 0 }
 }
@@ -115,6 +127,7 @@ export function stepCombo(
   player: RealtimeBattleEntity,
   combo: ComboState,
   deltaMs: number,
+  random: () => number = Math.random,
 ): ComboTick {
   // hit stop: เวลาในระบบต่อสู้หยุดชั่วขณะ แต่ไม่ได้หยุดทั้งเกม
   if (combo.hitStopRemainingMs > 0) {
@@ -132,8 +145,12 @@ export function stepCombo(
     combo.sinceLastFinishMs += deltaMs
 
     // มีอินพุตค้างอยู่และท่าเพิ่งจบ = ต่อคอมโบให้ทันที
-    if (combo.bufferedInputAgeMs !== null && player.hitStunRemainingMs <= 0 && player.state !== 'dead') {
-      beginNextAttack(player, combo)
+    if (
+      combo.bufferedInputAgeMs !== null &&
+      player.hitStunRemainingMs <= 0 &&
+      player.state !== 'dead'
+    ) {
+      beginNextAttack(player, combo, random)
       return { hitboxActive: false, attack: combo.attack }
     }
     return { hitboxActive: false, attack: null }
@@ -158,7 +175,7 @@ export function stepCombo(
     combo.sinceLastFinishMs = 0
     player.state = 'idle'
 
-    if (combo.bufferedInputAgeMs !== null) beginNextAttack(player, combo)
+    if (combo.bufferedInputAgeMs !== null) beginNextAttack(player, combo, random)
     return { hitboxActive: false, attack: combo.attack }
   }
 

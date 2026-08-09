@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { getRealtimeSkillForCharacter } from '../../game/realtimeBattle/skills'
+import type { SkillAnimationId } from '../../game/realtimeBattle/skills'
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
 import styles from './BattleScene.module.css'
 
@@ -10,14 +11,16 @@ import styles from './BattleScene.module.css'
  */
 export function SkillButton({
   runtime,
+  animationId,
   onPress,
 }: {
   runtime: RealtimeBattleRuntime
-  onPress: () => void
+  animationId: SkillAnimationId
+  onPress: (animationId: SkillAnimationId) => void
 }) {
   const fill = useRef<HTMLSpanElement>(null)
   const characterId = runtime.getState().player.characterId
-  const skill = getRealtimeSkillForCharacter(characterId)
+  const skill = getRealtimeSkillForCharacter(characterId, animationId)
 
   useEffect(() => {
     if (!skill) return
@@ -42,13 +45,17 @@ export function SkillButton({
     <button
       type="button"
       className={styles.skillBtn}
+      data-skill={animationId}
       aria-label={`สกิล ${skill.name}`}
       onPointerDown={(event) => {
         event.preventDefault()
-        onPress()
+        onPress(animationId)
       }}
     >
       <span ref={fill} className={styles.skillCooldown} aria-hidden="true" />
+      <span className={styles.skillLabel} aria-hidden="true">
+        {animationId === 'skill-1' ? '1' : '2'}
+      </span>
       <span className={styles.skillLabel}>สกิล</span>
     </button>
   )

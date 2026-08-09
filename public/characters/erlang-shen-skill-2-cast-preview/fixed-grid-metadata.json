@@ -1,0 +1,54 @@
+{
+  "source": "assets\\raw\\characters\\erlang-shen-skill-2-cast-body-green-source-2x3.png",
+  "source_size": [
+    1024,
+    1536
+  ],
+  "source_grid": [
+    2,
+    3
+  ],
+  "source_cell_size": [
+    512,
+    512
+  ],
+  "frame_count": 6,
+  "output_size": [
+    800,
+    640
+  ],
+  "fixed_grid_only": true,
+  "per_frame_crop_or_trim": false,
+  "per_frame_scale_or_zoom": false,
+  "source_pixels_resampled": false,
+  "renderer_shared_pixel_scale": 0.8149779735682819,
+  "target_root": [
+    400,
+    520
+  ],
+  "source_root_x": [
+    298,
+    244,
+    323,
+    247,
+    301,
+    233
+  ],
+  "source_foot_y": [
+    509,
+    509,
+    488,
+    491,
+    465,
+    473
+  ],
+  "source_top_seam_residue_by_frame": [
+    0,
+    0,
+    11,
+    11,
+    0,
+    0
+  ],
+  "matte_key": "green chroma backing only"
+}

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { MONKEY_SPINNING_STAFF, SKILL_CONFIG, totalDurationMs } from './attacks'
+import {
+  ERLANG_GOLDEN_LIGHTNING,
+  MONKEY_SPINNING_STAFF,
+  SKILL_CONFIG,
+  totalDurationMs,
+} from './attacks'
 import { getRealtimeSkillForCharacter } from './skills'
 import {
   canStartSkill,
@@ -31,17 +36,26 @@ function player(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
     dashCooldownRemainingMs: 0,
     invulnerableUntilMs: 0,
     hitStunRemainingMs: 0,
-    characterId: 'monkey-king',
+    characterId: 'spear-warrior',
     ...overrides,
   }
 }
 
 describe('skills registry', () => {
   it('หงอคงมีสกิลหมุนกระบวนทองคำ', () => {
-    const skill = getRealtimeSkillForCharacter('monkey-king')
+    const skill = getRealtimeSkillForCharacter('spear-warrior')
     expect(skill?.id).toBe('spinning-golden-staff')
     expect(skill?.attack).toBe(MONKEY_SPINNING_STAFF)
     expect(skill?.cooldownMs).toBe(SKILL_CONFIG.cooldownMs)
+  })
+
+  it('Erlang can select the separate gold-lightning Skill 2', () => {
+    const skill = getRealtimeSkillForCharacter('spear-warrior', 'skill-2')
+
+    expect(skill?.id).toBe('erlang-golden-lightning')
+    expect(skill?.attack).toBe(ERLANG_GOLDEN_LIGHTNING)
+    expect(skill?.attack.animationId).toBe('skill-2')
+    expect(totalDurationMs(ERLANG_GOLDEN_LIGHTNING)).toBe(600)
   })
 
   it('ตัวละครที่ไม่มีสกิลคืน undefined', () => {
@@ -54,7 +68,7 @@ describe('SkillSystem', () => {
   it('เริ่มร่ายสกิลได้เมื่อพร้อม และตั้งคูลดาวน์ + i-frame', () => {
     const unit = player()
     const skill = createSkillState()
-    const definition = getRealtimeSkillForCharacter('monkey-king')
+    const definition = getRealtimeSkillForCharacter('spear-warrior')
     if (!definition) throw new Error('ไม่พบสกิลหงอคง')
 
     expect(startSkill(unit, skill, definition, 1000)).toBe(true)
@@ -67,7 +81,7 @@ describe('SkillSystem', () => {
   it('ร่ายซ้ำไม่ได้ระหว่างคูลดาวน์หรือกำลังร่ายอยู่', () => {
     const unit = player({ skillCooldownRemainingMs: 500 })
     const skill = createSkillState()
-    const definition = getRealtimeSkillForCharacter('monkey-king')
+    const definition = getRealtimeSkillForCharacter('spear-warrior')
     if (!definition) throw new Error('ไม่พบสกิลหงอคง')
 
     expect(canStartSkill(unit, skill, false, false)).toBe(false)
@@ -80,7 +94,7 @@ describe('SkillSystem', () => {
   it('hitbox เปิดเฉพาะช่วง active ของท่า', () => {
     const unit = player()
     const skill = createSkillState()
-    const definition = getRealtimeSkillForCharacter('monkey-king')
+    const definition = getRealtimeSkillForCharacter('spear-warrior')
     if (!definition) throw new Error('ไม่พบสกิลหงอคง')
 
     startSkill(unit, skill, definition, 0)
@@ -95,7 +109,7 @@ describe('SkillSystem', () => {
   it('จบท่าแล้วกลับ idle และเคลียร์สถานะสกิล', () => {
     const unit = player()
     const skill = createSkillState()
-    const definition = getRealtimeSkillForCharacter('monkey-king')
+    const definition = getRealtimeSkillForCharacter('spear-warrior')
     if (!definition) throw new Error('ไม่พบสกิลหงอคง')
 
     startSkill(unit, skill, definition, 0)
@@ -108,7 +122,7 @@ describe('SkillSystem', () => {
   it('โดนตีจนสตันระหว่างร่าย = ยกเลิกสกิล', () => {
     const unit = player()
     const skill = createSkillState()
-    const definition = getRealtimeSkillForCharacter('monkey-king')
+    const definition = getRealtimeSkillForCharacter('spear-warrior')
     if (!definition) throw new Error('ไม่พบสกิลหงอคง')
 
     startSkill(unit, skill, definition, 0)

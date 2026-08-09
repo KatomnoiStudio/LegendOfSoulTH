@@ -6,6 +6,8 @@ import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBa
 import { BattleCamera } from './BattleCamera'
 import { EnemyBattleSprite } from './EnemyBattleSprite'
 import { PlayerBattleSprite } from './PlayerBattleSprite'
+import { SkillLightningEffect } from './SkillLightningEffect'
+import type { BattleEffectEvent } from '../../game/realtimeBattle/types'
 
 /**
  * ตัวห้องต่อสู้ในโลก 3 มิติ — พื้น ขอบเขต กล้อง และตัวละครทุกตัว
@@ -24,7 +26,13 @@ const ARENA_EDGES = [
 
 const EDGE_THICKNESS = 0.06
 
-export function BattleArena({ runtime }: { runtime: RealtimeBattleRuntime }) {
+export function BattleArena({
+  runtime,
+  effectEvents,
+}: {
+  runtime: RealtimeBattleRuntime
+  effectEvents: readonly BattleEffectEvent[]
+}) {
   const state = runtime.getState()
   const stage = state.stage
 
@@ -97,11 +105,23 @@ export function BattleArena({ runtime }: { runtime: RealtimeBattleRuntime }) {
       {/* วงมณฑลกลางลาน ให้พื้นไม่โล่งจนไม่รู้ว่าตัวเองขยับไปไหนแล้ว */}
       <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[worldDepth * 0.26, worldDepth * 0.28, 64]} />
-        <meshBasicMaterial color="#ffd765" transparent opacity={0.16} toneMapped={false} side={DoubleSide} />
+        <meshBasicMaterial
+          color="#ffd765"
+          transparent
+          opacity={0.16}
+          toneMapped={false}
+          side={DoubleSide}
+        />
       </mesh>
       <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[worldDepth * 0.1, worldDepth * 0.11, 48]} />
-        <meshBasicMaterial color="#ffd765" transparent opacity={0.12} toneMapped={false} side={DoubleSide} />
+        <meshBasicMaterial
+          color="#ffd765"
+          transparent
+          opacity={0.12}
+          toneMapped={false}
+          side={DoubleSide}
+        />
       </mesh>
 
       {/*
@@ -133,6 +153,11 @@ export function BattleArena({ runtime }: { runtime: RealtimeBattleRuntime }) {
       {state.enemies.map((enemy) => (
         <EnemyBattleSprite key={enemy.id} runtime={runtime} enemy={enemy} />
       ))}
+      {effectEvents
+        .filter((event) => event.kind === 'skill-lightning')
+        .map((event) => (
+          <SkillLightningEffect key={event.id} runtime={runtime} event={event} />
+        ))}
     </group>
   )
 }

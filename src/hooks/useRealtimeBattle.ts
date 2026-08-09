@@ -12,8 +12,13 @@ import { createRealtimeBattle } from '../game/realtimeBattle/createRealtimeBattl
 import { InputSystem } from '../game/realtimeBattle/InputSystem'
 import { startBattleLoop, type BattleLoopHandle } from '../game/realtimeBattle/RealtimeBattleLoop'
 import { RealtimeBattleRuntime } from '../game/realtimeBattle/RealtimeBattleRuntime'
+import type { SkillAnimationId } from '../game/realtimeBattle/skills'
 import { getEnemyTemplate, getRealtimeStage } from '../game/realtimeBattle/stageConfig'
-import type { RealtimeBattleResult, RealtimeBattleSnapshot, Vec2 } from '../game/realtimeBattle/types'
+import type {
+  RealtimeBattleResult,
+  RealtimeBattleSnapshot,
+  Vec2,
+} from '../game/realtimeBattle/types'
 import type { Player } from '../types/player'
 
 /**
@@ -48,7 +53,7 @@ interface UseRealtimeBattleValue {
   /** ปุ่มพุ่งหลบบนจอสัมผัส */
   pressDash: () => void
   /** ปุ่มสกิลบนจอสัมผัส */
-  pressSkill: () => void
+  pressSkill: (animationId?: SkillAnimationId) => void
 }
 
 /** ชุดเฟรมที่ห้องนี้ต้องใช้ = ตัวละครนำของผู้เล่น + ศัตรูทุกตัวในทุกคลื่นของด่าน */
@@ -132,7 +137,8 @@ export function useRealtimeBattle({
             created?.setMoveInput(input.getMoveVector())
             if (input.consumeAttack()) created?.requestAttack()
             if (input.consumeDash()) created?.requestDash()
-            if (input.consumeSkill()) created?.requestSkill()
+            const skillAnimationId = input.consumeSkill()
+            if (skillAnimationId) created?.requestSkill(skillAnimationId)
             created?.step(deltaMs)
           },
         })
@@ -211,11 +217,21 @@ export function useRealtimeBattle({
     inputRef.current?.pressDash()
   }, [])
 
-  const pressSkill = useCallback(() => {
-    inputRef.current?.pressSkill()
+  const pressSkill = useCallback((animationId: SkillAnimationId = 'skill-1') => {
+    inputRef.current?.pressSkill(animationId)
   }, [])
 
   const phase: BattlePhase = errorMessage ? 'error' : runtime && snapshot ? 'ready' : 'loading'
 
-  return { phase, errorMessage, runtime, snapshot, requestExit, setJoystick, pressAttack, pressDash, pressSkill }
+  return {
+    phase,
+    errorMessage,
+    runtime,
+    snapshot,
+    requestExit,
+    setJoystick,
+    pressAttack,
+    pressDash,
+    pressSkill,
+  }
 }

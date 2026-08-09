@@ -21,11 +21,17 @@ function makePlayer(): Player {
     expToNext: 100,
     currency: { gold: 0, gem: 0 },
     ownedCharacters: [
-      { characterId: 'monkey-king', level: 12, exp: 0, expToNext: 100, obtainedAt: '2026-01-01T00:00:00.000Z' },
+      {
+        characterId: 'spear-warrior',
+        level: 12,
+        exp: 0,
+        expToNext: 100,
+        obtainedAt: '2026-01-01T00:00:00.000Z',
+      },
     ],
     inventory: [],
     friends: [],
-    teamSlots: ['monkey-king', null, null, null],
+    teamSlots: ['spear-warrior', null, null, null],
     frameId: 'default',
     progress: EMPTY_PROGRESS,
   }
@@ -63,7 +69,11 @@ if (!template) throw new Error('ไม่พบแม่แบบ shadow-soldier
 describe('stepEnemyAI', () => {
   it('อยู่ไกลเกิน detectRange = ไม่ขยับ', () => {
     const enemy = entity({ position: { x: 0, y: 0 } })
-    const player = entity({ id: 'player', entityType: 'player', position: { x: template.detectRange + 100, y: 0 } })
+    const player = entity({
+      id: 'player',
+      entityType: 'player',
+      position: { x: template.detectRange + 100, y: 0 },
+    })
     const brain = createEnemyBrain()
 
     const decision = stepEnemyAI(enemy, brain, player, 16)
@@ -88,7 +98,11 @@ describe('stepEnemyAI', () => {
 
   it('เข้าระยะโจมตีแล้วเปลี่ยนเป็นท่าโจมตี และหยุดเดินตลอดท่า', () => {
     const enemy = entity({ position: { x: 0, y: 0 } })
-    const player = entity({ id: 'player', entityType: 'player', position: { x: template.attackRange - 10, y: 0 } })
+    const player = entity({
+      id: 'player',
+      entityType: 'player',
+      position: { x: template.attackRange - 10, y: 0 },
+    })
     const brain = createEnemyBrain()
 
     stepEnemyAI(enemy, brain, player, 16) // → chase
@@ -107,7 +121,11 @@ describe('stepEnemyAI', () => {
 
   it('จบท่าโจมตีแล้วเข้าสู่ช่วงพัก ก่อนกลับไปไล่ต่อ', () => {
     const enemy = entity({ position: { x: 0, y: 0 } })
-    const player = entity({ id: 'player', entityType: 'player', position: { x: template.attackRange - 10, y: 0 } })
+    const player = entity({
+      id: 'player',
+      entityType: 'player',
+      position: { x: template.attackRange - 10, y: 0 },
+    })
     const brain = createEnemyBrain()
 
     stepEnemyAI(enemy, brain, player, 16)
@@ -157,7 +175,11 @@ describe('stepEnemyAI', () => {
       position: { x: 0, y: 0 },
       attackCooldownRemainingMs: 800,
     })
-    const player = entity({ id: 'player', entityType: 'player', position: { x: template.attackRange - 10, y: 0 } })
+    const player = entity({
+      id: 'player',
+      entityType: 'player',
+      position: { x: template.attackRange - 10, y: 0 },
+    })
     const brain = createEnemyBrain()
 
     stepEnemyAI(enemy, brain, player, 16)
@@ -227,7 +249,9 @@ describe('runtime กับศัตรูทั้งกอง', () => {
       expect(enemy.position.x).toBeGreaterThanOrEqual(enemy.collisionRadius - 0.01)
       expect(enemy.position.x).toBeLessThanOrEqual(state.stage.width - enemy.collisionRadius + 0.01)
       expect(enemy.position.y).toBeGreaterThanOrEqual(enemy.collisionRadius - 0.01)
-      expect(enemy.position.y).toBeLessThanOrEqual(state.stage.height - enemy.collisionRadius + 0.01)
+      expect(enemy.position.y).toBeLessThanOrEqual(
+        state.stage.height - enemy.collisionRadius + 0.01,
+      )
     }
   })
 

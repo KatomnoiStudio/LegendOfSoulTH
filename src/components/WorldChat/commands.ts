@@ -1,4 +1,4 @@
-import { ROSTER } from '../../game/characters'
+import { ROSTER, SPEAR_WARRIOR_CHARACTER_ID } from '../../game/characters'
 
 /**
  * ตัวแปลคำสั่งลับสำหรับผู้ดูแล ซ่อนอยู่หลังช่องแชทโลกปกติ
@@ -17,6 +17,9 @@ export type ParsedCommand =
   | { kind: 'help' }
   | { kind: 'error'; message: string }
 
+/** Operator: HetCreep | Agent: Codex | 2026-08-07T22:38:00+07:00 */
+const ADMIN_CHARACTER_ALIASES = new Map<string, string>([['erlang', SPEAR_WARRIOR_CHARACTER_ID]])
+
 /**
  * หา characterId จากคำที่ผู้ใช้พิมพ์
  *
@@ -26,6 +29,9 @@ export type ParsedCommand =
 function resolveCharacterId(input: string): string | null {
   const query = input.trim().toLowerCase()
   if (query.length === 0) return null
+
+  const alias = ADMIN_CHARACTER_ALIASES.get(query)
+  if (alias) return alias
 
   const exact = ROSTER.find((entry) => entry.id.toLowerCase() === query)
   if (exact) return exact.id
@@ -75,10 +81,16 @@ export function parseCommand(raw: string): ParsedCommand | null {
     const characterId = resolveCharacterId(args.join(' '))
     if (!characterId) {
       const available = ROSTER.map((entry) => `${entry.id} (${entry.name})`).join(', ')
-      return { kind: 'error', message: `ไม่รู้จักตัวละคร "${args.join(' ')}" — มีให้เลือก: ${available}` }
+      return {
+        kind: 'error',
+        message: `ไม่รู้จักตัวละคร "${args.join(' ')}" — มีให้เลือก: ${available}`,
+      }
     }
     return { kind: 'give-character', characterId }
   }
 
-  return { kind: 'error', message: `ไม่รู้จักคำสั่ง /${command} — พิมพ์ /help เพื่อดูคำสั่งทั้งหมด` }
+  return {
+    kind: 'error',
+    message: `ไม่รู้จักคำสั่ง /${command} — พิมพ์ /help เพื่อดูคำสั่งทั้งหมด`,
+  }
 }

@@ -1,4 +1,5 @@
 import type { Vec2 } from './types'
+import type { SkillAnimationId } from './skills'
 
 /**
  * รวบรวมอินพุตทุกทางให้เหลือ "เวกเตอร์เดินหนึ่งตัว" ที่ runtime อ่าน
@@ -42,7 +43,7 @@ export class InputSystem {
    */
   private pendingAttacks = 0
   private pendingDashes = 0
-  private pendingSkills = 0
+  private pendingSkills: SkillAnimationId[] = []
 
   /** เริ่มฟังคีย์บอร์ด คืนฟังก์ชันสำหรับถอด listener (ต้องเรียกตอน unmount — §28) */
   attachKeyboard(target: Window = window): () => void {
@@ -62,7 +63,7 @@ export class InputSystem {
       }
       if (SKILL_KEYS.has(event.code)) {
         event.preventDefault()
-        if (!this.pressedKeys.has(event.code)) this.pendingSkills += 1
+        if (!this.pressedKeys.has(event.code)) this.pendingSkills.push('skill-1')
         this.pressedKeys.add(event.code)
         return
       }
@@ -127,8 +128,8 @@ export class InputSystem {
   }
 
   /** ปุ่มสกิลบนจอสัมผัสเรียกตัวนี้ */
-  pressSkill(): void {
-    this.pendingSkills += 1
+  pressSkill(animationId: SkillAnimationId = 'skill-1'): void {
+    this.pendingSkills.push(animationId)
   }
 
   /** หยิบคำสั่งพุ่งที่ค้างอยู่ไปหนึ่งครั้ง */
@@ -150,10 +151,8 @@ export class InputSystem {
   }
 
   /** หยิบคำสั่งสกิลที่ค้างอยู่ไปหนึ่งครั้ง */
-  consumeSkill(): boolean {
-    if (this.pendingSkills <= 0) return false
-    this.pendingSkills -= 1
-    return true
+  consumeSkill(): SkillAnimationId | undefined {
+    return this.pendingSkills.shift()
   }
 
   reset(): void {
@@ -161,6 +160,6 @@ export class InputSystem {
     this.joystick = { x: 0, y: 0 }
     this.pendingAttacks = 0
     this.pendingDashes = 0
-    this.pendingSkills = 0
+    this.pendingSkills = []
   }
 }

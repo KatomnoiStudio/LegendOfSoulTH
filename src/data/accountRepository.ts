@@ -40,7 +40,7 @@ const DB_KEY = 'los:db:v1'
 const SESSION_KEY = 'los:session:v1'
 
 /** ตัวละครที่ได้ฟรีตอนสมัครบัญชีใหม่ */
-const STARTER_CHARACTER_ID = 'monkey-king'
+const STARTER_CHARACTER_ID = 'spear-warrior'
 
 /** ทองได้จากการเล่น (เควส/ดรอป) หรือเติมเงินจริงก็ได้ — ดู earnGold/topUpGold */
 export type GoldSource = 'quest' | 'drop' | 'topup'
@@ -218,9 +218,7 @@ export const GOLD_PACKAGES: GoldPackage[] = [
 
 /* ---------------- ผลลัพธ์ ---------------- */
 
-export type AuthResult =
-  | { ok: true; player: Player }
-  | { ok: false; error: string }
+export type AuthResult = { ok: true; player: Player } | { ok: false; error: string }
 
 /* ---------------- ตรวจข้อมูลก่อนบันทึก ---------------- */
 
@@ -239,9 +237,22 @@ export function validateEmail(email: string): string | null {
 // รหัสผ่านที่พบบ่อยที่สุดจนไม่ป้องกันอะไรเลย แม้ยาวพอตาม PASSWORD_MIN_LENGTH ก็ตาม
 // (รายการเล็ก ๆ พอกันกรณีชัดเจนที่สุด ไม่ใช่ dictionary attack เต็มรูปแบบ — ไม่ต้องพึ่ง library ภายนอก)
 const COMMON_PASSWORDS = new Set([
-  'password', 'password1', 'password123', '12345678', '123456789', '1234567890',
-  'qwerty123', 'qwertyui', 'letmein1', 'iloveyou', 'admin123', 'welcome1',
-  '11111111', '00000000', 'abc12345', 'changeme',
+  'password',
+  'password1',
+  'password123',
+  '12345678',
+  '123456789',
+  '1234567890',
+  'qwerty123',
+  'qwertyui',
+  'letmein1',
+  'iloveyou',
+  'admin123',
+  'welcome1',
+  '11111111',
+  '00000000',
+  'abc12345',
+  'changeme',
 ])
 
 export function validatePassword(password: string): string | null {
@@ -458,7 +469,9 @@ interface SaveExport {
  * ส่งออกบัญชีของ session ปัจจุบันเป็น JSON — ให้ผู้เล่นโหลดเก็บไว้เป็นไฟล์สำรอง/ย้ายเครื่อง
  * ข้อมูลอยู่ใน localStorage ของเบราว์เซอร์เท่านั้น ไม่มี sync ข้ามอุปกรณ์ในตัว — ปุ่มนี้คือทางแก้
  */
-export async function exportSave(): Promise<{ ok: true; json: string } | { ok: false; error: string }> {
+export async function exportSave(): Promise<
+  { ok: true; json: string } | { ok: false; error: string }
+> {
   const session = readJson<{ uid: string; email: string }>(SESSION_KEY)
   if (!session) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' }
 
@@ -554,8 +567,7 @@ export async function savePlayer(player: Player): Promise<boolean> {
 /* ---------------- ทอง/หยก — ต้องผ่านฟังก์ชันที่ระบุแหล่งที่มาเท่านั้น ---------------- */
 
 export type CurrencyResult =
-  | { ok: true; player: Player; amount: number }
-  | { ok: false; error: string }
+  { ok: true; player: Player; amount: number } | { ok: false; error: string }
 
 /** ให้ทองจากการเล่นเท่านั้น — ทำเควสสำเร็จ หรือของดรอประหว่างเล่น */
 export async function earnGold(
@@ -647,7 +659,8 @@ export async function redeemCoupon(uid: string, code: string): Promise<CurrencyR
     const totalRedeemed = Object.values(db.accounts).reduce(
       (count, other) =>
         count +
-        (other.transactions ?? []).filter((tx) => tx.source === 'coupon' && tx.refId === normalized).length,
+        (other.transactions ?? []).filter((tx) => tx.source === 'coupon' && tx.refId === normalized)
+          .length,
       0,
     )
     if (totalRedeemed >= coupon.maxRedemptions) {
@@ -679,9 +692,7 @@ export async function getTransactions(uid: string): Promise<CurrencyTransaction[
 /** ไอเทมได้จากการเล่นเท่านั้น — ทำเควสสำเร็จ หรือของดรอป (กติกาเดียวกับทอง) */
 export type ItemSource = GoldSource
 
-export type ItemResult =
-  | { ok: true; player: Player }
-  | { ok: false; error: string }
+export type ItemResult = { ok: true; player: Player } | { ok: false; error: string }
 
 /**
  * เพิ่มไอเทมเข้ากระเป๋าผู้เล่น — มีอยู่แล้วให้บวกจำนวน ไม่มีให้สร้างช่องใหม่
@@ -730,8 +741,7 @@ export async function grantItem(
 /* ---------------- ตัวละคร ---------------- */
 
 export type CharacterGrantResult =
-  | { ok: true; player: Player; characterId: string }
-  | { ok: false; error: string }
+  { ok: true; player: Player; characterId: string } | { ok: false; error: string }
 
 /**
  * มอบตัวละครให้บัญชีผู้เล่น

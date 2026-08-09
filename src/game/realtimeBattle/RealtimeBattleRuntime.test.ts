@@ -23,11 +23,17 @@ function makePlayer(): Player {
     expToNext: 100,
     currency: { gold: 0, gem: 0 },
     ownedCharacters: [
-      { characterId: 'monkey-king', level: 12, exp: 0, expToNext: 100, obtainedAt: '2026-01-01T00:00:00.000Z' },
+      {
+        characterId: 'spear-warrior',
+        level: 12,
+        exp: 0,
+        expToNext: 100,
+        obtainedAt: '2026-01-01T00:00:00.000Z',
+      },
     ],
     inventory: [],
     friends: [],
-    teamSlots: ['monkey-king', null, null, null],
+    teamSlots: ['spear-warrior', null, null, null],
     frameId: 'default',
     progress: EMPTY_PROGRESS,
   }
@@ -240,5 +246,44 @@ describe('RealtimeBattleRuntime', () => {
 
     expect(state.damageDealt).toBeGreaterThan(0)
     expect(enemy.hp).toBeLessThan(hpBefore)
+  })
+
+  it('creates a lightning strike effect on every enemy hit by Skill 1', () => {
+    const runtime = makeRuntime()
+    runtime.step(1000)
+    const state = runtime.getState()
+    const enemy = state.enemies[0]
+    enemy.position = { x: state.player.position.x + 60, y: state.player.position.y }
+    enemy.speed = 0
+
+    runtime.requestSkill()
+    for (let elapsed = 0; elapsed < 700; elapsed += 16) {
+      runtime.step(16)
+      if (runtime.getSnapshot().effectEvents.some((event) => event.kind === 'skill-lightning'))
+        break
+    }
+
+    const strike = runtime
+      .getSnapshot()
+      .effectEvents.find((event) => event.kind === 'skill-lightning')
+    expect(strike).toBeDefined()
+    expect(strike?.position).toEqual(enemy.position)
+  })
+  it('plays Skill 2 as its own action and returns to Idle', () => {
+    const runtime = makeRuntime()
+    runtime.step(1000)
+
+    runtime.requestSkill('skill-2')
+    runtime.step(16)
+
+    expect(runtime.getState().player.state).toBe('skill')
+    expect(runtime.getState().player.attackAnimationId).toBe('skill-2')
+    expect(runtime.getSnapshot().effectEvents.some((event) => event.kind === 'skill-spin')).toBe(
+      false,
+    )
+
+    runtime.step(1200)
+    expect(runtime.getState().player.state).toBe('idle')
+    expect(runtime.getState().player.attackAnimationId).toBeUndefined()
   })
 })
