@@ -19,6 +19,13 @@ describe('parseCommand', () => {
     })
   })
 
+  it('/givecharacter erlang แปลงเป็นรหัส Erlang Shen โดยตรง', () => {
+    expect(parseCommand('/givecharacter erlang')).toEqual({
+      kind: 'give-character',
+      characterId: 'spear-warrior',
+    })
+  })
+
   it('รับ id เต็มและชื่อไทยได้ด้วย', () => {
     expect(parseCommand('/givecharacter pig-warrior')).toEqual({
       kind: 'give-character',
@@ -127,6 +134,10 @@ describe('resolveCommandForSender', () => {
     expect(resolveCommandForSender(true, '/givecharacter pig')).toEqual({
       kind: 'give-character',
       characterId: 'pig-warrior',
+    })
+    expect(resolveCommandForSender(true, '/givecharacter erlang')).toEqual({
+      kind: 'give-character',
+      characterId: 'spear-warrior',
     })
     expect(resolveCommandForSender(true, '/givegold 1000')).toEqual({
       kind: 'give-gold',
