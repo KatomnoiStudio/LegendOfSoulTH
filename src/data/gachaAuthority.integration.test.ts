@@ -208,4 +208,117 @@ describe('P9 Gacha server authority (isolated Postgres via PGLite)', () => {
     `)
     expect(config.rows[0]?.config).toContain('search_path=""')
   })
+
+  // Design-fork 2.b (2026-08-10): perform_gacha_pull calls Postgres random() directly, no
+  // seed path — a server-authoritative RNG a client can predict is a risk surface, not a
+  // testing convenience, so the done-criterion is statistical rather than deterministic (see
+  // docs/agent-blueprint/23-gacha-system.md Done-criteria #1). Both tests below reset pity to
+  // 0 and top up Gem before running, then pull one-at-a-time so pity accumulates exactly like
+  // production (a 10x multi-pull would let pity roll over mid-batch and complicate the count).
+  describe('statistical roll distribution (Done-criteria #1)', () => {
+    const RATES: Record<string, number> = {
+      legendary: 0.05,
+      epic: 0.25, // celestial-archer + pig-warrior
+      rare: 0.7, // nezha-warden + sand-sage
+    }
+    const PITY_THRESHOLD = 30
+    const PULLS = 1000
+    // Tolerance is 4.5 binomial std devs PER RARITY, computed from that rarity's own rate —
+    // a flat 3pp was ~4σ for the 5% rate but only ~2.1σ for the 25%/70% rates at n≈1000,
+    // i.e. a ~5% random CI failure rate (rot-canary caught it; an actual 3.1pp epic deviation
+    // was observed in-session). 4.5σ ≈ 1e-5 flake odds per rarity while a swapped table
+    // (rates 45pp apart) or a dead pool row still fails by an order of magnitude.
+    const TOLERANCE_SIGMA = 4.5
+
+    beforeAll(async () => {
+      await db.exec(`
+        update public.profiles set gem = 999999 where id = '${TEST_USER}';
+        delete from public.gacha_pity where profile_id = '${TEST_USER}';
+      `)
+    }, 20_000)
+
+    it(`observed rarity distribution of natural (non-pity) rolls over ${PULLS} pulls stays within ${TOLERANCE_SIGMA} std devs of configured drop_rate`, async () => {
+      // Forced pity structurally raises the realized legendary rate above the configured 5%
+      // (it inserts extra legendaries a plain independent-trials process wouldn't produce), so
+      // checking the RAW distribution against drop_rate would fail even with a perfectly
+      // correct RPC. perform_gacha_pull's forced branch (`v_is_pity`) skips the random() draw
+      // entirely and never touches gacha_banner_pool's cumulative-rate ranking — only natural
+      // (isPity=false) rolls are actual draws from the configured table, so those are what
+      // this criterion's "matches configured drop_rate" half is about.
+      const counts: Record<string, number> = { legendary: 0, epic: 0, rare: 0 }
+      let naturalCount = 0
+      let pityHits = 0
+
+      for (let i = 0; i < PULLS; i += 1) {
+        const requestId = `dddddddd-dddd-4ddd-8ddd-${String(i).padStart(12, '0')}`
+        const result = await pull(db, requestId, 1)
+        const roll = result.payload.results[0]
+        if (!roll) throw new Error(`pull ${i} returned no result`)
+        if (roll.isPity) {
+          pityHits += 1
+        } else {
+          counts[roll.rarity] = (counts[roll.rarity] ?? 0) + 1
+          naturalCount += 1
+        }
+      }
+
+      expect(pityHits).toBeGreaterThan(0)
+
+      for (const [rarity, expectedRate] of Object.entries(RATES)) {
+        const observedRate = (counts[rarity] ?? 0) / naturalCount
+        const tolerance =
+          TOLERANCE_SIGMA * Math.sqrt((expectedRate * (1 - expectedRate)) / naturalCount)
+        expect(
+          Math.abs(observedRate - expectedRate),
+          `${rarity}: expected ~${expectedRate} ±${tolerance.toFixed(4)}, observed ${observedRate} over ${naturalCount} natural pulls (counts: ${JSON.stringify(counts)}, pityHits: ${pityHits})`,
+        ).toBeLessThan(tolerance)
+      }
+    }, 60_000)
+
+    const PITY_RUNS = 5
+    const PULLS_PER_RUN = PITY_THRESHOLD * 5
+    it(`the gap since the last legendary (natural or pity) never exceeds ${PITY_THRESHOLD} pulls, across ${PITY_RUNS} independent runs of ${PULLS_PER_RUN}, and forced pity fires at least once overall`, async () => {
+      // Pity resets on ANY legendary, not only a forced one (perform_gacha_pull: `if v_rarity =
+      // pity_rarity then v_pity := 0`), so a natural ~5%-per-pull legendary usually resets the
+      // counter well before the threshold — forced pity is a backstop for an unlucky dry
+      // streak, not something guaranteed to fire on a fixed schedule. The real, deterministic
+      // guarantee is the gap invariant asserted after every non-legendary pull below: it can
+      // only ever fail if the RPC lets a 30th consecutive non-legendary pull happen without
+      // forcing legendary. "Forced pity fires at least once" is checked once across all
+      // 5 x 150 = 750 pulls combined (not per-run) since it's the RPC's actual mechanism being
+      // exercised, not a per-run certainty.
+      let forcedPityFiresTotal = 0
+
+      for (let run = 0; run < PITY_RUNS; run += 1) {
+        await db.exec(`
+          update public.profiles set gem = 999999 where id = '${TEST_USER}';
+          delete from public.gacha_pity where profile_id = '${TEST_USER}';
+        `)
+
+        let sinceLegendary = 0
+        for (let i = 1; i <= PULLS_PER_RUN; i += 1) {
+          const requestId = `eeeeeeee-eeee-4eee-8eee-${String(run).padStart(4, '0')}${String(i).padStart(8, '0')}`
+          const result = await pull(db, requestId, 1)
+          const roll = result.payload.results[0]
+          if (!roll) throw new Error(`run ${run} pull ${i} returned no result`)
+
+          if (roll.rarity === 'legendary') {
+            if (roll.isPity) forcedPityFiresTotal += 1
+            sinceLegendary = 0
+          } else {
+            sinceLegendary += 1
+            expect(
+              sinceLegendary,
+              `run ${run} pull ${i}: ${sinceLegendary} consecutive non-legendary pulls since the last legendary — pity should have forced one by now`,
+            ).toBeLessThan(PITY_THRESHOLD)
+          }
+        }
+      }
+
+      expect(
+        forcedPityFiresTotal,
+        `expected forced pity to fire at least once across ${PITY_RUNS * PULLS_PER_RUN} total pulls, got 0`,
+      ).toBeGreaterThan(0)
+    }, 120_000)
+  })
 })

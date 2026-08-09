@@ -1,29 +1,56 @@
-<!-- coalmine: verified 2026-08-07 · exemplar double-entry general-ledger practice + PCI DSS v4.0 Req. 10.5.1 (hot/archive split, verified live) · revalidate 90d -->
+<!-- coalmine: verified 2026-08-09 · exemplar double-entry general-ledger practice + PCI DSS v4.0 Req. 10.5.1 (hot/archive split, verified live) · revalidate 90d -->
+
 # Project Law: Currency ledger retention
 
 > ตัดสินผ่าน ask CB 4 ที่นั่ง 2026-08-07 ตามที่ HetCreep สั่งให้ใช้มาตรฐานสากลเป็นเกณฑ์
 > ไม่ใช่กฎที่คิดขึ้นเอง
 
-## สถานะปัจจุบัน: ยังไม่ต้องทำอะไร และนั่นคือคำตัดสิน ไม่ใช่การผัดวันประกันพรุ่ง
+## สถานะปัจจุบัน: สร้างแล้ว + apply เข้า production + ตรวจยืนยันแล้ว (2026-08-09, `supabase/migrations/20260809090000_p_currency_ledger_archive.sql`)
+
+> ตรวจ read-only ผ่าน Management API หลัง apply: lifetime columns ×2, archive table (RLS+policy),
+> archive function, cron jobid 5 (`0 4 1 * *`), credit functions ทั้ง 3 มี lifetime increment,
+> backfill 0 mismatches — ครบทุกข้อ (MEMORY.md item 179)
+
+**เงื่อนไขทริกเกอร์ด้านล่างนี้จุดจริงแล้ว** — `src/game/reward/lobbyBattleRewardPipeline.ts`
+(commit `6172d52`, 2026-08-08) ต่อ `earnGold`/`grantItem` เข้ากับผลจบการต่อสู้อัตโนมัติ
+ตรวจพบผ่าน full doc-vs-code audit (2026-08-10) ว่าไม่มีระบบเก็บถาวรตามมาในคอมมิตนั้น —
+ส่งเป็น design-fork ให้ nustanakritwithai เลือกระหว่าง "กฎจุดจริง สร้างเลย" กับ "เลขที่กฎอ้างอิง
+(34,000 แถว/localStorage quota) เป็นของ backend เก่าที่เลิกใช้ไปแล้ว" คำตอบคือ **1.a — สร้างเลย**
+
+**สิ่งที่ต้องแก้ให้ตรงกับความจริงก่อน**: เลข 34,000-แถว/20ms/localStorage-quota ด้านล่างนี้ (เดิม
+เขียนไว้ตอน `src/data/accountRepository.ts` ยังเป็น backend จริง) **อ้างอิง backend ที่ dormant ไป
+แล้ว** — `accountRepository.shared.ts:6` ยืนยันว่า `useAuth.ts` เลิก import
+`accountRepository.ts` ตั้งแต่ก่อนสร้างกฎนี้อีก backend จริงที่ผู้เล่นใช้งานคือ
+`accountRepository.supabase.ts` (Postgres ผ่าน Supabase) มาหลายเดือนแล้ว — เลขและกลไกที่ยกมา
+ด้านล่าง (JSON.stringify ทั้งก้อน, quota เบราว์เซอร์) **ไม่ใช่กลไกที่ Postgres มี** แต่คำตัดสิน
+1.a ยังยืนตามเดิม: build the archive pattern (hot/archive split, never-delete) ไม่ใช่เพราะ
+Postgres จะพังแบบเดียวกับ localStorage แต่เพราะกฎเดียวกันนี้ (ground ใน double-entry ledger +
+PCI DSS 10.5.1) เป็นกติกาที่ถูกต้องสำหรับ ledger ทางการเงินของเกมไม่ว่าจะรันบน storage ชนิดไหน
+
+**สิ่งที่สร้างจริง** (migration ด้านบน — รายละเอียดเต็มอยู่ในไฟล์นั้น):
+
+- `profiles.lifetime_gold_earned` / `lifetime_gem_earned` — ยอดสะสมตลอดชีพ เพิ่มทุกครั้งที่
+  `earn_gold`/`redeem_coupon`/`grant_gold_admin` เครดิตจริง (ไม่ลดตอนใช้จ่าย/ย้ายคลัง) backfill
+  จากประวัติเดิมแล้ว
+- `public.currency_transactions_archive` — ตารางเย็น shape เดียวกับตารางร้อน + `archived_at`
+  RLS แบบเดียวกับตารางร้อน
+- `public.archive_currency_transactions(interval)` — ย้ายแถวที่เก่ากว่า cutoff (ดีฟอลต์ 12
+  เดือน) ออกจากตารางร้อน **ยกเว้น `source in ('coupon','topup')` เด็ดขาดไม่ว่าจะเก่าแค่ไหน**
+  รัน cron รายเดือน (`archive-currency-transactions`, วันที่ 1 ตี 4)
+- `accountRepository.shared.ts`'s `CurrencyTransaction` JSDoc + `accountRepository.supabase.
+ts`'s `getTransactions` JSDoc แก้แล้วให้บอกตรง ๆ ว่าคืนเฉพาะช่วงร้อน ไม่ใช่ประวัติทั้งหมด
+
+`accountRepository.ts` (localStorage, dormant) **ไม่ถูกแตะ** — comment หัวไฟล์เดิมของมันยังจริง
+อยู่ (in-memory array เก็บทุกอย่างไม่มีเพดานจริง ๆ) เพราะไม่มีระบบเก็บถาวรมาแตะมันเลย
+
+## เลขเดิม (สำหรับ backend localStorage ที่ dormant ไปแล้ว — เก็บไว้เป็นบริบทว่าทำไมกฎนี้ถือกำเนิด)
 
 `CurrencyTransaction[]` ใน `src/data/accountRepository.ts` ไม่มีเพดานและไม่ถูกตัดทิ้งเลย
 ตัวเลขที่วัดได้จริง (จำลอง schema เดียวกันเป๊ะ): 20,000 รายการ ≈ 2.9MB ≈ **~20ms ต่อการเขียนหนึ่งครั้ง**
 เพราะทุก mutation `JSON.stringify` ฐานข้อมูลทั้งก้อนใหม่หมด · โควตา `localStorage` ปกติ 5–10MB
 บัญชีเดียวชนเพดานราว **34,000 รายการ**
 
-แต่ **ตอนนี้ยังไม่มีอะไรทำให้มันโต** ตรวจแล้วทีละเส้นทาง:
-
-| เส้นทาง | สถานะ | รายการที่สร้างได้ |
-|---|---|---|
-| `earnGold` | ไม่มี component ไหนเรียก (คอมเมนต์ใน `App.tsx` ระบุว่าตั้งใจ) | 0 |
-| `grantItem` | ไม่มีผู้เรียกเลยแม้แต่ใน `useAuth` | 0 |
-| `topUpGold` / `topUpGems` | ต่อสายจริงผ่าน `CurrencyShopModal` แต่กดได้ทีละครั้ง | หลักสิบตลอดอายุบัญชี |
-| `redeemCoupon` | มีคูปองเดียวในระบบ และกันแลกซ้ำต่อบัญชี | อย่างมาก 1 ตลอดกาล |
-
-สร้างเพดานตอนนี้คือแก้ปัญหาที่ยังไม่เกิด แลกกับความซับซ้อนที่เกิดทันที — และตาม
-`.agents/rules/proven-good-do-it-now.md` นี่ไม่ใช่ของที่พิสูจน์แล้วว่าดี มันคือการเดา
-
-## เงื่อนไขที่ทำให้ต้องลงมือ
+## เงื่อนไขที่ทำให้ต้องลงมือ (จุดแล้ว — ดูสถานะปัจจุบันด้านบน)
 
 **วันที่ `earnGold` หรือ `grantItem` ถูกต่อเข้ากับเควส/ดรอป/ผลการต่อสู้ที่ยิงอัตโนมัติ**
 ให้สร้างระบบเก็บถาวรใน PR เดียวกันนั้น ไม่ใช่ตามมาทีหลัง — เพราะพอมันเริ่มโตแล้ว
@@ -57,11 +84,14 @@
 **ยอดสะสมต้องกระทบยอดได้เสมอ** — เก็บยอดรวมตลอดชีพไว้ต่างหาก เพื่อที่ต่อให้รายละเอียด
 ย้อนไปไม่ถึงต้นทาง ตัวเลขรวมก็ยังตรง
 
-## สิ่งที่ต้องแก้พร้อมกันตอนลงมือ
+## สิ่งที่ต้องแก้พร้อมกันตอนลงมือ (ทำแล้ว 2026-08-09)
 
-หัวไฟล์ `accountRepository.ts` เขียนว่าที่มาของทุกเหรียญตรวจสอบได้ ถ้ามีการย้ายข้อมูลออก
-ประโยคนั้นต้องแก้ให้ตรงความจริง ("ตรวจสอบได้ถึงช่วงที่เก็บไว้ ส่วนเก่ากว่านั้นรวมเป็นยอดสะสม
-ไม่ได้ถูกลบ") — ไฟล์นี้เป็นไฟล์ที่ซื่อสัตย์กับตัวเองมาตลอด อย่าให้เริ่มโม้ตรงนี้
+`accountRepository.shared.ts`'s `CurrencyTransaction` JSDoc + `accountRepository.supabase.ts`'s
+`getTransactions` JSDoc แก้แล้ว — ทั้งคู่บอกตรง ๆ ว่าคืนเฉพาะช่วงร้อน (<12 เดือน) ตัวเลขที่ตรง
+เสมอไม่ว่ารายการย่อยจะถูกย้ายไปคลังกี่รอบคือ `profiles.lifetime_gold_earned`/
+`lifetime_gem_earned` ไม่ใช่ผลรวมจาก `getTransactions` (`accountRepository.ts`'s comment เดิม
+ไม่ต้องแก้ — ดู "สถานะปัจจุบัน" ด้านบน มันยัง honest กับสิ่งที่ตัวเองทำจริงอยู่ เพราะไม่มีระบบ
+เก็บถาวรมาแตะ backend นั้นเลย)
 
 ## สิ่งที่จะพลิกคำตัดสินนี้
 

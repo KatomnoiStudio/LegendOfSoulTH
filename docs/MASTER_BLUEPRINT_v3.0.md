@@ -448,6 +448,26 @@ Goal: **positioning matters** — not repetitive arena waves. **Revised 2026-08-
 
 # §6 — PvP (later phase)
 
+## 6.0 P12 private-room prototype — scope drift, not an interim phase (design-fork 4.b, 2026-08-10)
+
+**What shipped in P12** (`PvPRoomModal.tsx`/`usePvPRoom.ts`/`pvpRoomRepository.supabase.ts`,
+`supabase/migrations/20260809064000_p12_private_pvp_rooms.sql`): a player creates a room, gets a
+6-character invite code, a second player joins by typing it in. No queue, no rank, no MMR field
+anywhere in the PvP types — the modal's own on-screen label reads "P12 PRIVATE PROTOTYPE." Per
+§6.1 below, this is exactly the shape of an unranked "Casual" mode this section explicitly locks
+_out_ at launch — nothing in this blueprint, before this entry, authorized private rooms as
+either an interim step toward P13 or a permanent shape.
+
+A full doc-vs-code fidelity audit (2026-08-10) surfaced this as a design fork and handed it to
+nustanakritwithai rather than resolving it as a doc-staleness fix. **Answer: scope drift, not a
+blessed interim phase.** P12 stays gated behind `PVP_BACKEND_DEPLOYED = false`
+(`src/game/featureFlags.ts`, checked at every entry point — the nav button and the `?modal=pvp`
+URL param both read the same flag, MEMORY.md items 176-177) until P13 ships the real
+queue/rank/MMR flow §6.1 locks. The prototype is not deleted — it stands as the netcode/room-
+authority groundwork P13 builds matchmaking on top of — but it does not ship to players as a
+mode in its own right, ranked or otherwise, and no future PR should read the flag being `false`
+as "not built yet" rather than "built, and deliberately not turned on."
+
 ## 6.1 Mode (LOCKED)
 
 - **Single ranked system** — no separate Casual/Normalized modes at launch

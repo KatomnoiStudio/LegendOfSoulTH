@@ -15,6 +15,15 @@ export type GoldSource = 'quest' | 'drop' | 'topup'
 /** หยกได้จากการเติมเงินจริง หรือแลกคูปองเท่านั้น — ห้ามมีทางอื่น */
 export type GemSource = 'topup' | 'coupon'
 
+/**
+ * แถวหนึ่งรายการได้/เสียทอง-หยก — getTransactions คืนเฉพาะช่วง "ร้อน" เท่านั้น
+ * (currency_transactions บน Supabase; ดู accountRepository.supabase.ts) รายการเก่ากว่า 12
+ * เดือนย้ายไป currency_transactions_archive อัตโนมัติทุกเดือน (ไม่เคยลบทิ้ง — ดู
+ * .agents/rules/currency-ledger-retention.md) แต่ยังไม่ union เข้ามาที่ฟังก์ชันนี้ ตัวเลขรวม
+ * ที่ตรงเสมอไม่ว่ารายการย่อยจะถูกย้ายไปกี่รอบคือ profiles.lifetime_gold_earned/
+ * lifetime_gem_earned — ไม่ใช่การนับ length ของอาร์เรย์นี้ source 'coupon'/'topup' ไม่ถูกย้าย
+ * ออกจากช่วงร้อนเด็ดขาดไม่ว่าจะเก่าแค่ไหน (redeem_coupon กันแลกซ้ำด้วยการสแกนตารางนี้ตรง ๆ)
+ */
 export interface CurrencyTransaction {
   id: string
   currency: 'gold' | 'gem'

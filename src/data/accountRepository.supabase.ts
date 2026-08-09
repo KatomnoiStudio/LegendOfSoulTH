@@ -518,6 +518,11 @@ export async function topUpGems(_uid: string, _packageId: string): Promise<Curre
  * ที่ไม่ใช่ของตัวเองจริง ๆ — สัญญาณเตือนนี้มีไว้ให้คนที่จะผูกใช้งานจริงในอนาคตเห็นก่อนพลาดซ้ำ
  * ไม่ใช้ auth.uid() ตรง ๆ แทน param `uid` เพราะฟังก์ชันนี้ต้อง shape parity กับ accountRepository.ts
  * (localStorage backend, keyed ด้วย uid ไม่ใช่ session) ดู work contract #14 done-criterion #1
+ *
+ * คืนเฉพาะช่วงร้อน (< 12 เดือน) — รายการเก่ากว่านั้นถูกย้ายไป currency_transactions_archive
+ * โดย cron รายเดือน (ไม่เคยลบทิ้ง, ดู CurrencyTransaction's JSDoc ใน accountRepository.shared.ts
+ * + .agents/rules/currency-ledger-retention.md) ยอดสะสมตลอดชีพที่ตรงเสมอต่อให้รายการย่อยถูกย้าย
+ * อยู่ที่ profiles.lifetime_gold_earned/lifetime_gem_earned ไม่ใช่ผลรวมจากอาร์เรย์นี้
  */
 export async function getTransactions(uid: string): Promise<CurrencyTransaction[]> {
   const { data: profile } = await supabase
