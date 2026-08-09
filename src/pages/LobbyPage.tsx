@@ -9,8 +9,10 @@ import { WorldChat } from '../components/WorldChat/WorldChat'
 import { LobbyBattleSession } from '../components/LobbyBattleSession/LobbyBattleSession'
 import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRosterModal'
 import { ItemsModal } from '../components/ItemsModal/ItemsModal'
+import { GachaModal } from '../components/GachaModal/GachaModal'
 import { MainNavigation } from '../components/MainNavigation/MainNavigation'
 import { ProfileModal } from '../components/ProfileModal/ProfileModal'
+import { PvPRoomModal } from '../components/PvPRoom/PvPRoomModal'
 import { SettingsModal, type AudioSettings } from '../components/SettingsModal/SettingsModal'
 import { getAudioSettings, initAudioEngine, setAudioSettings } from '../lib/audio/AudioEngine'
 import { getPerformanceSettings, setPerformanceSettings } from '../lib/performanceSettings'
@@ -23,6 +25,7 @@ import type {
   CharacterGrantResult,
   CurrencyResult,
   GoldSource,
+  GachaPullResult,
   ItemResult,
 } from '../data/accountRepository.shared'
 import type {
@@ -59,6 +62,7 @@ interface LobbyPageProps {
   onRecordPending: (result: RealtimeBattleResult, transactionId: string) => Promise<boolean>
   onClearPending: (transactionId: string) => Promise<void>
   onGetPendingRewards: () => Promise<PendingLobbyRewardRow[]>
+  onPullGacha: (bannerId: string, pullCount: 1 | 10, requestId: string) => Promise<GachaPullResult>
   onLogout: () => Promise<void>
   /** เติมทองด้วยเงินจริง */
   onTopUpGold: (packageId: string) => Promise<CurrencyResult>
@@ -95,6 +99,7 @@ export function LobbyPage({
   onRecordPending,
   onClearPending,
   onGetPendingRewards,
+  onPullGacha,
   onLogout,
   onTopUpGold,
   onTopUpGems,
@@ -147,14 +152,18 @@ export function LobbyPage({
   const [settingsOpen, setSettingsOpen] = useState(() => previewModal === 'settings')
   const [rosterOpen, setRosterOpen] = useState(() => previewModal === 'roster')
   const [battleOpen, setBattleOpen] = useState(() => previewModal === 'battle')
+  const [pvpOpen, setPvpOpen] = useState(() => previewModal === 'pvp')
   const [addFriendOpen, setAddFriendOpen] = useState(() => previewModal === 'friend')
   const [itemsOpen, setItemsOpen] = useState(() => previewModal === 'items')
+  const [summonOpen, setSummonOpen] = useState(() => previewModal === 'summon')
 
   useEffect(() => {
     if (previewModal) {
       setRosterOpen(previewModal === 'roster')
       setBattleOpen(previewModal === 'battle')
+      setPvpOpen(previewModal === 'pvp')
       setItemsOpen(previewModal === 'items')
+      setSummonOpen(previewModal === 'summon')
       setSettingsOpen(previewModal === 'settings')
       setProfileOpen(previewModal === 'profile')
       setAddFriendOpen(previewModal === 'friend')
@@ -239,7 +248,9 @@ export function LobbyPage({
       <MainNavigation
         onOpenHeroes={() => setRosterOpen(true)}
         onOpenBattle={() => setBattleOpen(true)}
+        onOpenPvP={() => setPvpOpen(true)}
         onOpenItems={() => setItemsOpen(true)}
+        onOpenSummon={() => setSummonOpen(true)}
       />
 
       {/*
@@ -273,6 +284,8 @@ export function LobbyPage({
         />
       ) : null}
 
+      {pvpOpen ? <PvPRoomModal player={player} onClose={() => setPvpOpen(false)} /> : null}
+
       {/* หน้า Lobby ยังคง mount อยู่ข้างหลัง ฉาก 3D และแอนิเมชันตัวละครจึงไม่รีเซ็ต */}
       {rosterOpen ? (
         <CharacterRosterModal
@@ -305,6 +318,10 @@ export function LobbyPage({
       ) : null}
 
       {itemsOpen ? <ItemsModal player={player} onClose={() => setItemsOpen(false)} /> : null}
+
+      {summonOpen ? (
+        <GachaModal player={player} onPull={onPullGacha} onClose={() => setSummonOpen(false)} />
+      ) : null}
 
       {settingsOpen ? (
         <SettingsModal

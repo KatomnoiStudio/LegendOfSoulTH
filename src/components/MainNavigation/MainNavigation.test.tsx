@@ -13,18 +13,22 @@ import { ToastProvider } from '../Toast/ToastProvider'
 function renderNav(overrides: Partial<Parameters<typeof MainNavigation>[0]> = {}) {
   const onOpenHeroes = vi.fn()
   const onOpenBattle = vi.fn()
+  const onOpenPvP = vi.fn()
   const onOpenItems = vi.fn()
+  const onOpenSummon = vi.fn()
   render(
     <ToastProvider>
       <MainNavigation
         onOpenHeroes={onOpenHeroes}
         onOpenBattle={onOpenBattle}
+        onOpenPvP={onOpenPvP}
         onOpenItems={onOpenItems}
+        onOpenSummon={onOpenSummon}
         {...overrides}
       />
     </ToastProvider>,
   )
-  return { onOpenHeroes, onOpenBattle, onOpenItems }
+  return { onOpenHeroes, onOpenBattle, onOpenPvP, onOpenItems, onOpenSummon }
 }
 
 describe('MainNavigation', () => {
@@ -36,7 +40,7 @@ describe('MainNavigation', () => {
       'ต่อสู้',
       'ตัวละคร',
       'สัตว์เลี้ยง',
-      'ค่ายฝึก',
+      'PvP',
       'จัดทีม',
       'ไอเทม',
       'อัญเชิญ',
@@ -73,6 +77,26 @@ describe('MainNavigation', () => {
     await user.click(screen.getByRole('button', { name: 'ไอเทม' }))
 
     expect(onOpenItems).toHaveBeenCalledTimes(1)
+  })
+
+  test('กด "อัญเชิญ" เรียก onOpenSummon แทน toast เร็ว ๆ นี้', async () => {
+    const user = userEvent.setup()
+    const { onOpenSummon } = renderNav()
+
+    await user.click(screen.getByRole('button', { name: 'อัญเชิญ' }))
+
+    expect(onOpenSummon).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('อัญเชิญ — เร็ว ๆ นี้')).not.toBeInTheDocument()
+  })
+
+  test('กด "PvP" เรียก private room flow โดยไม่เปิดหน้า PvE', async () => {
+    const user = userEvent.setup()
+    const { onOpenPvP, onOpenBattle } = renderNav()
+
+    await user.click(screen.getByRole('button', { name: 'PvP' }))
+
+    expect(onOpenPvP).toHaveBeenCalledTimes(1)
+    expect(onOpenBattle).not.toHaveBeenCalled()
   })
 
   test('กดเมนูที่ยังไม่เปิด (เช่น "กิลด์") ไม่เรียก callback ไหนเลย แต่ขึ้น toast comingSoon', async () => {

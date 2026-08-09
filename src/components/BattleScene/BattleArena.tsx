@@ -8,6 +8,7 @@ import { BattleCamera } from './BattleCamera'
 import { EnemyBattleSprite } from './EnemyBattleSprite'
 import { PlayerBattleSprite } from './PlayerBattleSprite'
 import { TelegraphMarkers } from './TelegraphMarkers'
+import { StageGoalMarker } from './StageGoalMarker'
 
 /**
  * สนามต่อสู้ 2.5D side-down — พื้นลาน + แถบ depth + ฉากหลังด้านไกล
@@ -112,6 +113,7 @@ export function BattleArena({ runtime }: { runtime: RealtimeBattleRuntime }) {
       </mesh>
 
       <TelegraphMarkers runtime={runtime} />
+      <StageGoalMarker runtime={runtime} />
 
       <PlayerBattleSprite runtime={runtime} />
       {state.enemies.map((enemy) => (

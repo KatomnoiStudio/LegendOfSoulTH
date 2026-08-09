@@ -42,15 +42,16 @@ export const STANDARD_BANNER: BannerConfig = {
   pityThreshold: 30,
   pityGuaranteedRarity: 'legendary',
   rates: [
-    { rarity: 'legendary', rate: 0.05 }, // 5%
-    { rarity: 'epic', rate: 0.25 }, // 25%
-    { rarity: 'rare', rate: 0.3 }, // 30%
-    { rarity: 'common', rate: 0.4 }, // 40%
+    { rarity: 'legendary', rate: 0.05 },
+    { rarity: 'epic', rate: 0.25 },
+    { rarity: 'rare', rate: 0.7 },
   ],
   pool: [
     { characterId: 'monkey-king', rarity: 'legendary', weight: 1 },
     { characterId: 'pig-warrior', rarity: 'epic', weight: 1 },
-    { characterId: 'pilgrim-monk', rarity: 'epic', weight: 1 },
+    { characterId: 'celestial-archer', rarity: 'epic', weight: 1 },
+    { characterId: 'nezha-warden', rarity: 'rare', weight: 1 },
+    { characterId: 'sand-sage', rarity: 'rare', weight: 1 },
   ],
 }
 

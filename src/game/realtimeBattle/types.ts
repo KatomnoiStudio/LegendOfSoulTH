@@ -44,7 +44,7 @@ export type SkillCooldownSlot = 'skill1' | 'skill2' | 'skill3'
  * 'ally' = หน่วยที่เกิดจากเอฟเฟกต์ summon (§3.8.3) — วิ่งสมองเดียวกับ EnemyAISystem
  * แต่ธงฝ่ายตรงข้าม (เล็งศัตรู ไม่ใช่เล็งผู้เล่น)
  */
-export type EntityType = 'player' | 'enemy' | 'boss' | 'ally'
+export type EntityType = 'player' | 'pvp-player' | 'enemy' | 'boss' | 'ally'
 
 /** สถานะ buff ที่ยังค้างเวลาอยู่บนหน่วยหนึ่งตัว (Effects System §7 — kind 'buff') */
 export interface ActiveBuff {
@@ -102,6 +102,8 @@ export interface RealtimeBattleEntity {
 
   /** id ตัวละครผู้เล่น (ดู src/game/characters.ts) — มีเฉพาะฝ่ายผู้เล่น */
   characterId?: string
+  /** Auth profile that controls a PvP combatant; absent for PvE entities. */
+  controllerId?: string
   /** id แม่แบบศัตรู (ดู stageConfig.ts) — มีเฉพาะฝ่ายศัตรูและฝ่าย ally ที่เกิดจาก summon */
   enemyId?: string
   /**
@@ -153,11 +155,24 @@ export interface RealtimeBattleSnapshot {
   currentWave: number
   totalWaves: number
 
+  /** Objective state that the battle HUD must show; without this every stage looks like Wave. */
+  objective: BattleObjectiveSnapshot
+
   /** ช่องสกิลที่กำลังร่าย — null เมื่อไม่ได้ร่าย (สำหรับ UI state) */
   castingSkillSlot: SkillSlot | null
 
   damageEvents: DamageEvent[]
   effectEvents: BattleEffectEvent[]
+}
+
+export type BattleObjectiveKind =
+  'wave' | 'survival' | 'defend' | 'chase' | 'hazard' | 'mini-boss' | 'time-attack' | 'custom'
+
+export interface BattleObjectiveSnapshot {
+  kind: BattleObjectiveKind
+  current: number | null
+  target: number | null
+  remainingMs: number | null
 }
 
 /** ผลการต่อสู้ของระบบ real-time — แปลงเป็น contract เดิมด้วย BattleResultAdapter */

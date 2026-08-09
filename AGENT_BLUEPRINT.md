@@ -31,11 +31,12 @@ All 24 have passed their Dogfood loop (`TASKS.md` DF-rows) and sit at 100% **exc
 
 Not a list of unbuilt systems any more. **`TASKS.md` → Upgrade Tasks, rows U1–U26** are the load-bearing set: each is a shipped feature that silently does nothing, a LOCKED-blueprint violation, or a trust-boundary gap. Pick from there.
 
-### Tier 2 — Not started, sequenced later (roadmap P12+)
+### Tier 2 — P12 in flight, P13 still deferred
 
-- #20 PvP Power Normalization — **no longer zero: PR #95 landed a match-scoped projection at 70%** (`src/game/pvp/rankedNormalization.ts`), pulled forward from P12 with explicit Ring 0 approval as master-blueprint-law rule 15 requires. It adds no matchmaking, MMR, rewards or session authority; those stay deferred. Its readiness rows R4–R8 now describe shipped code.
-- #19 PvP/Ranked, #21 Netcode/Networking — zero implementation; blueprint §3.8.7/§8 defer these to P12. The 2026-08-09 audit did **not** design them, but did note that architectural debt in the graduated systems compounds against them; #21's readiness angle surfaced only as a side effect of World Chat (`TASKS.md` U18).
-- **Roadmap-order divergence still standing (item #12 of the blueprint-vs-code audit)** — §10's LOCKED sequence puts P9 (#23 Gacha / #15 Star Ascension) before P10 (#13 Hero Collection expansion), and it shipped in reverse. All three are now graduated (Tier 0), so the build-order question is moot, but HetCreep's resolution still binds the _expansion_ work: **pause further #13 Hero Collection expansion** until the P9 pair has caught up in depth, not just in existence. `TASKS.md` U21 is the concrete blocker — neither `performGachaPull` nor `ascendStar` has a production caller yet.
+- **#20 PvP Power Normalization — shipped, row 26 at 90%** (`src/game/pvp/rankedNormalization.ts`, PR #95). A match-scoped projection pinning Hero Level and skill levels to their caps, pulled forward from P12 with explicit Ring 0 approval as master-blueprint-law rule 15 requires. Adds no matchmaking, MMR or rewards.
+- **#21 Netcode — a private 1v1 room prototype exists, row 27 at 90%** (PR #96): six-character invite codes, a JWT-verified Edge Function as sole authority, client prediction with authoritative reconciliation, participant-only Realtime snapshots, reconnect/forfeit. **Not deployed** — the migration and Edge Function still need applying, and live two-client verification is required before P12 graduation. Readiness rows R9–R12 now describe shipped code.
+- **#19 PvP/Ranked (matchmaking, Rank/MMR) remains deferred to P13.**
+- **Roadmap-order divergence, item #12 — now largely closed.** §10 puts P9 (#23 Gacha / #15 Star Ascension) before P10 (#13 Hero Collection expansion) and it shipped in reverse. PR #97 closed the Gacha half properly: a server-authoritative `perform_gacha_pull` RPC (atomic Gem debit, server RNG, pity, request-id replay protection) with a real Lobby caller. **Star Ascension is the half still open** — `ascendCharacterStar` has a server RPC but no UI caller, so `TASKS.md` U21 now stands on Star alone, and the #13-expansion pause stays in force until it closes.
 
 ### Tier 3 — Decorative / optional, add on later
 

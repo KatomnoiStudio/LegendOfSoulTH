@@ -1,0 +1,2 @@
+[functions.pvp-authority]
+verify_jwt = true

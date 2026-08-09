@@ -17,4 +17,19 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+/*
+  flowType: 'pkce' — ไม่ใช่ค่าเริ่มต้น (supabase-js v2 default = 'implicit') และตั้งไว้ตั้งใจ
+
+  implicit flow ส่ง session กลับมาเป็น URL fragment (`#access_token=<JWT>&refresh_token=...`)
+  ซึ่งแปลว่า JWT ของผู้ใช้จะไปโผล่ใน address bar และถูกบันทึกลง history ของเบราว์เซอร์ทุกครั้ง
+  ที่ล็อกอิน แม้ supabase-js จะล้าง URL ให้ทันทีที่อ่านค่าเสร็จก็ตาม — history entry ที่เขียนไป
+  แล้วลบไม่ได้ ส่วน PKCE ส่งกลับมาเป็น `?code=<one-time>` แลกเป็น session ผ่าน API call แทน
+  ไม่มี JWT โผล่ใน URL เลยสักจังหวะ
+
+  เจอของจริง 2026-08-09: dev เห็น `katomnoistudio.github.io/#access_token=eyJhbGci...` ค้าง
+  ในช่อง address (ดู resolveOAuthRedirectUrl ใน accountRepository.supabase.ts — คนละบั๊กแต่
+  ทำให้เห็นปัญหานี้)
+*/
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: { flowType: 'pkce' },
+})

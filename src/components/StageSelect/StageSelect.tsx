@@ -28,7 +28,26 @@ function stageMetaLine(
   unlocked: boolean,
   affordable: boolean,
 ) {
-  const parts = [STAGE_TYPE_LABELS[stage.stageType]]
+  const objective = (() => {
+    switch (stage.stageType) {
+      case 'survival':
+        return `รอด ${Math.ceil((stage.survival?.durationMs ?? 0) / 1000)} วินาที`
+      case 'defend':
+        return `ศาลเจ้า ${stage.defend?.objectiveHp ?? 0} HP`
+      case 'chase':
+        return `ถึงเป้าภายใน ${Math.ceil((stage.chase?.timeBudgetMs ?? 0) / 1000)} วินาที`
+      case 'hazard':
+        return `หยุดอันตรายก่อนพลังหมด`
+      case 'mini-boss':
+        return 'โค่นขุนศึก'
+      case 'time-attack':
+        return `เคลียร์ใน ${Math.ceil((stage.timeAttack?.timeBudgetMs ?? 0) / 1000)} วินาที`
+      case 'wave':
+      case 'custom':
+        return `${stage.waves.length} คลื่น`
+    }
+  })()
+  const parts = [STAGE_TYPE_LABELS[stage.stageType], objective]
   if (stage.isBoss) parts.push('บอส')
   if (cleared) parts.push('ผ่านแล้ว')
   if (!unlocked) parts.push('ล็อกอยู่')

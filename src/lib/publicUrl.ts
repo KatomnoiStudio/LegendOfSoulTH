@@ -7,5 +7,6 @@
  * เพราะ dev server base เป็น '/' พอดี
  */
 export function publicUrl(path: string): string {
-  return `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`
+  const environment = (import.meta as ImportMeta & { env?: { BASE_URL?: string } }).env
+  return `${environment?.BASE_URL ?? '/'}${path.replace(/^\//, '')}`
 }
