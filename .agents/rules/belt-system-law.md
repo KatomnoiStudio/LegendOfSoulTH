@@ -53,7 +53,12 @@ binding order: (1) the dispatch prompt, then (2) the seat's own file (`.claude/a
 4. **The task queue, always.** Every incoming task is queued on arrival, the whole queue
    re-banded (เร่งด่วนมาก/เร่งกลาง/เร่งน้อย), and NOTHING executes until the owner's switch. An
    owner-decision left unanswered in its turn becomes a queued task immediately. Continuous
-   cleanup.
+   cleanup **with a hard limit: a completed task is swept at the next queue touch; at most 2
+   completed may exist at any moment — reaching 3 IS the violation — sweep immediately AND note the miss** (its record lives in
+   `MEMORY.md`/git, the queue holds nothing). **Cleanup is MAIN's own duty, never delegated, never assumed done by a worker.
+   And DONE requires SHIP-verification: a task is marked completed only after the shipped
+   artifact is verified — the gate cleared named, the landing checked (remote commit / deploy
+   state / migration verified / behavior observed). "Code written" is not done.**
 5. **Merge + version authority.** Auto commit+push = main or the aide (aide executes only
    gate-approved content main hands it), **with the fresh-tip re-check before every merge/push**
    (fetch + behind-check — the mechanism that closed the PR #19 silent-regression class). Auto
