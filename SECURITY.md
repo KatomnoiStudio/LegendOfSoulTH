@@ -81,8 +81,15 @@ By design, not bugs — don't file these:
   Lobby battle rewards use refId-guarded RPCs and a durable pending snapshot table — see
   `supabase/migrations/0013_reward_idempotency.sql`. Star Ascension uses an authenticated,
   atomic, idempotent RPC and a private-write audit ledger — see
-  `supabase/migrations/20260808204905_p9_star_ascension_server_authority.sql`. Report the same
-  _class_ of bug elsewhere.)
+  `supabase/migrations/20260808204905_p9_star_ascension_server_authority.sql`. On 2026-08-10,
+  `team_slots` accepted any `character_id`, letting a client field a Hero it never owned — RLS
+  governs which rows are writable, never which values go in them; closed by a validating trigger
+  in `supabase/migrations/20260810101000_security_team_slots_ownership.sql`. Also on 2026-08-10,
+  `earn_gold` accepted `p_source = 'topup'` from any authenticated session, letting a client mint
+  gold that the ledger then recorded as a paid top-up with no payment verification anywhere in the
+  path, and the signup grant was written straight to `profiles` with no matching ledger row —
+  closed by `supabase/migrations/20260810100000_security_earn_gold_topup_and_signup_ledger.sql`.
+  Report the same _class_ of bug elsewhere.)
 - **"I changed Star/Shard values in React state or called the preview calculator."** The preview
   is presentation-only. Report it only if the change persists in Supabase without a valid
   `ascend_character_star` transaction.
@@ -109,7 +116,11 @@ By design, not bugs — don't file these:
   [`src/lib/password.ts`](src/lib/password.ts) (dormant, kept only as a shared validator source).
 - **"CurrencyShopModal payments (gold or gems) aren't real / always succeed."** Still intentional —
   no payment gateway is wired up yet (see `accountRepository.supabase.ts` `topUpGold`/`topUpGems`).
-  Not a payment-bypass vulnerability; there is no real payment to bypass.
+  Not a payment-bypass vulnerability; there is no real payment to bypass. The ledger no longer
+  accepts a client-asserted one either — `earn_gold` rejects `p_source = 'topup'` as of
+  `20260810100000_security_earn_gold_topup_and_signup_ledger.sql`, so a `topup` row can only ever
+  be written by a future gateway-verifying RPC. **Do** report it if you find a way to write one
+  without such a gateway.
 - Vulnerabilities in a dependency that this project doesn't actually reach at runtime
   (see `npm audit` in CI first — if it's already flagged/tracked there, no need to duplicate).
 
