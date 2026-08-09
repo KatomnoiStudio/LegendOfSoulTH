@@ -1,3 +1,5 @@
+import { applyCombatFacingFromMovement } from './combatFacing'
+import { isControlLocked } from './combatReaction'
 import type { RealtimeBattleStage } from './stageConfig'
 import type { Direction8, RealtimeBattleEntity, Vec2 } from './types'
 
@@ -55,7 +57,12 @@ export function clampToArena(position: Vec2, radius: number, stage: RealtimeBatt
  * ใช้กับ "ผู้เล่นชนศัตรู" และ "ศัตรูชนกันเอง" (§21) — ตัวที่ถูกดันคือ `mover`
  * เท่านั้น ตัวตั้งอยู่กับที่ ทำให้ผลลัพธ์ไม่ขึ้นกับลำดับการเรียกภายในหนึ่ง tick
  */
-export function resolveCircleOverlap(mover: Vec2, moverRadius: number, other: Vec2, otherRadius: number): Vec2 {
+export function resolveCircleOverlap(
+  mover: Vec2,
+  moverRadius: number,
+  other: Vec2,
+  otherRadius: number,
+): Vec2 {
   const dx = mover.x - other.x
   const dy = mover.y - other.y
   const minDistance = moverRadius + otherRadius
@@ -87,8 +94,7 @@ export function stepMovement(
   deltaMs: number,
   { stage, blockers }: MovementContext,
 ): boolean {
-  // ตายแล้ว หรือกำลังเซจากการโดนตี = ขยับไม่ได้ (§11)
-  if (entity.state === 'dead' || entity.hitStunRemainingMs > 0) {
+  if (isControlLocked(entity)) {
     entity.velocity = { x: 0, y: 0 }
     return false
   }
@@ -99,23 +105,41 @@ export function stepMovement(
     return false
   }
 
-  const deltaSeconds = deltaMs / 1000
+  const maxStepMs = 50
+  let remainingMs = deltaMs
+  let currentPos = { ...entity.position }
+
   entity.velocity = { x: direction.x * entity.speed, y: direction.y * entity.speed }
 
-  let next: Vec2 = {
-    x: entity.position.x + entity.velocity.x * deltaSeconds,
-    y: entity.position.y + entity.velocity.y * deltaSeconds,
+  while (remainingMs > 0) {
+    const stepMs = Math.min(remainingMs, maxStepMs)
+    remainingMs -= stepMs
+
+    const deltaSeconds = stepMs / 1000
+    let next: Vec2 = {
+      x: currentPos.x + entity.velocity.x * deltaSeconds,
+      y: currentPos.y + entity.velocity.y * deltaSeconds,
+    }
+
+    for (const blocker of blockers) {
+      if (blocker.id === entity.id || blocker.state === 'dead') continue
+      next = resolveCircleOverlap(
+        next,
+        entity.collisionRadius,
+        blocker.position,
+        blocker.collisionRadius,
+      )
+    }
+
+    currentPos = clampToArena(next, entity.collisionRadius, stage)
   }
 
-  for (const blocker of blockers) {
-    if (blocker.id === entity.id || blocker.state === 'dead') continue
-    next = resolveCircleOverlap(next, entity.collisionRadius, blocker.position, blocker.collisionRadius)
-  }
-
-  entity.position = clampToArena(next, entity.collisionRadius, stage)
+  entity.position = currentPos
 
   const facing = directionFromVector(direction)
   if (facing) entity.facing = facing
+
+  applyCombatFacingFromMovement(entity, direction)
 
   return true
 }

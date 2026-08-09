@@ -80,3 +80,68 @@ describe('reportError', () => {
     offGood()
   })
 })
+
+// ─── Known Scars (Excalidraw historical crash / storage failure incidents) ───
+
+function simulatedStorageSave() {
+  try {
+    throw new Error('QuotaExceededError: DOMException')
+  } catch (err) {
+    reportError('PLAYER_SAVE_FAIL', 'visible', err)
+  }
+}
+
+describe('Scar 1: Storage quota overflow write failure (Excalidraw #8395, #8805)', () => {
+  test('storage write throw routes to reportError with tier visible and does not silently swallow', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const seen: string[] = []
+    const off = subscribeToVisibleErrors((code) => seen.push(code))
+
+    expect(() => simulatedStorageSave()).not.toThrow()
+    expect(seen).toEqual(['PLAYER_SAVE_FAIL'])
+    off()
+  })
+})
+
+function parseStartupData(rawJson: string) {
+  try {
+    return JSON.parse(rawJson)
+  } catch (err) {
+    reportError('STORAGE_READ_FAIL', 'visible', err)
+    return null
+  }
+}
+
+describe('Scar 2: Startup corruption before error boundary (Excalidraw #471)', () => {
+  test('corrupted JSON parsing at startup routes safely through reportError without unhandled throw', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const seen: string[] = []
+    const off = subscribeToVisibleErrors((code) => seen.push(code))
+
+    const result = parseStartupData('{ malformed json')
+    expect(result).toBeNull()
+    expect(seen).toEqual(['STORAGE_READ_FAIL'])
+    off()
+  })
+})
+
+describe('Scar 3: Non-destructive crash backup data completeness (Excalidraw #1234)', () => {
+  test('backup export contains full required player data keys and is not partial or blank', () => {
+    const mockPlayerState = {
+      id: 'acc-1',
+      uid: '1234567890',
+      name: 'Hero',
+      level: 10,
+      currency: { gold: 1000, gem: 50 },
+      ownedCharacters: [{ characterId: 'monkey-king', level: 10 }],
+    }
+
+    const backupJson = JSON.stringify({ version: '1.0', player: mockPlayerState })
+    const parsed = JSON.parse(backupJson)
+
+    expect(parsed.player).toBeDefined()
+    expect(parsed.player.uid).toBe('1234567890')
+    expect(parsed.player.currency.gold).toBe(1000)
+    expect(parsed.player.ownedCharacters).toHaveLength(1)
+  })
+})

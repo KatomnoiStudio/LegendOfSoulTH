@@ -1,17 +1,13 @@
 /**
- * ชนิดข้อมูลของห้องต่อสู้แบบ Real-time (Top-down Hack & Slash)
+ * ชนิดข้อมูลของห้องต่อสู้แบบ Real-time (2.5D side-down — Blueprint v3)
  *
- * แยกขาดจากระบบ Turn-based เดิมใน src/game/battle/ โดยตั้งใจ —
- * ห้ามนำ BattleSnapshot แบบเทิร์นมาใช้ต่อ และห้ามให้สองระบบใช้ type ร่วมกัน
- * (ยกเว้น BattleResult ที่เป็น contract กับ useGameFlow ซึ่งแปลงผ่าน BattleResultAdapter)
- *
- * ── ระบบพิกัด ──────────────────────────────────────────────
- * Runtime ใช้พิกัด 2 มิติแบบ "หน่วยเดียวกับแผนที่สำรวจ" (หน่วยละ ~1px ของงานออกแบบ)
- *   x = ซ้าย→ขวา, y = บน→ล่าง  (y เพิ่ม = เดินลงล่างของจอ)
- * ตอนวาดด้วย Three.js จะ map เป็น (x, 0, y) บนระนาบ XZ แล้วคูณ WORLD_SCALE
- * ดู src/components/BattleScene/BattleArena.tsx
+ * ── ระบบพิกัด (ดู battleCoordinates.ts) ─────────────────
+ * Runtime: x = ซ้าย–ขวา, y = depth หน้า–หลัง
+ * World:   XZ plane — y runtime → world Z (depth)
  * ───────────────────────────────────────────────────────────
  */
+
+import type { SkillSlot } from './skills'
 
 export type BattleStatus = 'loading' | 'intro' | 'running' | 'victory' | 'defeat' | 'exiting'
 
@@ -23,10 +19,50 @@ export interface Vec2 {
 export type Direction8 =
   'up' | 'up-right' | 'right' | 'down-right' | 'down' | 'down-left' | 'left' | 'up-left'
 
-export type EntityState = 'idle' | 'walk' | 'attack' | 'skill' | 'dash' | 'hit' | 'dead'
+/** ทิศโจมตีพื้นฐาน — ซ้าย/ขวาเท่านั้น (Blueprint v3 P2) */
+export type CombatFacing = 'left' | 'right'
 
-/** ฝ่ายของหน่วย — ใช้ตรวจว่า hitbox ทำอันตรายใครได้บ้าง */
-export type EntityType = 'player' | 'enemy' | 'boss'
+/**
+ * knockdown/getup ต่อจาก hit ตามลำดับ Hit → Knockdown → GetUp → Chase (§3.6.8)
+ * ใช้ร่วมกันทั้ง elite และ boss ไม่มี state แยกต่อ tier (§3.8.4)
+ */
+export type EntityState =
+  'idle' | 'walk' | 'attack' | 'skill' | 'hit' | 'dead' | 'knockdown' | 'getUp'
+
+/** ระดับความแรงของศัตรู — elite ยืมสเตตัสจากตัวคูณในข้อมูล ไม่มี kit พิเศษ (§3.8.4) */
+export type EnemyTier = 'normal' | 'elite'
+
+/** Mob / elite / boss tier — elite uses same AI core, different data. */
+export type CombatTier = 'mob' | 'elite' | 'boss'
+
+/** ช่องสกิล 1–3 (ultimate ใช้ gauge แยก — ดู ultimateGauge.ts) */
+export type SkillCooldownSlot = 'skill1' | 'skill2' | 'skill3'
+
+/**
+ * ฝ่ายของหน่วย — ใช้ตรวจว่า hitbox ทำอันตรายใครได้บ้าง
+ *
+ * 'ally' = หน่วยที่เกิดจากเอฟเฟกต์ summon (§3.8.3) — วิ่งสมองเดียวกับ EnemyAISystem
+ * แต่ธงฝ่ายตรงข้าม (เล็งศัตรู ไม่ใช่เล็งผู้เล่น)
+ */
+export type EntityType = 'player' | 'pvp-player' | 'enemy' | 'boss' | 'ally'
+
+/** สถานะ buff ที่ยังค้างเวลาอยู่บนหน่วยหนึ่งตัว (Effects System §7 — kind 'buff') */
+export interface ActiveBuff {
+  buffType: string
+  magnitude: number
+  remainingMs: number
+}
+
+/**
+ * สถานะ CC (stun/root/silence) ที่ยังค้างเวลาอยู่บนหน่วยหนึ่งตัว (Effects System §7 — kind 'cc')
+ *
+ * เป็นสถานะแยกจาก hit-reaction/knockdown โดยเจตนา (§3.8.6) — ระบบนี้แค่เขียน record ไว้
+ * ให้ Hit Reaction System (#6, ยังไม่ทำ) เป็นคนอ่านไปกันไม่ให้ขยับ/ร่ายท่าในอนาคต
+ */
+export interface ActiveCc {
+  ccType: string
+  remainingMs: number
+}
 
 export interface RealtimeBattleEntity {
   id: string
@@ -35,9 +71,9 @@ export interface RealtimeBattleEntity {
   position: Vec2
   velocity: Vec2
   facing: Direction8
+  /** ทิศโจมตีซ้าย/ขวา — แยกจาก facing สำหรับสไปรต์เดิน (P2) */
+  combatFacing: CombatFacing
   state: EntityState
-  /** ภาพ Normal Attack ที่สุ่มไว้สำหรับไม้ปัจจุบัน ห้ามสุ่มใหม่ระหว่างเล่นเฟรม */
-  attackAnimationId?: 'attack-1' | 'attack-2' | 'attack-3' | 'skill-1' | 'skill-2'
 
   hp: number
   maxHp: number
@@ -52,17 +88,34 @@ export interface RealtimeBattleEntity {
   hurtboxRadius: number
 
   attackCooldownRemainingMs: number
-  skillCooldownRemainingMs: number
-  dashCooldownRemainingMs: number
+  skillCooldownsMs: Record<SkillCooldownSlot, number>
+  /** 0–100 — เต็มแล้วใช้อัลติเมทได้ (Blueprint v3 P3) */
+  ultimateGauge: number
 
   /** เวลา (elapsedMs ของ runtime) ที่ยังอยู่ยงคงกระพันจนถึง */
   invulnerableUntilMs: number
   hitStunRemainingMs: number
+  knockdownRemainingMs: number
+  getUpRemainingMs: number
+  /** mob | elite | boss — drives knockdown eligibility */
+  combatTier: CombatTier
 
   /** id ตัวละครผู้เล่น (ดู src/game/characters.ts) — มีเฉพาะฝ่ายผู้เล่น */
   characterId?: string
-  /** id แม่แบบศัตรู (ดู stageConfig.ts) — มีเฉพาะฝ่ายศัตรู */
+  /** Auth profile that controls a PvP combatant; absent for PvE entities. */
+  controllerId?: string
+  /** id แม่แบบศัตรู (ดู stageConfig.ts) — มีเฉพาะฝ่ายศัตรูและฝ่าย ally ที่เกิดจาก summon */
   enemyId?: string
+  /**
+   * ระดับความแรง — resolve มาจาก RealtimeEnemyTemplate.tier ตอนสร้าง entity (§3.8.4)
+   * ไม่มี = ฝ่ายผู้เล่น หรือศัตรูที่ไม่ผ่าน createWaveEnemies (fallback ปฏิบัติเหมือน 'normal')
+   */
+  tier?: EnemyTier
+
+  /** buff ที่กำลังค้างเวลาอยู่ (Effects System §7) — ไม่มี = ไม่มี buff ใด ๆ อยู่ */
+  activeBuffs?: ActiveBuff[]
+  /** CC ที่กำลังค้างเวลาอยู่ (Effects System §7) — ไม่มี = ไม่ติด CC ใด ๆ */
+  activeCc?: ActiveCc[]
 }
 
 export interface DamageEvent {
@@ -74,8 +127,7 @@ export interface DamageEvent {
   createdAtMs: number
 }
 
-export type BattleEffectKind =
-  'hit-spark' | 'dash-trail' | 'skill-spin' | 'skill-lightning' | 'death' | 'spawn'
+export type BattleEffectKind = 'hit-spark' | 'skill-spin' | 'death' | 'spawn' | 'ground-marker'
 
 export interface BattleEffectEvent {
   id: string
@@ -103,8 +155,24 @@ export interface RealtimeBattleSnapshot {
   currentWave: number
   totalWaves: number
 
+  /** Objective state that the battle HUD must show; without this every stage looks like Wave. */
+  objective: BattleObjectiveSnapshot
+
+  /** ช่องสกิลที่กำลังร่าย — null เมื่อไม่ได้ร่าย (สำหรับ UI state) */
+  castingSkillSlot: SkillSlot | null
+
   damageEvents: DamageEvent[]
   effectEvents: BattleEffectEvent[]
+}
+
+export type BattleObjectiveKind =
+  'wave' | 'survival' | 'defend' | 'chase' | 'hazard' | 'mini-boss' | 'time-attack' | 'custom'
+
+export interface BattleObjectiveSnapshot {
+  kind: BattleObjectiveKind
+  current: number | null
+  target: number | null
+  remainingMs: number | null
 }
 
 /** ผลการต่อสู้ของระบบ real-time — แปลงเป็น contract เดิมด้วย BattleResultAdapter */

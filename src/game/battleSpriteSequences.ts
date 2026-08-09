@@ -10,14 +10,14 @@ import type { Direction8 } from './realtimeBattle/types'
  * แถมสเปกสั่งชัดว่าห้ามแก้ระบบ sprite ของ Lobby จนพัง (§10)
  *
  * ── Fallback ที่ประกาศไว้ชัดเจน ────────────────────────────
- * asset ที่มีจริงในโปรเจกต์ตอนนี้มีแค่ idle / walk 8 ทิศ (เฉพาะหงอคง) / attack ของหงอคง
+ * asset ที่มีจริงในโปรเจกต์ตอนนี้มี idle / walk 8 ทิศ (หงอคง + ตือโป๊ยก่าย) / attack ของหงอคง
  * ท่าที่เหลือจึงถูก map ไปยังเฟรมที่ใกล้เคียงที่สุดอย่างจงใจ ไม่ปล่อยภาพหาย:
  *   attack-2 / attack-3 → ชุด attack เดียวกัน (ต่างที่จังหวะและ knockback ไม่ใช่ที่ภาพ)
  *   dash                → เฟรม walk ของทิศนั้น (เอฟเฟกต์เส้นลากทำด้วย effect layer)
- *   skill-1             → ชุด gesture ของตัวละคร (หงอคง = wukong-gesture 8 เฟรม)
+ *   skill-1             → ชุด action ของตัวละคร (หงอคง = monkey-v2 10 เฟรม)
  *   hit / death         → เฟรม idle แรก แล้วให้ material จัดการ flash/fade
- *   victory             → ชุด gesture ของหงอคง, ตัวอื่นใช้ idle
- * ตัวละครที่ไม่มีชุดเดิน (ตือโป๊ยก่าย/พระถัง) ใช้ idle เป็นเฟรมเดิน — ประกาศไว้ตรงนี้
+ *   victory             → ชุด pose ของหงอคง, ตัวอื่นใช้ idle
+ * ตัวละครที่ไม่มีชุดเดิน (พระถัง) ใช้ idle เป็นเฟรมเดิน — ประกาศไว้ตรงนี้
  * เพื่อให้รู้ว่าเป็นการตัดสินใจ ไม่ใช่ asset หาย
  * ───────────────────────────────────────────────────────────
  *
@@ -40,17 +40,27 @@ export type BattleAnimationId =
   | 'attack-3'
   | 'dash'
   | 'skill-1'
-  | 'skill-2'
   | 'hit'
   | 'death'
   | 'victory'
 
-/** ทิศที่มีเฟรมภาพจริง — เวอร์ชันแรกใช้ 4 ทิศตามสเปก (§10) */
+/** ทิศที่มีเฟรมภาพจริง — walk/dash ใช้ 8 ทิศจากชีต, ท่าอื่นใช้ 4 ทิศหรือชุดเดียว */
 export type SpriteDirection4 = 'up' | 'down' | 'left' | 'right'
 
+const DIRECTIONS_8: Direction8[] = [
+  'up',
+  'up-right',
+  'right',
+  'down-right',
+  'down',
+  'down-left',
+  'left',
+  'up-left',
+]
+
 export interface BattleAnimation {
-  /** เฟรมต่อทิศ — ถ้าไม่มีเฟรมแยกทิศจะเป็นชุดเดียวกันทั้ง 4 ทิศ */
-  frames: Record<SpriteDirection4, string[]>
+  /** เฟรมต่อทิศ — walk/dash มีครบ 8 ทิศ, ท่าอื่นมักใช้ชุดเดียวทุกทิศ */
+  frames: Partial<Record<Direction8, string[]>>
   /** เฟรมต่อวินาที */
   rate: number
   /** เล่นวนหรือเล่นจบแล้วค้างเฟรมสุดท้าย */
@@ -65,64 +75,48 @@ function frames(prefix: string, count: number, start = 0): string[] {
   )
 }
 
-/**
- * สไปรต์เดินของหงอคงมีจริงแค่ 2 ไฟล์ (ซ้าย/ขวา — side-view เดียว ไม่มีมุมหน้า/หลัง)
- * ทิศ up/down ของห้องต่อสู้จึงยืมภาพหันขวามาใช้แทน (ไม่มีมุมภาพจริงให้ ไม่ใช่ไฟล์หาย)
- */
-function walkFrames(dir: 'up' | 'down' | 'left' | 'right'): string[] {
-  const fileDirection = dir === 'up' || dir === 'down' ? 'right' : dir
-  return Array.from({ length: 8 }, (_, index) =>
-    publicUrl(`characters/walk/wukong-walk-${fileDirection}-${index}.webp`),
-  )
+function walkFrames8(prefix: 'monkey-walk' | 'pigsy-walk'): Partial<Record<Direction8, string[]>> {
+  const result: Partial<Record<Direction8, string[]>> = {}
+  for (const direction of DIRECTIONS_8) {
+    result[direction] = Array.from({ length: 8 }, (_, index) =>
+      publicUrl(`characters/walk/${prefix}-${direction}-${index}.webp`),
+    )
+  }
+  return result
 }
 
-/** ชุดเฟรมเดียวใช้ทุกทิศ */
-function allDirections(urls: string[]): Record<SpriteDirection4, string[]> {
-  return { up: urls, down: urls, left: urls, right: urls }
+/** ชุดเฟรมเดียวใช้ทุกทิศ (idle / attack / skill ฯลฯ) */
+function allDirections(urls: string[]): Partial<Record<Direction8, string[]>> {
+  const result: Partial<Record<Direction8, string[]>> = {}
+  for (const direction of DIRECTIONS_8) {
+    result[direction] = urls
+  }
+  return result
 }
 
-const MONKEY_IDLE = frames('wukong-idle', 8)
-const MONKEY_ATTACK = frames('monkey-attack-new', 36)
-const MONKEY_ACTION = frames('wukong-gesture', 8)
-const MONKEY_VICTORY = frames('wukong-gesture', 8)
+const MONKEY_IDLE = frames('monkey-v2-idle', 24)
+const MONKEY_ATTACK = frames('monkey-attack-new', 6, 12)
+const MONKEY_ACTION = frames('monkey-v2', 10)
+const MONKEY_VICTORY = Array.from({ length: 4 }, (_, index) =>
+  publicUrl(`characters/monkey-pose-${index}-alpha.webp`),
+)
 const PIGSY_IDLE = frames('pigsy-idle', 24)
 const PIGSY_ACTION = frames('pigsy-team', 8)
 const TRIPITAKA_IDLE = frames('tripitaka-idle', 24)
-const SPEAR_WARRIOR_IDLE = frames('erlang-shen-v6-idle', 25)
-const SPEAR_WARRIOR_ATTACK_OLD = frames('erlang-shen-attack-v1', 18)
-const SPEAR_WARRIOR_ATTACK_NEW = frames('erlang-shen-normal-attack-v2', 8)
-const SPEAR_WARRIOR_ATTACK_THIRD = frames('erlang-shen-normal-attack-v3-final', 8)
-const SPEAR_WARRIOR_SKILL_1 = frames('erlang-shen-skill-1', 16)
-const SPEAR_WARRIOR_SKILL_2 = frames('erlang-shen-skill-2-cast', 6)
-export const ERLANG_SKILL_1_STRIKE_FRAMES = frames('erlang-shen-skill-1-strike', 8)
+const ERLANG_IDLE = frames('erlang-shen-v6-idle', 25)
+const ERLANG_ATTACK_1 = frames('erlang-shen-attack-v1', 18)
+const ERLANG_ATTACK_2 = frames('erlang-shen-normal-attack-v2', 8)
+const ERLANG_ATTACK_3 = frames('erlang-shen-normal-attack-v3-final', 8)
+const ERLANG_SKILL_1 = frames('erlang-shen-skill-1', 16)
 
 const MONKEY_KING_SET: BattleSpriteSet = {
   idle: { frames: allDirections(MONKEY_IDLE), rate: 8, loop: true },
-  walk: {
-    frames: {
-      up: walkFrames('up'),
-      down: walkFrames('down'),
-      left: walkFrames('left'),
-      right: walkFrames('right'),
-    },
-    rate: 12,
-    loop: true,
-  },
-  'attack-1': { frames: allDirections(MONKEY_ATTACK), rate: 30, loop: false },
-  'attack-2': { frames: allDirections(MONKEY_ATTACK), rate: 34, loop: false },
-  'attack-3': { frames: allDirections(MONKEY_ATTACK), rate: 26, loop: false },
-  dash: {
-    frames: {
-      up: walkFrames('up'),
-      down: walkFrames('down'),
-      left: walkFrames('left'),
-      right: walkFrames('right'),
-    },
-    rate: 20,
-    loop: false,
-  },
+  walk: { frames: walkFrames8('monkey-walk'), rate: 12, loop: true },
+  'attack-1': { frames: allDirections(MONKEY_ATTACK), rate: 16, loop: false },
+  'attack-2': { frames: allDirections(MONKEY_ATTACK), rate: 18, loop: false },
+  'attack-3': { frames: allDirections(MONKEY_ATTACK), rate: 14, loop: false },
+  dash: { frames: walkFrames8('monkey-walk'), rate: 20, loop: false },
   'skill-1': { frames: allDirections(MONKEY_ACTION), rate: 16, loop: false },
-  'skill-2': { frames: allDirections(MONKEY_ACTION), rate: 16, loop: false },
   hit: { frames: allDirections([MONKEY_IDLE[0]]), rate: 1, loop: false },
   death: { frames: allDirections([MONKEY_IDLE[0]]), rate: 1, loop: false },
   victory: { frames: allDirections(MONKEY_VICTORY), rate: 5, loop: false },
@@ -130,14 +124,12 @@ const MONKEY_KING_SET: BattleSpriteSet = {
 
 const PIG_WARRIOR_SET: BattleSpriteSet = {
   idle: { frames: allDirections(PIGSY_IDLE), rate: 8, loop: true },
-  // ไม่มีชุดเดินของตือโป๊ยก่าย — ใช้ idle เร็วขึ้นแทน (fallback ที่ประกาศไว้)
-  walk: { frames: allDirections(PIGSY_IDLE), rate: 12, loop: true },
+  walk: { frames: walkFrames8('pigsy-walk'), rate: 12, loop: true },
   'attack-1': { frames: allDirections(PIGSY_ACTION), rate: 12, loop: false },
   'attack-2': { frames: allDirections(PIGSY_ACTION), rate: 12, loop: false },
   'attack-3': { frames: allDirections(PIGSY_ACTION), rate: 12, loop: false },
-  dash: { frames: allDirections(PIGSY_IDLE), rate: 16, loop: false },
+  dash: { frames: walkFrames8('pigsy-walk'), rate: 16, loop: false },
   'skill-1': { frames: allDirections(PIGSY_ACTION), rate: 12, loop: false },
-  'skill-2': { frames: allDirections(PIGSY_ACTION), rate: 12, loop: false },
   hit: { frames: allDirections([PIGSY_IDLE[0]]), rate: 1, loop: false },
   death: { frames: allDirections([PIGSY_IDLE[0]]), rate: 1, loop: false },
   victory: { frames: allDirections(PIGSY_ACTION), rate: 6, loop: false },
@@ -151,26 +143,22 @@ const PILGRIM_MONK_SET: BattleSpriteSet = {
   'attack-3': { frames: allDirections(TRIPITAKA_IDLE), rate: 10, loop: false },
   dash: { frames: allDirections(TRIPITAKA_IDLE), rate: 16, loop: false },
   'skill-1': { frames: allDirections(TRIPITAKA_IDLE), rate: 10, loop: false },
-  'skill-2': { frames: allDirections(TRIPITAKA_IDLE), rate: 10, loop: false },
   hit: { frames: allDirections([TRIPITAKA_IDLE[0]]), rate: 1, loop: false },
   death: { frames: allDirections([TRIPITAKA_IDLE[0]]), rate: 1, loop: false },
   victory: { frames: allDirections(TRIPITAKA_IDLE), rate: 6, loop: false },
 }
 
 const SPEAR_WARRIOR_SET: BattleSpriteSet = {
-  idle: { frames: allDirections(SPEAR_WARRIOR_IDLE), rate: 1, loop: true },
-  walk: { frames: allDirections(SPEAR_WARRIOR_IDLE), rate: 1, loop: true },
-  'attack-1': { frames: allDirections(SPEAR_WARRIOR_ATTACK_OLD), rate: 30, loop: false },
-  'attack-2': { frames: allDirections(SPEAR_WARRIOR_ATTACK_NEW), rate: 14, loop: false },
-  'attack-3': { frames: allDirections(SPEAR_WARRIOR_ATTACK_THIRD), rate: 11, loop: false },
-  dash: { frames: allDirections(SPEAR_WARRIOR_IDLE), rate: 1, loop: false },
-  'skill-1': { frames: allDirections(SPEAR_WARRIOR_SKILL_1), rate: 14, loop: false },
-  // Frame 6 is the recovery pose. The SkillSystem then restores the canonical
-  // Idle sequence instead of holding or replaying the cast pose.
-  'skill-2': { frames: allDirections(SPEAR_WARRIOR_SKILL_2), rate: 10, loop: false },
-  hit: { frames: allDirections(SPEAR_WARRIOR_IDLE), rate: 1, loop: false },
-  death: { frames: allDirections(SPEAR_WARRIOR_IDLE), rate: 1, loop: false },
-  victory: { frames: allDirections(SPEAR_WARRIOR_IDLE), rate: 1, loop: false },
+  idle: { frames: allDirections(ERLANG_IDLE), rate: 8, loop: true },
+  walk: { frames: allDirections(ERLANG_IDLE), rate: 8, loop: true },
+  'attack-1': { frames: allDirections(ERLANG_ATTACK_1), rate: 30, loop: false },
+  'attack-2': { frames: allDirections(ERLANG_ATTACK_2), rate: 14, loop: false },
+  'attack-3': { frames: allDirections(ERLANG_ATTACK_3), rate: 11, loop: false },
+  dash: { frames: allDirections(ERLANG_IDLE), rate: 12, loop: false },
+  'skill-1': { frames: allDirections(ERLANG_SKILL_1), rate: 14, loop: false },
+  hit: { frames: allDirections([ERLANG_IDLE[0]]), rate: 1, loop: false },
+  death: { frames: allDirections([ERLANG_IDLE[0]]), rate: 1, loop: false },
+  victory: { frames: allDirections(ERLANG_IDLE), rate: 8, loop: false },
 }
 
 /**
@@ -181,6 +169,9 @@ const BATTLE_SPRITE_SETS: Record<CharacterModelKind, BattleSpriteSet> = {
   'monkey-king': MONKEY_KING_SET,
   'pig-warrior': PIG_WARRIOR_SET,
   'pilgrim-monk': PILGRIM_MONK_SET,
+  'celestial-archer': PILGRIM_MONK_SET,
+  'nezha-warden': MONKEY_KING_SET,
+  'sand-sage': PIG_WARRIOR_SET,
   'spear-warrior': SPEAR_WARRIOR_SET,
 }
 
@@ -188,29 +179,7 @@ export function getBattleSpriteSet(kind: CharacterModelKind): BattleSpriteSet {
   return BATTLE_SPRITE_SETS[kind]
 }
 
-/** สุ่มเพียงตอนเริ่ม Normal Attack หนึ่งครั้ง เพื่อไม่ให้ภาพสลับท่ากลางการโจมตี */
-export function selectNormalAttackAnimation(
-  kind: CharacterModelKind,
-  random: () => number = Math.random,
-): Extract<BattleAnimationId, 'attack-1' | 'attack-2' | 'attack-3'> {
-  if (kind !== 'spear-warrior') return 'attack-1'
-  const roll = random()
-  if (roll < 1 / 3) return 'attack-1'
-  if (roll < 2 / 3) return 'attack-2'
-  return 'attack-3'
-}
-
-const ERLANG_PREVIEW_ATTACK_ORDER = ['attack-1', 'attack-2', 'attack-3'] as const
-
-/** Preview cycles deterministically so the operator can inspect every attack without waiting for RNG. */
-export function selectNormalAttackPreviewAnimation(
-  requestId: number,
-): (typeof ERLANG_PREVIEW_ATTACK_ORDER)[number] {
-  const index = Math.max(0, requestId - 1) % ERLANG_PREVIEW_ATTACK_ORDER.length
-  return ERLANG_PREVIEW_ATTACK_ORDER[index]
-}
-
-/** ย่อ 8 ทิศของ runtime ให้เหลือ 4 ทิศที่มีเฟรมภาพจริง */
+/** ย่อ 8 ทิศของ runtime ให้เหลือ 4 ทิศเมื่อไม่มีเฟรมเฉียง */
 export function toSpriteDirection(facing: Direction8): SpriteDirection4 {
   switch (facing) {
     case 'up':
@@ -228,13 +197,22 @@ export function toSpriteDirection(facing: Direction8): SpriteDirection4 {
   }
 }
 
+/** เลือกเฟรมตามทิศ — ใช้เฟรมเฉียงจากชีตก่อน แล้วค่อย fallback เป็น 4 ทิศ */
+export function resolveBattleFrames(animation: BattleAnimation, facing: Direction8): string[] {
+  const direct = animation.frames[facing]
+  if (direct && direct.length > 0) return direct
+  const fallback = animation.frames[toSpriteDirection(facing)]
+  return fallback ?? []
+}
+
 function urlsFor(kinds: CharacterModelKind[], animations: BattleAnimationId[]): string[] {
   const urls = new Set<string>()
   for (const kind of kinds) {
     const set = getBattleSpriteSet(kind)
     for (const animationId of animations) {
-      for (const direction of Object.values(set[animationId].frames)) {
-        for (const url of direction) urls.add(url)
+      for (const directionFrames of Object.values(set[animationId].frames)) {
+        if (!directionFrames) continue
+        for (const url of directionFrames) urls.add(url)
       }
     }
   }
@@ -249,7 +227,6 @@ const ALL_ANIMATIONS: BattleAnimationId[] = [
   'attack-3',
   'dash',
   'skill-1',
-  'skill-2',
   'hit',
   'death',
   'victory',
@@ -272,7 +249,5 @@ export function collectCriticalTextureUrls(kinds: CharacterModelKind[]): string[
 /** ภาพที่เหลือ — โหลดเบื้องหลังหลังห้องเปิดแล้ว */
 export function collectDeferredTextureUrls(kinds: CharacterModelKind[]): string[] {
   const critical = new Set(collectCriticalTextureUrls(kinds))
-  const urls = urlsFor(kinds, ALL_ANIMATIONS).filter((url) => !critical.has(url))
-  if (kinds.includes('spear-warrior')) urls.push(...ERLANG_SKILL_1_STRIKE_FRAMES)
-  return [...new Set(urls)]
+  return urlsFor(kinds, ALL_ANIMATIONS).filter((url) => !critical.has(url))
 }

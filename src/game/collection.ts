@@ -22,8 +22,10 @@ export interface BattleRecord {
   result: 'win' | 'lose'
   /** เวลาที่จบการต่อสู้ (ISO string) */
   finishedAt: string
-  /** จำนวนเทิร์นที่ใช้ */
-  turns: number
+  /** มรดกเทิร์นเบส — บัญชีเก่าอาจยังมี */
+  turns?: number
+  /** ระยะเวลาต่อสู้จริง (ms) */
+  durationMs?: number
 }
 
 /** ยังไม่มีระบบสัตว์เลี้ยง — รายการจึงว่างจริง */

@@ -25,6 +25,7 @@ function entity(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
     position: { x: 500, y: 500 },
     velocity: { x: 0, y: 0 },
     facing: 'down',
+    combatFacing: 'right',
     state: 'idle',
     hp: 200,
     maxHp: 200,
@@ -34,10 +35,13 @@ function entity(overrides: Partial<RealtimeBattleEntity> = {}): RealtimeBattleEn
     collisionRadius: 30,
     hurtboxRadius: 36,
     attackCooldownRemainingMs: 0,
-    skillCooldownRemainingMs: 0,
-    dashCooldownRemainingMs: 0,
+    skillCooldownsMs: { skill1: 0, skill2: 0, skill3: 0 },
+    ultimateGauge: 0,
     invulnerableUntilMs: 0,
     hitStunRemainingMs: 0,
+    knockdownRemainingMs: 0,
+    getUpRemainingMs: 0,
+    combatTier: 'mob',
     ...overrides,
   }
 }
@@ -97,14 +101,20 @@ describe('calcDamage — คุณสมบัติที่ต้องเป�
         let seq: number[] = [varianceRoll, 0.99] // 0.99 > CRITICAL_CHANCE (0.12) = ไม่คริ
         let i = 0
         const normal = calcDamage({
-          attacker, target: target(), attack: PLAYER_ATTACK, elapsedMs: 0,
+          attacker,
+          target: target(),
+          attack: PLAYER_ATTACK,
+          elapsedMs: 0,
           random: () => seq[i++],
         })
 
         seq = [varianceRoll, 0] // 0 < CRITICAL_CHANCE เสมอ = คริแน่นอน
         i = 0
         const critical = calcDamage({
-          attacker, target: target(), attack: PLAYER_ATTACK, elapsedMs: 0,
+          attacker,
+          target: target(),
+          attack: PLAYER_ATTACK,
+          elapsedMs: 0,
           random: () => seq[i++],
         })
 

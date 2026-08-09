@@ -1,6 +1,10 @@
-import { useFrame, useThree } from '@react-three/fiber'
+import { useEffect } from 'react'
+import { useThree } from '@react-three/fiber'
 import { Vector3 } from 'three'
-import { WORLD_SCALE } from '../../game/realtimeBattle/stageConfig'
+import {
+  BATTLE_HUD_HEIGHT_OFFSET,
+  runtimeToWorldXZ,
+} from '../../game/realtimeBattle/battleCoordinates'
 import type { RealtimeBattleStage } from '../../game/realtimeBattle/stageConfig'
 import type { Vec2 } from '../../game/realtimeBattle/types'
 
@@ -20,6 +24,9 @@ export interface ScreenProjection {
   project: ((position: Vec2, heightOffset?: number) => { left: number; top: number } | null) | null
 }
 
+// ponytail: scratch vector reused across every project() call — never allocate inside the hot path
+const scratchPoint = new Vector3()
+
 export function ScreenProjector({
   stage,
   projection,
@@ -29,24 +36,23 @@ export function ScreenProjector({
 }) {
   const { camera } = useThree()
 
-  useFrame(() => {
-    projection.current.project = (position, heightOffset = 1.4) => {
-      const point = new Vector3(
-        (position.x - stage.width / 2) * WORLD_SCALE,
-        heightOffset,
-        (position.y - stage.height / 2) * WORLD_SCALE,
-      )
-      point.project(camera)
+  // ตั้งฟังก์ชันฉายพิกัดครั้งเดียวต่อ camera/stage (ไม่ใช่ทุกเฟรม) — camera เป็น object
+  // เดิมที่ R3F อัปเดต matrix ให้เองทุกเฟรม ไม่ต้อง re-close ทับใหม่
+  useEffect(() => {
+    projection.current.project = (position, heightOffset = BATTLE_HUD_HEIGHT_OFFSET) => {
+      const world = runtimeToWorldXZ(position, stage)
+      scratchPoint.set(world.x, heightOffset, world.z)
+      scratchPoint.project(camera)
 
       // z > 1 แปลว่าจุดอยู่หลังระนาบตัดของกล้อง ฉายออกมาเป็นตำแหน่งกลับด้าน
-      if (point.z > 1) return null
+      if (scratchPoint.z > 1) return null
 
       return {
-        left: ((point.x + 1) / 2) * 100,
-        top: ((1 - point.y) / 2) * 100,
+        left: ((scratchPoint.x + 1) / 2) * 100,
+        top: ((1 - scratchPoint.y) / 2) * 100,
       }
     }
-  })
+  }, [camera, stage, projection])
 
   return null
 }

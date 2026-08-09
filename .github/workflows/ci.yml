@@ -27,14 +27,17 @@ permissions:
 
 jobs:
   ci:
-    name: Continuous Integration (Node ${{ matrix.node-version }})
-    runs-on: ubuntu-latest
+    name: Continuous Integration (${{ matrix.os }}, Node ${{ matrix.node-version }})
+    runs-on: ${{ matrix.os }}
 
     # engines.node ใน package.json บังคับ >=22 — matrix นี้เช็คว่าโค้ดยังรันได้จริงบน LTS
     # ปัจจุบัน (22) และ LTS ถัดไปที่กำลังจะมาแทน (24) ไม่ใช่แค่เวอร์ชันเดียวที่ dev เครื่องนี้ใช้
+    # windows-latest เพิ่มเข้ามาเพราะ dev environment จริงของโปรเจกต์นี้คือ Windows —
+    # ubuntu-only CI มองไม่เห็น path separator / case-sensitivity bug ที่เกิดเฉพาะบน Windows
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest]
         node-version: [22, 24]
 
     steps:
@@ -55,6 +58,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # fork PR ไม่ได้รับ org secrets — ใส่ placeholder ที่ไม่ใช่ JWT (gitleaks จับ jwt ใน yaml)
+      # mapping test ไม่ต้องพึ่งค่านี้แล้ว แต่ build ยัง bundle supabaseClient.ts
+      - name: Prepare Supabase env for CI
+        shell: bash
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$VITE_SUPABASE_URL" ]; then
+            echo "VITE_SUPABASE_URL=https://ci-placeholder.supabase.co" >> "$GITHUB_ENV"
+          else
+            echo "VITE_SUPABASE_URL=$VITE_SUPABASE_URL" >> "$GITHUB_ENV"
+          fi
+          if [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
+            echo "VITE_SUPABASE_ANON_KEY=ci-build-placeholder-anon-key" >> "$GITHUB_ENV"
+          else
+            echo "VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY" >> "$GITHUB_ENV"
+          fi
+
       - name: Build 3D Models
         run: npm run build:models
 
@@ -64,15 +86,40 @@ jobs:
       - name: Lint Code
         run: npm run lint
 
-      - name: Run Tests
-        run: npm run test
+      - name: Run Tests with Coverage
+        # --coverage เปลี่ยนแค่การ instrument/report ไม่เปลี่ยน pass/fail semantics ของ vitest —
+        # ใช้ตัวนี้แทน `npm run test` เฉย ๆ ไปเลย ไม่ต้องรัน test 2 รอบ (ซ้ำซ้อน เปลืองเวลา CI)
+        # shell: bash บังคับ — `set -o pipefail`/`tee` เป็น bash syntax, pwsh (default shell
+        # ของ windows-latest) parse ไม่ผ่าน; Git Bash มากับ windows runner อยู่แล้ว
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:coverage 2>&1 | tee test-output.log
+
+      - name: Add coverage summary to job summary
+        if: always()
+        # ดึงเฉพาะบล็อก "Coverage summary" (reporter: text-summary จาก vite.config.ts) มาแปะใน
+        # job summary — report-only ตาม vite.config.ts comment (ยังไม่ตั้ง threshold บังคับ)
+        # shell: bash บังคับ — awk/head เป็น bash/POSIX tool ไม่ใช่ pwsh cmdlet
+        shell: bash
+        run: |
+          echo "### Test Coverage (Node ${{ matrix.node-version }})" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          awk '/Coverage summary/,0' test-output.log | head -n 6 >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build Application
+        env:
+          # public site key (ไม่ใช่ secret จริง — ออกแบบมาให้ฝังใน client bundle ได้)
+          VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
         run: npm run build
 
       - name: Report bundle size
         # ไม่ต้องสมัคร external service — แค่ print ขนาด chunk ทุก build ลง log
         # เทียบ trend เองได้จาก run history (Actions > this workflow > ผลลัพธ์ย้อนหลัง)
+        # shell: bash บังคับเสมอ — default shell ของ windows-latest คือ pwsh ซึ่งไม่รู้จัก
+        # du/sort/pipefail; runner windows มี Git Bash ติดมาอยู่แล้วจึงสั่ง bash ตรง ๆ ได้
+        shell: bash
         run: |
           # pipefail จำเป็น: shell ปริยายของ run: คือ bash -e ซึ่งไม่มี pipefail
           # สถานะของไปป์จึงมาจาก sort ตัวท้ายเสมอ ถ้า du หาไฟล์ไม่เจอ (เช่น CSS ถูก

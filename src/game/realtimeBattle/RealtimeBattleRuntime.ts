@@ -1,9 +1,24 @@
-import { ENEMY_ATTACK, isActiveWindow } from './attacks'
+import { ENEMY_ATTACK_MELEE, type AttackDefinition } from './attacks'
+import { stepAllyAI } from './AllyAISystem'
+import { applyAttackEffects } from './battleEffects'
+import { applyCombatReaction, tickKnockdownState } from './combatReaction'
 import { createWaveEnemies, type RealtimeBattleState } from './createRealtimeBattle'
-import { applyDamage, type RandomFn } from './DamageSystem'
-import { createEnemyBrain, stepEnemyAI, type EnemyBrain } from './EnemyAISystem'
+import { DEFAULT_BATTLE_PRESENTATION } from './battlePresentation'
+import { resolveStageOutcome } from './StageVariationSystem'
+import { combatFacingFromVector } from './combatFacing'
+import { allowsMovementDuringCast, isFullMoveActiveWindow } from './combatMoveSchema'
+import type { RandomFn } from './DamageSystem'
+import {
+  createEnemyBrain,
+  getEnemySelectedAttack,
+  isEnemyAttackDamageWindow,
+  isEnemyTelegraphing,
+  stepEnemyAI,
+  type EnemyBrain,
+} from './EnemyAISystem'
 import { findHitTargets } from './HitboxSystem'
 import { clampToArena, resolveCircleOverlap, stepMovement } from './MovementSystem'
+import { findNearestLivingEnemy, resolveLockedTarget } from './softTarget'
 import {
   applyHitStop,
   cancelCombo,
@@ -13,8 +28,7 @@ import {
   stepCombo,
   type ComboState,
 } from './ComboSystem'
-import { createDashState, isDashing, startDash, stepDash, type DashState } from './DashSystem'
-import { getRealtimeSkillForCharacter, type SkillAnimationId } from './skills'
+import { getSkillFromKit, getRealtimeSkillKit, type SkillSlot } from './skills'
 import {
   canStartSkill,
   createSkillState,
@@ -30,6 +44,9 @@ import type {
   RealtimeBattleSnapshot,
   Vec2,
 } from './types'
+import { addUltimateGauge, ULTIMATE_GAUGE_CONFIG } from './ultimateGauge'
+import { tickStatusEffects } from './statusEffects'
+import { buildStageObjectiveSnapshot } from './stageObjectiveSnapshot'
 
 /**
  * หัวใจของห้องต่อสู้ real-time — ถือสถานะทั้งหมดไว้ "นอก React state"
@@ -73,17 +90,16 @@ export class RealtimeBattleRuntime {
   private brains = new Map<string, EnemyBrain>()
   /** สถานะคอมโบของผู้เล่น */
   private playerCombat: ComboState = createComboState()
-  /** สถานะการพุ่งหลบของผู้เล่น */
-  private playerDash: DashState = createDashState()
   /** สถานะสกิลของผู้เล่น */
   private playerSkill: SkillState = createSkillState()
-  /** ผู้เล่นสั่งโจมตี/พุ่ง/สกิลค้างไว้ รอให้เฟรมจำลองถัดไปหยิบไปใช้ */
   private attackRequested = false
-  private dashRequested = false
-  private requestedSkillAnimationId: SkillAnimationId | null = null
+  private skillSlotRequested: SkillSlot | null = null
   /** ตัวสุ่มที่ระบบดาเมจใช้ — เทสต์ป้อนค่าคงที่เข้ามาแทนได้ */
   private random: RandomFn
   private eventCounter = 0
+  /** When false, Stage Runtime owns wave advance and victory (P5 dungeon orchestration). */
+  private autoWaveAdvance = true
+  private externalVictoryBlocked = false
 
   constructor(state: RealtimeBattleState, random: RandomFn = Math.random) {
     this.state = state
@@ -111,48 +127,52 @@ export class RealtimeBattleRuntime {
 
     this.tickTimers(state.player, deltaMs)
     for (const enemy of state.enemies) this.tickTimers(enemy, deltaMs)
+    for (const ally of state.allies) this.tickTimers(ally, deltaMs)
 
-    const castingSkill = isCastingSkill(this.playerSkill)
+    const wasCastingSkill = isCastingSkill(this.playerSkill)
 
-    if (this.requestedSkillAnimationId) {
-      const animationId = this.requestedSkillAnimationId
-      this.requestedSkillAnimationId = null
-      this.tryStartPlayerSkill(animationId)
+    if (this.skillSlotRequested) {
+      const slot = this.skillSlotRequested
+      this.skillSlotRequested = null
+      this.tryStartPlayerSkill(slot)
     }
 
     this.stepPlayerSkill(deltaMs)
 
-    if (!castingSkill && !isCastingSkill(this.playerSkill)) {
+    const castingSkill = isCastingSkill(this.playerSkill)
+    if (!wasCastingSkill && !castingSkill) {
       this.stepPlayerAttack(deltaMs)
 
-      if (this.dashRequested) {
-        this.dashRequested = false
-        startDash(state.player, this.playerDash, this.moveInput, state.elapsedMs)
-      }
-
-      /*
-        ลำดับความสำคัญของการเคลื่อนที่: พุ่ง > โจมตี > เดินปกติ
-
-        การพุ่งกินสิทธิ์เหนือทุกอย่างเพราะมันคือท่าหลบ ถ้ายอมให้การเดินหรือท่าโจมตี
-        มาแทรกกลางคัน ระยะพุ่งจะสั้นลงแบบเดาไม่ได้ และ i-frame จะไม่คุ้มกับคูลดาวน์
-      */
-      const dashing = stepDash(state.player, this.playerDash, deltaMs, state.stage)
-      const moved =
-        dashing || isAttacking(this.playerCombat)
-          ? false
-          : stepMovement(state.player, this.moveInput, deltaMs, {
-              stage: state.stage,
-              blockers: state.enemies,
-            })
+      const activeBasicAttack = this.playerCombat.attack
+      const movementLockedByActiveHit = activeBasicAttack
+        ? isFullMoveActiveWindow(activeBasicAttack, this.playerCombat.sinceStartMs)
+        : false
+      const moved = movementLockedByActiveHit
+        ? false
+        : stepMovement(state.player, this.moveInput, deltaMs, {
+            stage: state.stage,
+            blockers: state.enemies,
+          })
 
       // สถานะเดิน/ยืน คุมจากผลของระบบเดินจุดเดียว ไม่ให้ component เดาเอง
       if (state.player.state === 'idle' && moved) state.player.state = 'walk'
       else if (state.player.state === 'walk' && !moved) state.player.state = 'idle'
+    } else if (
+      castingSkill &&
+      this.playerSkill.definition &&
+      allowsMovementDuringCast(this.playerSkill.definition.attack)
+    ) {
+      // Keep the skill animation/state active while applying movement physics.
+      stepMovement(state.player, this.moveInput, deltaMs, {
+        stage: state.stage,
+        blockers: state.enemies,
+      })
     }
 
     this.stepEnemies(deltaMs)
+    this.stepAllies(deltaMs)
     this.separateEnemies()
-    this.checkBattleEnd()
+    this.checkBattleEnd(deltaMs)
 
     this.pruneEvents()
 
@@ -175,10 +195,46 @@ export class RealtimeBattleRuntime {
 
     if (this.attackRequested) {
       this.attackRequested = false
+      state.player.combatFacing = combatFacingFromVector(this.moveInput, state.player.combatFacing)
       pressAttack(state.player, this.playerCombat)
     }
 
     const tick = stepCombo(state.player, this.playerCombat, deltaMs)
+
+    // Apply basic attack lunge during the startup phase (§3.6.2/§3.6.11)
+    const attack = this.playerCombat.attack
+    if (attack && attack.lungeDistance && attack.lungeDistance > 0 && attack.startupMs > 0) {
+      const prevSinceStartMs = this.playerCombat.sinceStartMs - deltaMs
+      const currentSinceStartMs = this.playerCombat.sinceStartMs
+
+      const lungeStart = Math.max(0, prevSinceStartMs)
+      const lungeEnd = Math.min(attack.startupMs, currentSinceStartMs)
+      const actualLungeMs = Math.max(0, lungeEnd - lungeStart)
+
+      if (actualLungeMs > 0) {
+        const dir = state.player.facing === 'left' ? -1 : 1
+        const dx = dir * attack.lungeDistance * (actualLungeMs / attack.startupMs)
+        let nextPos = {
+          x: state.player.position.x + dx,
+          y: state.player.position.y,
+        }
+
+        // Collision resolving with living enemies to prevent phasing through them
+        for (const blocker of state.enemies) {
+          if (blocker.state === 'dead') continue
+          nextPos = resolveCircleOverlap(
+            nextPos,
+            state.player.collisionRadius,
+            blocker.position,
+            blocker.collisionRadius,
+          )
+        }
+
+        // Clamp to arena bounds
+        state.player.position = clampToArena(nextPos, state.player.collisionRadius, state.stage)
+      }
+    }
+
     if (!tick.hitboxActive || !tick.attack) return
 
     const targets = findHitTargets(state.enemies, {
@@ -190,7 +246,7 @@ export class RealtimeBattleRuntime {
 
     for (const target of targets) {
       this.playerCombat.hitTargets.add(target.id)
-      const outcome = applyDamage({
+      const outcome = applyCombatReaction({
         attacker: state.player,
         target,
         attack: tick.attack,
@@ -207,6 +263,7 @@ export class RealtimeBattleRuntime {
       }
 
       this.pushDamageEvent(target, outcome.amount, outcome.critical)
+      this.grantUltimateGaugeOnHit(outcome.defeated, 'basic')
       this.publish()
     }
 
@@ -214,64 +271,145 @@ export class RealtimeBattleRuntime {
     if (targets.length > 0) applyHitStop(this.playerCombat)
   }
 
-  private tryStartPlayerSkill(animationId: SkillAnimationId): void {
+  private grantUltimateGaugeOnHit(defeated: boolean, source: 'basic' | 'skill'): void {
+    const player = this.state.player
+    const gain =
+      source === 'basic'
+        ? ULTIMATE_GAUGE_CONFIG.gainOnBasicHit
+        : ULTIMATE_GAUGE_CONFIG.gainOnSkillHit
+    player.ultimateGauge = addUltimateGauge(player.ultimateGauge, gain)
+    if (defeated) {
+      player.ultimateGauge = addUltimateGauge(
+        player.ultimateGauge,
+        ULTIMATE_GAUGE_CONFIG.gainOnKill,
+      )
+    }
+  }
+
+  private tryStartPlayerSkill(slot: SkillSlot): void {
     const state = this.state
-    const definition = getRealtimeSkillForCharacter(state.player.characterId, animationId)
-    if (!definition) return
+    const kit = getRealtimeSkillKit(state.player.characterId)
+    if (!kit) return
+
+    const definition = getSkillFromKit(kit, slot)
 
     if (
-      !canStartSkill(
-        state.player,
-        this.playerSkill,
-        isAttacking(this.playerCombat),
-        isDashing(this.playerDash),
-      )
+      !canStartSkill(state.player, this.playerSkill, definition, isAttacking(this.playerCombat))
     ) {
       return
     }
 
     cancelCombo(state.player, this.playerCombat)
-    startSkill(state.player, this.playerSkill, definition, state.elapsedMs)
-    if (animationId === 'skill-1') this.pushEffectEvent('skill-spin', state.player.position, 700)
+
+    let lockedTargetId: string | null = null
+    if (definition.targetLock === 'nearest') {
+      const nearest = findNearestLivingEnemy(state.player.position, state.enemies)
+      lockedTargetId = nearest?.id ?? null
+      if (nearest) {
+        state.player.combatFacing = nearest.position.x >= state.player.position.x ? 'right' : 'left'
+      }
+    }
+
+    startSkill(state.player, this.playerSkill, definition, state.elapsedMs, lockedTargetId)
+    this.pushEffectEvent('skill-spin', state.player.position, 700)
     this.publish()
   }
 
-  /** เดินท่าสกิลของผู้เล่น แล้วลงดาเมจถ้าอยู่ใน active frame */
+  /** เดินท่าสกิลของผู้เล่น แล้วลงดาเมจ/เอฟเฟกต์ถ้าอยู่ใน active frame */
   private stepPlayerSkill(deltaMs: number): void {
     const state = this.state
     const tick = stepSkill(state.player, this.playerSkill, deltaMs)
-    if (!tick.hitboxActive || !tick.attack) return
+    if (!tick.attack) return
 
-    const targets = findHitTargets(state.enemies, {
-      attacker: state.player,
-      attack: tick.attack,
-      alreadyHit: this.playerSkill.hitTargets,
-      elapsedMs: state.elapsedMs,
-    })
+    if (tick.hitboxActive) {
+      let candidateTargets = state.enemies
+      const locked = resolveLockedTarget(this.playerSkill.lockedTargetId, state.enemies)
+      if (locked) candidateTargets = [locked]
 
-    for (const target of targets) {
-      this.playerSkill.hitTargets.add(target.id)
-      const outcome = applyDamage({
+      const alreadyHit =
+        tick.strikeIndex >= 0 ? this.playerSkill.strikeHits : this.playerSkill.hitTargets
+
+      const targets = findHitTargets(candidateTargets, {
         attacker: state.player,
-        target,
         attack: tick.attack,
+        alreadyHit,
         elapsedMs: state.elapsedMs,
-        random: this.random,
+        lockedTargetId: this.playerSkill.lockedTargetId ?? undefined,
       })
 
-      state.damageDealt += outcome.amount
-      target.position = clampToArena(target.position, target.collisionRadius, state.stage)
+      for (const target of targets) {
+        if (tick.strikeIndex >= 0) {
+          const strikeKey = `${target.id}:${tick.strikeIndex}`
+          if (this.playerSkill.strikeHits.has(strikeKey)) continue
+          this.playerSkill.strikeHits.add(strikeKey)
+        } else {
+          this.playerSkill.hitTargets.add(target.id)
+        }
 
-      if (outcome.defeated && !state.defeatedEnemyIds.includes(target.id)) {
-        state.defeatedEnemyIds.push(target.id)
+        const outcome = applyCombatReaction({
+          attacker: state.player,
+          target,
+          attack: tick.attack,
+          elapsedMs: state.elapsedMs,
+          random: this.random,
+        })
+
+        state.damageDealt += outcome.amount
+        target.position = clampToArena(target.position, target.collisionRadius, state.stage)
+
+        if (outcome.defeated && !state.defeatedEnemyIds.includes(target.id)) {
+          state.defeatedEnemyIds.push(target.id)
+        }
+
+        this.pushDamageEvent(target, outcome.amount, outcome.critical)
+        this.grantUltimateGaugeOnHit(outcome.defeated, 'skill')
+        this.publish()
       }
 
-      this.pushDamageEvent(target, outcome.amount, outcome.critical)
-      if (tick.attack.animationId === 'skill-1') {
-        this.pushEffectEvent('skill-lightning', target.position, 400)
-      }
-      this.publish()
+      this.maybeApplySkillSideEffects(tick.attack)
     }
+  }
+
+  private maybeApplySkillSideEffects(attack: AttackDefinition): void {
+    if (this.playerSkill.sideEffectsApplied || !attack.effects?.length) return
+    this.playerSkill.sideEffectsApplied = true
+
+    const state = this.state
+    const spawned = applyAttackEffects(
+      attack,
+      {
+        owner: state.player,
+        allies: state.allies,
+        enemies: state.enemies,
+      },
+      `skill-${state.elapsedMs}`,
+    )
+
+    for (const ally of spawned) {
+      ally.position = {
+        x: state.player.position.x + (state.player.combatFacing === 'right' ? 48 : -48),
+        y: state.player.position.y,
+      }
+      state.allies.push(ally)
+    }
+  }
+
+  private stepAllies(deltaMs: number): void {
+    const state = this.state
+    const livingEnemies = state.enemies.filter((enemy) => enemy.state !== 'dead' && enemy.hp > 0)
+    if (livingEnemies.length === 0) return
+
+    for (const ally of state.allies) {
+      stepAllyAI(ally, livingEnemies, state.stage, deltaMs, state.elapsedMs, (target, amount) => {
+        state.damageDealt += amount
+        if (target.hp <= 0 && !state.defeatedEnemyIds.includes(target.id)) {
+          state.defeatedEnemyIds.push(target.id)
+        }
+        this.pushDamageEvent(target, amount, false)
+      })
+    }
+
+    state.allies = state.allies.filter((ally) => ally.state !== 'dead' && ally.hp > 0)
   }
 
   private pushEffectEvent(
@@ -292,30 +430,37 @@ export class RealtimeBattleRuntime {
     ]
   }
 
-  /** ศัตรูลงดาเมจใส่ผู้เล่นเมื่อท่าของมันเข้าสู่ active frame */
+  /**
+   * ศัตรูลงดาเมจใส่ผู้เล่นเมื่อท่าของมันเข้าสู่ active frame
+   *
+   * บอส (brain.selectedAttack ไม่ null) ใช้ท่าที่ล็อกไว้ตอน Telegraph แทน ENEMY_ATTACK ทั่วไป
+   * นี่คือ "attack-set swap ตามเฟส" (#11) ที่ใช้งานจริง — พูลถูกเลือกใน EnemyAISystem แล้ว
+   * ที่นี่แค่หยิบท่าที่เลือกไว้มาลงดาเมจ ไม่ตัดสินใจเลือกเองอีกชั้น
+   */
   private resolveEnemyAttack(enemy: RealtimeBattleEntity, brain: EnemyBrain): void {
     const state = this.state
+    const attack = getEnemySelectedAttack(brain) ?? ENEMY_ATTACK_MELEE
 
-    if (brain.state !== 'attack') {
-      brain.hitTargets.clear()
+    if (brain.state === 'telegraph' || !isEnemyAttackDamageWindow(brain)) {
+      if (brain.state !== 'attack' && brain.state !== 'telegraph') {
+        brain.hitTargets.clear()
+      }
       return
     }
 
-    if (!isActiveWindow(ENEMY_ATTACK, brain.stateElapsedMs)) return
-
     const targets = findHitTargets([state.player], {
       attacker: enemy,
-      attack: ENEMY_ATTACK,
+      attack,
       alreadyHit: brain.hitTargets,
       elapsedMs: state.elapsedMs,
     })
 
     for (const target of targets) {
       brain.hitTargets.add(target.id)
-      const outcome = applyDamage({
+      const outcome = applyCombatReaction({
         attacker: enemy,
         target,
-        attack: ENEMY_ATTACK,
+        attack,
         elapsedMs: state.elapsedMs,
         random: this.random,
       })
@@ -347,14 +492,9 @@ export class RealtimeBattleRuntime {
     this.attackRequested = true
   }
 
-  /** สั่งให้ผู้เล่นพุ่งหลบในเฟรมจำลองถัดไป */
-  requestDash(): void {
-    this.dashRequested = true
-  }
-
-  /** สั่งให้ผู้เล่นใช้สกิลในเฟรมจำลองถัดไป */
-  requestSkill(animationId: SkillAnimationId = 'skill-1'): void {
-    this.requestedSkillAnimationId = animationId
+  /** สั่งให้ผู้เล่นใช้สกิลช่องที่ระบุในเฟรมจำลองถัดไป */
+  requestSkill(slot: SkillSlot): void {
+    this.skillSlotRequested = slot
   }
 
   /**
@@ -368,7 +508,15 @@ export class RealtimeBattleRuntime {
 
     for (const enemy of state.enemies) {
       const brain = this.brainFor(enemy.id)
-      const decision = stepEnemyAI(enemy, brain, state.player, deltaMs)
+      const decision = stepEnemyAI(enemy, brain, state.player, deltaMs, state.elapsedMs)
+      if (decision.telegraph) {
+        // ground marker ต้องยิงก่อน AttackActive เสมอ (§3.6.8 telegraph feedback layer)
+        this.pushEffectEvent(
+          'ground-marker',
+          decision.telegraph.position,
+          decision.telegraph.durationMs,
+        )
+      }
       this.resolveEnemyAttack(enemy, brain)
 
       if (decision.move.x === 0 && decision.move.y === 0) {
@@ -397,13 +545,15 @@ export class RealtimeBattleRuntime {
       for (let j = i + 1; j < alive.length; j += 1) {
         const a = alive[i]
         const b = alive[j]
-        // ดันเฉพาะตัวหลังออกจากตัวหน้า ทำให้ผลลัพธ์ไม่ขึ้นกับลำดับที่วนเจอ
-        b.position = resolveCircleOverlap(
+        // Crowd radius is presentation spacing only. Hitbox/hurtbox/collisionRadius remain unchanged.
+        const crowdMul = DEFAULT_BATTLE_PRESENTATION.enemyCrowdSeparationMul
+        const separated = resolveCircleOverlap(
           b.position,
-          b.collisionRadius,
+          b.collisionRadius * crowdMul,
           a.position,
-          a.collisionRadius,
+          a.collisionRadius * crowdMul,
         )
+        b.position = clampToArena(separated, b.collisionRadius, state.stage)
       }
     }
   }
@@ -411,17 +561,15 @@ export class RealtimeBattleRuntime {
   /**
    * เช็คว่าจบการต่อสู้หรือยัง — ต้องเรียกทุกเฟรมหลังลงดาเมจ ไม่ใช่แค่ตอน publish
    *
-   * ผู้เล่นตาย = แพ้ทันที ไม่ต้องรอศัตรู
-   * ศัตรูตายหมดในคลื่นปัจจุบัน + มีคลื่นถัดไป = สร้างศัตรูคลื่นใหม่ต่อ (ask-CB retroactive
-   * audit, 2026-08-06: เจอว่า currentWaveIndex ไม่เคยขยับเลย ตอนแรก merge มามีแต่คลื่นเดียว
-   * ใช้งานจริง แต่ trial-02 นิยามไว้ 2 คลื่นแล้วไม่มีทางไปถึงคลื่นที่สอง)
-   * ศัตรูตายหมด + ไม่มีคลื่นถัดไปแล้ว = ชนะ
+   * ผู้เล่นตาย = แพ้ทันที ไม่ต้องรอศัตรู — กฎนี้เหมือนกันทุก stageType จึงอยู่ตรงนี้ตรง ๆ
+   * ไม่ใช่ branch ต่อประเภทด่าน ส่วนเงื่อนไขแพ้ชนะที่ต่างกันไปตาม stageType ทั้งหมด (รวมตรรกะ
+   * เคลียร์คลื่น/สร้างคลื่นถัดไปของ 'wave' เดิม) ย้ายไป resolveStageOutcome() ใน
+   * StageVariationSystem.ts แล้ว — ที่นี่ไม่รู้จัก stageType เลยสักตัว (§17, §9)
    *
-   * ก่อนแก้ไฟล์นี้ status ไม่เคยกลายเป็น 'victory'/'defeat' เลยสักที่ในทั้งระบบ —
-   * การต่อสู้จบเองไม่ได้ ค้างวนไปเรื่อย ๆ (เจอจาก ask-CB retroactive audit ของระบบทั้งชุด
-   * ที่ cherry-pick มาจาก fork โดยไม่ผ่าน ask-CB ก่อน)
+   * ก่อนแก้ไฟล์นี้ (ask-CB retroactive audit, 2026-08-06) status ไม่เคยกลายเป็น
+   * 'victory'/'defeat' เลยสักที่ในทั้งระบบ — การต่อสู้จบเองไม่ได้ ค้างวนไปเรื่อย ๆ
    */
-  private checkBattleEnd(): void {
+  private checkBattleEnd(deltaMs: number = 0): void {
     const state = this.state
     if (state.status !== 'running') return
 
@@ -431,27 +579,22 @@ export class RealtimeBattleRuntime {
       return
     }
 
-    /*
-      รายการว่างต้องไหลต่อไปหาคลื่นถัดไป ไม่ใช่ return ทิ้ง
+    // P5 dungeon orchestrator (Stage Runtime) ตัดสินแพ้ชนะเองผ่านสคีมาของตัวเอง
+    // (dungeonConfig.ts/dungeonOrchestrator.ts) — ปิดเส้นทาง auto-wave-clear ปกติทิ้งไป
+    if (!this.autoWaveAdvance || this.externalVictoryBlocked) return
 
-      createWaveEnemies ข้ามศัตรูที่หา template หรือจุดเกิดไม่เจอแบบเงียบ ๆ (ดู codes.ts)
-      ถ้าทั้งคลื่นข้ามหมดจะได้รายการว่าง แล้วเงื่อนไขเดิมทำให้ที่นี่ return ทุกเฟรมตลอดไป
-      ห้องนั้นจึงชนะไม่ได้ แพ้ก็ไม่ได้ ค้างอยู่อย่างนั้นโดยไม่มีข้อผิดพลาดใด ๆ ขึ้นมาบอก
-      (every() บนรายการว่างคืน true อยู่แล้ว จึงตกไปเข้าตรรกะขึ้นคลื่นถัดไปได้ตามปกติ)
-    */
-    if (!state.enemies.every((enemy) => enemy.state === 'dead')) return
+    const enemiesBefore = state.enemies
+    const outcome = resolveStageOutcome(state, deltaMs)
 
-    const nextWaveIndex = state.currentWaveIndex + 1
-    const nextWaveEnemies = createWaveEnemies(state.stage, nextWaveIndex)
-    if (nextWaveEnemies.length > 0) {
-      state.currentWaveIndex = nextWaveIndex
-      state.enemies = [...state.enemies, ...nextWaveEnemies]
+    if (outcome === 'victory' || outcome === 'defeat') {
+      state.status = outcome
       this.publish()
       return
     }
 
-    state.status = 'victory'
-    this.publish()
+    // ยังไม่จบ แต่ resolveStageOutcome อาจ mutate รายชื่อศัตรู (เช่นสร้างคลื่นถัดไป) — publish
+    // ทันทีถ้าเปลี่ยนจริง ไม่ต้องรอรอบ publish ตามช่วงเวลา (เทียบ reference พอ ไม่ต้อง deep-equal)
+    if (state.enemies !== enemiesBefore) this.publish()
   }
 
   private brainFor(enemyId: string): EnemyBrain {
@@ -467,9 +610,36 @@ export class RealtimeBattleRuntime {
   private tickTimers(entity: RealtimeBattleEntity, deltaMs: number): void {
     if (entity.state === 'dead') return
     entity.attackCooldownRemainingMs = Math.max(0, entity.attackCooldownRemainingMs - deltaMs)
-    entity.skillCooldownRemainingMs = Math.max(0, entity.skillCooldownRemainingMs - deltaMs)
-    entity.dashCooldownRemainingMs = Math.max(0, entity.dashCooldownRemainingMs - deltaMs)
+    entity.skillCooldownsMs.skill1 = Math.max(0, entity.skillCooldownsMs.skill1 - deltaMs)
+    entity.skillCooldownsMs.skill2 = Math.max(0, entity.skillCooldownsMs.skill2 - deltaMs)
+    entity.skillCooldownsMs.skill3 = Math.max(0, entity.skillCooldownsMs.skill3 - deltaMs)
     entity.hitStunRemainingMs = Math.max(0, entity.hitStunRemainingMs - deltaMs)
+    tickKnockdownState(entity, deltaMs, this.state.elapsedMs)
+    tickStatusEffects(entity, deltaMs)
+
+    if (entity.hitStunRemainingMs <= 0 && entity.state === 'hit') {
+      entity.state = 'idle'
+    }
+  }
+
+  /** Telegraph markers for presentation layer */
+  getTelegraphMarkers(): Array<{
+    enemyId: string
+    position: Vec2
+    attackId: string
+  }> {
+    const markers: Array<{ enemyId: string; position: Vec2; attackId: string }> = []
+    for (const enemy of this.state.enemies) {
+      const brain = this.brains.get(enemy.id)
+      if (!brain || !isEnemyTelegraphing(brain)) continue
+      const attack = getEnemySelectedAttack(brain)
+      markers.push({
+        enemyId: enemy.id,
+        position: { ...enemy.position },
+        attackId: attack?.id ?? ENEMY_ATTACK_MELEE.id,
+      })
+    }
+    return markers
   }
 
   private pruneEvents(): void {
@@ -512,9 +682,76 @@ export class RealtimeBattleRuntime {
     this.publish()
   }
 
+  /** P5 — Stage Runtime controls wave advance instead of auto checkBattleEnd */
+  setAutoWaveAdvance(enabled: boolean): void {
+    this.autoWaveAdvance = enabled
+  }
+
+  setExternalVictoryBlocked(blocked: boolean): void {
+    this.externalVictoryBlocked = blocked
+  }
+
+  /** Spawn a wave by index; returns count spawned. Used by Stage Runtime (survival etc.). */
+  spawnWaveAt(waveIndex: number): number {
+    const state = this.state
+    if (state.status !== 'running' && state.status !== 'intro') return 0
+    const spawned = createWaveEnemies(state.stage, waveIndex, state.enemyHpScale ?? 1)
+    if (spawned.length === 0) return 0
+    state.currentWaveIndex = waveIndex
+    state.enemies = [...state.enemies, ...spawned]
+    for (const enemy of spawned) {
+      this.brains.set(enemy.id, createEnemyBrain())
+    }
+    this.publish()
+    return spawned.length
+  }
+
+  forceVictory(): void {
+    if (this.state.status !== 'running') return
+    this.state.status = 'victory'
+    this.publish()
+  }
+
+  forceDefeat(): void {
+    if (this.state.status !== 'running') return
+    this.state.status = 'defeat'
+    this.publish()
+  }
+
+  /** Environmental hazard damage — goes through HP, not UI */
+  applyEnvironmentalDamage(amount: number): void {
+    const player = this.state.player
+    if (player.state === 'dead') return
+    player.hp = Math.max(0, player.hp - amount)
+    this.state.damageTaken += amount
+    if (player.hp <= 0) {
+      player.state = 'dead'
+      this.checkBattleEnd()
+    }
+    this.publish()
+  }
+
+  moveEntityTo(entityId: string, x: number, y: number): void {
+    const entity =
+      entityId === 'player' ? this.state.player : this.state.enemies.find((e) => e.id === entityId)
+    if (!entity || entity.state === 'dead') return
+    entity.position.x = x
+    entity.position.y = y
+  }
+
   /** อ่านสถานะภายในตรง ๆ สำหรับชั้นวาดที่ต้องอัปเดตทุกเฟรมผ่าน ref (ห้ามแก้ค่า) */
   getState(): Readonly<RealtimeBattleState> {
     return this.state
+  }
+
+  /** สถานะคอมโบผู้เล่น — UI อ่านเพื่อแสดง attack/casting (ห้ามแก้ค่า) */
+  getPlayerComboState(): Readonly<ComboState> {
+    return this.playerCombat
+  }
+
+  /** ช่องสกิลที่กำลังร่าย — null เมื่อไม่ได้ร่าย */
+  getCastingSkillSlot(): SkillSlot | null {
+    return this.playerSkill.definition?.slot ?? null
   }
 
   getSnapshot = (): RealtimeBattleSnapshot => this.snapshot
@@ -544,6 +781,7 @@ export class RealtimeBattleRuntime {
         ...state.player,
         position: { ...state.player.position },
         velocity: { ...state.player.velocity },
+        skillCooldownsMs: { ...state.player.skillCooldownsMs },
       },
       enemies: state.enemies.map((enemy) => ({
         ...enemy,
@@ -552,6 +790,8 @@ export class RealtimeBattleRuntime {
       })),
       currentWave: state.currentWaveIndex + 1,
       totalWaves: state.stage.waves.length,
+      objective: buildStageObjectiveSnapshot(state),
+      castingSkillSlot: this.playerSkill.definition?.slot ?? null,
       damageEvents: this.damageEvents,
       effectEvents: this.effectEvents,
     }

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { MONKEY_SPINNING_STAFF, PLAYER_ATTACK_CHAIN } from './attacks'
 import { createRealtimeBattle, createWaveEnemies } from './createRealtimeBattle'
 import { RealtimeBattleRuntime } from './RealtimeBattleRuntime'
 import { getRealtimeStage } from './stageConfig'
+import { createDefaultSkillLevels } from './SkillProgressionSystem'
 import type { Player } from '../../types/player'
 import { EMPTY_PROGRESS } from '../../types/player'
 
@@ -24,16 +26,17 @@ function makePlayer(): Player {
     currency: { gold: 0, gem: 0 },
     ownedCharacters: [
       {
-        characterId: 'spear-warrior',
+        characterId: 'monkey-king',
         level: 12,
         exp: 0,
         expToNext: 100,
         obtainedAt: '2026-01-01T00:00:00.000Z',
+        skillLevels: createDefaultSkillLevels(),
       },
     ],
     inventory: [],
     friends: [],
-    teamSlots: ['spear-warrior', null, null, null],
+    teamSlots: ['monkey-king', null, null, null],
     frameId: 'default',
     progress: EMPTY_PROGRESS,
   }
@@ -51,6 +54,12 @@ describe('createRealtimeBattle', () => {
     expect(state.player.position).toEqual(stage.playerSpawn)
     expect(state.player.hp).toBe(state.player.maxHp)
     expect(state.enemies).toHaveLength(3)
+    expect(state.player.position.x).toBeLessThan(state.enemies[0].position.x)
+    for (const enemy of state.enemies) {
+      expect(enemy.position.x).toBeGreaterThan(stage.width * 0.65)
+      expect(enemy.combatFacing).toBe('left')
+    }
+    expect(state.player.combatFacing).toBe('right')
     expect(state.status).toBe('intro')
     expect(state.currentWaveIndex).toBe(0)
   })
@@ -238,7 +247,7 @@ describe('RealtimeBattleRuntime', () => {
     const hpBefore = enemy.hp
     enemy.position = { x: state.player.position.x + 60, y: state.player.position.y }
 
-    runtime.requestSkill()
+    runtime.requestSkill('skill1')
 
     for (let t = 0; t < 1200; t += 16) {
       runtime.step(16)
@@ -248,42 +257,85 @@ describe('RealtimeBattleRuntime', () => {
     expect(enemy.hp).toBeLessThan(hpBefore)
   })
 
-  it('creates a lightning strike effect on every enemy hit by Skill 1', () => {
+  it('basic attack ใช้ทิศที่ผู้เล่นหันอยู่ ไม่ auto-face หาศัตรู', () => {
     const runtime = makeRuntime()
     runtime.step(1000)
     const state = runtime.getState()
-    const enemy = state.enemies[0]
-    enemy.position = { x: state.player.position.x + 60, y: state.player.position.y }
-    enemy.speed = 0
 
-    runtime.requestSkill()
-    for (let elapsed = 0; elapsed < 700; elapsed += 16) {
-      runtime.step(16)
-      if (runtime.getSnapshot().effectEvents.some((event) => event.kind === 'skill-lightning'))
-        break
+    state.player.combatFacing = 'left'
+    state.player.facing = 'left'
+    state.enemies[0].position = {
+      x: state.player.position.x + 80,
+      y: state.player.position.y,
     }
 
-    const strike = runtime
-      .getSnapshot()
-      .effectEvents.find((event) => event.kind === 'skill-lightning')
-    expect(strike).toBeDefined()
-    expect(strike?.position).toEqual(enemy.position)
-  })
-  it('plays Skill 2 as its own action and returns to Idle', () => {
-    const runtime = makeRuntime()
-    runtime.step(1000)
-
-    runtime.requestSkill('skill-2')
+    runtime.requestAttack()
     runtime.step(16)
 
-    expect(runtime.getState().player.state).toBe('skill')
-    expect(runtime.getState().player.attackAnimationId).toBe('skill-2')
-    expect(runtime.getSnapshot().effectEvents.some((event) => event.kind === 'skill-spin')).toBe(
-      false,
-    )
+    expect(state.player.combatFacing).toBe('left')
+    expect(state.player.facing).toBe('left')
+  })
 
-    runtime.step(1200)
-    expect(runtime.getState().player.state).toBe('idle')
-    expect(runtime.getState().player.attackAnimationId).toBeUndefined()
+  it('เดินพร้อม basic attack ได้ช่วง startup/recovery แต่ล็อกเฉพาะ active-hit window', () => {
+    const runtime = makeRuntime()
+    runtime.step(1000)
+    const state = runtime.getState()
+    const firstAttack = PLAYER_ATTACK_CHAIN[0]
+
+    runtime.setMoveInput({ x: 1, y: 0 })
+    const beforeStartup = state.player.position.x
+    runtime.requestAttack()
+    runtime.step(16)
+    expect(state.player.position.x).toBeGreaterThan(beforeStartup)
+
+    runtime.setMoveInput({ x: 0, y: 0 })
+    runtime.step(firstAttack.startupMs - 16)
+    const atActiveStart = state.player.position.x
+    runtime.setMoveInput({ x: 1, y: 0 })
+    runtime.step(16)
+    expect(state.player.position.x).toBe(atActiveStart)
+
+    runtime.setMoveInput({ x: 0, y: 0 })
+    runtime.step(firstAttack.activeMs)
+    const atRecovery = state.player.position.x
+    runtime.setMoveInput({ x: 1, y: 0 })
+    runtime.step(16)
+    expect(state.player.position.x).toBeGreaterThan(atRecovery)
+  })
+})
+
+describe('movementDuringCast runtime consumer', () => {
+  function runtimeForMovementTest(): RealtimeBattleRuntime {
+    const state = createRealtimeBattle('trial-01', makePlayer())
+    if (!state) throw new Error('สร้างสถานะตั้งต้นไม่สำเร็จ')
+    return new RealtimeBattleRuntime(state)
+  }
+
+  it('moves only when the active skill explicitly opts in', () => {
+    const original = MONKEY_SPINNING_STAFF.movementDuringCast
+
+    try {
+      const lockedRuntime = runtimeForMovementTest()
+      lockedRuntime.step(1000)
+      lockedRuntime.setMoveInput({ x: 1, y: 0 })
+      const lockedStartX = lockedRuntime.getState().player.position.x
+      lockedRuntime.requestSkill('skill1')
+      lockedRuntime.step(16)
+      expect(lockedRuntime.getState().player.position.x).toBe(lockedStartX)
+
+      MONKEY_SPINNING_STAFF.movementDuringCast = true
+      const movingRuntime = runtimeForMovementTest()
+      movingRuntime.step(1000)
+      movingRuntime.setMoveInput({ x: 1, y: 0 })
+      const movingStartX = movingRuntime.getState().player.position.x
+      movingRuntime.requestSkill('skill1')
+      movingRuntime.step(16)
+
+      expect(movingRuntime.getState().player.position.x).toBeGreaterThan(movingStartX)
+      expect(movingRuntime.getState().player.state).toBe('skill')
+    } finally {
+      if (original === undefined) delete MONKEY_SPINNING_STAFF.movementDuringCast
+      else MONKEY_SPINNING_STAFF.movementDuringCast = original
+    }
   })
 })

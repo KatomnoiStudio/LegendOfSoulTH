@@ -6,11 +6,10 @@ import { AuthModal } from './AuthModal'
 /*
   ล็อกไว้ไม่ให้บั๊ก busy-lockout กลับมา
 
-  เดิม handleSubmit/handleImportFile ไม่มี try/catch ครอบ — ถ้า onLogin/onRegister/
-  onImportSave reject (เช่น WebCrypto ใช้ไม่ได้, แฮชที่เก็บไว้เพี้ยน) busy จะค้างเป็น true
-  ตลอดไป ปุ่มส่งและปุ่มนำเข้าไฟล์ถูก disable ค้าง ผู้เล่นติดอยู่ในกล่องนี้โดยไม่มีทางออก
-  ไม่มีข้อความบอกด้วยซ้ำว่าเกิดอะไรขึ้น เทสต์นี้ยืนยันว่าไม่ว่าจะพังทางไหน ปุ่มก็ต้องกลับมา
-  กดได้เสมอ
+  เดิม handleSubmit ไม่มี try/catch ครอบ — ถ้า onLogin/onRegister reject (เช่น
+  WebCrypto ใช้ไม่ได้) busy จะค้างเป็น true ตลอดไป ปุ่มส่งถูก disable ค้าง ผู้เล่นติดอยู่
+  ในกล่องนี้โดยไม่มีทางออก ไม่มีข้อความบอกด้วยซ้ำว่าเกิดอะไรขึ้น เทสต์นี้ยืนยันว่าไม่ว่า
+  จะพังทางไหน ปุ่มก็ต้องกลับมากดได้เสมอ
 */
 
 beforeEach(() => {
@@ -23,7 +22,14 @@ describe('AuthModal', () => {
     const user = userEvent.setup()
     const onLogin = vi.fn().mockRejectedValue(new Error('WebCrypto ใช้ไม่ได้'))
 
-    render(<AuthModal onRegister={vi.fn()} onLogin={onLogin} onImportSave={vi.fn()} />)
+    render(
+      <AuthModal
+        onRegister={vi.fn()}
+        onLogin={onLogin}
+        onLoginWithGoogle={vi.fn()}
+        onLoginAsGuest={vi.fn()}
+      />,
+    )
 
     await user.click(screen.getByRole('tab', { name: 'เข้าสู่ระบบ' }))
     await user.type(screen.getByLabelText('อีเมล'), 'player@example.com')
@@ -39,32 +45,18 @@ describe('AuthModal', () => {
     expect(screen.getByText('ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง')).toBeInTheDocument()
   })
 
-  test('onImportSave reject ไม่ทำให้ปุ่มนำเข้าไฟล์ค้าง disable ถาวร', async () => {
-    const onImportSave = vi.fn().mockRejectedValue(new Error('แฮชในไฟล์เพี้ยน'))
-
-    const { container } = render(
-      <AuthModal onRegister={vi.fn()} onLogin={vi.fn()} onImportSave={onImportSave} />,
-    )
-    // เข้าแท็บ login ก่อน — ปุ่มนำเข้าไฟล์โผล่เฉพาะแท็บนี้
-    await userEvent.setup().click(screen.getByRole('tab', { name: 'เข้าสู่ระบบ' }))
-
-    const file = new File(['{"broken": true}'], 'save.json', { type: 'application/json' })
-    // input จริงถูกซ่อนไว้และไม่มี label ผูก (ปุ่มที่ผู้เล่นเห็นแค่สั่ง .click() ผ่าน ref)
-    const input = container.querySelector('input[type="file"]') as HTMLInputElement
-    expect(input).toBeTruthy()
-
-    await userEvent.upload(input, file)
-
-    await waitFor(() => expect(onImportSave).toHaveBeenCalled())
-    await waitFor(() => expect(input).not.toBeDisabled())
-    expect(screen.getByText('อ่านไฟล์ save ไม่สำเร็จ ลองใหม่หรือใช้ไฟล์อื่น')).toBeInTheDocument()
-  })
-
   test('onLogin คืนข้อความ error (ไม่ throw) ก็แสดงข้อความนั้นตรง ๆ และปุ่มกลับมากดได้', async () => {
     const user = userEvent.setup()
     const onLogin = vi.fn().mockResolvedValue('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
 
-    render(<AuthModal onRegister={vi.fn()} onLogin={onLogin} onImportSave={vi.fn()} />)
+    render(
+      <AuthModal
+        onRegister={vi.fn()}
+        onLogin={onLogin}
+        onLoginWithGoogle={vi.fn()}
+        onLoginAsGuest={vi.fn()}
+      />,
+    )
     await user.click(screen.getByRole('tab', { name: 'เข้าสู่ระบบ' }))
     await user.type(screen.getByLabelText('อีเมล'), 'player@example.com')
     await user.type(screen.getByLabelText('รหัสผ่าน'), 'wrongpass')
@@ -80,7 +72,14 @@ describe('AuthModal', () => {
     const user = userEvent.setup()
     const onRegister = vi.fn()
 
-    render(<AuthModal onRegister={onRegister} onLogin={vi.fn()} onImportSave={vi.fn()} />)
+    render(
+      <AuthModal
+        onRegister={onRegister}
+        onLogin={vi.fn()}
+        onLoginWithGoogle={vi.fn()}
+        onLoginAsGuest={vi.fn()}
+      />,
+    )
 
     await user.type(screen.getByLabelText('อีเมล'), 'player@example.com')
     await user.type(screen.getByLabelText('รหัสผ่าน'), 'password123')
@@ -91,5 +90,111 @@ describe('AuthModal', () => {
 
     expect(onRegister).not.toHaveBeenCalled()
     expect(screen.getByText('รหัสผ่านทั้งสองช่องไม่ตรงกัน')).toBeInTheDocument()
+  })
+
+  test('กด Google แล้วเรียก onLoginWithGoogle, ไม่แตะ onRegister/onLogin เลย', async () => {
+    const user = userEvent.setup()
+    const onLoginWithGoogle = vi.fn().mockResolvedValue(null)
+    const onRegister = vi.fn()
+    const onLogin = vi.fn()
+
+    render(
+      <AuthModal
+        onRegister={onRegister}
+        onLogin={onLogin}
+        onLoginWithGoogle={onLoginWithGoogle}
+        onLoginAsGuest={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'เข้าสู่ระบบด้วย Google' }))
+
+    await waitFor(() => expect(onLoginWithGoogle).toHaveBeenCalledTimes(1))
+    expect(onRegister).not.toHaveBeenCalled()
+    expect(onLogin).not.toHaveBeenCalled()
+  })
+
+  test('onLoginWithGoogle คืนข้อความ error ก็แสดงข้อความนั้น และปุ่มกลับมากดได้', async () => {
+    const user = userEvent.setup()
+    const onLoginWithGoogle = vi
+      .fn()
+      .mockResolvedValue('เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง')
+
+    render(
+      <AuthModal
+        onRegister={vi.fn()}
+        onLogin={vi.fn()}
+        onLoginWithGoogle={onLoginWithGoogle}
+        onLoginAsGuest={vi.fn()}
+      />,
+    )
+
+    const googleButton = screen.getByRole('button', { name: 'เข้าสู่ระบบด้วย Google' })
+    await user.click(googleButton)
+
+    expect(
+      await screen.findByText('เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง'),
+    ).toBeInTheDocument()
+    expect(googleButton).not.toBeDisabled()
+  })
+
+  test('onLoginWithGoogle reject ไม่ทำให้ปุ่ม Google ค้าง disable ถาวร', async () => {
+    const user = userEvent.setup()
+    const onLoginWithGoogle = vi.fn().mockRejectedValue(new Error('เครือข่ายขัดข้อง'))
+
+    render(
+      <AuthModal
+        onRegister={vi.fn()}
+        onLogin={vi.fn()}
+        onLoginWithGoogle={onLoginWithGoogle}
+        onLoginAsGuest={vi.fn()}
+      />,
+    )
+
+    const googleButton = screen.getByRole('button', { name: 'เข้าสู่ระบบด้วย Google' })
+    await user.click(googleButton)
+
+    await waitFor(() => expect(onLoginWithGoogle).toHaveBeenCalled())
+    await waitFor(() => expect(googleButton).not.toBeDisabled())
+    expect(screen.getByText('เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง')).toBeInTheDocument()
+  })
+
+  test('กด "เล่นทันทีแบบไม่สมัคร" แล้วเรียก onLoginAsGuest', async () => {
+    const user = userEvent.setup()
+    const onLoginAsGuest = vi.fn().mockResolvedValue(null)
+
+    render(
+      <AuthModal
+        onRegister={vi.fn()}
+        onLogin={vi.fn()}
+        onLoginWithGoogle={vi.fn()}
+        onLoginAsGuest={onLoginAsGuest}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'เล่นทันทีแบบไม่สมัคร' }))
+
+    await waitFor(() => expect(onLoginAsGuest).toHaveBeenCalledTimes(1))
+  })
+
+  test('onLoginAsGuest reject ไม่ทำให้ปุ่ม guest ค้าง disable ถาวร', async () => {
+    const user = userEvent.setup()
+    const onLoginAsGuest = vi.fn().mockRejectedValue(new Error('เครือข่ายขัดข้อง'))
+
+    render(
+      <AuthModal
+        onRegister={vi.fn()}
+        onLogin={vi.fn()}
+        onLoginWithGoogle={vi.fn()}
+        onLoginAsGuest={onLoginAsGuest}
+      />,
+    )
+
+    const guestButton = screen.getByRole('button', { name: 'เล่นทันทีแบบไม่สมัคร' })
+    await user.click(guestButton)
+
+    await waitFor(() => expect(onLoginAsGuest).toHaveBeenCalled())
+    await waitFor(() => expect(guestButton).not.toBeDisabled())
+    expect(screen.getByText('เข้าเล่นแบบ guest ไม่สำเร็จ ลองใหม่อีกครั้ง')).toBeInTheDocument()
   })
 })

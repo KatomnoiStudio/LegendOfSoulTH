@@ -8,6 +8,20 @@ export interface PlayerCurrency {
   gem: number
 }
 
+/** ความคืบหน้าเลเวลของสกิลหนึ่งช่อง — รูปแบบเดียวกับ level/exp/expToNext ของตัวละคร/บัญชี */
+export interface SkillProgress {
+  level: number
+  exp: number
+  expToNext: number
+}
+
+/**
+ * เลเวลสกิลทั้ง 4 ช่องต่อฮีโร่หนึ่งตัว — คีย์ตรงกับ SkillSlot ใน
+ * src/game/realtimeBattle/skills.ts (skill1-3 + ultimate)
+ * สร้างค่าเริ่มต้นผ่าน createDefaultSkillLevels() (SkillProgressionSystem.ts) เท่านั้น
+ */
+export type SkillLevels = Record<'skill1' | 'skill2' | 'skill3' | 'ultimate', SkillProgress>
+
 /** ตัวละครหนึ่งตัวที่บัญชีผู้เล่นครอบครองจริง */
 export interface OwnedCharacter {
   characterId: string
@@ -15,6 +29,24 @@ export interface OwnedCharacter {
   exp: number
   expToNext: number
   obtainedAt: string
+  /**
+   * เลเวลสกิล 4 ช่อง (work contract #14 — Progression System)
+   * บัญชีเก่าก่อนมีฟิลด์นี้ไม่มีใน localStorage/Supabase แถวเก่า — อ่านผ่าน
+   * normalizePlayer / migrateOwnedCharacters เสมอ อย่า deref ตรง ๆ จากข้อมูลดิบ
+   */
+  skillLevels: SkillLevels
+  /** P8 — talent foundation */
+  talentState?: { unlockedNodes: string[] }
+  /** P8 — awakening foundation */
+  awakeningState?: { tier: number; unlockedEffects?: string[] }
+  progressionVersion?: number
+  /**
+   * ระดับดาว (work contract #15 — Star Ascension System, ★1–★6)
+   * บัญชีเก่าไม่มีฟิลด์นี้ = เริ่มต้นที่ ★1
+   */
+  star?: number
+  /** จำนวนชิ้นส่วน/ตัวซ้ำสะสมที่ใช้สำหรับเลื่อนดาว */
+  shards?: number
 }
 
 /** ไอเทมหนึ่งช่องในกระเป๋าผู้เล่น — itemId ต้องมีอยู่ใน ITEMS (ดู src/game/items.ts) */
@@ -73,6 +105,11 @@ export interface Player {
   frameId: string
   /** ความคืบหน้าเควสต์ การต่อสู้ และ flags */
   progress: PlayerProgress
+  /**
+   * ตัวนับการันตี (Pity Counter) ของแต่ละแบนเนอร์ (work contract #23 — Gacha System)
+   * เก็บเป็น Record<bannerId, currentPityCount>
+   */
+  gachaPity?: Record<string, number>
 }
 
 export interface BattleRecord {
@@ -80,13 +117,26 @@ export interface BattleRecord {
   opponent: string
   result: 'win' | 'lose'
   finishedAt: string
-  turns: number
+  /** มรดกเทิร์นเบส — บัญชีเก่าใน localStorage ยังมี; realtime ไม่เขียน */
+  turns?: number
+  /** ระยะเวลาต่อสู้จริง (ms) — realtime */
+  durationMs?: number
+}
+
+/** §5.1 energy/stamina skeleton — client-side until server authority matures (#25) */
+export interface PlayerEnergy {
+  current: number
+  max: number
+  /** ISO timestamp of last regen tick */
+  lastRegenAt: string
 }
 
 export interface PlayerProgress {
   flags: Record<string, boolean>
   defeatedNpcIds: string[]
   battleHistory: BattleRecord[]
+  /** Omitted on legacy saves — normalize via adventure/energySystem.ts */
+  energy?: PlayerEnergy
 }
 
 export const EMPTY_PROGRESS: PlayerProgress = {

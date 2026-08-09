@@ -1,8 +1,9 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import type { CurrencyResult } from '../../data/accountRepository'
+import type { CurrencyResult } from '../../data/accountRepository.shared'
 import { useModalA11y } from '../../hooks/useModalA11y'
 import { GAME_INFO } from '../../game/gameInfo'
 import { getA11ySettings, setA11ySettings, type A11ySettings } from '../../lib/a11ySettings'
+import { reportError } from '../../lib/errors/reportError'
 import { type AudioChannel, type AudioSettings } from '../../lib/audio/AudioEngine'
 import type { QualityOverride } from '../../hooks/usePerformanceQuality'
 import {
@@ -60,6 +61,12 @@ interface SettingsModalProps {
   onClose: () => void
   /** ส่งออก save เป็นไฟล์ JSON — คืน null เมื่อสำเร็จ (ดาวน์โหลดแล้ว) คืนข้อความเมื่อผิดพลาด */
   onExportSave: () => Promise<string | null>
+  /** บัญชีนี้เชื่อมกับ Google ไว้แล้วหรือยัง */
+  hasGoogleLinked: boolean
+  /** เริ่มเชื่อมบัญชีนี้กับ Google — เปลี่ยนหน้าออกไปทันทีเมื่อสำเร็จ */
+  onLinkGoogleAccount: () => Promise<string | null>
+  /** บัญชีนี้เป็น guest (ยังไม่เคยอัพเกรด) ไหม */
+  isGuest: boolean
 }
 
 /**
@@ -81,6 +88,9 @@ export function SettingsModal({
   ownedCharacterCount,
   onClose,
   onExportSave,
+  hasGoogleLinked,
+  onLinkGoogleAccount,
+  isGuest,
 }: SettingsModalProps) {
   const { showToast } = useToast()
   const [tab, setTab] = useState<TabId>('info')
@@ -151,6 +161,9 @@ export function SettingsModal({
             onLogout={onLogout}
             ownedCharacterCount={ownedCharacterCount}
             onExportSave={onExportSave}
+            hasGoogleLinked={hasGoogleLinked}
+            onLinkGoogleAccount={onLinkGoogleAccount}
+            isGuest={isGuest}
           />
         ) : null}
         {tab === 'audio' ? (
@@ -200,12 +213,38 @@ function GameInfoPanel({
   onLogout,
   ownedCharacterCount,
   onExportSave,
+  hasGoogleLinked,
+  onLinkGoogleAccount,
+  isGuest,
 }: {
   onLogout: () => Promise<void>
   ownedCharacterCount: number
   onExportSave: () => Promise<string | null>
+  hasGoogleLinked: boolean
+  onLinkGoogleAccount: () => Promise<string | null>
+  isGuest: boolean
 }) {
   const { showToast } = useToast()
+  const [linking, setLinking] = useState(false)
+
+  const handleLinkGoogle = async () => {
+    if (linking) return
+    setLinking(true)
+    try {
+      // สำเร็จแล้วหน้าเปลี่ยนไปทันที (redirect ออกจากแอป) — ไม่ต้องเคลียร์ linking ในเคสนั้น
+      const error = await onLinkGoogleAccount()
+      if (error) {
+        showToast(error, 'error')
+        setLinking(false)
+      }
+    } catch (cause) {
+      // ต้องจับไว้เหมือน AuthModal's handleSubmit/handleGoogleLogin — ไม่งั้น reject หลุด
+      // แล้วปุ่มค้าง disabled ถาวร
+      reportError('AUTH_OAUTH_FAIL', 'silent', cause)
+      showToast('เชื่อมบัญชี Google ไม่สำเร็จ ลองใหม่อีกครั้ง', 'error')
+      setLinking(false)
+    }
+  }
   const rows: { label: string; value: string }[] = [
     { label: 'ชื่อเกม', value: GAME_INFO.name },
     { label: 'ประเภท', value: GAME_INFO.genre },
@@ -237,10 +276,32 @@ function GameInfoPanel({
         ตัวละครที่อ้างอิงวรรณกรรมใช้เฉพาะเรื่องที่เป็นสมบัติสาธารณะเท่านั้น
       </p>
 
-      <p className={styles.panelNote}>
-        เกมนี้ไม่มีเซิร์ฟเวอร์ — ข้อมูลอยู่ในเบราว์เซอร์เครื่องนี้เท่านั้น เปลี่ยนเครื่อง/เบราว์เซอร์
-        ต้องส่งออกไฟล์ save ไปนำเข้าเองที่ปลายทาง (ไม่มีการ sync อัตโนมัติ)
-      </p>
+      {isGuest ? (
+        <p className={styles.panelNote} data-warning>
+          บัญชีนี้เป็น guest — ยังไม่ผูกอีเมล/Google ล้างข้อมูลเบราว์เซอร์หรือเปลี่ยนเครื่องแล้ว
+          <strong> กลับเข้าบัญชีเดิมไม่ได้อีกเลย</strong> เชื่อมบัญชี Google
+          ไว้ตอนนี้เพื่อความปลอดภัย
+        </p>
+      ) : (
+        <p className={styles.panelNote}>
+          บัญชีนี้ผูกกับอีเมลและเก็บบนเซิร์ฟเวอร์แล้ว ล็อกอินจากเครื่อง/เบราว์เซอร์ไหนก็ได้ ข้อมูล
+          sync ให้อัตโนมัติ — ปุ่มส่งออก save ด้านล่างมีไว้สำรองไฟล์เก็บเอง
+          ไม่ใช่วิธีย้ายเครื่องหลัก
+        </p>
+      )}
+
+      <button
+        type="button"
+        className={styles.exportSave}
+        onClick={() => void handleLinkGoogle()}
+        disabled={hasGoogleLinked || linking}
+      >
+        {hasGoogleLinked
+          ? 'เชื่อมบัญชี Google แล้ว'
+          : linking
+            ? 'กำลังเชื่อมต่อ...'
+            : 'เชื่อมบัญชี Google'}
+      </button>
 
       <button
         type="button"

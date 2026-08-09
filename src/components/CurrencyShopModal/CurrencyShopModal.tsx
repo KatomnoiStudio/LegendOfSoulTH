@@ -6,7 +6,7 @@ import {
   type CurrencyResult,
   type GoldPackage,
   type GemPackage,
-} from '../../data/accountRepository'
+} from '../../data/accountRepository.shared'
 import { formatNumber } from '../../lib/format'
 import { useToast } from '../Toast/useToast'
 import styles from './CurrencyShopModal.module.css'

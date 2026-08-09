@@ -1,42 +1,40 @@
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
-import type { Vec2 } from '../../game/realtimeBattle/types'
-import type { SkillAnimationId } from '../../game/realtimeBattle/skills'
-import { AttackButton } from './AttackButton'
+import type { SkillSlot } from '../../game/realtimeBattle/skills'
+import type { MovementInput } from '../../game/realtimeBattle/playerInput'
 import { BattleJoystick } from './BattleJoystick'
-import { DashButton } from './DashButton'
-import { SkillButton } from './SkillButton'
+import { CombatCluster } from './CombatCluster'
 import styles from './BattleScene.module.css'
 
 /**
- * ชั้นปุ่มควบคุมบนจอ — จอยซ้าย ปุ่มขวา (§12)
+ * Mobile combat control HUD — left movement, right combat cluster.
  *
- * ปุ่มสกิลแสดงเฉพาะตัวละครที่มีสกิลใน registry จริง — ไม่ใส่ปุ่มว่างที่หลอกผู้เล่น
- *
- * ทั้งชั้นเป็น pointer-events: none ยกเว้นตัวควบคุมเอง เพื่อไม่ให้บังการมองฉาก
+ * Blueprint v3 §3.3 + Naruto-mobile-inspired ergonomics (UX reference only).
  */
 export function BattleControls({
   runtime,
   onMove,
   onAttack,
-  onDash,
   onSkill,
+  inputBlocked = false,
 }: {
   runtime: RealtimeBattleRuntime
-  onMove: (vector: Vec2) => void
+  onMove: (input: MovementInput) => void
   onAttack: () => void
-  onDash: () => void
-  onSkill: (animationId: SkillAnimationId) => void
+  onSkill: (slot: SkillSlot) => void
+  inputBlocked?: boolean
 }) {
   return (
-    <div className={styles.controls}>
+    <div className={styles.controls} aria-hidden={inputBlocked}>
       <div className={styles.controlsLeft}>
-        <BattleJoystick onChange={onMove} />
+        <BattleJoystick onChange={onMove} disabled={inputBlocked} />
       </div>
       <div className={styles.controlsRight}>
-        <SkillButton runtime={runtime} animationId="skill-1" onPress={onSkill} />
-        <SkillButton runtime={runtime} animationId="skill-2" onPress={onSkill} />
-        <DashButton runtime={runtime} onPress={onDash} />
-        <AttackButton onPress={onAttack} />
+        <CombatCluster
+          runtime={runtime}
+          onAttack={onAttack}
+          onSkill={onSkill}
+          disabled={inputBlocked}
+        />
       </div>
     </div>
   )

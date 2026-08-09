@@ -16,6 +16,10 @@ dist-ssr
 # regenerate locally with `npm run build:models` when actually needed; not shipped to deploy
 public/models/
 
+# One-off Python art-pipeline tooling (align/extract/split sprite sheets) — run locally by
+# whoever processes character art, never invoked by CI/build; keep it out of the shared repo
+scripts/
+
 # Agent tool internal state — never shipped, machine-local only
 .claude/coalhearth/
 .claude/coalwash/
@@ -24,7 +28,16 @@ public/models/
 
 # Per-machine/per-editor local tool config — not project config, each dev's own setup
 .claude/launch.json
-.cursor/environment.json
+.claude/settings.local.json
+
+# Working-directory concurrency lock — machine-local, never shared (.agents/rules/workdir-concurrency-lock-law.md)
+.agents/workdir.lock
+
+# Cursor IDE local config — machine/cloud-agent only, not project config
+.cursor/
+
+# Antigravity (Gemini) local agent config — same class as .cursor/ above
+.gemini/
 
 # Personal/off-project notes — see .agents/rules/personal-scope-law.md
 # (never goes in the shared, mandatory-read MEMORY.md)

@@ -52,8 +52,10 @@ export default defineConfig(({ command }) => ({
     */
     target: ['chrome111', 'edge111', 'firefox114', 'safari16.4', 'ios16.4'],
 
-    // ฉาก 3D (three.js) ถูกแยกเป็น chunk แยกและโหลดแบบ lazy อยู่แล้ว
-    // จึงยกเพดานเตือนขึ้นเพื่อไม่ให้ warning รบกวนทุกครั้งที่ build
+    // ฉาก 3D (three.js) ถูกแยกเป็น chunk แยกและโหลดแบบ lazy อยู่แล้ว จึงยกเพดาน
+    // *advisory* ของ Vite เองขึ้น (คิดจาก raw byte เพดานตายตัว 500KB ไม่แยก vendor
+    // ที่ justified ออกจากโค้ดแอป) ไม่ให้รบกวนทุกครั้งที่ build — เพดานที่ "บังคับจริง"
+    // (gzip, แยกเพดาน vendor/app) อยู่ที่ tools/check-bundle-size.mjs ต่อท้าย "npm run ci"
     chunkSizeWarningLimit: 1000,
 
     rollupOptions: {
@@ -85,6 +87,10 @@ export default defineConfig(({ command }) => ({
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
+      // agent worktree เต็มโปรเจกต์อีกชุด (git worktree ของ session อื่นที่รันขนานกันอยู่) —
+      // ไม่มีอันนี้ vitest จะไล่เจอไฟล์ .test.ts ที่ชื่อซ้ำกับด้านล่างในนั้นด้วย (เช่น
+      // conditions.test.ts ของ worktree อื่น) แล้วฟ้อง "No test suite found" ปนกับผลจริง
+      '.claude/worktrees/**',
       'src/game/dialogue/conditions.test.ts',
       'src/game/dialogue/engine.test.ts',
       'src/hooks/useExploration.test.ts',

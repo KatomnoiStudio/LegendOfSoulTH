@@ -1,0 +1,217 @@
+/* โครงหน้าต่างชุดเดียวกับ ItemsModal/SettingsModal (backdrop/dialog/header/panel) */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  /* เหนือ WukongAdventure moonlight (z-scene-explore) — อย่าใช้ --z-toast (50) เพราะต่ำกว่า 500 */
+  z-index: var(--z-scene-battle-transition);
+  display: grid;
+  place-items: center;
+  padding: max(var(--sp-4), env(safe-area-inset-top, 0px))
+    max(var(--sp-4), env(safe-area-inset-right, 0px))
+    max(var(--sp-4), env(safe-area-inset-bottom, 0px))
+    max(var(--sp-4), env(safe-area-inset-left, 0px));
+  background:
+    radial-gradient(circle at 50% 42%, rgb(132 75 28 / 14%), transparent 28%),
+    radial-gradient(ellipse 70% 60% at 50% 45%, rgb(6 14 26 / 76%), rgb(2 5 12 / 92%));
+  backdrop-filter: blur(5px) saturate(0.85);
+  animation: fade-in var(--dur-mid) var(--ease-out) both;
+}
+
+.dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 28rem);
+  max-height: min(88dvh, 40rem);
+  border: 1px solid rgb(226 183 88 / 52%);
+  clip-path: polygon(
+    20px 0,
+    calc(100% - 20px) 0,
+    100% 20px,
+    100% calc(100% - 20px),
+    calc(100% - 20px) 100%,
+    20px 100%,
+    0 calc(100% - 20px),
+    0 20px
+  );
+  background:
+    radial-gradient(ellipse 70% 45% at 50% 0%, rgb(112 30 29 / 34%), transparent 64%),
+    linear-gradient(165deg, rgb(14 34 46 / 98%), rgb(6 14 27 / 99%));
+  box-shadow:
+    0 24px 62px rgb(0 0 0 / 72%),
+    inset 0 0 0 3px rgb(3 9 16 / 70%);
+  animation: dialog-in var(--dur-mid) var(--ease-bounce) both;
+}
+
+.header {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-5) var(--sp-5) var(--sp-4);
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.headerHint {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--c-text-dim);
+}
+
+.chapter + .chapter {
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-4);
+  border-top: 1px solid rgb(255 255 255 / 8%);
+}
+
+.chapterHeader {
+  margin-bottom: var(--sp-3);
+}
+
+.chapterTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: rgb(226 183 88 / 92%);
+}
+
+.chapterSubtitle {
+  margin: 4px 0 0;
+  font-size: 0.72rem;
+  color: var(--c-text-dim);
+}
+
+.stageRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.stageLabel {
+  flex-shrink: 0;
+  min-width: 2.25rem;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: rgb(226 183 88 / 88%);
+}
+
+.headerTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--c-bone);
+}
+
+.close {
+  position: absolute;
+  inset-block-start: var(--sp-3);
+  inset-inline-end: var(--sp-3);
+  display: grid;
+  place-items: center;
+  width: var(--sz-icon-close);
+  height: var(--sz-icon-close);
+  border-radius: 50%;
+  color: var(--c-text-dim);
+  font-size: 1.3rem;
+  line-height: 1;
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.close:hover {
+  color: var(--c-bone);
+  background: rgb(255 255 255 / 12%);
+}
+
+.panel {
+  padding: var(--sp-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: panel-in var(--dur-mid) var(--ease-out) both;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: rgb(255 255 255 / 4%);
+  text-align: start;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.stage:not(:disabled):hover {
+  background: rgb(255 255 255 / 9%);
+}
+
+.stage:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.stageName {
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  color: var(--c-bone);
+}
+
+.stageMeta {
+  font-size: 0.74rem;
+  color: var(--c-text-dim);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

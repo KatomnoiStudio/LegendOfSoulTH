@@ -135,7 +135,13 @@
   }
 
   .startRow {
-    inset-inline-end: 12px;
+    /*
+      12px เดิมชนแถบ "เมนูลัด" (SideActions) ที่แคบพอ ๆ กัน (พิสูจน์จริงด้วย
+      getBoundingClientRect ที่ 700x360 — SideActions กว้าง ~58px ชิดขอบขวาเหมือนกัน
+      ปุ่มที่ 12px จากขอบจึงล้ำเข้าไปทับ ~46px) 86px = 58px ของแถบ + ระยะห่างจริง ~28px
+      กันปัญหาเดียวกับที่คอมเมนต์ inset-block-end ด้านล่างเจอมาแล้วกับ MainNavigation
+    */
+    inset-inline-end: 86px;
     /* 92px เดิมพอสำหรับเคส max-width (จอแคบแต่สูงพอ) แต่ยังทับ MainNavigation ที่เคส
        max-height (จอเตี้ย) จริงตามที่วัดด้วย getBoundingClientRect (เหลื่อม ~7px ตอน
        92px) เผื่อเพิ่มเป็น 106px ให้มีระยะห่างจริงในทั้งสองเคส */

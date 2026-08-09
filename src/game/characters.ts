@@ -1,14 +1,26 @@
 import { publicUrl } from '../lib/publicUrl'
 import type { OwnedCharacter } from '../types/player'
+import type { HeroArchetype } from './heroes/heroArchetypes'
 
-export type CharacterModelKind = 'monkey-king' | 'pig-warrior' | 'pilgrim-monk' | 'spear-warrior'
+export type CharacterModelKind =
+  | 'monkey-king'
+  | 'pig-warrior'
+  | 'pilgrim-monk'
+  | 'celestial-archer'
+  | 'nezha-warden'
+  | 'sand-sage'
+  | 'spear-warrior'
 
 /** สไปรต์ idle เริ่มต้นของแต่ละตัวละคร ใช้เป็น fallback เมื่อไม่มี model.spriteUrl ให้ใช้ */
-export const MONKEY_SPRITE_URL = publicUrl('characters/wukong-idle-0.webp')
+export const MONKEY_SPRITE_URL = publicUrl('characters/monkey-v2-idle-0.webp')
 export const PIGSY_SPRITE_URL = publicUrl('characters/pigsy-idle-0.webp')
 export const TRIPITAKA_SPRITE_URL = publicUrl('characters/tripitaka-idle-0.webp')
-export const SPEAR_WARRIOR_SPRITE_URL = publicUrl('characters/erlang-shen-v6-idle-0.webp')
-export const SPEAR_WARRIOR_CHARACTER_ID = 'spear-warrior'
+/** Placeholder sprites สำหรับ Batch 01 จนกว่าทีมภาพส่ง production asset */
+export const ARCHER_SPRITE_URL = TRIPITAKA_SPRITE_URL
+export const NEZHA_SPRITE_URL = MONKEY_SPRITE_URL
+export const SAGE_SPRITE_URL = PIGSY_SPRITE_URL
+export const ERLANG_SHEN_SPRITE_URL = publicUrl('characters/erlang-shen-v6-idle-0.webp')
+export const ERLANG_SHEN_CHARACTER_ID = 'spear-warrior'
 export type CharacterOrigin = 'Myth' | 'History' | 'Original'
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary'
 
@@ -41,7 +53,12 @@ export interface Character {
   epithet: string
   origin: CharacterOrigin
   lore: string
+  /** บทบาทแสดงผล UI (ภาษาไทย) */
   role: string
+  /** Archetype สำหรับ pipeline / balance — Blueprint §4.1 */
+  archetype: HeroArchetype
+  /** Production batch ที่ผ่าน certification — null = ยังไม่อยู่ใน batch */
+  productionBatch: 'batch-01' | null
   element: string
   rarity: Rarity
   level: number
@@ -58,7 +75,7 @@ export interface Character {
    เพราะเป็นข้อมูลของบัญชีผู้เล่น ไม่ใช่ของตัวละคร — ดู src/game/team.ts
 */
 
-const LEGACY_ROSTER: Character[] = [
+export const ROSTER: Character[] = [
   {
     id: 'monkey-king',
     name: 'ซุนหงอคง',
@@ -66,6 +83,8 @@ const LEGACY_ROSTER: Character[] = [
     origin: 'Myth',
     lore: 'ราชาวานรผู้ถือกระบองวิเศษ นักรบผู้ไม่ยอมก้มหัวต่อสวรรค์และพร้อมปกป้องสหายทุกเมื่อ',
     role: 'นักรบกองหน้า',
+    archetype: 'fighter',
+    productionBatch: 'batch-01',
     element: 'ลม',
     rarity: 'legendary',
     level: 40,
@@ -79,31 +98,14 @@ const LEGACY_ROSTER: Character[] = [
     },
   },
   {
-    id: SPEAR_WARRIOR_CHARACTER_ID,
-    name: 'แม่ทัพขนนก',
-    epithet: 'หอกศักดิ์สิทธิ์แห่งนภา',
-    origin: 'Original',
-    lore: 'แม่ทัพผู้รักษาคำสัตย์ ใช้หอกยาวและขนนกศักดิ์สิทธิ์นำทางกองทัพผ่านสมรภูมิ',
-    role: 'นักรบหอก',
-    element: 'ลม',
-    rarity: 'legendary',
-    level: 1,
-    exp: 0,
-    expToNext: 500,
-    stats: { hp: 1120, atk: 88, def: 76, spd: 90 },
-    model: {
-      kind: 'spear-warrior',
-      spriteUrl: SPEAR_WARRIOR_SPRITE_URL,
-      accent: '#d7b35b',
-    },
-  },
-  {
     id: 'pig-warrior',
     name: 'ตือโป๊ยก่าย',
     epithet: 'ขุนพลคราดเก้าซี่',
     origin: 'Myth',
     lore: 'อดีตแม่ทัพสวรรค์ผู้มีพละกำลังมหาศาล แม้ชอบบ่นและรักสบายแต่ไม่เคยทิ้งพวกพ้องในยามคับขัน',
-    role: 'ผู้พิทักษ์',
+    role: 'นักรบหนัก',
+    archetype: 'heavy',
+    productionBatch: 'batch-01',
     element: 'ดิน',
     rarity: 'epic',
     level: 38,
@@ -123,6 +125,8 @@ const LEGACY_ROSTER: Character[] = [
     origin: 'Myth',
     lore: 'พระผู้เดินทางสู่ชมพูทวีปด้วยศรัทธามั่นคง พลังพุทธบารมีช่วยคุ้มครองและเยียวยาเหล่าสหาย',
     role: 'ผู้สนับสนุน',
+    archetype: 'support',
+    productionBatch: null,
     element: 'แสง',
     rarity: 'epic',
     level: 36,
@@ -135,12 +139,91 @@ const LEGACY_ROSTER: Character[] = [
       accent: '#fff0a2',
     },
   },
+  {
+    id: 'celestial-archer',
+    name: 'จือหลาง',
+    epithet: 'นักธนูสวรรค์',
+    origin: 'Myth',
+    lore: 'นักธนูผู้ยิงแม่นยำจากระยะไกล คุมจังหวะการต่อสู้ด้วยลูกศรที่เจาะแนวรบศัตรู',
+    role: 'นักธนูระยะไกล',
+    archetype: 'ranged',
+    productionBatch: 'batch-01',
+    element: 'ลม',
+    rarity: 'epic',
+    level: 34,
+    exp: 4200,
+    expToNext: 9800,
+    stats: { hp: 920, atk: 88, def: 62, spd: 94 },
+    model: {
+      kind: 'celestial-archer',
+      spriteUrl: ARCHER_SPRITE_URL,
+      accent: '#8fd4ff',
+    },
+  },
+  {
+    id: 'nezha-warden',
+    name: 'นาจา',
+    epithet: 'เทพเด็กแห่งสามมหาสมุทร',
+    origin: 'Myth',
+    lore: 'ผู้ควบคุมสมรภภูมิด้วยแหวนและสายรุ้ง จำกัดศัตรูด้วย CC โดยไม่พึ่ง knockdown',
+    role: 'ผู้ควบคุมสมรภูมิ',
+    archetype: 'control',
+    productionBatch: 'batch-01',
+    element: 'ไฟ',
+    rarity: 'rare',
+    level: 32,
+    exp: 3100,
+    expToNext: 9000,
+    stats: { hp: 960, atk: 82, def: 68, spd: 102 },
+    model: {
+      kind: 'nezha-warden',
+      spriteUrl: NEZHA_SPRITE_URL,
+      accent: '#ff7a6e',
+    },
+  },
+  {
+    id: 'sand-sage',
+    name: 'ชาหวู่จิง',
+    epithet: 'พระสงฆ์แห่งทรายทอง',
+    origin: 'Myth',
+    lore: 'ผู้เรียกวิญญาณทหารเงาและเยียวยาพรรคพวกด้วยลูกประคำศักดิ์สิทธิ์',
+    role: 'ผู้เรียกวิญญาณ',
+    archetype: 'summoner',
+    productionBatch: 'batch-01',
+    element: 'ดิน',
+    rarity: 'rare',
+    level: 33,
+    exp: 3800,
+    expToNext: 9200,
+    stats: { hp: 1010, atk: 78, def: 72, spd: 85 },
+    model: {
+      kind: 'sand-sage',
+      spriteUrl: SAGE_SPRITE_URL,
+      accent: '#c9a86c',
+    },
+  },
+  {
+    id: ERLANG_SHEN_CHARACTER_ID,
+    name: 'เอ้อหลางเสิน',
+    epithet: 'เทพนักรบสามตาแห่งสวรรค์',
+    origin: 'Myth',
+    lore: 'เทพนักรบผู้ถือหอกสามคม ควบคุมสายฟ้าและบัญชาสุนัขสวรรค์เสี่ยวเทียนเพื่อปราบศัตรู',
+    role: 'เทพนักรบหอกสายฟ้า',
+    archetype: 'fighter',
+    productionBatch: null,
+    element: 'สายฟ้า',
+    rarity: 'legendary',
+    level: 1,
+    exp: 0,
+    expToNext: 500,
+    stats: { hp: 1120, atk: 88, def: 76, spd: 90 },
+    model: {
+      kind: 'spear-warrior',
+      spriteUrl: ERLANG_SHEN_SPRITE_URL,
+      accent: '#d7b35b',
+    },
+  },
 ]
-
-/** Only Erlang Shen remains available; legacy entries are retained solely for old-save decoding. */
-export const ROSTER: Character[] = LEGACY_ROSTER.filter(
-  (character) => character.id === SPEAR_WARRIOR_CHARACTER_ID,
-)
 
 export function getCharacter(id: string | null): Character | null {
   if (!id) return null

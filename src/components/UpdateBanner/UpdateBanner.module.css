@@ -14,9 +14,11 @@
   border: 1px solid rgb(226 183 88 / 55%);
   border-radius: var(--r-pill);
   background: linear-gradient(160deg, rgb(21 42 48 / 96%), rgb(10 16 27 / 98%));
-  box-shadow: 0 14px 34px rgb(0 0 0 / 55%), 0 0 0 1px rgb(0 0 0 / 30%);
+  box-shadow:
+    0 14px 34px rgb(0 0 0 / 55%),
+    0 0 0 1px rgb(0 0 0 / 30%);
   backdrop-filter: blur(8px);
-  animation: drop-in 260ms cubic-bezier(.2, .9, .25, 1) both;
+  animation: drop-in 260ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
 }
 
 .text {
@@ -30,36 +32,46 @@
   padding: 6px 14px;
   border: 1px solid var(--c-gold-light, #f3ce7c);
   border-radius: var(--r-pill);
-  background: linear-gradient(180deg, #f7c94e 0%, var(--c-gold, #e0b03e) 45%, var(--c-gold-deep, #a97722) 100%);
+  background: linear-gradient(
+    180deg,
+    #f7c94e 0%,
+    var(--c-gold, #e0b03e) 45%,
+    var(--c-gold-deep, #a97722) 100%
+  );
   color: #2b1a05;
   font-family: var(--font-display);
   font-size: 0.72rem;
   font-weight: 800;
-  transition: transform 160ms ease, filter 160ms ease;
+  transition:
+    transform 160ms ease,
+    filter 160ms ease;
 }
-.reload:hover { filter: brightness(1.08); transform: translateY(-1px); }
-.reload:active { transform: translateY(0) scale(0.96); }
-
-.dismiss {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 1.4rem;
-  height: 1.4rem;
-  border-radius: 50%;
-  color: rgb(226 214 180 / 62%);
-  font-size: 1rem;
-  line-height: 1;
-  transition: color 160ms ease, background-color 160ms ease;
+.reload:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
 }
-.dismiss:hover { color: #f4e6c4; background: rgb(255 255 255 / 10%); }
+.reload:active {
+  transform: translateY(0) scale(0.96);
+}
 
 @keyframes drop-in {
-  from { opacity: 0; transform: translateY(-14px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 560px) {
-  .banner { flex-wrap: wrap; padding: 8px 12px; }
-  .text { white-space: normal; font-size: 0.72rem; }
+  .banner {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+  }
+  .text {
+    white-space: normal;
+    font-size: 0.72rem;
+  }
 }

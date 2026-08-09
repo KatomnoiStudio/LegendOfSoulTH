@@ -1,12 +1,7 @@
-import {
-  COMBO_CONFIG,
-  isActiveWindow,
-  PLAYER_ATTACK_CHAIN,
-  totalDurationMs,
-  type AttackDefinition,
-} from './attacks'
-import { getCharacter } from '../characters'
-import { selectNormalAttackAnimation } from '../battleSpriteSequences'
+import { COMBO_CONFIG, isActiveWindow, totalDurationMs, type AttackDefinition } from './attacks'
+import { getPlayerAttackChain } from '../heroes/attackChains'
+import { getPlayerAttackPhase, interruptPlayerCombo, shouldInterruptMove } from './combatInterrupt'
+import { isControlLocked } from './combatReaction'
 import type { RealtimeBattleEntity } from './types'
 
 /**
@@ -74,15 +69,11 @@ export function currentComboStep(combo: ComboState): number {
 }
 
 /** บันทึกว่าผู้เล่นกดปุ่มโจมตี — อาจเริ่มท่าทันที หรือถูกเก็บเข้า buffer */
-export function pressAttack(
-  player: RealtimeBattleEntity,
-  combo: ComboState,
-  random: () => number = Math.random,
-): void {
-  if (player.state === 'dead' || player.hitStunRemainingMs > 0) return
+export function pressAttack(player: RealtimeBattleEntity, combo: ComboState): void {
+  if (isControlLocked(player)) return
 
   if (combo.attack === null) {
-    beginNextAttack(player, combo, random)
+    beginNextAttack(player, combo)
     return
   }
 
@@ -90,27 +81,23 @@ export function pressAttack(
   combo.bufferedInputAgeMs = 0
 }
 
-function beginNextAttack(
-  player: RealtimeBattleEntity,
-  combo: ComboState,
-  random: () => number = Math.random,
-): void {
+function beginNextAttack(player: RealtimeBattleEntity, combo: ComboState): void {
   // ปล่อยนานเกินไป = คอมโบขาด กลับไปเริ่มไม้แรก
   if (combo.sinceLastFinishMs > COMBO_CONFIG.comboResetMs) combo.chainIndex = 0
 
-  const attack = PLAYER_ATTACK_CHAIN[combo.chainIndex] ?? PLAYER_ATTACK_CHAIN[0]
+  const chain = getPlayerAttackChain(player.characterId)
+  const attack = chain[combo.chainIndex] ?? chain[0]
 
   combo.attack = attack
   combo.sinceStartMs = 0
   combo.hitTargets.clear()
   combo.bufferedInputAgeMs = null
   // ไม้ถัดไปวนกลับไม้แรกเมื่อจบคอมโบ
-  combo.chainIndex = (combo.chainIndex + 1) % PLAYER_ATTACK_CHAIN.length
+  combo.chainIndex = (combo.chainIndex + 1) % chain.length
 
-  const kind = getCharacter(player.characterId ?? null)?.model.kind ?? 'spear-warrior'
-  player.attackAnimationId = selectNormalAttackAnimation(kind, random)
   player.state = 'attack'
   player.velocity = { x: 0, y: 0 }
+  player.facing = player.combatFacing
 }
 
 export interface ComboTick {
@@ -127,7 +114,6 @@ export function stepCombo(
   player: RealtimeBattleEntity,
   combo: ComboState,
   deltaMs: number,
-  random: () => number = Math.random,
 ): ComboTick {
   // hit stop: เวลาในระบบต่อสู้หยุดชั่วขณะ แต่ไม่ได้หยุดทั้งเกม
   if (combo.hitStopRemainingMs > 0) {
@@ -150,19 +136,26 @@ export function stepCombo(
       player.hitStunRemainingMs <= 0 &&
       player.state !== 'dead'
     ) {
-      beginNextAttack(player, combo, random)
+      beginNextAttack(player, combo)
       return { hitboxActive: false, attack: combo.attack }
     }
     return { hitboxActive: false, attack: null }
   }
 
-  // โดนตีจนเซระหว่างท่า = ท่าถูกยกเลิกและคอมโบขาด
+  // โดนตีจนเซระหว่างท่า = ท่าถูกยกเลิกถ้า interruptible
   if (player.hitStunRemainingMs > 0 || player.state === 'dead') {
-    combo.attack = null
-    combo.chainIndex = 0
-    combo.hitTargets.clear()
-    combo.bufferedInputAgeMs = null
-    combo.sinceLastFinishMs = 0
+    if (combo.attack) {
+      const phase = getPlayerAttackPhase(combo.attack, combo.sinceStartMs)
+      if (shouldInterruptMove(combo.attack, phase)) {
+        interruptPlayerCombo(player, combo)
+      }
+    } else {
+      combo.attack = null
+      combo.chainIndex = 0
+      combo.hitTargets.clear()
+      combo.bufferedInputAgeMs = null
+      combo.sinceLastFinishMs = 0
+    }
     return { hitboxActive: false, attack: null }
   }
 
@@ -175,7 +168,7 @@ export function stepCombo(
     combo.sinceLastFinishMs = 0
     player.state = 'idle'
 
-    if (combo.bufferedInputAgeMs !== null) beginNextAttack(player, combo, random)
+    if (combo.bufferedInputAgeMs !== null) beginNextAttack(player, combo)
     return { hitboxActive: false, attack: combo.attack }
   }
 

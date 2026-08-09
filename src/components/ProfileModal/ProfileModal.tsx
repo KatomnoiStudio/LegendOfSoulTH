@@ -3,9 +3,9 @@ import { useModalA11y } from '../../hooks/useModalA11y'
 import type { Character } from '../../game/characters'
 import { PETS } from '../../game/collection'
 import { formatUid } from '../../game/uid'
-import { clampRatio, formatNumber } from '../../lib/format'
+import { clampRatio, formatDurationMs, formatNumber } from '../../lib/format'
 import { reportError } from '../../lib/errors/reportError'
-import type { Player } from '../../types/player'
+import type { BattleRecord, Player } from '../../types/player'
 import {
   CopyIcon,
   FrameIcon,
@@ -191,7 +191,7 @@ export function ProfileModal({
                 {player.progress.battleHistory.map((record) => (
                   <li key={record.id}>
                     <strong>{record.opponent}</strong> — {record.result === 'win' ? 'ชนะ' : 'แพ้'} (
-                    {record.turns} เทิร์น)
+                    {formatBattleHistoryDetail(record)})
                   </li>
                 ))}
               </ul>
@@ -225,7 +225,12 @@ function UidRow({ uid }: { uid: string }) {
     <span className={styles.uidRow}>
       <span className={styles.uidLabel}>UID</span>
       <span className={styles.uidValue}>{formatUid(uid)}</span>
-      <button type="button" className={styles.uidCopy} onClick={copy} aria-label="คัดลอกรหัสผู้เล่น">
+      <button
+        type="button"
+        className={styles.uidCopy}
+        onClick={copy}
+        aria-label="คัดลอกรหัสผู้เล่น"
+      >
         <CopyIcon />
       </button>
     </span>
@@ -295,7 +300,11 @@ function WalkPicker({
 
   return (
     <div className={styles.walkPicker}>
-      <div className={styles.walkPickerGrid} role="group" aria-label="เลือกตัวละครที่จะพาไปเดินชมจันทร์">
+      <div
+        className={styles.walkPickerGrid}
+        role="group"
+        aria-label="เลือกตัวละครที่จะพาไปเดินชมจันทร์"
+      >
         {characters.map((character) => (
           <button
             key={character.id}
@@ -316,4 +325,11 @@ function WalkPicker({
       ) : null}
     </div>
   )
+}
+
+/** ประวัติเก่าเก็บ `turns` — ของใหม่เก็บ `durationMs` */
+function formatBattleHistoryDetail(record: BattleRecord): string {
+  if (record.durationMs != null) return formatDurationMs(record.durationMs)
+  if (record.turns != null) return `${record.turns} เทิร์น`
+  return '—'
 }

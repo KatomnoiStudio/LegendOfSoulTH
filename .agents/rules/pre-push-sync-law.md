@@ -1,4 +1,5 @@
 <!-- coalmine: verified 2026-08-06 · exemplar this session's own incident (two machines pushed concurrently, MEMORY.md/vite.config.ts/ProfileModal.tsx all touched by both sides) · revalidate 90d -->
+
 # Pre-Push Sync Law
 
 > **Scope**: Binding for every agent, on every machine — Ring 0 and Ring 1 alike. Code correctness isn't a Ring-authority matter; this is baseline hygiene owed regardless of whose repo it is.
@@ -16,10 +17,11 @@ This project has multiple people (and their agents) pushing to `master` concurre
 3. **Merge `origin/master` into local** (`git merge origin/master`, matching this repo's existing convention of merge commits over rebase — see prior history).
 4. **If the merge conflicts**: resolve every conflict **by hand, preserving both sides' intent**.
    - Never resolve with a blind `--ours`/`--theirs` on a file with real content on both sides.
-   - Never let a resolution silently delete the other machine's work — if both sides changed the same file, the merged result should contain *both* changes unless they're truly mutually exclusive (and if so, say why in the merge commit body).
+   - Never let a resolution silently delete the other machine's work — if both sides changed the same file, the merged result should contain _both_ changes unless they're truly mutually exclusive (and if so, say why in the merge commit body).
    - For structured docs like `MEMORY.md` with numbered history sections, renumber/interleave rather than picking one side's numbering and dropping the other's entries.
 5. **Full verify before pushing, every time — merge or not**: `npm run typecheck && npm run lint && npm run test && npm run build` (or `npm run ci`) must be green. A merge that "looks fine" but wasn't re-verified is not done.
 6. **Only then push.** If verify fails after a merge, fix it first — don't push red.
+7. **`MEMORY.md` rides along** (`.agents/rules/agent-memory-law.md` §4): before declaring the push/PR done, confirm any `MEMORY.md` updates for this task are staged, committed, and included on the branch being pushed — not left unstaged on disk.
 
 ## What "no conflicting code" means here
 

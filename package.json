@@ -1,21 +1,23 @@
 {
   "name": "legend-of-soul-th",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.16.0",
   "engines": {
     "node": ">=22"
   },
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run build:images && tsc -b && vite build",
     "build:models": "node tools/build-models.mjs",
     "build:images": "node tools/optimize-images.mjs",
-    "typecheck": "tsc -b",
+    "typecheck": "tsc -b && npm run typecheck:edge",
+    "typecheck:edge": "deno check --unstable-sloppy-imports --config supabase/functions/pvp-authority/deno.json supabase/functions/pvp-authority/index.ts",
+    "test:edge": "deno test --unstable-sloppy-imports --config supabase/functions/pvp-authority/deno.json supabase/functions/pvp-authority/index_test.ts",
     "lint": "oxlint --deny-warnings",
     "test": "vitest run",
     "audit": "npm audit --audit-level=high",
-    "ci": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "ci": "npm run typecheck && npm run lint && npm run test && npm run test:edge && npm run build && node tools/check-bundle-size.mjs",
     "preview": "vite preview",
     "prepare": "husky",
     "test:coverage": "vitest run --coverage",
@@ -30,11 +32,13 @@
   ],
   "dependencies": {
     "@react-three/fiber": "^9.7.0",
+    "@supabase/supabase-js": "^2.112.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.4",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.3",
@@ -44,6 +48,7 @@
     "@types/three": "^0.185.3",
     "@vitejs/plugin-react": "^6.0.4",
     "@vitest/coverage-v8": "^4.1.10",
+    "deno": "2.9.5",
     "fast-check": "^4.9.0",
     "husky": "^9.1.7",
     "jsdom": "^30.0.1",
@@ -53,7 +58,8 @@
     "sharp": "^0.35.3",
     "typescript": "~7.0.2",
     "vite": "^8.2.0",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "web-vitals": "^6.1.0"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

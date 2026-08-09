@@ -3,6 +3,7 @@ import { playSfx } from '../../lib/audio/AudioEngine'
 import { publicUrl } from '../../lib/publicUrl'
 import { ItemBagIcon, PawIcon, TeamFormationIcon } from '../icons/GameIcons'
 import { useToast } from '../Toast/useToast'
+import { PVP_BACKEND_DEPLOYED } from '../../game/featureFlags'
 import styles from './MainNavigation.module.css'
 
 interface NavItem {
@@ -16,26 +17,51 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'battle', label: 'ต่อสู้', image: publicUrl('ui/navigation/battle.webp'), accent: '#f2a443' },
-  { id: 'heroes', label: 'ตัวละคร', image: publicUrl('ui/navigation/heroes.webp'), accent: '#f0c35e' },
+  {
+    id: 'battle',
+    label: 'ต่อสู้',
+    image: publicUrl('ui/navigation/battle.webp'),
+    accent: '#f2a443',
+  },
+  {
+    id: 'heroes',
+    label: 'ตัวละคร',
+    image: publicUrl('ui/navigation/heroes.webp'),
+    accent: '#f0c35e',
+  },
   { id: 'pets', label: 'สัตว์เลี้ยง', icon: <PawIcon />, accent: '#e58fb4' },
-  { id: 'training', label: 'ค่ายฝึก', image: publicUrl('ui/navigation/training.webp'), accent: '#77b9db' },
+  { id: 'pvp', label: 'PvP', icon: <TeamFormationIcon />, accent: '#77b9db' },
   { id: 'team', label: 'จัดทีม', icon: <TeamFormationIcon />, accent: '#8fa9f0' },
   { id: 'items', label: 'ไอเทม', icon: <ItemBagIcon />, accent: '#e0a86b' },
-  { id: 'summon', label: 'อัญเชิญ', image: publicUrl('ui/navigation/summon.webp'), accent: '#67d6a0' },
+  {
+    id: 'summon',
+    label: 'อัญเชิญ',
+    image: publicUrl('ui/navigation/summon.webp'),
+    accent: '#67d6a0',
+  },
   { id: 'guild', label: 'กิลด์', image: publicUrl('ui/navigation/guild.webp'), accent: '#7ad1b0' },
 ]
 
 interface MainNavigationProps {
   /** เปิดหน้าตัวละครทั้งหมดของฉัน — ผูกกับปุ่ม id="heroes" เท่านั้น */
   onOpenHeroes: () => void
-  /** เข้าห้องต่อสู้ (ด่านแรก) โดยตรง — ไม่ผ่านโหมดสำรวจ */
+  /** เข้าหน้าเลือกด่านก่อน — LobbyBattleSession จะ mount BattleScene หลังเลือกด่าน */
   onOpenBattle: () => void
+  /** เปิด P12 private room-code 1v1; ไม่ใช่ Matchmaking/Rank ของ P13 */
+  onOpenPvP: () => void
   /** เปิดกระเป๋าไอเทม — ผูกกับปุ่ม id="items" เท่านั้น */
   onOpenItems: () => void
+  /** เปิดตู้กาชาจริง — ผูกกับปุ่ม id="summon" เท่านั้น */
+  onOpenSummon: () => void
 }
 
-export function MainNavigation({ onOpenHeroes, onOpenBattle, onOpenItems }: MainNavigationProps) {
+export function MainNavigation({
+  onOpenHeroes,
+  onOpenBattle,
+  onOpenPvP,
+  onOpenItems,
+  onOpenSummon,
+}: MainNavigationProps) {
   const { comingSoon } = useToast()
 
   const handleSelect = (id: string, label: string) => {
@@ -48,8 +74,29 @@ export function MainNavigation({ onOpenHeroes, onOpenBattle, onOpenItems }: Main
       onOpenBattle()
       return
     }
+    /*
+      PvP is built and merged (#21, PR #96) but deliberately still routed to the coming-soon
+      toast on live: its room RPCs and the `pvp-authority` Edge Function are not deployed to the
+      production Supabase project yet, so opening the modal would only produce an error the player
+      can do nothing about. v0.15.0 shipped this button live in exactly that broken state for a
+      short window — this gate is the fix. Flip PVP_BACKEND_DEPLOYED once the migration
+      (`20260809064000_p12_private_pvp_rooms.sql`) is applied AND the Edge Function is deployed
+      and verified with two real clients.
+    */
+    if (id === 'pvp') {
+      if (!PVP_BACKEND_DEPLOYED) {
+        comingSoon(label)
+        return
+      }
+      onOpenPvP()
+      return
+    }
     if (id === 'items') {
       onOpenItems()
+      return
+    }
+    if (id === 'summon') {
+      onOpenSummon()
       return
     }
     comingSoon(label)
@@ -69,11 +116,7 @@ export function MainNavigation({ onOpenHeroes, onOpenBattle, onOpenItems }: Main
             onClick={() => handleSelect(item.id, item.label)}
           >
             <span className={styles.art}>
-              {item.image ? (
-                <img src={item.image} alt="" draggable={false} />
-              ) : (
-                item.icon
-              )}
+              {item.image ? <img src={item.image} alt="" draggable={false} /> : item.icon}
             </span>
             <span className={styles.label}>{item.label}</span>
           </button>

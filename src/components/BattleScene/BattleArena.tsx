@@ -1,163 +1,124 @@
 import { useEffect, useMemo } from 'react'
 import { DoubleSide } from 'three'
+import { BATTLE_DEPTH_LANE_COUNT } from '../../game/realtimeBattle/battleCoordinates'
 import { getBattleTexture } from '../../game/realtimeBattle/battleAssets'
 import { WORLD_SCALE } from '../../game/realtimeBattle/stageConfig'
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
 import { BattleCamera } from './BattleCamera'
 import { EnemyBattleSprite } from './EnemyBattleSprite'
 import { PlayerBattleSprite } from './PlayerBattleSprite'
-import { SkillLightningEffect } from './SkillLightningEffect'
-import type { BattleEffectEvent } from '../../game/realtimeBattle/types'
+import { TelegraphMarkers } from './TelegraphMarkers'
+import { StageGoalMarker } from './StageGoalMarker'
 
 /**
- * ตัวห้องต่อสู้ในโลก 3 มิติ — พื้น ขอบเขต กล้อง และตัวละครทุกตัว
+ * สนามต่อสู้ 2.5D side-down — พื้นลาน + แถบ depth + ฉากหลังด้านไกล
  *
- * พื้นและฉากใช้ Three.js ส่วนตัวละครเป็นระนาบภาพ PNG ตามสเปกข้อ 9
- * จุดกึ่งกลางห้อง (stage.width/2, stage.height/2) ถูก map ไปที่จุดกำเนิดของโลก
- * เพื่อให้กล้องเล็งที่ (0,0,0) ได้ตรง ๆ และคำนวณระยะได้จากขนาดห้องอย่างเดียว
+ * พิกัด runtime.y = แกน depth (หน้า–หลัง) แมปเป็น world Z
+ * กล้องมองจากด้านหน้า (+Z) ไม่ใช่ top-down
  */
-/** แถบขอบห้อง 4 ด้าน — axis คือแกนที่แถบทอดยาวไป, sign คือฝั่งของแกนอีกด้าน */
-const ARENA_EDGES = [
-  { id: 'top', axis: 'x', sign: -1 },
-  { id: 'bottom', axis: 'x', sign: 1 },
-  { id: 'left', axis: 'z', sign: -1 },
-  { id: 'right', axis: 'z', sign: 1 },
-] as const
 
 const EDGE_THICKNESS = 0.06
 
-export function BattleArena({
-  runtime,
-  effectEvents,
-}: {
-  runtime: RealtimeBattleRuntime
-  effectEvents: readonly BattleEffectEvent[]
-}) {
+export function BattleArena({ runtime }: { runtime: RealtimeBattleRuntime }) {
   const state = runtime.getState()
   const stage = state.stage
 
   const worldWidth = stage.width * WORLD_SCALE
   const worldDepth = stage.height * WORLD_SCALE
 
-  /*
-    ภาพของด่านถูกใช้เป็น "ฉากหลัง" ที่ตั้งขึ้นด้านหลังห้อง ไม่ใช่ลายพื้น
-
-    ลองแปะเป็นพื้นก่อนแล้วผลออกมาผิดชัดเจน — ตัววิหารในภาพถูกกดให้นอนราบไปกับพื้น
-    ศัตรูที่ยืนแถวบนเลยดูเหมือนลอยอยู่กลางอากาศ พอตั้งภาพขึ้นเป็นฉากหลังแทน
-    เส้นขอบฟ้าของภาพก็เข้ากับมุมกล้อง top-down เฉียงพอดี
-  */
   const backdropTexture = useMemo(() => {
     const source = stage.backgroundAsset ? getBattleTexture(stage.backgroundAsset) : null
     if (!source) return null
-
-    /*
-      กล้อง top-down เฉียงเห็นฉากหลังเป็นแถบบาง ๆ เหนือขอบไกลของห้องเท่านั้น
-      ถ้าใช้ภาพเต็มใบ แถบที่เห็นจะไปตกที่ "พื้นลาน" ในภาพซึ่งดูไม่ออกว่าคืออะไร
-      จึง crop เอาเฉพาะครึ่งบน (ตัววิหาร) มาแสดง
-
-      ต้อง clone ก่อนแก้ repeat/offset — texture ตัวจริงถูกแคชไว้ใช้ร่วมกัน
-      (ดู battleAssets.ts) การแก้ค่าบนตัวที่แคชจะไปกวนที่อื่นที่ใช้ภาพเดียวกัน
-    */
     const cropped = source.clone()
     cropped.needsUpdate = true
-    cropped.repeat.set(1, 0.58)
-    cropped.offset.set(0, 0.42)
+    cropped.repeat.set(1, 1)
+    cropped.offset.set(0, 0)
     return cropped
   }, [stage.backgroundAsset])
 
-  // clone ไม่ได้ถูกสร้างโดย R3F จึงต้องคืนหน่วยความจำเอง (§28)
   useEffect(() => {
     if (!backdropTexture) return
     return () => backdropTexture.dispose()
   }, [backdropTexture])
 
+  const depthLaneZs = useMemo(() => {
+    const lanes: number[] = []
+    for (let i = 1; i < BATTLE_DEPTH_LANE_COUNT; i += 1) {
+      const t = i / BATTLE_DEPTH_LANE_COUNT
+      lanes.push(-worldDepth / 2 + t * worldDepth)
+    }
+    return lanes
+  }, [worldDepth])
+
   return (
     <group>
       <BattleCamera runtime={runtime} />
 
-      <ambientLight intensity={0.9} />
-      <hemisphereLight args={['#cdd6ff', '#241d33', 0.8]} />
-      <directionalLight position={[4, 9, 6]} intensity={1.1} color="#fff2d8" />
+      <ambientLight intensity={0.85} />
+      <hemisphereLight args={['#c8d4ff', '#2a2038', 0.75]} />
+      <directionalLight position={[3, 8, 5]} intensity={1.05} color="#fff0d0" />
 
-      {/* ฉากหลัง — ตั้งขึ้นหลังขอบไกลของห้อง กว้างกว่าห้องเพื่อไม่ให้เห็นขอบภาพตอนกล้องขยับ */}
       {backdropTexture ? (
-        <mesh position={[0, worldDepth * 0.28, -worldDepth / 2 - 0.6]}>
-          <planeGeometry args={[worldWidth * 1.5, worldDepth * 0.56]} />
+        <mesh position={[0, worldDepth * 0.22, -worldDepth / 2 - 0.35]}>
+          <planeGeometry args={[worldWidth * 1.35, worldDepth * 0.85]} />
           <meshBasicMaterial map={backdropTexture} toneMapped={false} />
         </mesh>
       ) : null}
 
-      {/* พื้นห้อง — ลานหินเรียบ ไม่ใช้ภาพฉากเป็นลายพื้น */}
       <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[worldWidth, worldDepth]} />
-        <meshBasicMaterial color="#3a2f52" side={DoubleSide} />
+        <meshBasicMaterial color="#3d3258" side={DoubleSide} />
       </mesh>
 
-      {/*
-        ตารางบนพื้น — จุดอ้างอิงว่าตัวเองขยับไปไกลแค่ไหนแล้ว
-        พื้นสีเดียวล้วนทำให้บอกความเร็วและระยะไม่ได้เลยตอนกล้องไล่ตาม
-      */}
-      <gridHelper
-        args={[Math.max(worldWidth, worldDepth), 18, '#6a5a92', '#4a3f6b']}
-        position={[0, 0.004, 0]}
-      />
-
-      {/* วงมณฑลกลางลาน ให้พื้นไม่โล่งจนไม่รู้ว่าตัวเองขยับไปไหนแล้ว */}
-      <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[worldDepth * 0.26, worldDepth * 0.28, 64]} />
-        <meshBasicMaterial
-          color="#ffd765"
-          transparent
-          opacity={0.16}
-          toneMapped={false}
-          side={DoubleSide}
-        />
-      </mesh>
-      <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[worldDepth * 0.1, worldDepth * 0.11, 48]} />
-        <meshBasicMaterial
-          color="#ffd765"
-          transparent
-          opacity={0.12}
-          toneMapped={false}
-          side={DoubleSide}
-        />
-      </mesh>
-
-      {/*
-        ขอบเขตที่เดินได้ — แถบบาง 4 ด้านให้ผู้เล่นเห็นว่าห้องจบตรงไหน
-        ใช้ mesh แบบประกาศใน JSX ไม่ใช่สร้าง geometry เองในฟังก์ชัน render
-        เพราะ R3F จะ dispose ให้อัตโนมัติตอน unmount (§28 ห้ามให้ทรัพยากรค้าง)
-      */}
-      {ARENA_EDGES.map((edge) => (
-        <mesh
-          key={edge.id}
-          position={[
-            edge.axis === 'x' ? 0 : (worldWidth / 2) * edge.sign,
-            0.02,
-            edge.axis === 'z' ? 0 : (worldDepth / 2) * edge.sign,
-          ]}
-        >
-          <boxGeometry
-            args={[
-              edge.axis === 'x' ? worldWidth : EDGE_THICKNESS,
-              EDGE_THICKNESS,
-              edge.axis === 'z' ? worldDepth : EDGE_THICKNESS,
-            ]}
+      {depthLaneZs.map((z, index) => (
+        <mesh key={`lane-${index}`} position={[0, 0.003, z]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[worldWidth * 0.96, 0.028]} />
+          <meshBasicMaterial
+            color={index % 2 === 0 ? '#5a4d7a' : '#4a3f68'}
+            transparent
+            opacity={0.55}
+            toneMapped={false}
+            depthWrite={false}
           />
-          <meshBasicMaterial color="#ffd765" transparent opacity={0.45} toneMapped={false} />
         </mesh>
       ))}
+
+      <mesh position={[0, 0.004, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[worldDepth * 0.12, worldDepth * 0.13, 48]} />
+        <meshBasicMaterial
+          color="#ffd765"
+          transparent
+          opacity={0.2}
+          toneMapped={false}
+          side={DoubleSide}
+        />
+      </mesh>
+
+      <mesh position={[-worldWidth / 2, 0.02, 0]}>
+        <boxGeometry args={[EDGE_THICKNESS, EDGE_THICKNESS, worldDepth]} />
+        <meshBasicMaterial color="#ffd765" transparent opacity={0.4} toneMapped={false} />
+      </mesh>
+      <mesh position={[worldWidth / 2, 0.02, 0]}>
+        <boxGeometry args={[EDGE_THICKNESS, EDGE_THICKNESS, worldDepth]} />
+        <meshBasicMaterial color="#ffd765" transparent opacity={0.4} toneMapped={false} />
+      </mesh>
+
+      <mesh position={[0, 0.02, worldDepth / 2]}>
+        <boxGeometry args={[worldWidth, EDGE_THICKNESS, EDGE_THICKNESS]} />
+        <meshBasicMaterial color="#ffd765" transparent opacity={0.35} toneMapped={false} />
+      </mesh>
+      <mesh position={[0, 0.02, -worldDepth / 2]}>
+        <boxGeometry args={[worldWidth, EDGE_THICKNESS, EDGE_THICKNESS]} />
+        <meshBasicMaterial color="#ffd765" transparent opacity={0.35} toneMapped={false} />
+      </mesh>
+
+      <TelegraphMarkers runtime={runtime} />
+      <StageGoalMarker runtime={runtime} />
 
       <PlayerBattleSprite runtime={runtime} />
       {state.enemies.map((enemy) => (
         <EnemyBattleSprite key={enemy.id} runtime={runtime} enemy={enemy} />
       ))}
-      {effectEvents
-        .filter((event) => event.kind === 'skill-lightning')
-        .map((event) => (
-          <SkillLightningEffect key={event.id} runtime={runtime} event={event} />
-        ))}
     </group>
   )
 }

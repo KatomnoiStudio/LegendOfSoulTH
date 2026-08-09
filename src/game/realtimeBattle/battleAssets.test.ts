@@ -19,7 +19,12 @@ import { REALTIME_STAGES } from './stageConfig'
  * ────────────────────────────────────────────────────────────
  */
 
-const ALL_KINDS: CharacterModelKind[] = ['spear-warrior']
+const ALL_KINDS: CharacterModelKind[] = [
+  'monkey-king',
+  'pig-warrior',
+  'pilgrim-monk',
+  'spear-warrior',
+]
 
 /** รายชื่อไฟล์ภาพที่มีอยู่จริงใต้ public/ — glob ถูกคลี่ตอน build ไม่ได้อ่านดิสก์ตอนรัน */
 const EXISTING_FILES = new Set(
@@ -45,7 +50,7 @@ describe('ภาพของห้องต่อสู้มีอยู่จ�
   })
 
   it('มีเฟรมให้ตรวจจริง ไม่ใช่รายการว่าง', () => {
-    expect(spriteUrls.length).toBeGreaterThan(50)
+    expect(spriteUrls.length).toBeGreaterThan(100)
   })
 
   it('ทุกเฟรมใน battleSpriteSequences ชี้ไปยังไฟล์ที่มีอยู่', () => {

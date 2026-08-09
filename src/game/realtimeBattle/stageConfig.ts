@@ -1,6 +1,12 @@
 import { TEMPLE_LOBBY_BG, BATTLE_ART_BG } from '../backgroundAssets'
+import type { AttackDefinition } from './attacks'
+import {
+  SPIRIT_GUARDIAN_BOSS_PHASE_1_ATTACKS,
+  SPIRIT_GUARDIAN_BOSS_PHASE_2_ATTACKS,
+} from './attacks'
 import type { CharacterModelKind } from '../characters'
-import type { Vec2 } from './types'
+import { resolvePlayerSpawn } from './spawnFormation'
+import type { EnemyTier, Vec2 } from './types'
 
 /**
  * ข้อมูลด่านของห้องต่อสู้ real-time — แหล่งความจริงจุดเดียว
@@ -51,11 +57,163 @@ export interface RealtimeEnemyTemplate {
   /** ระยะที่เข้าโจมตีได้ */
   attackRange: number
   attackCooldownMs: number
+  /**
+   * ระดับความแรง (§3.8.4) — 'elite' โดน ELITE_STAT_MULTIPLIER คูณสเตตัสตอนสร้าง entity จริง
+   * (createWaveEnemies) ค่าด้านบนในนี้ยังเป็นสเตตัส "ฐาน" ก่อนคูณเสมอ ไม่ใช่ค่าที่คูณแล้ว
+   */
+  tier: EnemyTier
+  /** Attack row id in ENEMY_ATTACKS */
+  attackId: string
+  /** AI role config — same core, different data */
+  aiRole: 'melee' | 'ranged' | 'tank' | 'controller' | 'support' | 'elite'
+  combatTier: 'mob' | 'elite' | 'boss'
+}
+
+/**
+ * ตัวคูณสเตตัสของ Elite tier เหนือสเตตัสฐานใน template (§3.8.4, world-class bar — Genshin
+ * Mitachurl/Samachurl: AI/move-data เดิม + ตัวคูณสเตตัส ไม่ใช่ kit ใหม่)
+ *
+ * data-driven จุดเดียว — ห้าม hard-code ตัวเลขนี้ซ้ำใน EnemyAISystem/DamageSystem (Done-criterion #5)
+ */
+export const ELITE_STAT_MULTIPLIER = {
+  maxHp: 2.4,
+  atk: 1.5,
+  def: 1.3,
+} as const
+
+/**
+ * ท่าโจมตีของบอส — เหมือน AttackDefinition ปกติทุกอย่าง บวก telegraphMs (#11 Boss System)
+ *
+ * §3.6.7: "Boss/enemy attacks additionally define: telegraphMs, attackShape, phase eligibility"
+ * — attackShape คือ hitShape ที่มีอยู่แล้วใน AttackDefinition (ไม่ต้องมีฟิลด์ซ้ำ), phase
+ * eligibility คือ "ท่านี้อยู่ใน phases[].attacks ไหน" (ตำแหน่งในตารางคือ eligibility อยู่แล้ว
+ * ไม่ต้องมีฟิลด์แยก) เหลือแค่ telegraphMs ที่ต้องเพิ่มจริง ๆ
+ */
+export interface BossAttackRow extends AttackDefinition {
+  /** เวลาที่อยู่ในสถานะ Telegraph ก่อนเข้า AttackActive — baseline 800–1200ms (§3.6.12) */
+  telegraphMs: number
+}
+
+export interface BossPhaseTemplate {
+  /** พูลท่าของเฟสนี้ — เลือกวนตามลำดับ (round-robin) ใน EnemyAISystem */
+  attacks: BossAttackRow[]
+}
+
+/**
+ * แม่แบบบอส — สเตตัสฐานชุดเดียวกับ RealtimeEnemyTemplate (ตั้งใจไม่ extend ตรง ๆ เพราะบอส
+ * ไม่มี `tier: EnemyTier` แบบ enemy ปกติ — 'boss' คือ entityType ของตัวเองอยู่แล้ว ไม่ใช่ elite)
+ * บวกค่าเฉพาะของ phase-transition (§3.6.9) — baseline 2 เฟส เปลี่ยนที่ 50% HP (§3.6.12)
+ */
+export interface BossTemplate {
+  id: string
+  name: string
+  spriteKind: CharacterModelKind
+  accent: string
+  maxHp: number
+  atk: number
+  def: number
+  speed: number
+  collisionRadius: number
+  hurtboxRadius: number
+  detectRange: number
+  attackRange: number
+  attackCooldownMs: number
+  /** สัดส่วน HP (0–1) ที่ข้ามแล้วเปลี่ยนเฟส — baseline 0.5 */
+  phaseHpThreshold: number
+  /** ระยะเวลาที่บอสอยู่ยงคงกระพันระหว่างเปลี่ยนเฟส (state: 'phase-transition', §3.6.9) */
+  phaseTransitionMs: number
+  /** เฟส 1 และเฟส 2 — baseline 2 เฟสตาม §3.6.12 ยังไม่รองรับ N เฟส (สเปกยังไม่ต้องการ) */
+  phases: [BossPhaseTemplate, BossPhaseTemplate]
+}
+
+/**
+ * เนื้อหาบอสจริง — วางลงด่านผ่าน templateId ใน waves (§11 Boss System)
+ */
+export const BOSS_TEMPLATES: Record<string, BossTemplate> = {
+  'spirit-guardian-boss': {
+    id: 'spirit-guardian-boss',
+    name: 'ผู้พิทักษ์วิญญาณ',
+    spriteKind: 'pilgrim-monk',
+    accent: '#4dffb0',
+    maxHp: 1400,
+    atk: 78,
+    def: 28,
+    speed: 128,
+    collisionRadius: 46,
+    hurtboxRadius: 54,
+    detectRange: 1800,
+    attackRange: 92,
+    attackCooldownMs: 1800,
+    phaseHpThreshold: 0.5,
+    phaseTransitionMs: 2000,
+    phases: [
+      { attacks: SPIRIT_GUARDIAN_BOSS_PHASE_1_ATTACKS as BossAttackRow[] },
+      { attacks: SPIRIT_GUARDIAN_BOSS_PHASE_2_ATTACKS as BossAttackRow[] },
+    ],
+  },
+}
+
+export function getBossTemplate(id: string): BossTemplate | null {
+  return BOSS_TEMPLATES[id] ?? null
 }
 
 export interface BattleWaveDefinition {
   id: string
   enemies: Array<{ templateId: string; spawnIndex: number }>
+}
+
+/**
+ * ประเภทด่าน (§5.2 ล็อกไว้ — "ไม่ใช่ Wave → Wave → Elite ทุกด่าน")
+ *
+ * แต่ละประเภทมีเงื่อนไขแพ้ชนะของตัวเอง — ดู StageVariationSystem.ts เป็นจุดเดียวที่มี
+ * branch ต่อ stageType ทั้งระบบ (§9: ห้าม hard-code ข้อมูลด่านไว้ใน Component ขยายมาถึง
+ * "ห้าม branch ต่อประเภทด่านไว้ใน Component" ด้วยเหตุผลเดียวกัน)
+ */
+export type StageType =
+  'wave' | 'survival' | 'defend' | 'chase' | 'hazard' | 'mini-boss' | 'time-attack' | 'custom'
+
+export interface SurvivalStageParams {
+  /** ต้องรอดให้ครบเวลานี้ (ms) ถึงจะชนะ — ไม่ต้องฆ่าศัตรูให้หมด */
+  durationMs: number
+}
+
+export interface DefendStageParams {
+  /** เลือดของเป้าหมายที่ต้องป้องกัน — หมด = แพ้ทันที (ดู RealtimeBattleState.objectiveHp) */
+  objectiveHp: number
+  /** ตำแหน่งเป้าหมาย — ข้อมูลสำหรับชั้นวาด/ด่านในอนาคต ไม่ถูกใช้คำนวณแพ้ชนะเอง (เหมือน enemySpawns) */
+  position: Vec2
+}
+
+export interface TimeAttackStageParams {
+  /** ต้องเคลียร์ทุกคลื่นก่อนเวลานี้หมด ไม่งั้นแพ้ */
+  timeBudgetMs: number
+}
+
+export interface MiniBossStageParams {
+  /** ศัตรู Elite-tier ตัวเดียวที่เป็นเป้าหมายของด่าน (§3.8.4 — ไม่มี phase-transition) */
+  templateId: string
+}
+
+export interface ChaseStageParams {
+  /** ตำแหน่งที่ต้องไปให้ถึง */
+  targetPosition: Vec2
+  /** ระยะที่ถือว่า "ถึง" แล้ว */
+  arrivalRadius: number
+  /** ต้องถึงก่อนเวลานี้หมด ไม่งั้นแพ้ */
+  timeBudgetMs: number
+}
+
+export interface HazardStageParams {
+  /** เลือดของกลไกอันตรายที่ไหลลงเรื่อย ๆ (เช่น โครงสร้างทรุด/ไฟไหม้ลาม) — หมด = แพ้ */
+  hazardHp: number
+  /** อัตราไหลของ hazardHp ต่อวินาที */
+  decayPerSecond: number
+}
+
+/** Design pacing target — §5.1 normal 2–5 min, boss 5–8 min (metadata only, not enforced). */
+export interface StageTargetDurationMs {
+  min: number
+  max: number
 }
 
 export interface RealtimeBattleStage {
@@ -73,6 +231,37 @@ export interface RealtimeBattleStage {
 
   backgroundAsset?: string
   musicAsset?: string
+
+  /** กลุ่มแชปเตอร์ที่ด่านนี้อยู่ — ใช้จัดลำดับ Chapter→Stage→Boss (§5.1 ล็อกไว้) */
+  chapterId: string
+  /** ลำดับด่านในแชปเตอร์ (เริ่มที่ 1) — ตัวปลดล็อกด่านถัดไปอ้างลำดับนี้ ไม่ใช่ตำแหน่งใน object */
+  order: number
+  /** ด่านบอสปิดท้ายแชปเตอร์ — ใช้แค่ติดป้ายในหน้าเลือกด่าน ไม่มีผลต่อ gating */
+  isBoss?: boolean
+  /**
+   * false = สนามทดสอบภายใน (เช่น P5 dungeon slice) — ซ่อนจากหน้าเลือกด่านผจญภัย
+   * default true เมื่อไม่ระบุ
+   */
+  showInAdventureSelect?: boolean
+  /**
+   * ตัวคูณความยากของด่าน — data-driven per stage (P11 locked table)
+   * คูณ maxHp/atk/def ตอนสร้างศัตรูใน createWaveEnemies
+   */
+  difficultyMultiplier?: number
+  /** ค่า energy ที่ใช้ต่อครั้ง — default จาก ENERGY_CONFIG.costPerStage */
+  energyCost?: number
+  /** เป้าหมายระยะเวลาเล่นต่อด่าน (ms) — สำหรับ balance/doc เท่านั้น */
+  targetDurationMs?: StageTargetDurationMs
+
+  /** ประเภทด่าน (§17 Stage Variation System) — กำหนดเงื่อนไขแพ้ชนะที่ StageVariationSystem.ts ใช้ */
+  stageType: StageType
+  /** พารามิเตอร์เฉพาะ stageType — มีเฉพาะเมื่อ stageType ตรงกับชนิดนั้น */
+  survival?: SurvivalStageParams
+  defend?: DefendStageParams
+  timeAttack?: TimeAttackStageParams
+  miniBoss?: MiniBossStageParams
+  chase?: ChaseStageParams
+  hazard?: HazardStageParams
 }
 
 export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
@@ -90,6 +279,10 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     detectRange: 1600,
     attackRange: 74,
     attackCooldownMs: 1500,
+    tier: 'normal',
+    attackId: 'enemy-melee',
+    aiRole: 'melee',
+    combatTier: 'mob',
   },
   'demon-captain': {
     id: 'demon-captain',
@@ -105,6 +298,10 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     detectRange: 1700,
     attackRange: 86,
     attackCooldownMs: 1700,
+    tier: 'normal',
+    attackId: 'enemy-elite-slam',
+    aiRole: 'elite',
+    combatTier: 'elite',
   },
   'spirit-guardian': {
     id: 'spirit-guardian',
@@ -120,31 +317,90 @@ export const ENEMY_TEMPLATES: Record<string, RealtimeEnemyTemplate> = {
     detectRange: 1600,
     attackRange: 78,
     attackCooldownMs: 1300,
+    tier: 'normal',
+    attackId: 'enemy-melee',
+    aiRole: 'controller',
+    combatTier: 'mob',
+  },
+  /**
+   * ขุนศึกปีศาจ — ตัวอย่าง Elite/mini-boss (§3.8.4/§5.2): สเตตัสฐานเท่า demon-captain
+   * แล้วโดน ELITE_STAT_MULTIPLIER คูณตอนสร้าง entity จริง (createRealtimeBattle.ts)
+   * ยืม AI/ท่าโจมตีชุดเดียวกับศัตรูทั่วไป ไม่มี kit พิเศษ ตาม world-class bar ของสเปกนี้
+   */
+  'demon-warlord': {
+    id: 'demon-warlord',
+    name: 'ขุนศึกปีศาจ',
+    spriteKind: 'pig-warrior',
+    accent: '#ff2e2e',
+    maxHp: 340,
+    atk: 72,
+    def: 24,
+    speed: 118,
+    collisionRadius: 40,
+    hurtboxRadius: 48,
+    detectRange: 1700,
+    attackRange: 86,
+    attackCooldownMs: 1700,
+    tier: 'elite',
+    attackId: 'enemy-elite-slam',
+    aiRole: 'elite',
+    combatTier: 'elite',
   },
 }
 
 /**
  * ห้องแรก: ลานฝึกหน้าวิหาร (Temple Training Arena)
  *
- * ผู้เล่นเกิดล่างกลาง ศัตรูเกิดแถวบน ไม่มีสิ่งกีดขวางในเวอร์ชันแรก (§9)
- * ขนาดห้องกว้างกว่าจอออกแบบ (1600x900) เล็กน้อยเพื่อให้กล้องมีที่ให้ตาม
+ * Spawn composition มาจาก `spawnFormation.ts` + `battlePresentation.ts`
+ * (player ซ้าย / enemy ขวา / formation กลางสนาม) — `playerSpawn`/`enemySpawns`
+ * ใน stage object เป็น snapshot สำหรับเทสต์/เอกสารเท่านั้น
  */
-const TEMPLE_TRAINING_ARENA_SPAWNS: Vec2[] = [
-  { x: 420, y: 260 },
-  { x: 900, y: 220 },
-  { x: 1380, y: 260 },
-  { x: 660, y: 400 },
-  { x: 1140, y: 400 },
-]
+const ARENA_SIZE = { width: 1800, height: 1100 }
+const PRESENTATION_PLAYER_SPAWN = resolvePlayerSpawn(ARENA_SIZE)
+const ARENA_CENTER: Vec2 = { x: ARENA_SIZE.width / 2, y: ARENA_SIZE.height / 2 }
+const ARENA_FAR_RIGHT: Vec2 = { x: ARENA_SIZE.width * 0.82, y: ARENA_CENTER.y }
+
+/** ข้อมูลเนื้อเรื่องแชปเตอร์ — หน้าเลือกด่านอ่านจากที่นี่ ไม่ hand-author ใน component */
+export const ADVENTURE_CHAPTERS = {
+  'chapter-1': {
+    chapterNumber: 1,
+    title: 'รามเกียรติ — บทที่ ๑',
+    subtitle: 'เส้นทางสู่วิหารแห่งจันทร์',
+  },
+} as const
+
+export type AdventureChapterId = keyof typeof ADVENTURE_CHAPTERS
+
+export function getAdventureChapter(chapterId: string) {
+  return ADVENTURE_CHAPTERS[chapterId as AdventureChapterId] ?? null
+}
+
+/** ป้ายด่านแบบ 1-1, 1-2, … จาก chapterNumber + order */
+export function formatStageLabel(stage: RealtimeBattleStage): string {
+  const meta = getAdventureChapter(stage.chapterId)
+  const chapterNum = meta?.chapterNumber ?? 1
+  return `${chapterNum}-${stage.order}`
+}
+
+export const STAGE_TYPE_LABELS: Record<StageType, string> = {
+  wave: 'ต่อสู้',
+  survival: 'เอาชีวิตรอด',
+  defend: 'ปกป้อง',
+  chase: 'ไล่ล่า',
+  hazard: 'อันตราย',
+  'mini-boss': 'มินิบอส',
+  'time-attack': 'จับเวลา',
+  custom: 'พิเศษ',
+}
 
 export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
   'trial-01': {
     id: 'trial-01',
     name: 'ลานฝึกหน้าวิหาร',
-    width: 1800,
-    height: 1100,
-    playerSpawn: { x: 900, y: 880 },
-    enemySpawns: TEMPLE_TRAINING_ARENA_SPAWNS,
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
     waves: [
       {
         id: 'wave-1',
@@ -156,14 +412,19 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
       },
     ],
     backgroundAsset: TEMPLE_LOBBY_BG,
+    chapterId: 'chapter-1',
+    order: 1,
+    stageType: 'wave',
+    difficultyMultiplier: 1,
+    targetDurationMs: { min: 120_000, max: 180_000 },
   },
   'trial-02': {
     id: 'trial-02',
     name: 'ประตูปีศาจ',
-    width: 1800,
-    height: 1100,
-    playerSpawn: { x: 900, y: 880 },
-    enemySpawns: TEMPLE_TRAINING_ARENA_SPAWNS,
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
     waves: [
       {
         id: 'wave-1',
@@ -182,6 +443,378 @@ export const REALTIME_STAGES: Record<string, RealtimeBattleStage> = {
       },
     ],
     backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'chapter-1',
+    order: 2,
+    stageType: 'wave',
+    difficultyMultiplier: 1.05,
+    targetDurationMs: { min: 150_000, max: 240_000 },
+  },
+  /**
+   * P5 dungeon vertical slice arenas (PR #30) — เก็บแค่รูปร่างสนาม/waves ให้ createRealtimeBattle
+   * อ่าน. เงื่อนไขแพ้ชนะจริงของดันเจี้ยนอยู่ที่ dungeonConfig.ts/dungeonOrchestrator.ts (schema
+   * ของตัวเอง แยกจาก StageVariationSystem.ts) — RealtimeBattleRuntime นี้แค่ autoWaveAdvance:false
+   * แล้วปล่อยให้ dungeon orchestrator ตัดสินแพ้ชนะแทน stageType/params ด้านล่างจึงไม่ถูกอ่านจริง
+   * ใส่ค่า default ที่ compile ผ่านเฉยๆ (chapterId แยกจาก chapter-1 ปกติ กันชนกับระบบ Adventure)
+   */
+  'p5-survival-arena': {
+    id: 'p5-survival-arena',
+    name: 'ดันเจี้ยนทดสอบ — เอาชีวิตรอด',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'w1',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 1 },
+        ],
+      },
+      {
+        id: 'w2',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 1 },
+          { templateId: 'spirit-guardian', spawnIndex: 2 },
+        ],
+      },
+    ],
+    backgroundAsset: TEMPLE_LOBBY_BG,
+    chapterId: 'dungeon-p5-test',
+    order: 1,
+    stageType: 'wave',
+    showInAdventureSelect: false,
+  },
+  'p5-hazard-arena': {
+    id: 'p5-hazard-arena',
+    name: 'ดันเจี้ยนทดสอบ — อันตราย',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'w1',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 2 },
+        ],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'dungeon-p5-test',
+    order: 2,
+    stageType: 'wave',
+    showInAdventureSelect: false,
+  },
+  'p5-elite-arena': {
+    id: 'p5-elite-arena',
+    name: 'ดันเจี้ยนทดสอบ — มินิบอส',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'w1',
+        enemies: [{ templateId: 'demon-captain', spawnIndex: 1 }],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'dungeon-p5-test',
+    order: 3,
+    stageType: 'wave',
+    showInAdventureSelect: false,
+  },
+  'p5-boss-arena': {
+    id: 'p5-boss-arena',
+    name: 'ดันเจี้ยนทดสอบ — บอส',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'w1',
+        enemies: [{ templateId: 'spirit-guardian-boss', spawnIndex: 1 }],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'dungeon-p5-test',
+    order: 4,
+    isBoss: true,
+    stageType: 'wave',
+    showInAdventureSelect: false,
+  },
+  /**
+   * ด่าน Survival (§5.2/§17) — ไม่ต้องฆ่าศัตรูให้หมด แค่รอดให้ครบเวลา
+   * ศัตรูคลื่นเดียวคอยกดดัน แต่ผลแพ้ชนะดูจากนาฬิกา ไม่ใช่จำนวนศัตรูที่เหลือ
+   */
+  'trial-03': {
+    id: 'trial-03',
+    name: 'ทุ่งรอคอย',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'wave-1',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 1 },
+          { templateId: 'spirit-guardian', spawnIndex: 2 },
+        ],
+      },
+      {
+        id: 'wave-2',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'demon-captain', spawnIndex: 1 },
+        ],
+      },
+    ],
+    backgroundAsset: TEMPLE_LOBBY_BG,
+    chapterId: 'chapter-1',
+    order: 3,
+    stageType: 'survival',
+    survival: { durationMs: 90_000 },
+    difficultyMultiplier: 1.03,
+    targetDurationMs: { min: 120_000, max: 180_000 },
+  },
+  /**
+   * ด่าน Defend (§5.2/§17) — เคลียร์ทุกคลื่นเหมือน wave แต่แพ้ทันทีถ้า objectiveHp หมดก่อน
+   * (ดู StageVariationSystem.ts's resolveDefendOutcome + RealtimeBattleState.objectiveHp)
+   */
+  'trial-04': {
+    id: 'trial-04',
+    name: 'ปกป้องศาลเจ้า',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'wave-1',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 1 },
+          { templateId: 'spirit-guardian', spawnIndex: 2 },
+        ],
+      },
+      {
+        id: 'wave-2',
+        enemies: [
+          { templateId: 'demon-captain', spawnIndex: 1 },
+          { templateId: 'shadow-soldier', spawnIndex: 3 },
+        ],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'chapter-1',
+    order: 4,
+    stageType: 'defend',
+    defend: { objectiveHp: 300, position: { x: ARENA_SIZE.width / 2, y: ARENA_SIZE.height / 2 } },
+    difficultyMultiplier: 1.1,
+    targetDurationMs: { min: 150_000, max: 240_000 },
+  },
+  /**
+   * ด่าน 1-5 — เงามืดในโถง (wave กลางทาง)
+   */
+  'trial-05': {
+    id: 'trial-05',
+    name: 'เงามืดในโถง',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'wave-1',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'spirit-guardian', spawnIndex: 2 },
+        ],
+      },
+      {
+        id: 'wave-2',
+        enemies: [
+          { templateId: 'spirit-guardian', spawnIndex: 1 },
+          { templateId: 'shadow-soldier', spawnIndex: 3 },
+        ],
+      },
+      {
+        id: 'wave-3',
+        enemies: [
+          { templateId: 'demon-captain', spawnIndex: 1 },
+          { templateId: 'spirit-guardian', spawnIndex: 2 },
+          { templateId: 'shadow-soldier', spawnIndex: 4 },
+        ],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'chapter-1',
+    order: 5,
+    stageType: 'wave',
+    difficultyMultiplier: 1.08,
+    targetDurationMs: { min: 180_000, max: 300_000 },
+  },
+  /**
+   * ด่าน 1-6 — ไฟไหม้ลาม (hazard)
+   */
+  'trial-06': {
+    id: 'trial-06',
+    name: 'ไฟไหม้ลาม',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'wave-1',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 2 },
+        ],
+      },
+      {
+        id: 'wave-2',
+        enemies: [
+          { templateId: 'spirit-guardian', spawnIndex: 1 },
+          { templateId: 'demon-captain', spawnIndex: 3 },
+        ],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'chapter-1',
+    order: 6,
+    stageType: 'hazard',
+    hazard: { hazardHp: 200, decayPerSecond: 5 },
+    difficultyMultiplier: 1.12,
+    targetDurationMs: { min: 150_000, max: 270_000 },
+  },
+  /**
+   * ด่าน 1-7 — ไล่ล่าอสูร (chase)
+   */
+  'trial-07': {
+    id: 'trial-07',
+    name: 'ไล่ล่าอสูร',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'wave-1',
+        enemies: [{ templateId: 'shadow-soldier', spawnIndex: 1 }],
+      },
+    ],
+    backgroundAsset: TEMPLE_LOBBY_BG,
+    chapterId: 'chapter-1',
+    order: 7,
+    stageType: 'chase',
+    chase: {
+      targetPosition: ARENA_FAR_RIGHT,
+      arrivalRadius: 90,
+      timeBudgetMs: 90_000,
+    },
+    difficultyMultiplier: 1.05,
+    targetDurationMs: { min: 120_000, max: 180_000 },
+  },
+  /**
+   * ด่าน 1-8 — ขุนศึกปีศาจ (mini-boss + คลื่นรองรับ)
+   */
+  'trial-08': {
+    id: 'trial-08',
+    name: 'ขุนศึกปีศาจ',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'wave-1',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 2 },
+        ],
+      },
+      {
+        id: 'wave-2',
+        enemies: [
+          { templateId: 'demon-warlord', spawnIndex: 1 },
+          { templateId: 'spirit-guardian', spawnIndex: 3 },
+        ],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'chapter-1',
+    order: 8,
+    stageType: 'mini-boss',
+    miniBoss: { templateId: 'demon-warlord' },
+    difficultyMultiplier: 1.15,
+    targetDurationMs: { min: 180_000, max: 300_000 },
+  },
+  /**
+   * ด่าน 1-9 — บันทึกเวลา (time-attack)
+   */
+  'trial-09': {
+    id: 'trial-09',
+    name: 'บันทึกเวลา',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'wave-1',
+        enemies: [
+          { templateId: 'shadow-soldier', spawnIndex: 0 },
+          { templateId: 'shadow-soldier', spawnIndex: 1 },
+          { templateId: 'spirit-guardian', spawnIndex: 2 },
+        ],
+      },
+      {
+        id: 'wave-2',
+        enemies: [
+          { templateId: 'demon-captain', spawnIndex: 1 },
+          { templateId: 'spirit-guardian', spawnIndex: 3 },
+        ],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'chapter-1',
+    order: 9,
+    stageType: 'time-attack',
+    timeAttack: { timeBudgetMs: 75_000 },
+    difficultyMultiplier: 1.1,
+    targetDurationMs: { min: 150_000, max: 240_000 },
+  },
+  /**
+   * ด่าน 1-10 — บอสปิดท้ายบทที่ ๑ (§5.1 Chapter→Stage→Boss)
+   */
+  'trial-10': {
+    id: 'trial-10',
+    name: 'ผู้พิทักษ์วิญญาณ',
+    width: ARENA_SIZE.width,
+    height: ARENA_SIZE.height,
+    playerSpawn: PRESENTATION_PLAYER_SPAWN,
+    enemySpawns: [],
+    waves: [
+      {
+        id: 'wave-1',
+        enemies: [{ templateId: 'spirit-guardian-boss', spawnIndex: 1 }],
+      },
+    ],
+    backgroundAsset: BATTLE_ART_BG,
+    chapterId: 'chapter-1',
+    order: 10,
+    isBoss: true,
+    stageType: 'wave',
+    difficultyMultiplier: 1.2,
+    energyCost: 10,
+    targetDurationMs: { min: 300_000, max: 480_000 },
   },
 }
 
@@ -191,4 +824,59 @@ export function getRealtimeStage(id: string): RealtimeBattleStage | null {
 
 export function getEnemyTemplate(id: string): RealtimeEnemyTemplate | null {
   return ENEMY_TEMPLATES[id] ?? null
+}
+
+/** ด่านทั้งหมด (หรือของแชปเตอร์เดียว) เรียงตาม `order` — ใช้ทั้ง gating และหน้าเลือกด่าน */
+export function getOrderedStages(chapterId?: string): RealtimeBattleStage[] {
+  return Object.values(REALTIME_STAGES)
+    .filter((stage) => !chapterId || stage.chapterId === chapterId)
+    .toSorted((a, b) => a.order - b.order)
+}
+
+/** แชปเตอร์ที่แสดงในหน้าเลือกด่านผจญภัย — กรองสนามทดสอบภายใน (P5 dungeon slice) ออก */
+export function getAdventureChapters(): Array<{
+  chapterId: string
+  title: string
+  subtitle?: string
+  chapterNumber: number
+  stages: RealtimeBattleStage[]
+}> {
+  const chapterIds = [
+    ...new Set(
+      Object.values(REALTIME_STAGES)
+        .filter((stage) => stage.showInAdventureSelect !== false)
+        .map((stage) => stage.chapterId),
+    ),
+  ]
+  return chapterIds
+    .map((chapterId) => {
+      const meta = getAdventureChapter(chapterId)
+      return {
+        chapterId,
+        title: meta?.title ?? chapterId,
+        subtitle: meta?.subtitle,
+        chapterNumber: meta?.chapterNumber ?? 1,
+        stages: getOrderedStages(chapterId).filter(
+          (stage) => stage.showInAdventureSelect !== false,
+        ),
+      }
+    })
+    .toSorted((a, b) => a.chapterNumber - b.chapterNumber)
+}
+
+/**
+ * ด่านแรกของแชปเตอร์ปลดล็อกเสมอ ด่านถัดไปต้องเคลียร์ด่านก่อนหน้าก่อน (clear-gate only)
+ *
+ * ระบบ stamina/energy — โครงสร้าง + ตัวเลขล็อกแล้ว (§5.1, P11) ดู adventure/energySystem.ts
+ */
+export function isStageUnlocked(stageId: string, flags: Record<string, boolean>): boolean {
+  const stage = REALTIME_STAGES[stageId]
+  if (!stage) return false
+
+  const ordered = getOrderedStages(stage.chapterId)
+  const index = ordered.findIndex((s) => s.id === stageId)
+  if (index <= 0) return true
+
+  const previous = ordered[index - 1]
+  return flags[`trial_cleared_${previous.id}`] === true
 }

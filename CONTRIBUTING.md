@@ -37,7 +37,13 @@ npm run ci        # typecheck + lint + test + build — รันให้ผ่
    ทั้งชุด (ปลอดภัยสำหรับ push ปกติที่ไม่ตั้งใจ release), ถ้าเปลี่ยนจะ build → test → deploy
    ขึ้น GitHub Pages → ตัด GitHub Release ให้อัตโนมัติ (แนบ SBOM, ดึง release note จากหัวข้อ
    CHANGELOG ที่ตรงกัน)
-4. ยืนยันที่ [Releases](https://github.com/LegendofSoulTH/LegendOfSoulTH/releases) ว่าขึ้นจริง
+4. ยืนยันที่ [Releases](https://github.com/KatomnoiStudio/LegendOfSoulTH/releases) ว่าขึ้นจริง
+
+## Branch hygiene
+
+- Cloud-agent branches ใช้รูปแบบ `cursor/<topic>-b471` — หลัง PR merge แล้ว remote มักถูกลบอัตโนมัติ; ลบ local ด้วย `git fetch --prune` แล้ว `git branch -d cursor/<topic>-b471`
+- อย่าลบ `feat/*` / `fix/*` บน origin เองถ้ายังไม่ merge — หลายกิ่งมีงาน WIP จริง (ดูรายการใน `MEMORY.md` item 171)
+- งานที่ต้องการขึ้น live ต้อง bump `GAME_INFO.version` ใน PR เดียวกัน (ดูหัวข้อ Release process ด้านบน)
 
 รัน workflow มือได้ผ่าน "Run workflow" บนแท็บ Actions เสมอ (ไม่สนว่าเวอร์ชันเปลี่ยนไหม)
 ใช้ตอนต้องการ deploy ซ้ำโดยไม่ผูกกับ commit ใหม่

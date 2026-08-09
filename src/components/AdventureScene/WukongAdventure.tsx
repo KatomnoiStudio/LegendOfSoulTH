@@ -8,16 +8,16 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
-import { projectToWalkableArea, type Point } from '../../game/adventure/movement'
+import {
+  directionFromVector,
+  projectToWalkableArea,
+  type Direction,
+  type Point,
+} from '../../game/adventure/movement'
 import { ROSTER, type Character } from '../../game/characters'
 import { SCENE_WIDTH, SCENE_HEIGHT } from '../../game/sceneDimensions'
 import { getWalkKit } from '../../game/walkKits'
-import {
-  selectNormalAttackPreviewAnimation,
-  type BattleAnimationId,
-} from '../../game/battleSpriteSequences'
 import { TEMPLE_LOBBY_BG } from '../../game/backgroundAssets'
-import { publicUrl } from '../../lib/publicUrl'
 import styles from './WukongAdventure.module.css'
 
 // url('/ui/...') ตรง ๆ ใน CSS ชี้ผิดที่ตอน deploy ขึ้น subpath (ดู src/lib/publicUrl.ts) —
@@ -26,30 +26,9 @@ const BG_TEMPLE_STYLE: CSSProperties = {
   ['--bg-temple' as string]: `url(${TEMPLE_LOBBY_BG})`,
 }
 
+const FRAME_COUNT = 8
 const WALK_SPEED = 215
 const RUN_SPEED = 345
-type ErlangNormalAttackId = Extract<BattleAnimationId, 'attack-1' | 'attack-2' | 'attack-3'>
-
-const ERLANG_NORMAL_ATTACKS: Record<
-  ErlangNormalAttackId,
-  { prefix: string; frameCount: number; frameDuration: number }
-> = {
-  'attack-1': {
-    prefix: publicUrl('characters/erlang-shen-attack-v1'),
-    frameCount: 18,
-    frameDuration: 60,
-  },
-  'attack-2': {
-    prefix: publicUrl('characters/erlang-shen-normal-attack-v2'),
-    frameCount: 8,
-    frameDuration: 90,
-  },
-  'attack-3': {
-    prefix: publicUrl('characters/erlang-shen-normal-attack-v3-final'),
-    frameCount: 8,
-    frameDuration: 90,
-  },
-}
 
 /**
  * เพดาน commit ของ React state (ไม่ใช่เพดาน physics) — 60fps เป็นค่ามาตรฐานสากลที่ยึดได้จริง
@@ -66,57 +45,50 @@ const COMMIT_INTERVAL_MS = 1000 / TARGET_COMMIT_HZ
 const DEPTH_TOP = 530
 const DEPTH_BOTTOM = 790
 
-/**
- * สไปรต์หงอคงเป็น side-view เดียว (หันขวา, ซ้ายพลิกกระจก) ไม่มีมุมหน้า/หลัง/เฉียงจริง —
- * ทิศที่มีผลต่อภาพจึงเหลือแค่ซ้าย-ขวา ต่างจากทิศเดิน 8 ทิศเต็มที่ระบบฟิสิกส์ยังรองรับอยู่
- * (WALKABLE_AREA/velocity ยังเดินได้ทุกมุมเหมือนเดิม อันนี้กระทบแค่ "เลือกภาพไหนมาแสดง")
- */
-type Facing = 'left' | 'right'
-const FACINGS: Facing[] = ['left', 'right']
-const FACING_LABEL: Record<Facing, string> = { left: 'ซ้าย', right: 'ขวา' }
-const PRELOADED_IMAGES = new Map<string, HTMLImageElement>()
+const DIRECTIONS: Direction[] = [
+  'down',
+  'down-right',
+  'right',
+  'up-right',
+  'up',
+  'up-left',
+  'left',
+  'down-left',
+]
 
-async function preload(urls: string[]): Promise<boolean> {
-  const results = await Promise.all(
-    urls.map(
-      (url) =>
-        new Promise<boolean>((resolve) => {
-          const cached = PRELOADED_IMAGES.get(url)
-          if (cached?.complete && cached.naturalWidth > 0) {
-            resolve(true)
-            return
-          }
-          const image = new Image()
-          // Retain the decoded element for the lifetime of the page. Vite serves
-          // dev assets with revalidation, so dropping this reference can make the
-          // visible <img> reload a frame while the animation is already running.
-          PRELOADED_IMAGES.set(url, image)
-          image.addEventListener(
-            'load',
-            () => {
-              void (async () => {
-                try {
-                  await image.decode()
-                  resolve(true)
-                } catch {
-                  resolve(false)
-                }
-              })()
-            },
-            { once: true },
-          )
-          image.addEventListener('error', () => resolve(false), { once: true })
-          image.src = url
-        }),
-    ),
-  )
-  return results.every(Boolean)
+const TURN_INDEX: Record<Direction, number> = {
+  down: 0,
+  'down-right': 1,
+  right: 2,
+  'up-right': 3,
+  up: 4,
+  'up-left': 5,
+  left: 6,
+  'down-left': 7,
+}
+
+const DIRECTION_LABEL: Record<Direction, string> = {
+  down: 'หน้า',
+  'down-right': 'เฉียงขวาล่าง',
+  right: 'ขวา',
+  'up-right': 'เฉียงขวาบน',
+  up: 'หลัง',
+  'up-left': 'เฉียงซ้ายบน',
+  left: 'ซ้าย',
+  'down-left': 'เฉียงซ้ายล่าง',
+}
+
+function preload(urls: string[]) {
+  urls.forEach((url) => {
+    const image = new Image()
+    image.src = url
+  })
 }
 
 /**
  * โหมดของฉาก — ใช้ระบบเดินชุดเดียวกันทั้งหมด ต่างกันแค่บรรยากาศและข้อความ
- * 'trial'     ลานฝึกวายุ — ปัจจุบันไม่มีจุดเรียกใช้ใน src/ (ปุ่ม "เริ่มการผจญภัย" เปิด
- *             GameExplorationSession/useExploration แทน — ระบบกริด 4 ทิศคนละตัวกับที่นี่)
+ * 'trial'     ลานฝึกวายุ — ปัจจุบันไม่มีจุดเรียกใช้ใน src/ (โหมดสำรวจ GameExplorationSession
+ *             ถูกปิดไว้ชั่วคราวตั้งแต่ 2026-08-07 — ปุ่ม "เริ่มการผจญภัย" เปิด StageSelect แทน)
  *             เก็บโหมดนี้ไว้เป็นค่า default เผื่อ mount ตรง ๆ ในอนาคต ไม่ใช่ dead code ที่ลืมลบ
  * 'moonlight' เดินชมจันทร์ (เข้าจาก LobbyPage mount ตรง ๆ) — ฉากเดียวกันแต่ย้อมโทนคืนเดือนเพ็ญ
  */
@@ -159,8 +131,6 @@ interface WukongAdventureProps {
    * ซึ่งเป็นทางเดียวที่เปลี่ยนตัวได้ ไม่ส่งมา (หรือส่ง null) ก็ใช้ตัวแรกที่มีชุดเฟรมเดิน
    */
   activeCharacterId?: string | null
-  /** ลำดับคำขอเล่นพรีวิวโจมตีจาก HUD ของ Lobby */
-  attackPreviewRequestId?: number
 }
 
 export function WukongAdventure({
@@ -168,7 +138,6 @@ export function WukongAdventure({
   mode = 'trial',
   characters,
   activeCharacterId,
-  attackPreviewRequestId = 0,
 }: WukongAdventureProps) {
   const copy = MODE_COPY[mode]
   // Migrating local accounts can briefly have no owned characters. This is
@@ -199,14 +168,13 @@ export function WukongAdventure({
   // ใช้ชุดเฟรมของซุนหงอคงเป็นตัวยืนพื้น เพื่อให้ hook ด้านล่างมีค่าคงที่เสมอ
   const kit = getWalkKit((active ?? ROSTER[0]).model.kind)
   const walkPrefix = kit.walkPrefix ?? getWalkKit(ROSTER[0].model.kind).walkPrefix!
-  const walkFrameCount = kit.walkFrameCount
   const sceneRef = useRef<HTMLElement>(null)
   const pressedRef = useRef(new Set<string>())
   const virtualRef = useRef(new Set<string>())
   const positionRef = useRef<Point>({ x: 800, y: 650 })
   const velocityRef = useRef<Point>({ x: 0, y: 0 })
   const targetRef = useRef<Point | null>(null)
-  const directionRef = useRef<Facing>('right')
+  const directionRef = useRef<Direction>('down')
   const frameRef = useRef(0)
   const distanceRef = useRef(0)
   const lastTimeRef = useRef<number | null>(null)
@@ -214,7 +182,7 @@ export function WukongAdventure({
   const [view, setView] = useState({
     x: 800,
     y: 650,
-    direction: 'right' as Facing,
+    direction: 'down' as Direction,
     frame: 0,
     moving: false,
     running: false,
@@ -222,11 +190,6 @@ export function WukongAdventure({
   const [destination, setDestination] = useState<Point | null>(null)
   const [dustTick, setDustTick] = useState(0)
   const [sceneSize, setSceneSize] = useState({ width: SCENE_WIDTH, height: SCENE_HEIGHT })
-  const [attackFrame, setAttackFrame] = useState<number | null>(null)
-  const [attackPlaybackId, setAttackPlaybackId] = useState(0)
-  const [attackAssetsReady, setAttackAssetsReady] = useState(false)
-  const [attackAnimationId, setAttackAnimationId] = useState<ErlangNormalAttackId>('attack-1')
-  const attackAnimation = ERLANG_NORMAL_ATTACKS[attackAnimationId]
 
   // ฉากนี้ไม่ได้อยู่บนเวทีคงที่ 1600x900 อีกแล้ว (GameViewport ตัด letterbox ออก) —
   // ต้องวัดขนาดจริงของ .scene เองแล้วแม็ปพิกัดโลก (SCENE_WIDTH/HEIGHT) เป็นพิกัดจอจริง
@@ -253,45 +216,25 @@ export function WukongAdventure({
   // โหลดเฟรมของตัวที่กำลังใช้ล่วงหน้า เพื่อไม่ให้ภาพกระพริบตอนเริ่มเดิน
   const allFrames = useMemo(() => {
     const walk = kit.walkPrefix
-      ? FACINGS.flatMap((direction) =>
+      ? DIRECTIONS.flatMap((direction) =>
           Array.from(
-            { length: walkFrameCount },
-            (_, frame) =>
-              `${kit.walkPrefix}-${kit.usesMirroredSideView ? 'right' : direction}-${frame}.webp`,
+            { length: FRAME_COUNT },
+            (_, frame) => `${kit.walkPrefix}-${direction}-${frame}.webp`,
           ),
         )
       : []
-    // ไม่พรีโหลดเฟรมหันทิศ (turnPrefix) แล้ว — สไปรต์ idle ชุดใหม่หายใจได้ทุกทิศอยู่แล้ว
-    // (ดูคอมเมนต์ที่ spriteUrl ด้านล่าง) เฟรมหันทิศเลยไม่ได้ใช้แสดงผลในฉากนี้อีกต่อไป
+    const turn = Array.from(
+      { length: FRAME_COUNT },
+      (_, frame) => `${kit.turnPrefix}-${frame}.webp`,
+    )
     const idle = Array.from(
       { length: kit.idleCount },
       (_, frame) => `${kit.idlePrefix}-${frame}.webp`,
     )
-    return [...walk, ...idle]
-  }, [kit, walkFrameCount])
+    return [...walk, ...turn, ...idle]
+  }, [kit])
 
-  useEffect(() => {
-    void preload(allFrames)
-  }, [allFrames])
-
-  const attackFrames = useMemo(() => {
-    if (active?.model.kind !== 'spear-warrior') return []
-    return Object.values(ERLANG_NORMAL_ATTACKS).flatMap(({ prefix, frameCount }) =>
-      Array.from({ length: frameCount }, (_, frame) => `${prefix}-${frame}.webp`),
-    )
-  }, [active?.model.kind])
-
-  useEffect(() => {
-    let cancelled = false
-    setAttackAssetsReady(false)
-    void (async () => {
-      const ready = await preload(attackFrames)
-      if (!cancelled) setAttackAssetsReady(ready)
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [attackFrames])
+  useEffect(() => preload(allFrames), [allFrames])
 
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
@@ -322,8 +265,6 @@ export function WukongAdventure({
           event.key.toLowerCase(),
         )
       ) {
-        setAttackFrame(null)
-        setAttackPlaybackId(0)
         targetRef.current = null
         setDestination(null)
       }
@@ -414,19 +355,16 @@ export function WukongAdventure({
       const travelled = Math.hypot(position.x - oldX, position.y - oldY)
       const moving = travelled > 0.05
 
-      // เดินขึ้น/ลงตรง ๆ (inputX ~0) คงทิศหันเดิมไว้ — สไปรต์ไม่มีมุมหน้า/หลังให้เลือก
-      if (Math.abs(inputX) > 0.01) {
-        directionRef.current = inputX < 0 ? 'left' : 'right'
+      if (magnitude > 0) {
+        directionRef.current = directionFromVector(inputX, inputY)
       }
 
       if (moving) {
         distanceRef.current += travelled
-        // ลดจาก 28/34 เดิม — ชุดสไปรต์ใหม่มีแค่ 8 คีย์เฟรมต่อรอบก้าว (ต่างจากเดิม) ท่าเปลี่ยน
-        // ต่อเฟรมกระโดดแรงกว่า ถ้าคง stride เดิมขาจะดูขยับช้า ต้องสลับเฟรมถี่ขึ้นให้ทันความรู้สึก
-        const stride = running ? kit.walkFrameStride.running : kit.walkFrameStride.walking
-        frameRef.current = Math.floor(distanceRef.current / stride) % walkFrameCount
+        const stride = running ? 28 : 34
+        frameRef.current = Math.floor(distanceRef.current / stride) % FRAME_COUNT
       } else {
-        frameRef.current = Math.floor(time / kit.idleFrameDuration) % kit.idleCount
+        frameRef.current = Math.floor(time / 170) % FRAME_COUNT
       }
 
       // ยืนนิ่งไม่ขยับ ตำแหน่ง/เฟรมก็ไม่เปลี่ยนทุก tick (เฟรม idle ขยับแค่ทุก 170ms ไม่ใช่ 60fps) —
@@ -463,13 +401,7 @@ export function WukongAdventure({
     }
     animationId = requestAnimationFrame(animate)
     return () => cancelAnimationFrame(animationId)
-  }, [
-    kit.idleCount,
-    kit.idleFrameDuration,
-    kit.walkFrameStride.running,
-    kit.walkFrameStride.walking,
-    walkFrameCount,
-  ])
+  }, [])
 
   useEffect(() => {
     if (!view.moving) return
@@ -479,44 +411,6 @@ export function WukongAdventure({
     )
     return () => window.clearInterval(timer)
   }, [view.moving, view.running])
-
-  useEffect(() => {
-    if (
-      attackPreviewRequestId === 0 ||
-      active?.model.kind !== 'spear-warrior' ||
-      !attackAssetsReady
-    )
-      return
-    pressedRef.current.clear()
-    virtualRef.current.clear()
-    velocityRef.current = { x: 0, y: 0 }
-    targetRef.current = null
-    setDestination(null)
-    // Preview cycles 1 -> 2 -> 3 so every animation is directly testable.
-    // Gameplay separately keeps the equal-probability randomized selector.
-    setAttackAnimationId(selectNormalAttackPreviewAnimation(attackPreviewRequestId))
-    setAttackPlaybackId(attackPreviewRequestId)
-  }, [active?.model.kind, attackAssetsReady, attackPreviewRequestId])
-
-  useEffect(() => {
-    if (attackPlaybackId === 0) return
-
-    let currentFrame = 0
-    setAttackFrame(0)
-    const timer = window.setInterval(() => {
-      currentFrame += 1
-      if (currentFrame >= attackAnimation.frameCount) {
-        window.clearInterval(timer)
-        setAttackFrame(null)
-        setAttackPlaybackId(0)
-        return
-      }
-      // Sequential counter by design: never derive the frame from elapsed time,
-      // because a delayed render must not skip a sprite number.
-      setAttackFrame(currentFrame)
-    }, attackAnimation.frameDuration)
-    return () => window.clearInterval(timer)
-  }, [attackAnimation, attackPlaybackId])
 
   const courtyardScale = Math.max(sceneSize.width / SCENE_WIDTH, sceneSize.height / SCENE_HEIGHT)
   const courtyardOffsetX = (sceneSize.width - SCENE_WIDTH * courtyardScale) / 2
@@ -538,8 +432,6 @@ export function WukongAdventure({
         x: (event.clientX - bounds.left - courtyardOffsetX) / courtyardScale,
         y: (event.clientY - bounds.top - courtyardOffsetY) / courtyardScale,
       })
-      setAttackFrame(null)
-      setAttackPlaybackId(0)
       targetRef.current = target
       setDestination(target)
     },
@@ -549,8 +441,6 @@ export function WukongAdventure({
   // ชื่อ `pressed` ไม่ใช่ `active` — `active` ด้านบนคือตัวละครที่กำลังแสดงอยู่ คนละเรื่องกัน
   const setVirtualDirection = (key: string, pressed: boolean) => {
     if (pressed) {
-      setAttackFrame(null)
-      setAttackPlaybackId(0)
       virtualRef.current.add(key)
       targetRef.current = null
       setDestination(null)
@@ -561,28 +451,15 @@ export function WukongAdventure({
 
   const depthProgress = Math.min(1, Math.max(0, (view.y - DEPTH_TOP) / (DEPTH_BOTTOM - DEPTH_TOP)))
   const perspectiveScale = 0.8 + depthProgress * 0.24
-  /*
-     สไปรต์หงอคงชุดใหม่เป็น side-view เดียว (หันขวา) ไม่มีมุมหน้า/หลังจริง — เฟรม idle
-     (หายใจ) จึงใช้ได้ทุกทิศเหมือนกัน ต่างกันแค่ทิศฝั่งซ้ายต้องพลิกกระจกด้วย CSS ตอนแสดงผล
-     (เดิมมีเงื่อนไข "หันหน้า (down) เท่านั้นถึงหายใจ ทิศอื่นใช้ turnUrl ภาพนิ่ง" ซึ่งเป็น
-     ของชุดสไปรต์เก่าที่มีมุมจริงแยกทิศ ไม่ตรงกับชุดนี้แล้ว — ตัดทิ้ง ยืนนิ่งหายใจได้ทุกทิศ)
-     idleFrame ไม่คูณ 3 แบบเดิม (ของเดิมกระโดดข้ามเฟรมเพื่อสุ่มตัวอย่างจากชุด 24 เฟรม
-     ชุดใหม่มีแค่ 8 เฟรมพอดีเรียงลำดับการหายใจอยู่แล้ว คูณ 3 จะทำให้ลำดับสลับมั่ว)
-  */
-  const idleFrame = view.frame % kit.idleCount
-  const spriteMirrored =
-    (kit.usesMirroredSideView && view.direction === 'left') ||
-    (!kit.usesMirroredSideView && !view.moving && view.direction === 'left')
-  const walkDirection = kit.usesMirroredSideView ? 'right' : view.direction
-  const isAttackPreview = active.model.kind === 'spear-warrior' && attackFrame !== null
+  const turnUrl = `${kit.turnPrefix}-${TURN_INDEX[view.direction]}.webp`
+  const idleFrame = view.direction === 'down' ? (view.frame * 3) % kit.idleCount : null
 
-  // เดิน = เฟรมเดินตามทิศ (เบคพลิกกระจกไว้แล้วในไฟล์), ยืนนิ่ง = เฟรม idle หายใจทุกทิศ
-  const spriteUrl = isAttackPreview
-    ? `${attackAnimation.prefix}-${attackFrame}.webp`
-    : view.moving
-      ? `${walkPrefix}-${walkDirection}-${view.frame}.webp`
-      : `${kit.idlePrefix}-${idleFrame}.webp`
-  const spriteStyle = spriteMirrored ? { ['--sprite-mirror' as string]: -1 } : undefined
+  // เดิน = เฟรมเดินตามทิศ, ยืนหันหน้า = เฟรม idle, ยืนหันทิศอื่น = เฟรมหันทิศ
+  const spriteUrl = view.moving
+    ? `${walkPrefix}-${view.direction}-${view.frame}.webp`
+    : idleFrame !== null
+      ? `${kit.idlePrefix}-${idleFrame}.webp`
+      : turnUrl
 
   const actorScreenPos = worldToScreen(view)
   const actorStyle = {
@@ -643,7 +520,7 @@ export function WukongAdventure({
             <i />
             <div>
               <small>ทิศ</small>
-              <b>{FACING_LABEL[view.direction]}</b>
+              <b>{DIRECTION_LABEL[view.direction]}</b>
             </div>
           </div>
           <button className={styles.exitButton} type="button" onClick={() => onExit?.()}>
@@ -678,13 +555,7 @@ export function WukongAdventure({
             <i />
           </div>
         ) : null}
-        <img
-          className={styles.sprite}
-          src={spriteUrl}
-          alt={active.name}
-          draggable={false}
-          style={spriteStyle}
-        />
+        <img className={styles.sprite} src={spriteUrl} alt={active.name} draggable={false} />
         {mode === 'moonlight' ? null : (
           <div className={styles.nameplate}>
             <span>{active.epithet}</span>

@@ -50,6 +50,12 @@
   --r-lg: 18px;
   --r-pill: 999px;
 
+  /* --- Safe Area Insets (Worldwide Device Responsive Anchors) --- */
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+
   /* --- Sizes — เฉพาะค่าที่ซ้ำจริงยืนยันแล้วเท่านั้น (ask-CB 2 รอบ 2026-08-06 ปฏิเสธ scale
      กว้าง/สูงแบบทั่วไป — ค่าส่วนใหญ่ในโปรเจกต์ finetune เฉพาะจุดจริง บังคับรวมจะพังของที่ตั้งใจ
      ต่างกันไว้ เช่น naga-frame ที่ผูกกับภาพพื้นหลัง — ห้ามเพิ่ม --sz-* ใหม่แบบเดา ต้องยืนยันซ้ำจริง
@@ -75,8 +81,6 @@
   --z-scene: 0;
   --z-hud: 10;
   --z-nav: 20;
-  --z-panel: 30;
-  --z-toast: 50;
 
   /* --- Scene stack (ฉากเต็มจอ, ซ้อนกันตามลำดับ explore < controls < battle <
      battle-transition < dialogue < banner) — เดิมกระจายเป็น literal ในแต่ละไฟล์
@@ -86,6 +90,11 @@
   --z-scene-battle: 600;
   --z-scene-battle-transition: 650;
   --z-scene-dialogue: 700;
+
+  /* --- Modals, Drawers, Overlays & Toasts (เหนือฉากเกมเสมอ) --- */
+  --z-panel: 800;
+  --z-modal: 850;
+  --z-toast: 900;
   --z-banner: 1000;
 
   /* --- Adventure HUD stack (WukongAdventure.module.css เท่านั้น) --- */
@@ -120,6 +129,7 @@
 html,
 body,
 #root {
+  width: 100%;
   height: 100%;
   margin: 0;
 }

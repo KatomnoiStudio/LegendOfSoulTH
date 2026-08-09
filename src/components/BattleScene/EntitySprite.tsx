@@ -4,12 +4,23 @@ import { DoubleSide } from 'three'
 import type { Group, Mesh, MeshBasicMaterial } from 'three'
 import {
   getBattleSpriteSet,
-  toSpriteDirection,
+  resolveBattleFrames,
   type BattleAnimationId,
 } from '../../game/battleSpriteSequences'
 import type { CharacterModelKind } from '../../game/characters'
 import { getBattleTexture } from '../../game/realtimeBattle/battleAssets'
-import { WORLD_SCALE } from '../../game/realtimeBattle/stageConfig'
+import {
+  runtimeDepthNormalized,
+  runtimeToWorldXZ,
+} from '../../game/realtimeBattle/battleCoordinates'
+import {
+  ENTITY_SPRITE_ASPECT,
+  ENTITY_SPRITE_HEIGHT,
+  ENTITY_SPRITE_PITCH_RAD,
+  ENTITY_SPRITE_SHADOW_RADIUS,
+  resolveSpriteMeshPresentation,
+  resolveTemporaryEntityContainerLiftY,
+} from '../../game/realtimeBattle/entitySpritePresentation'
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
 import type { EntityState, RealtimeBattleEntity } from '../../game/realtimeBattle/types'
 
@@ -20,33 +31,6 @@ import type { EntityState, RealtimeBattleEntity } from '../../game/realtimeBattl
  * object ของ three.js ตรง ๆ ทุกเฟรมผ่าน ref โดยอ่านค่าจาก runtime (§8)
  * ถ้าเปลี่ยนมาใช้ setState ที่นี่ จะเกิด re-render 60 ครั้งต่อวินาทีต่อหนึ่งตัวละคร
  */
-
-/** อัตราส่วนของภาพตัวละคร (กว้าง:สูง) — ชุดเฟรมทุกตัวใช้สัดส่วนเดียวกัน */
-const SPRITE_ASPECT = 1.2508
-const SPRITE_HEIGHT = 1.6
-const SPRITE_WIDTH = SPRITE_HEIGHT * SPRITE_ASPECT
-const IDLE_PIXEL_WORLD_SIZE = SPRITE_HEIGHT / 512
-const IDLE_VISIBLE_FOOT_WORLD_Y = SPRITE_HEIGHT - 480 * IDLE_PIXEL_WORLD_SIZE
-const SKILL_2_CAST_PIXEL_SCALE = 370 / 454
-const SKILL_2_CAST_SIZE = { width: 800, height: 640, footY: 520 }
-
-function spriteGeometry(animationId: BattleAnimationId) {
-  if (animationId !== 'skill-2') {
-    return { width: SPRITE_WIDTH, height: SPRITE_HEIGHT, meshY: SPRITE_HEIGHT / 2 }
-  }
-
-  // Cast frames retain their native source pixels. One shared renderer scale
-  // makes Erlang's 454 px body match Idle's 370 px body; all six frames use
-  // the same X/Y root and no frame-level zoom.
-  const pixelWorldSize = IDLE_PIXEL_WORLD_SIZE * SKILL_2_CAST_PIXEL_SCALE
-  const width = SKILL_2_CAST_SIZE.width * pixelWorldSize
-  const height = SKILL_2_CAST_SIZE.height * pixelWorldSize
-  return {
-    width,
-    height,
-    meshY: IDLE_VISIBLE_FOOT_WORLD_Y + SKILL_2_CAST_SIZE.footY * pixelWorldSize - height / 2,
-  }
-}
 
 interface EntitySpriteProps {
   runtime: RealtimeBattleRuntime
@@ -64,10 +48,14 @@ function animationForState(state: EntityState): BattleAnimationId {
       return 'attack-1'
     case 'skill':
       return 'skill-1'
-    case 'dash':
-      return 'dash'
     case 'hit':
       return 'hit'
+    // Knockdown/GetUp (§3.8.4) — ยืมแอนิเมชัน hit/idle ไปก่อน ยังไม่มีเฟรมภาพเฉพาะ
+    // (ponytail: อัปเกรดตอนมีชุดเฟรมล้ม/ลุกจริงจากทีมอาร์ต ไม่ใช่ตอนนี้)
+    case 'knockdown':
+      return 'hit'
+    case 'getUp':
+      return 'idle'
     case 'dead':
       return 'death'
     case 'idle':
@@ -83,22 +71,27 @@ function findEntity(runtime: RealtimeBattleRuntime, entityId: string): RealtimeB
 
 export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpriteProps) {
   const group = useRef<Group>(null)
+  const visualContainer = useRef<Group>(null)
   const mesh = useRef<Mesh>(null)
   const shadow = useRef<Mesh>(null)
   const spriteSet = useMemo(() => getBattleSpriteSet(kind), [kind])
+  const initialFrame = useMemo(
+    () => resolveBattleFrames(spriteSet.idle, 'right')[0] ?? '',
+    [spriteSet],
+  )
+  const initialPresentation = useMemo(
+    () => resolveSpriteMeshPresentation(kind, initialFrame),
+    [initialFrame, kind],
+  )
+  const temporaryContainerLiftY = useMemo(() => resolveTemporaryEntityContainerLiftY(kind), [kind])
 
   /** เฟรมเริ่มของแอนิเมชันที่ไม่วน — ต้องรู้ว่าเริ่มเล่นตอนไหนถึงจะเล่นจบแล้วค้างได้ */
   const animationStartMs = useRef(0)
   const currentAnimation = useRef<BattleAnimationId>('idle')
 
-  const half = useMemo(() => {
-    const state = runtime.getState()
-    return { x: state.stage.width / 2, y: state.stage.height / 2 }
-  }, [runtime])
-
   useFrame(() => {
     const entity = findEntity(runtime, entityId)
-    if (!group.current || !mesh.current) return
+    if (!group.current || !visualContainer.current || !mesh.current) return
 
     if (!entity) {
       group.current.visible = false
@@ -106,17 +99,17 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
     }
     group.current.visible = true
 
-    // พิกัด runtime (x = ขวา, y = ลงล่างของจอ) → พิกัดโลกของ three.js บนระนาบ XZ
-    group.current.position.set(
-      (entity.position.x - half.x) * WORLD_SCALE,
-      0,
-      (entity.position.y - half.y) * WORLD_SCALE,
-    )
+    const stage = runtime.getState().stage
+    const world = runtimeToWorldXZ(entity.position, stage)
+    group.current.position.set(world.x, 0, world.z)
 
-    const animationId =
-      entity.state === 'attack' || entity.state === 'skill'
-        ? (entity.attackAnimationId ?? 'attack-1')
-        : animationForState(entity.state)
+    // ตัวที่อยู่หน้ากว่า (runtime.y สูงกว่า) วาดทับตัวหลัง
+    const depthOrder = Math.round(runtimeDepthNormalized(entity.position.y, stage) * 1000)
+    group.current.renderOrder = depthOrder
+    mesh.current.renderOrder = depthOrder
+    if (shadow.current) shadow.current.renderOrder = depthOrder - 1
+
+    const animationId = animationForState(entity.state)
     const elapsedMs = runtime.getState().elapsedMs
     if (animationId !== currentAnimation.current) {
       currentAnimation.current = animationId
@@ -124,19 +117,21 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
     }
 
     const animation = spriteSet[animationId]
-    const geometry = spriteGeometry(animationId)
-    mesh.current.scale.set(geometry.width / SPRITE_WIDTH, geometry.height / SPRITE_HEIGHT, 1)
-    mesh.current.position.y = geometry.meshY
-    const frames = animation.frames[toSpriteDirection(entity.facing)]
+    const frames = resolveBattleFrames(animation, entity.facing)
     if (frames.length === 0) return
 
     const localSeconds = Math.max(0, elapsedMs - animationStartMs.current) / 1000
     const rawIndex = Math.floor(localSeconds * animation.rate)
     const index = animation.loop ? rawIndex % frames.length : Math.min(frames.length - 1, rawIndex)
 
-    const texture = getBattleTexture(frames[index])
+    const frameUrl = frames[index]
+    const texture = getBattleTexture(frameUrl)
     const material = mesh.current.material as MeshBasicMaterial
     if (texture && material.map !== texture) material.map = texture
+
+    const presentation = resolveSpriteMeshPresentation(kind, frameUrl)
+    mesh.current.scale.set(presentation.scaleX, presentation.scaleY, 1)
+    mesh.current.position.y = presentation.centerY
 
     // ตายแล้วค่อย ๆ จางหาย, โดนตีแล้ววาบสีแดง — ทั้งสองท่าไม่มีเฟรมภาพของตัวเอง
     material.opacity = entity.state === 'dead' ? 0.35 : 1
@@ -151,7 +146,7 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
     <group ref={group}>
       {/* เงาใต้เท้า ช่วยให้เห็นว่าตัวละครยืนตรงไหนจริงบนพื้น */}
       <mesh ref={shadow} position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.34, 24]} />
+        <circleGeometry args={[ENTITY_SPRITE_SHADOW_RADIUS, 24]} />
         <meshBasicMaterial
           color={accent}
           transparent
@@ -161,16 +156,25 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
         />
       </mesh>
 
-      <mesh ref={mesh} position={[0, SPRITE_HEIGHT / 2, 0]} rotation={[-Math.PI / 8, 0, 0]}>
-        <planeGeometry args={[SPRITE_WIDTH, SPRITE_HEIGHT]} />
-        <meshBasicMaterial
-          transparent
-          alphaTest={0.025}
-          depthWrite={false}
-          toneMapped={false}
-          side={DoubleSide}
-        />
-      </mesh>
+      <group ref={visualContainer} position={[0, temporaryContainerLiftY, 0]}>
+        <mesh
+          ref={mesh}
+          position={[0, initialPresentation.centerY, 0]}
+          scale={[initialPresentation.scaleX, initialPresentation.scaleY, 1]}
+          rotation={[ENTITY_SPRITE_PITCH_RAD, 0, 0]}
+        >
+          <planeGeometry
+            args={[ENTITY_SPRITE_HEIGHT * ENTITY_SPRITE_ASPECT, ENTITY_SPRITE_HEIGHT]}
+          />
+          <meshBasicMaterial
+            transparent
+            alphaTest={0.025}
+            depthWrite={false}
+            toneMapped={false}
+            side={DoubleSide}
+          />
+        </mesh>
+      </group>
     </group>
   )
 }

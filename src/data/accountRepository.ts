@@ -1,4 +1,5 @@
 import { getCharacter } from '../game/characters'
+import { GAME_INFO } from '../game/gameInfo'
 import { getItem } from '../game/items'
 import { generateUid } from '../game/uid'
 import { TEAM_SIZE } from '../game/team'
@@ -6,6 +7,51 @@ import { reportError } from '../lib/errors/reportError'
 import { createSalt, hashPassword, needsRehash, verifyPassword } from '../lib/password'
 import { isStorageAvailable, readJson, removeKey, writeJson } from '../lib/storage'
 import { EMPTY_PROGRESS, type FriendCandidate, type Player } from '../types/player'
+import {
+  createInitialOwnedCharacterProgress,
+  migrateOwnedCharacters,
+} from '../game/progression/progressionMigration'
+import {
+  GEM_PACKAGES,
+  GOLD_PACKAGES,
+  PASSWORD_MIN_LENGTH,
+  validateEmail,
+  validatePassword,
+  type AuthResult,
+  type CharacterGrantResult,
+  type CurrencyResult,
+  type CurrencyTransaction,
+  type GemPackage,
+  type GemSource,
+  type GoldPackage,
+  type GoldSource,
+  type ItemResult,
+  type ItemSource,
+  type AccountRepositorySubset,
+} from './accountRepository.shared'
+
+/*
+  ชนิด/ค่าคงที่/ตัวตรวจสอบที่ใช้ร่วมกับ backend อื่น (เช่น accountRepository.supabase.ts)
+  ย้ายไปอยู่ accountRepository.shared.ts แล้ว — ไฟล์นี้ re-export ต่อเพื่อความเข้ากันได้ย้อนหลัง
+  (ผู้เรียกเดิมที่ import ชนิดพวกนี้จาก accountRepository.ts ตรง ๆ ไม่ต้องแก้)
+*/
+export {
+  GEM_PACKAGES,
+  GOLD_PACKAGES,
+  PASSWORD_MIN_LENGTH,
+  validateEmail,
+  validatePassword,
+  type AuthResult,
+  type CharacterGrantResult,
+  type CurrencyResult,
+  type CurrencyTransaction,
+  type GemPackage,
+  type GemSource,
+  type GoldPackage,
+  type GoldSource,
+  type ItemResult,
+  type ItemSource,
+}
 
 /**
  * ฐานข้อมูลผู้เล่น (เวอร์ชันเก็บใน localStorage)
@@ -39,25 +85,67 @@ import { EMPTY_PROGRESS, type FriendCandidate, type Player } from '../types/play
 const DB_KEY = 'los:db:v1'
 const SESSION_KEY = 'los:session:v1'
 
-/** ตัวละครที่ได้ฟรีตอนสมัครบัญชีใหม่ */
-const STARTER_CHARACTER_ID = 'spear-warrior'
+/** อายุ session ก่อนหมดอายุถ้าไม่มีการใช้งานเลย — sliding window ต่ออายุทุกครั้งที่อ่านสำเร็จ */
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
-/** ทองได้จากการเล่น (เควส/ดรอป) หรือเติมเงินจริงก็ได้ — ดู earnGold/topUpGold */
-export type GoldSource = 'quest' | 'drop' | 'topup'
-/** หยกได้จากการเติมเงินจริง หรือแลกคูปองเท่านั้น — ห้ามมีทางอื่น */
-export type GemSource = 'topup' | 'coupon'
-
-export interface CurrencyTransaction {
-  id: string
-  currency: 'gold' | 'gem'
-  source: GoldSource | GemSource
-  amount: number
-  createdAt: string
-  /** อ้างอิงที่มา เช่น questId, dropId, รหัสคูปอง, หรือ id แพ็กเกจเติมหยก */
-  refId?: string
+interface SessionRecord {
+  uid: string
+  email: string
+  expiresAt: string
+  /** เลขเวอร์ชันเกม (GAME_INFO.version) ตอนเขียน session นี้ — ดู readActiveSession */
+  appVersion: string
 }
 
-interface StoredAccount {
+function createSession(uid: string, email: string): SessionRecord {
+  return {
+    uid,
+    email,
+    expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString(),
+    appVersion: GAME_INFO.version,
+  }
+}
+
+/*
+  ผู้เรียกทุกรายต้องอ่าน session ผ่านฟังก์ชันนี้เท่านั้น ห้าม readJson(SESSION_KEY) ตรง ๆ
+
+  เดิม session ไม่มีวันหมดอายุเลย (เขียนแค่ uid/email ไม่มี timestamp) — เข้าเกมครั้งเดียว
+  ค้าง login ตลอดไปจนกว่าจะกด logout เอง ต่อให้ปิดแท็บทิ้งไปเป็นปี ผู้เล่นเจอเข้าเกมได้ทันที
+  โดยไม่มีการันตีว่ายังเป็นเจ้าของอุปกรณ์จริง ๆ
+
+  sliding window (ต่ออายุทุกครั้งที่อ่านสำเร็จ) แทนวันหมดอายุตายตัว เพราะผู้เล่นที่เล่นต่อเนื่อง
+  ไม่ควรถูกเตะกลางเกมแค่เพราะ session อายุครบตามนาฬิกา — หมดอายุเฉพาะแท็บที่ปิดทิ้งไว้จริง ๆ
+  เกิน 30 วันเท่านั้น
+
+  session ยังหมดอายุทันทีถ้า appVersion ไม่ตรงกับ build ปัจจุบันด้วย (HetCreep 2026-08-07) —
+  อัปเดตเกมแล้ว session เก่าใช้ต่อไม่ได้ ต้องล็อกอินใหม่เสมอ ไม่ใช่แค่ตอนแท็บที่เปิดค้างเห็น
+  UpdateBanner แล้วกดรีเฟรชเอง แต่รวมถึงแท็บใหม่ที่เปิดขึ้นมาทีหลังด้วย (localStorage เดิม
+  ยังอยู่แต่เป็นของ build เก่า) — กันข้อมูล Player รูปแบบเก่าที่อาจไม่ตรงกับโค้ดใหม่หลุดเข้าเกม
+*/
+function readActiveSession(): SessionRecord | null {
+  const session = readJson<SessionRecord>(SESSION_KEY)
+  if (!session) return null
+
+  // session เก่าก่อนมีฟิลด์นี้ (เขียนไว้ตอนยังไม่มี expiry) — ถือว่าหมดอายุทันที
+  // ปลอดภัยกว่าปล่อยให้ใช้ต่อแบบไม่มีเวลาจำกัดเงียบ ๆ
+  if (!session.expiresAt || new Date(session.expiresAt).getTime() <= Date.now()) {
+    removeKey(SESSION_KEY)
+    return null
+  }
+
+  if (session.appVersion !== GAME_INFO.version) {
+    removeKey(SESSION_KEY)
+    return null
+  }
+
+  const renewed = createSession(session.uid, session.email)
+  writeJson(SESSION_KEY, renewed)
+  return renewed
+}
+
+/** ตัวละครที่ได้ฟรีตอนสมัครบัญชีใหม่ */
+const STARTER_CHARACTER_ID = 'monkey-king'
+
+export interface StoredAccount {
   uid: string
   email: string
   passwordHash: string
@@ -185,85 +273,8 @@ interface CouponDefinition {
 }
 
 /** โค้ดคูปอง — คีย์เป็นตัวพิมพ์ใหญ่เสมอ (ดู redeemCoupon ที่ normalize ก่อนเทียบ) */
-const COUPONS: Record<string, CouponDefinition> = {
+export const COUPONS: Record<string, CouponDefinition> = {
   WELCOME2026: { gem: 50 },
-}
-
-export interface GemPackage {
-  id: string
-  amount: number
-  /** ราคาที่แสดงผล — ยังไม่ผูกกับ payment gateway จริง */
-  priceLabel: string
-}
-
-export const GEM_PACKAGES: GemPackage[] = [
-  { id: 'gem-small', amount: 60, priceLabel: '฿30' },
-  { id: 'gem-medium', amount: 320, priceLabel: '฿150' },
-  { id: 'gem-large', amount: 980, priceLabel: '฿450' },
-]
-
-export interface GoldPackage {
-  id: string
-  amount: number
-  /** ราคาที่แสดงผล — ยังไม่ผูกกับ payment gateway จริง */
-  priceLabel: string
-}
-
-/** ราคาต่อหน่วยถูกกว่าเติมหยก — ทองเป็นสกุลเงินพื้นฐานที่ควรหาได้ง่ายกว่า */
-export const GOLD_PACKAGES: GoldPackage[] = [
-  { id: 'gold-small', amount: 1000, priceLabel: '฿30' },
-  { id: 'gold-medium', amount: 5500, priceLabel: '฿150' },
-  { id: 'gold-large', amount: 18000, priceLabel: '฿450' },
-]
-
-/* ---------------- ผลลัพธ์ ---------------- */
-
-export type AuthResult = { ok: true; player: Player } | { ok: false; error: string }
-
-/* ---------------- ตรวจข้อมูลก่อนบันทึก ---------------- */
-
-/** ตรวจรูปแบบอีเมลแบบพอดี ๆ — ไม่เข้มจนบล็อกอีเมลที่ใช้ได้จริง */
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
-
-export const PASSWORD_MIN_LENGTH = 8
-
-export function validateEmail(email: string): string | null {
-  const value = email.trim()
-  if (value.length === 0) return 'กรุณากรอกอีเมล'
-  if (!EMAIL_PATTERN.test(value)) return 'รูปแบบอีเมลไม่ถูกต้อง'
-  return null
-}
-
-// รหัสผ่านที่พบบ่อยที่สุดจนไม่ป้องกันอะไรเลย แม้ยาวพอตาม PASSWORD_MIN_LENGTH ก็ตาม
-// (รายการเล็ก ๆ พอกันกรณีชัดเจนที่สุด ไม่ใช่ dictionary attack เต็มรูปแบบ — ไม่ต้องพึ่ง library ภายนอก)
-const COMMON_PASSWORDS = new Set([
-  'password',
-  'password1',
-  'password123',
-  '12345678',
-  '123456789',
-  '1234567890',
-  'qwerty123',
-  'qwertyui',
-  'letmein1',
-  'iloveyou',
-  'admin123',
-  'welcome1',
-  '11111111',
-  '00000000',
-  'abc12345',
-  'changeme',
-])
-
-export function validatePassword(password: string): string | null {
-  if (password.length === 0) return 'กรุณากรอกรหัสผ่าน'
-  if (password.length < PASSWORD_MIN_LENGTH) {
-    return `รหัสผ่านต้องมีอย่างน้อย ${PASSWORD_MIN_LENGTH} ตัวอักษร`
-  }
-  if (COMMON_PASSWORDS.has(password.toLowerCase())) {
-    return 'รหัสผ่านนี้ถูกใช้ทั่วไปมากเกินไป กรุณาตั้งรหัสอื่น'
-  }
-  return null
 }
 
 /* ---------------- ผู้เล่นเริ่มต้น ---------------- */
@@ -302,7 +313,9 @@ function normalizePlayer(player: Player): Player {
     progress: player.progress ?? EMPTY_PROGRESS,
     inventory: player.inventory ?? [],
     friends: player.friends ?? [],
-    ownedCharacters: Array.isArray(player.ownedCharacters) ? player.ownedCharacters : [],
+    ownedCharacters: migrateOwnedCharacters(
+      Array.isArray(player.ownedCharacters) ? player.ownedCharacters : [],
+    ),
     teamSlots: Array.isArray(player.teamSlots)
       ? player.teamSlots
       : Array.from({ length: TEAM_SIZE }, () => null),
@@ -329,13 +342,7 @@ function createNewPlayer(uid: string): Player {
     currency: { gold: 500, gem: 20 },
     // สมัครใหม่ได้ตัวละครฟรี 1 ตัว ยืนช่องแรก อีก 3 ช่องว่าง
     ownedCharacters: [
-      {
-        characterId: STARTER_CHARACTER_ID,
-        level: 1,
-        exp: 0,
-        expToNext: 500,
-        obtainedAt: new Date().toISOString(),
-      },
+      createInitialOwnedCharacterProgress(STARTER_CHARACTER_ID, new Date().toISOString()),
     ],
     teamSlots: Array.from({ length: TEAM_SIZE }, (_, index) =>
       index === 0 ? STARTER_CHARACTER_ID : null,
@@ -396,7 +403,7 @@ export async function register(email: string, password: string): Promise<AuthRes
     ที่ตามมา) ให้ผลประหลาดที่สุด: หน้าจอเข้าเกมได้ตามปกติ แต่พอโหลดหน้าใหม่ getSessionPlayer
     หา session ไม่เจอแล้วเด้งกลับหน้าล็อกอิน ทั้งที่บัญชีถูกบันทึกไว้เรียบร้อยแล้วจริง ๆ
   */
-  if (!writeJson(SESSION_KEY, { uid, email: key })) {
+  if (!writeJson(SESSION_KEY, createSession(uid, key))) {
     /*
       ถอนบัญชีที่เพิ่งสร้างออกด้วย
 
@@ -432,7 +439,7 @@ export async function login(email: string, password: string): Promise<AuthResult
   }
 
   // เช็คค่าที่คืนมาด้วยเหตุผลเดียวกับใน register (ดูคอมเมนต์ที่นั่น)
-  if (!writeJson(SESSION_KEY, { uid: account.uid, email: key })) {
+  if (!writeJson(SESSION_KEY, createSession(account.uid, key))) {
     return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
   }
   return { ok: true, player: normalizePlayer(account.player) }
@@ -444,7 +451,7 @@ export async function logout(): Promise<void> {
 
 /** อ่านผู้เล่นของ session ที่ค้างอยู่ — ใช้ตอนเปิดเกมเพื่อไม่ต้องล็อกอินซ้ำ */
 export async function getSessionPlayer(): Promise<Player | null> {
-  const session = readJson<{ uid: string; email: string }>(SESSION_KEY)
+  const session = readActiveSession()
   if (!session) return null
 
   const account = loadDb().accounts[session.email]
@@ -472,7 +479,7 @@ interface SaveExport {
 export async function exportSave(): Promise<
   { ok: true; json: string } | { ok: false; error: string }
 > {
-  const session = readJson<{ uid: string; email: string }>(SESSION_KEY)
+  const session = readActiveSession()
   if (!session) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' }
 
   const account = loadDb().accounts[session.email]
@@ -519,20 +526,21 @@ export async function importSave(json: string): Promise<AuthResult> {
   }
 
   // เช็คค่าที่คืนมาด้วยเหตุผลเดียวกับใน register (ดูคอมเมนต์ที่นั่น)
-  if (!writeJson(SESSION_KEY, { uid: account.uid, email: key })) {
+  if (!writeJson(SESSION_KEY, createSession(account.uid, key))) {
     return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
   }
   return { ok: true, player: normalizePlayer(account.player) }
 }
 
 /**
- * อีเมลของ session ที่ล็อกอินอยู่ — ใช้ตรวจสิทธิ์ผู้ดูแล (ดู src/data/admins.ts)
+ * อีเมลของ session ที่ล็อกอินอยู่ — เวอร์ชัน Supabase ย้ายการตรวจสิทธิ์ผู้ดูแลไปที่ตาราง
+ * `admin_accounts` แล้ว (ดู supabase/migrations/0004_admin_accounts.sql) ไม่ใช้อีเมลเช็คอีกต่อไป
  *
  * แยกจาก getSessionPlayer เพราะ Player ไม่มีฟิลด์อีเมล (ตั้งใจ — อีเมลเป็นข้อมูลบัญชี
  * ไม่ใช่ข้อมูลตัวละครที่ UI ทั่วไปต้องเห็น) ฟังก์ชันนี้จึงเป็นทางเดียวที่ควรใช้อ่านอีเมล
  */
 export function getSessionEmail(): string | null {
-  return readJson<{ uid: string; email: string }>(SESSION_KEY)?.email ?? null
+  return readActiveSession()?.email ?? null
 }
 
 export type { FriendCandidate } from '../types/player'
@@ -565,9 +573,6 @@ export async function savePlayer(player: Player): Promise<boolean> {
 }
 
 /* ---------------- ทอง/หยก — ต้องผ่านฟังก์ชันที่ระบุแหล่งที่มาเท่านั้น ---------------- */
-
-export type CurrencyResult =
-  { ok: true; player: Player; amount: number } | { ok: false; error: string }
 
 /** ให้ทองจากการเล่นเท่านั้น — ทำเควสสำเร็จ หรือของดรอประหว่างเล่น */
 export async function earnGold(
@@ -689,11 +694,6 @@ export async function getTransactions(uid: string): Promise<CurrencyTransaction[
 
 /* ---------------- ไอเทม ---------------- */
 
-/** ไอเทมได้จากการเล่นเท่านั้น — ทำเควสสำเร็จ หรือของดรอป (กติกาเดียวกับทอง) */
-export type ItemSource = GoldSource
-
-export type ItemResult = { ok: true; player: Player } | { ok: false; error: string }
-
 /**
  * เพิ่มไอเทมเข้ากระเป๋าผู้เล่น — มีอยู่แล้วให้บวกจำนวน ไม่มีให้สร้างช่องใหม่
  *
@@ -705,6 +705,7 @@ export async function grantItem(
   itemId: string,
   quantity: number,
   source: ItemSource,
+  _refId?: string,
 ): Promise<ItemResult> {
   if (!getItem(itemId)) return { ok: false, error: 'ไม่พบไอเทมนี้' }
   if (!Number.isInteger(quantity) || quantity <= 0) {
@@ -740,9 +741,6 @@ export async function grantItem(
 
 /* ---------------- ตัวละคร ---------------- */
 
-export type CharacterGrantResult =
-  { ok: true; player: Player; characterId: string } | { ok: false; error: string }
-
 /**
  * มอบตัวละครให้บัญชีผู้เล่น
  *
@@ -774,13 +772,7 @@ export async function grantCharacter(
       ...account.player,
       ownedCharacters: [
         ...owned,
-        {
-          characterId,
-          level: 1,
-          exp: 0,
-          expToNext: 500,
-          obtainedAt: new Date().toISOString(),
-        },
+        createInitialOwnedCharacterProgress(characterId, new Date().toISOString()),
       ],
     },
   }
@@ -788,4 +780,22 @@ export async function grantCharacter(
 
   if (!saveDb(db)) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
   return { ok: true, player: updated.player, characterId }
+}
+
+// Type-level assertion to ensure this file's exports satisfy the common repository interface subset
+export const assertion: AccountRepositorySubset = {
+  register,
+  login,
+  logout,
+  getSessionPlayer,
+  getSessionEmail,
+  findPlayerByUid,
+  savePlayer,
+  earnGold,
+  redeemCoupon,
+  topUpGold,
+  topUpGems,
+  getTransactions,
+  grantItem,
+  grantCharacter,
 }

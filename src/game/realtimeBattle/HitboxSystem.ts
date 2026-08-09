@@ -4,12 +4,12 @@ import type { Direction8, RealtimeBattleEntity, Vec2 } from './types'
 /**
  * ตรวจว่าใครโดน hitbox ของท่าโจมตีบ้าง (§15)
  *
- * รูปทรงเป็นกรวย: ระยะ + มุมรอบทิศที่ผู้โจมตีหันอยู่ ส่วนเป้าหมายเป็นวงกลม (`hurtboxRadius`)
+ * P2 (Blueprint v3): basic attack = แนวนอนซ้าย/ขวา + depth tolerance
+ * สกิล radial ยังใช้กรวยรอบทิศ facing (legacy ชั่วคราวจน P3)
  *
  * ── สองข้อห้ามของสเปกที่ไฟล์นี้เคารพ ────────────────────────
- * 1. ห้ามใช้ DOM bounding box ตัดสินการต่อสู้ — ทุกอย่างที่นี่เป็นเลขในระบบพิกัดของ runtime
- * 2. ห้ามอิงขนาดภาพ PNG เป็น hurtbox — ใช้ `hurtboxRadius` ที่ตั้งไว้ในข้อมูลหน่วยเท่านั้น
- *    (ภาพตัวละครมีพื้นที่ว่างรอบตัวไม่เท่ากันในแต่ละเฟรม ถ้าอิงภาพ ระยะโดนจะเปลี่ยนไปมา)
+ * 1. ห้ามใช้ DOM bounding box ตัดสินการต่อสู้
+ * 2. ห้ามอิงขนาดภาพ PNG เป็น hurtbox
  * ────────────────────────────────────────────────────────────
  */
 
@@ -36,39 +36,124 @@ export interface HitboxQuery {
   alreadyHit: ReadonlySet<string>
   /** เวลาปัจจุบันของ runtime ใช้ตรวจ invulnerability */
   elapsedMs: number
+  /** เป้าที่ถูกล็อกไว้ตอนเริ่มร่าย — ใช้แทนการกวาด hitShape ปกติเมื่อ attack.targetLock ตั้งไว้ (ระบบ #8) */
+  lockedTargetId?: string
 }
 
-/**
- * คืนรายชื่อหน่วยที่โดนท่านี้ในเฟรมนี้
- *
- * ผู้เรียกมีหน้าที่บันทึก id ที่คืนกลับไปลงใน `alreadyHit` เอง — ฟังก์ชันนี้เป็น pure
- */
-export function findHitTargets(
-  targets: RealtimeBattleEntity[],
-  { attacker, attack, alreadyHit, elapsedMs }: HitboxQuery,
-): RealtimeBattleEntity[] {
+function hitsHorizontal(
+  attacker: RealtimeBattleEntity,
+  attack: AttackDefinition,
+  target: RealtimeBattleEntity,
+): boolean {
+  const dx = target.position.x - attacker.position.x
+  const dy = target.position.y - attacker.position.y
+  const sign = attacker.combatFacing === 'right' ? 1 : -1
+
+  // เป้าหมายต้องอยู่ด้านหน้า (ไม่โดนด้านหลัง)
+  if (dx * sign < -target.hurtboxRadius) return false
+
+  const horizontalReach = Math.abs(dx) - target.hurtboxRadius
+  if (horizontalReach > attack.range) return false
+
+  const depthGap = Math.abs(dy) - target.hurtboxRadius
+  return depthGap <= attack.depthTolerance
+}
+
+function hitsRadial(
+  attacker: RealtimeBattleEntity,
+  attack: AttackDefinition,
+  target: RealtimeBattleEntity,
+): boolean {
   const facing = directionVector(attacker.facing)
   const halfArcCos = Math.cos((Math.min(360, attack.arcDegrees) / 2) * (Math.PI / 180))
   const isFullCircle = attack.arcDegrees >= 360
 
+  const dx = target.position.x - attacker.position.x
+  const dy = target.position.y - attacker.position.y
+  const distance = Math.hypot(dx, dy)
+
+  if (distance > attack.range + target.hurtboxRadius) return false
+  if (isFullCircle) return true
+  if (distance === 0) return true
+
+  const cosAngle = (dx * facing.x + dy * facing.y) / distance
+  return cosAngle >= halfArcCos
+}
+
+function passesHitGeometry(
+  attacker: RealtimeBattleEntity,
+  attack: AttackDefinition,
+  target: RealtimeBattleEntity,
+): boolean {
+  if (attack.hitShape === 'horizontal') {
+    return hitsHorizontal(attacker, attack, target)
+  }
+  return hitsRadial(attacker, attack, target)
+}
+
+function filterValidTargets(
+  targets: RealtimeBattleEntity[],
+  attacker: RealtimeBattleEntity,
+  attack: AttackDefinition,
+  alreadyHit: ReadonlySet<string>,
+  elapsedMs: number,
+): RealtimeBattleEntity[] {
   return targets.filter((target) => {
     if (target.id === attacker.id) return false
     if (target.state === 'dead' || target.hp <= 0) return false
     if (alreadyHit.has(target.id)) return false
     if (target.invulnerableUntilMs > elapsedMs) return false
+    return passesHitGeometry(attacker, attack, target)
+  })
+}
 
+function pickNearestTarget(
+  attacker: RealtimeBattleEntity,
+  candidates: RealtimeBattleEntity[],
+): RealtimeBattleEntity | null {
+  let nearest: RealtimeBattleEntity | null = null
+  let nearestDistanceSquared = Number.POSITIVE_INFINITY
+
+  for (const target of candidates) {
     const dx = target.position.x - attacker.position.x
     const dy = target.position.y - attacker.position.y
-    const distance = Math.hypot(dx, dy)
+    const distanceSquared = dx * dx + dy * dy
+    if (distanceSquared < nearestDistanceSquared) {
+      nearest = target
+      nearestDistanceSquared = distanceSquared
+    }
+  }
 
-    // เผื่อรัศมีตัวเป้าหมาย — ขอบตัวเข้ามาในระยะก็ถือว่าโดน
-    if (distance > attack.range + target.hurtboxRadius) return false
-    if (isFullCircle) return true
+  return nearest
+}
 
-    // ยืนซ้อนกันสนิท ไม่มีทิศให้วัดมุม ถือว่าโดน
-    if (distance === 0) return true
+/**
+ * คืนรายชื่อหน่วยที่โดนท่านี้ในเฟรมนี้
+ */
+export function findHitTargets(
+  targets: RealtimeBattleEntity[],
+  { attacker, attack, alreadyHit, elapsedMs, lockedTargetId }: HitboxQuery,
+): RealtimeBattleEntity[] {
+  if (attack.targetLock === 'nearest') {
+    // ท่าล็อกเป้า: เช็คเฉพาะเป้าที่ล็อกไว้ตอนเริ่มร่าย ไม่กวาด hitShape ปกติ (ระบบ #8)
+    // 0 ศัตรูตอนเริ่มร่าย หรือเป้าที่ล็อกตายไปแล้ว/หลุดออกจากลิสต์ = ไม่มีเป้า ไม่ crash
+    if (!lockedTargetId) return []
+    const target = targets.find((candidate) => candidate.id === lockedTargetId)
+    if (!target) return []
+    if (target.id === attacker.id) return []
+    if (target.state === 'dead' || target.hp <= 0) return []
+    if (alreadyHit.has(target.id)) return []
+    if (target.invulnerableUntilMs > elapsedMs) return []
+    return [target]
+  }
 
-    const cosAngle = (dx * facing.x + dy * facing.y) / distance
-    return cosAngle >= halfArcCos
-  })
+  const candidates = filterValidTargets(targets, attacker, attack, alreadyHit, elapsedMs)
+
+  if (attack.multiTarget === false) {
+    const nearest = pickNearestTarget(attacker, candidates)
+    return nearest ? [nearest] : []
+  }
+
+  // true and undefined both preserve the existing sweep behavior.
+  return candidates
 }

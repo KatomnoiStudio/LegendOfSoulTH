@@ -1,16 +1,22 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Canvas } from '@react-three/fiber'
 import WebGL from 'three/addons/capabilities/WebGL.js'
 import { reportError } from '../../lib/errors/reportError'
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
-import type { RealtimeBattleSnapshot, Vec2 } from '../../game/realtimeBattle/types'
-import type { SkillAnimationId } from '../../game/realtimeBattle/skills'
+import type { MovementInput } from '../../game/realtimeBattle/playerInput'
+import type { RealtimeBattleSnapshot } from '../../game/realtimeBattle/types'
+import type { SkillSlot } from '../../game/realtimeBattle/skills'
+import { DEFAULT_COMBAT_CAMERA_CONFIG } from '../../game/realtimeBattle/combatCameraConfig'
+import { layoutCssVars } from '../../game/realtimeBattle/combatUILayout'
 import { BattleArena } from './BattleArena'
 import { BattleControls } from './BattleControls'
 import { BattleHud } from './BattleHud'
 import { DamageNumberLayer } from './DamageNumberLayer'
 import { EnemyHealthBar } from './EnemyHealthBar'
 import { ScreenProjector, type ScreenProjection } from './ScreenProjector'
+import { BattleFullscreenPrompt, BattlePortraitOverlay } from './BattleViewportOverlays'
+import { useBattleViewport } from '../../hooks/useBattleViewport'
+import { AdventureObjectiveHud } from './AdventureObjectiveHud'
 import styles from './BattleScene.module.css'
 
 /**
@@ -25,17 +31,18 @@ export function RealtimeBattleRoom({
   onExit,
   onMove,
   onAttack,
-  onDash,
   onSkill,
+  overlay,
 }: {
   runtime: RealtimeBattleRuntime
   snapshot: RealtimeBattleSnapshot
   onExit: () => void
-  onMove: (vector: Vec2) => void
+  onMove: (input: MovementInput) => void
   onAttack: () => void
-  onDash: () => void
-  onSkill: (animationId: SkillAnimationId) => void
+  onSkill: (slot: SkillSlot) => void
+  overlay?: ReactNode
 }) {
+  const viewport = useBattleViewport(true)
   const [webglAvailable] = useState(() => WebGL.isWebGL2Available())
   const [contextLost, setContextLost] = useState(false)
   const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null)
@@ -88,7 +95,7 @@ export function RealtimeBattleRoom({
   }
 
   return (
-    <section className={styles.scene} aria-label="ห้องต่อสู้">
+    <section className={styles.scene} style={layoutCssVars()} aria-label="ห้องต่อสู้">
       {contextLost ? (
         <div className={styles.fallback}>
           <p>การ์ดจอขาดการเชื่อมต่อ — กำลังลองใหม่</p>
@@ -102,10 +109,14 @@ export function RealtimeBattleRoom({
         // ที่ครอบอยู่ทำให้ขนาด canvas เพี้ยน (เหตุผลเดียวกับ LobbyScene — ดูคอมเมนต์ในไฟล์นั้น)
         resize={{ offsetSize: true }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
-        camera={{ fov: 42, near: 0.1, far: 200 }}
+        camera={{
+          fov: DEFAULT_COMBAT_CAMERA_CONFIG.fovDeg,
+          near: 0.1,
+          far: 200,
+        }}
         onCreated={({ gl }) => setCanvasElement(gl.domElement)}
       >
-        <BattleArena runtime={runtime} effectEvents={snapshot.effectEvents} />
+        <BattleArena runtime={runtime} />
         <ScreenProjector stage={runtime.getState().stage} projection={projection} />
       </Canvas>
 
@@ -113,13 +124,20 @@ export function RealtimeBattleRoom({
       <DamageNumberLayer runtime={runtime} projection={projection} />
 
       <BattleHud snapshot={snapshot} onExit={onExit} />
+      <AdventureObjectiveHud snapshot={snapshot} />
+      {overlay}
       <BattleControls
         runtime={runtime}
         onMove={onMove}
         onAttack={onAttack}
-        onDash={onDash}
         onSkill={onSkill}
+        inputBlocked={viewport.inputBlocked}
       />
+
+      {viewport.showFullscreenPrompt ? (
+        <BattleFullscreenPrompt onActivate={() => void viewport.requestFullscreenFromGesture()} />
+      ) : null}
+      {viewport.isPortrait ? <BattlePortraitOverlay /> : null}
 
       {snapshot.status === 'intro' ? (
         <div className={styles.introBanner} aria-live="polite">

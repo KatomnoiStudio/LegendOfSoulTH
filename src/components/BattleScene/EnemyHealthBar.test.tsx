@@ -3,6 +3,7 @@ import { render } from '@testing-library/react'
 import { EnemyHealthBar } from './EnemyHealthBar'
 import { createRealtimeBattle } from '../../game/realtimeBattle/createRealtimeBattle'
 import { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
+import { createDefaultSkillLevels } from '../../game/realtimeBattle/SkillProgressionSystem'
 import type { Player } from '../../types/player'
 import { EMPTY_PROGRESS } from '../../types/player'
 import styles from './BattleScene.module.css'
@@ -28,16 +29,17 @@ function makePlayer(): Player {
     currency: { gold: 0, gem: 0 },
     ownedCharacters: [
       {
-        characterId: 'spear-warrior',
+        characterId: 'monkey-king',
         level: 12,
         exp: 0,
         expToNext: 100,
         obtainedAt: '2026-01-01T00:00:00.000Z',
+        skillLevels: createDefaultSkillLevels(),
       },
     ],
     inventory: [],
     friends: [],
-    teamSlots: ['spear-warrior', null, null, null],
+    teamSlots: ['monkey-king', null, null, null],
     frameId: 'default',
     progress: EMPTY_PROGRESS,
   }

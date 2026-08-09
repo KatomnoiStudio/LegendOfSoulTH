@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
-import * as accounts from '../data/accountRepository'
+import * as accounts from '../data/accountRepository.supabase'
 import type {
   CharacterGrantResult,
   CurrencyResult,
   FriendCandidate,
   GoldSource,
-} from '../data/accountRepository'
-import { isAdminEmail } from '../data/admins'
+  ItemResult,
+  ItemSource,
+  GachaPullResult,
+} from '../data/accountRepository.supabase'
 import { reportError } from '../lib/errors/reportError'
 import { downloadSaveJson } from '../lib/saveFile'
 import type { Player } from '../types/player'
@@ -24,9 +26,26 @@ export type AuthStatus = 'loading' | 'guest' | 'signed-in'
 export interface AuthState {
   status: AuthStatus
   player: Player | null
-  register: (email: string, password: string) => Promise<string | null>
-  login: (email: string, password: string) => Promise<string | null>
+  register: (email: string, password: string, captchaToken?: string) => Promise<string | null>
+  login: (email: string, password: string, captchaToken?: string) => Promise<string | null>
+  /**
+   * เริ่ม OAuth flow กับ Google — เปลี่ยนหน้าออกไปทันทีเมื่อสำเร็จ (ไม่มีทาง resolve กลับมา
+   * ที่นี่ในเคสนั้น) คืนข้อความเฉพาะตอนยิง redirect เองไม่สำเร็จ (เช่น provider ปิดอยู่)
+   */
+  loginWithGoogle: () => Promise<string | null>
+  /**
+   * เข้าเล่นทันทีแบบ guest (signInAnonymously) ไม่ต้องกรอกอะไรเลย — status จะกลายเป็น
+   * 'signed-in' เหมือนบัญชีปกติทุกประการ (ไม่ใช่ AuthStatus 'guest' ที่แปลว่า "ยังไม่ล็อกอิน"
+   * — ดู `isGuest` ด้านล่างสำหรับแยกแยะว่าบัญชีที่ signed-in อยู่นี้เป็น guest หรือไม่)
+   */
+  loginAsGuest: (captchaToken?: string) => Promise<string | null>
   logout: () => Promise<void>
+  /** เชื่อมบัญชีนี้ (ไม่ว่าล็อกอินด้วย email หรือ Google) เข้ากับ Google — ต้อง signed-in อยู่แล้ว */
+  hasGoogleLinked: boolean
+  /** บัญชีที่ signed-in อยู่นี้เป็น guest (ยังไม่เคยอัพเกรด) ไหม — คนละความหมายกับ AuthStatus 'guest' */
+  isGuest: boolean
+  /** เริ่มเชื่อมบัญชี Google — เปลี่ยนหน้าออกไปทันทีเมื่อสำเร็จ เหมือน loginWithGoogle */
+  linkGoogleAccount: () => Promise<string | null>
   /** บันทึกความคืบหน้า เช่น ตั้งชื่อตัวละคร จัดทีม อัปเกรด */
   /** คืน true เมื่อบันทึกลงที่เก็บข้อมูลจริง — false แปลว่าหน้าจอถูกย้อนกลับแล้ว */
   updatePlayer: (next: Player) => Promise<boolean>
@@ -41,23 +60,53 @@ export interface AuthState {
   /** ค้นหาผู้เล่นจาก UID เพื่อเพิ่มเพื่อน — คืน null ถ้าไม่พบ (ดู accountRepository.findPlayerByUid) */
   findFriendByUid: (uid: string) => Promise<FriendCandidate | null>
   /**
-   * บัญชีนี้ใช้คำสั่งผู้ดูแลได้ไหม (ดู src/data/admins.ts)
-   * ⚠️ ไม่ใช่ขอบเขตความปลอดภัย — เช็คฝั่ง client กับข้อมูลที่ผู้เล่นแก้เองได้
+   * บัญชีนี้ใช้คำสั่งผู้ดูแลได้ไหม — มาจากตาราง admin_accounts ฝั่ง Supabase
+   * (ดู supabase/migrations/0004_admin_accounts.sql) ไม่มีทาง insert/update ให้ authenticated
+   * role เลย ตั้งค่าได้ทาง Supabase dashboard เท่านั้น — เป็นขอบเขตความปลอดภัยจริงแล้ว
+   * (ต่างจาก static list เดิมใน src/data/admins.ts ที่เป็นแค่ client-side convenience)
    */
   isAdmin: boolean
   /** มอบตัวละครให้บัญชีนี้ — ตอนนี้เรียกจากช่องคำสั่งผู้ดูแลเท่านั้น */
   grantCharacter: (characterId: string) => Promise<CharacterGrantResult>
+  /** เสกทองให้บัญชีนี้ (ผู้ดูแลเท่านั้น) — ดู accountRepository.grantGoldAdmin */
+  grantGoldAdmin: (amount: number) => Promise<CurrencyResult>
+  /** เสกไอเทมให้บัญชีนี้ (ผู้ดูแลเท่านั้น) — ดู accountRepository.grantItemAdmin */
+  grantItemAdmin: (itemId: string, quantity: number) => Promise<ItemResult>
+  /** ให้ไอเทมจากการเล่น (ดรอป/เควส) — ดู accountRepository.grantItem */
+  grantItem: (
+    itemId: string,
+    quantity: number,
+    source: ItemSource,
+    refId?: string,
+  ) => Promise<ItemResult>
+  /** บันทึก progression ล็อบบี้แบบ atomic (profile flags + hero EXP + battle history) */
+  commitLobbyBattleProgression: (
+    payload: accounts.LobbyBattleProgressionRpcPayload,
+  ) => Promise<{ ok: true; player: Player } | { ok: false; error: string }>
+  upsertPendingLobbyReward: (
+    result: import('../game/realtimeBattle/types').RealtimeBattleResult,
+    transactionId: string,
+  ) => Promise<boolean>
+  clearPendingLobbyReward: (transactionId: string) => Promise<void>
+  getPendingLobbyRewards: () => Promise<accounts.PendingLobbyRewardRow[]>
+  /** อัญเชิญผ่าน atomic Supabase RPC — Client ไม่มีสิทธิ์ตัด Gem/RNG/เพิ่ม Hero เอง */
+  pullGacha: (bannerId: string, pullCount: 1 | 10, requestId: string) => Promise<GachaPullResult>
   /** ส่งออก save เป็นไฟล์ JSON ไว้สำรอง/ย้ายเครื่อง — คืน null เมื่อสำเร็จ (ไฟล์ถูกดาวน์โหลดแล้ว) */
   exportSave: () => Promise<string | null>
-  /** นำเข้าไฟล์ save ที่ export ไว้ — คืน null เมื่อสำเร็จ คืนข้อความเมื่อผิดพลาด */
-  importSave: (json: string) => Promise<string | null>
 }
 
 export function useAuth(): AuthState {
   const [status, setStatus] = useState<AuthStatus>('loading')
   const [player, setPlayer] = useState<Player | null>(null)
-  // อีเมลไม่ได้อยู่ใน Player (เป็นข้อมูลบัญชี ไม่ใช่ของตัวละคร) จึงเก็บแยกไว้ตรวจสิทธิ์ผู้ดูแล
-  const [email, setEmail] = useState<string | null>(null)
+  // อีเมล/isAdmin ไม่ได้อยู่ใน Player (เป็นข้อมูลบัญชี ไม่ใช่ของตัวละคร) จึงเก็บแยก
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [hasGoogleLinked, setHasGoogleLinked] = useState(false)
+  const [isGuest, setIsGuest] = useState(false)
+
+  const refreshLinkedProviders = useCallback(async () => {
+    const providers = await accounts.getLinkedProviders()
+    setHasGoogleLinked(providers.includes('google'))
+  }, [])
 
   // กู้ session ตอนเปิดเกม เพื่อไม่ต้องล็อกอินซ้ำทุกครั้ง
   useEffect(() => {
@@ -66,39 +115,81 @@ export function useAuth(): AuthState {
     accounts.getSessionPlayer().then((restored) => {
       if (cancelled) return
       setPlayer(restored)
-      setEmail(restored ? accounts.getSessionEmail() : null)
+      setIsAdmin(restored ? accounts.getSessionIsAdmin() : false)
+      setIsGuest(restored ? accounts.getSessionIsGuest() : false)
       setStatus(restored ? 'signed-in' : 'guest')
+      if (restored) void refreshLinkedProviders()
       return undefined
     })
 
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [refreshLinkedProviders])
 
   /** คืน null เมื่อสำเร็จ คืนข้อความเมื่อผิดพลาด */
-  const register = useCallback(async (nextEmail: string, password: string) => {
-    const result = await accounts.register(nextEmail, password)
-    if (!result.ok) return result.error
-    setPlayer(result.player)
-    setEmail(accounts.getSessionEmail())
-    setStatus('signed-in')
-    return null
+  const register = useCallback(
+    async (nextEmail: string, password: string, captchaToken?: string) => {
+      const result = await accounts.register(nextEmail, password, captchaToken)
+      if (!result.ok) return result.error
+      setPlayer(result.player)
+      setIsAdmin(accounts.getSessionIsAdmin())
+      setIsGuest(false)
+      setStatus('signed-in')
+      void refreshLinkedProviders()
+      return null
+    },
+    [refreshLinkedProviders],
+  )
+
+  const login = useCallback(
+    async (nextEmail: string, password: string, captchaToken?: string) => {
+      const result = await accounts.login(nextEmail, password, captchaToken)
+      if (!result.ok) return result.error
+      setPlayer(result.player)
+      setIsAdmin(accounts.getSessionIsAdmin())
+      setIsGuest(false)
+      setStatus('signed-in')
+      void refreshLinkedProviders()
+      return null
+    },
+    [refreshLinkedProviders],
+  )
+
+  const loginAsGuest = useCallback(
+    async (captchaToken?: string) => {
+      const result = await accounts.signInAsGuest(captchaToken)
+      if (!result.ok) return result.error
+      setPlayer(result.player)
+      setIsAdmin(false)
+      setIsGuest(true)
+      setStatus('signed-in')
+      void refreshLinkedProviders()
+      return null
+    },
+    [refreshLinkedProviders],
+  )
+
+  const loginWithGoogle = useCallback(async () => {
+    const result = await accounts.signInWithGoogle()
+    if (result.ok) return null
+    reportError('AUTH_OAUTH_FAIL', 'silent')
+    return result.error ?? 'เข้าสู่ระบบด้วย Google ไม่สำเร็จ'
   }, [])
 
-  const login = useCallback(async (nextEmail: string, password: string) => {
-    const result = await accounts.login(nextEmail, password)
-    if (!result.ok) return result.error
-    setPlayer(result.player)
-    setEmail(accounts.getSessionEmail())
-    setStatus('signed-in')
-    return null
+  const linkGoogleAccount = useCallback(async () => {
+    const result = await accounts.linkGoogleIdentity()
+    if (result.ok) return null
+    reportError('AUTH_OAUTH_FAIL', 'silent')
+    return result.error ?? 'เชื่อมบัญชี Google ไม่สำเร็จ'
   }, [])
 
   const logout = useCallback(async () => {
     await accounts.logout()
     setPlayer(null)
-    setEmail(null)
+    setIsAdmin(false)
+    setHasGoogleLinked(false)
+    setIsGuest(false)
     setStatus('guest')
   }, [])
 
@@ -106,7 +197,7 @@ export function useAuth(): AuthState {
     เขียนความคืบหน้าผู้เล่นลงที่เก็บข้อมูล — คืน true เมื่อบันทึกลงจริง
 
     เดิมทิ้งค่าที่ savePlayer คืนมาโดยไม่ดู ทั้งที่ทุกฟังก์ชันพี่น้องใน accountRepository
-    (register/login/importSave/earnGold/...) เช็คค่าเดียวกันนี้แล้วขึ้นข้อความบอกผู้ใช้
+    (register/login/earnGold/...) เช็คค่าเดียวกันนี้แล้วขึ้นข้อความบอกผู้ใช้
     และนี่คือเส้นทางเขียนของความคืบหน้าทั้งเกม — ทีม อัปเกรด เงิน ผลต่อสู้ เพื่อน
     ผลคือพื้นที่เก็บข้อมูลเต็มแล้วหน้าจอยังโชว์เหมือนเซฟติด ผู้เล่นเล่นต่อจนปิดแท็บ
     แล้วของหายทั้งหมดโดยไม่เคยมีสัญญาณอะไรเลย
@@ -189,6 +280,71 @@ export function useAuth(): AuthState {
     [player],
   )
 
+  const grantGoldAdmin = useCallback(
+    async (amount: number) => {
+      if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
+      const result = await accounts.grantGoldAdmin(amount)
+      if (result.ok) setPlayer(result.player)
+      return result
+    },
+    [player],
+  )
+
+  const grantItemAdmin = useCallback(
+    async (itemId: string, quantity: number) => {
+      if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
+      const result = await accounts.grantItemAdmin(itemId, quantity)
+      if (result.ok) setPlayer(result.player)
+      return result
+    },
+    [player],
+  )
+
+  const grantItem = useCallback(
+    async (itemId: string, quantity: number, source: ItemSource, refId?: string) => {
+      if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
+      const result = await accounts.grantItem(player.uid, itemId, quantity, source, refId)
+      if (result.ok) setPlayer(result.player)
+      return result
+    },
+    [player],
+  )
+
+  const commitLobbyBattleProgression = useCallback(
+    async (payload: accounts.LobbyBattleProgressionRpcPayload) => {
+      if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
+      const result = await accounts.commitLobbyBattleProgression(payload)
+      if (result.ok) setPlayer(result.player)
+      return result
+    },
+    [player],
+  )
+
+  const upsertPendingLobbyReward = useCallback(
+    async (
+      result: import('../game/realtimeBattle/types').RealtimeBattleResult,
+      transactionId: string,
+    ) => accounts.upsertPendingLobbyReward(result, transactionId),
+    [],
+  )
+
+  const clearPendingLobbyReward = useCallback(
+    async (transactionId: string) => accounts.clearPendingLobbyReward(transactionId),
+    [],
+  )
+
+  const getPendingLobbyRewards = useCallback(async () => accounts.getPendingLobbyRewards(), [])
+
+  const pullGacha = useCallback(
+    async (bannerId: string, pullCount: 1 | 10, requestId: string) => {
+      if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
+      const result = await accounts.pullGacha(bannerId, pullCount, requestId)
+      if (result.ok) setPlayer(result.player)
+      return result
+    },
+    [player],
+  )
+
   const exportSave = useCallback(async () => {
     const result = await accounts.exportSave()
     if (!result.ok) return result.error
@@ -198,30 +354,33 @@ export function useAuth(): AuthState {
     return null
   }, [])
 
-  const importSave = useCallback(async (json: string) => {
-    const result = await accounts.importSave(json)
-    if (!result.ok) return result.error
-    setPlayer(result.player)
-    setEmail(accounts.getSessionEmail())
-    setStatus('signed-in')
-    return null
-  }, [])
-
   return {
     status,
     player,
     register,
     login,
+    loginWithGoogle,
+    loginAsGuest,
     logout,
+    hasGoogleLinked,
+    linkGoogleAccount,
+    isGuest,
     updatePlayer,
     earnGold,
     topUpGold,
     topUpGems,
     redeemCoupon,
     findFriendByUid,
-    isAdmin: isAdminEmail(email),
+    isAdmin,
     grantCharacter,
+    grantGoldAdmin,
+    grantItemAdmin,
+    grantItem,
+    commitLobbyBattleProgression,
+    upsertPendingLobbyReward,
+    clearPendingLobbyReward,
+    getPendingLobbyRewards,
+    pullGacha,
     exportSave,
-    importSave,
   }
 }

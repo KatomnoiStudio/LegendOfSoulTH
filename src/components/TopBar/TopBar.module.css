@@ -5,8 +5,11 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
-  padding: max(18px, env(safe-area-inset-top)) clamp(24px, 3vw, 48px) 0;
+  padding: max(18px, env(safe-area-inset-top, 0px))
+    max(clamp(24px, 3vw, 48px), env(safe-area-inset-right, 0px)) 0
+    max(clamp(24px, 3vw, 48px), env(safe-area-inset-left, 0px));
   /* grid item ของ .page (LobbyPage) — ไม่มีนี้ min-width:auto เริ่มต้นจะยึด
+
      max-content ของลูก (โปรไฟล์+wallet) แล้วดันแถวกว้างเกินจอ ล้นออกไปโดน
      overflow:hidden ของ .page ตัดทิ้งเงียบ ๆ (ไม่มี scrollbar ให้เห็นด้วย) */
   min-width: 0;
@@ -20,66 +23,308 @@
   min-width: clamp(285px, 24vw, 370px);
   padding: 13px 29px 12px 12px;
   border: 1px solid rgb(225 183 93 / 64%);
-  clip-path: polygon(13px 0, calc(100% - 30px) 0, 100% 50%, calc(100% - 30px) 100%, 13px 100%, 0 calc(100% - 13px), 0 13px);
+  clip-path: polygon(
+    13px 0,
+    calc(100% - 30px) 0,
+    100% 50%,
+    calc(100% - 30px) 100%,
+    13px 100%,
+    0 calc(100% - 13px),
+    0 13px
+  );
   background:
     linear-gradient(100deg, rgb(64 171 145 / 12%), transparent 45%),
     linear-gradient(160deg, rgb(15 35 47 / 96%), rgb(5 15 25 / 92%));
-  box-shadow: 0 11px 30px rgb(0 0 0 / 50%), inset 0 0 0 4px rgb(3 9 15 / 68%), inset 0 0 0 5px rgb(102 204 169 / 18%);
+  box-shadow:
+    0 11px 30px rgb(0 0 0 / 50%),
+    inset 0 0 0 4px rgb(3 9 15 / 68%),
+    inset 0 0 0 5px rgb(102 204 169 / 18%);
   backdrop-filter: blur(10px);
   text-align: start;
-  transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease;
 }
-.profile::after { content: ''; position: absolute; right: 12px; width: 5px; height: 54%; background: linear-gradient(transparent, #d5a950, transparent); opacity: 0.65; }
-.profile:hover, .profile:focus-visible { outline: none; transform: translateY(-3px); border-color: #f4d38a; box-shadow: 0 15px 36px rgb(0 0 0 / 58%), inset 0 0 0 4px rgb(3 9 15 / 68%), inset 0 0 0 5px rgb(102 204 169 / 32%), 0 0 24px rgb(77 192 157 / 12%); }
-.profile:active { transform: translateY(0) scale(0.985); }
+.profile::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  width: 5px;
+  height: 54%;
+  background: linear-gradient(transparent, #d5a950, transparent);
+  opacity: 0.65;
+}
+.profile:hover,
+.profile:focus-visible {
+  outline: none;
+  transform: translateY(-3px);
+  border-color: #f4d38a;
+  box-shadow:
+    0 15px 36px rgb(0 0 0 / 58%),
+    inset 0 0 0 4px rgb(3 9 15 / 68%),
+    inset 0 0 0 5px rgb(102 204 169 / 32%),
+    0 0 24px rgb(77 192 157 / 12%);
+}
+.profile:active {
+  transform: translateY(0) scale(0.985);
+}
 
-.profileTag { position: absolute; top: -7px; left: 90px; padding: 1px 10px; border-inline: 1px solid rgb(103 203 168 / 35%); background: #0b1922; color: rgb(130 213 184 / 70%); font: 700 0.43rem/1.5 var(--font-display); letter-spacing: 0.2em; }
-.avatarWrap { position: relative; flex: none; }
-.avatarFrame { --frame-size: 4rem; }
-.levelBadge { position: absolute; inset-block-end: -0.34rem; inset-inline-start: 50%; transform: translateX(-50%); min-width: 2.2rem; padding: 0.14rem 0.45rem 0.08rem; border: 1px solid #3e2707; clip-path: polygon(12% 0, 88% 0, 100% 36%, 91% 100%, 9% 100%, 0 36%); background: linear-gradient(180deg, #ffe49b, #d69d3b 58%, #8e5a14); color: #231603; font-family: var(--font-display); font-size: 0.64rem; font-weight: 900; line-height: 1.3; text-align: center; box-shadow: 0 3px 6px rgb(0 0 0 / 65%), inset 0 1px #fff2c3; }
+.profileTag {
+  position: absolute;
+  top: -7px;
+  left: 90px;
+  padding: 1px 10px;
+  border-inline: 1px solid rgb(103 203 168 / 35%);
+  background: #0b1922;
+  color: rgb(130 213 184 / 70%);
+  font: 700 0.43rem/1.5 var(--font-display);
+  letter-spacing: 0.2em;
+}
+.avatarWrap {
+  position: relative;
+  flex: none;
+}
+.avatarFrame {
+  --frame-size: 4rem;
+}
+.levelBadge {
+  position: absolute;
+  inset-block-end: -0.34rem;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  min-width: 2.2rem;
+  padding: 0.14rem 0.45rem 0.08rem;
+  border: 1px solid #3e2707;
+  clip-path: polygon(12% 0, 88% 0, 100% 36%, 91% 100%, 9% 100%, 0 36%);
+  background: linear-gradient(180deg, #ffe49b, #d69d3b 58%, #8e5a14);
+  color: #231603;
+  font-family: var(--font-display);
+  font-size: 0.64rem;
+  font-weight: 900;
+  line-height: 1.3;
+  text-align: center;
+  box-shadow:
+    0 3px 6px rgb(0 0 0 / 65%),
+    inset 0 1px #fff2c3;
+}
 
-.identity { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.name { margin: 0; font-family: var(--font-display); font-size: 1rem; font-weight: 800; letter-spacing: 0.05em; color: #f4e6c4; text-shadow: 0 2px 6px #000; white-space: nowrap; }
-.power { max-width: 100%; overflow: hidden; font-size: 0.63rem; color: rgb(158 198 186 / 62%); letter-spacing: 0.07em; white-space: nowrap; text-overflow: ellipsis; }
-.expRow { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
-.expTrack { position: relative; width: clamp(105px, 9vw, 145px); height: 7px; border: 1px solid rgb(223 181 89 / 28%); clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%); background: rgb(2 8 14 / 88%); overflow: hidden; }
-.expFill { position: relative; height: 100%; overflow: hidden; background: linear-gradient(90deg, #3da889, #81dfbf 65%, #f2cf78); box-shadow: 0 0 9px rgb(92 211 170 / 48%); transition: width var(--dur-xslow) ease-out; }
-.expFill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 35%, rgb(255 255 255 / 50%) 50%, transparent 65%); animation: sheen 3.6s ease-in-out infinite; }
-.expText { font-size: 0.58rem; font-variant-numeric: tabular-nums; color: rgb(202 211 200 / 52%); white-space: nowrap; }
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #f4e6c4;
+  text-shadow: 0 2px 6px #000;
+  white-space: nowrap;
+}
+.power {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.63rem;
+  color: rgb(158 198 186 / 62%);
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.expRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+}
+.expTrack {
+  position: relative;
+  width: clamp(105px, 9vw, 145px);
+  height: 7px;
+  border: 1px solid rgb(223 181 89 / 28%);
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+  background: rgb(2 8 14 / 88%);
+  overflow: hidden;
+}
+.expFill {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(90deg, #3da889, #81dfbf 65%, #f2cf78);
+  box-shadow: 0 0 9px rgb(92 211 170 / 48%);
+  transition: width var(--dur-xslow) ease-out;
+}
+.expFill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 35%, rgb(255 255 255 / 50%) 50%, transparent 65%);
+  animation: sheen 3.6s ease-in-out infinite;
+}
+.expText {
+  font-size: 0.58rem;
+  font-variant-numeric: tabular-nums;
+  color: rgb(202 211 200 / 52%);
+  white-space: nowrap;
+}
 
-.wallet { position: relative; display: flex; align-items: center; gap: 11px; padding-top: 8px; }
-.walletLabel { position: absolute; top: -5px; right: 12px; color: rgb(225 190 117 / 47%); font: 700 0.42rem/1 var(--font-display); letter-spacing: 0.24em; }
-.currency { position: relative; isolation: isolate; display: grid; grid-template-columns: 25px minmax(58px, auto) 27px; align-items: center; gap: 7px; min-height: 43px; padding: 5px 6px 5px 11px; border: 1px solid rgb(218 177 91 / 52%); clip-path: polygon(10px 0, calc(100% - 9px) 0, 100% 50%, calc(100% - 9px) 100%, 10px 100%, 0 50%); background: linear-gradient(160deg, rgb(16 38 48 / 96%), rgb(5 17 28 / 93%)); box-shadow: 0 8px 24px rgb(0 0 0 / 48%), inset 0 0 0 3px rgb(3 9 15 / 65%); backdrop-filter: blur(9px); }
-.currencyGlow { position: absolute; z-index: -1; inset: 0; opacity: 0.13; background: radial-gradient(circle at 17% 50%, currentColor, transparent 48%); }
-.currencyIcon { width: 1.35rem; height: 1.35rem; }
-.gold { color: #e8b94e; }
-.gem { color: var(--c-gem); }
-.gold .currencyIcon { filter: drop-shadow(0 0 7px rgb(242 181 44 / 70%)); }
-.gem .currencyIcon { filter: drop-shadow(0 0 7px rgb(98 210 255 / 65%)); }
-.amount { color: #f4e8cb; font-family: var(--font-display); font-size: 0.82rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: 0.06em; text-shadow: 0 2px 4px #000; }
+.wallet {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding-top: 8px;
+}
+.walletLabel {
+  position: absolute;
+  top: -5px;
+  right: 12px;
+  color: rgb(225 190 117 / 47%);
+  font: 700 0.42rem/1 var(--font-display);
+  letter-spacing: 0.24em;
+}
+.currency {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: 25px minmax(58px, auto) 27px;
+  align-items: center;
+  gap: 7px;
+  min-height: 43px;
+  padding: 5px 6px 5px 11px;
+  border: 1px solid rgb(218 177 91 / 52%);
+  clip-path: polygon(10px 0, calc(100% - 9px) 0, 100% 50%, calc(100% - 9px) 100%, 10px 100%, 0 50%);
+  background: linear-gradient(160deg, rgb(16 38 48 / 96%), rgb(5 17 28 / 93%));
+  box-shadow:
+    0 8px 24px rgb(0 0 0 / 48%),
+    inset 0 0 0 3px rgb(3 9 15 / 65%);
+  backdrop-filter: blur(9px);
+}
+.currencyGlow {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: 0.13;
+  background: radial-gradient(circle at 17% 50%, currentColor, transparent 48%);
+}
+.currencyIcon {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+.gold {
+  color: #e8b94e;
+}
+.gem {
+  color: var(--c-gem);
+}
+.gold .currencyIcon {
+  filter: drop-shadow(0 0 7px rgb(242 181 44 / 70%));
+}
+.gem .currencyIcon {
+  filter: drop-shadow(0 0 7px rgb(98 210 255 / 65%));
+}
+.amount {
+  color: #f4e8cb;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  text-shadow: 0 2px 4px #000;
+}
 /* 24px = floor ล่างสุดของ WCAG 2.2 AA (SC 2.5.8 Target Size Minimum) — เดิม 20px ต่ำกว่านั้น
    (gold-standard UX audit, 2026-08-06) */
-.addButton { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid #ebc46d; rotate: 45deg; background: linear-gradient(145deg, #f2c968, #8e5c18); color: #261805; box-shadow: 0 3px 8px rgb(0 0 0 / 55%), inset 0 1px #fff0ba; transition: transform 180ms ease, filter 180ms ease; }
+.addButton {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #ebc46d;
+  rotate: 45deg;
+  background: linear-gradient(145deg, #f2c968, #8e5c18);
+  color: #261805;
+  box-shadow:
+    0 3px 8px rgb(0 0 0 / 55%),
+    inset 0 1px #fff0ba;
+  transition:
+    transform 180ms ease,
+    filter 180ms ease;
+}
 /* % ของ .addButton เอง แทน rem ตายตัว จะได้ย่อตามปุ่มพ่อจริง ๆ */
-.addButton svg { width: 52%; height: 52%; rotate: -45deg; }
-.addButton:hover:not(:disabled) { transform: scale(1.14) rotate(90deg); filter: brightness(1.18); }
-.addButton:active:not(:disabled) { transform: scale(0.9) rotate(90deg); }
-.addButton:disabled { cursor: not-allowed; filter: saturate(0.3) brightness(0.7); opacity: 0.6; }
+.addButton svg {
+  width: 52%;
+  height: 52%;
+  rotate: -45deg;
+}
+.addButton:hover:not(:disabled) {
+  transform: scale(1.14) rotate(90deg);
+  filter: brightness(1.18);
+}
+.addButton:active:not(:disabled) {
+  transform: scale(0.9) rotate(90deg);
+}
+.addButton:disabled {
+  cursor: not-allowed;
+  filter: saturate(0.3) brightness(0.7);
+  opacity: 0.6;
+}
 
-@keyframes sheen { 0%, 100% { transform: translateX(-130%); } 55% { transform: translateX(130%); } }
+@keyframes sheen {
+  0%,
+  100% {
+    transform: translateX(-130%);
+  }
+  55% {
+    transform: translateX(130%);
+  }
+}
 
 @media (max-width: 760px) {
-  .bar { padding-inline: 12px; gap: 8px; }
-  .profile { min-width: 0; padding: 8px 17px 8px 8px; }
-  .profileTag, .expText { display: none; }
-  .avatarFrame { --frame-size: 3rem; }
-  .name { font-size: 0.76rem; }
-  .expTrack { width: 75px; }
-  .wallet { flex-direction: column; align-items: flex-end; gap: 4px; padding-top: 0; }
-  .walletLabel { display: none; }
-  .currency { grid-template-columns: 20px 45px 22px; min-height: 32px; padding: 3px 4px 3px 8px; }
-  .currencyIcon { width: 1rem; height: 1rem; }
-  .amount { font-size: 0.67rem; }
+  .bar {
+    padding-inline: 12px;
+    gap: 8px;
+  }
+  .profile {
+    min-width: 0;
+    padding: 8px 17px 8px 8px;
+  }
+  .profileTag,
+  .expText {
+    display: none;
+  }
+  .avatarFrame {
+    --frame-size: 3rem;
+  }
+  .name {
+    font-size: 0.76rem;
+  }
+  .expTrack {
+    width: 75px;
+  }
+  .wallet {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    padding-top: 0;
+  }
+  .walletLabel {
+    display: none;
+  }
+  .currency {
+    grid-template-columns: 20px 45px 22px;
+    min-height: 32px;
+    padding: 3px 4px 3px 8px;
+  }
+  .currencyIcon {
+    width: 1rem;
+    height: 1rem;
+  }
+  .amount {
+    font-size: 0.67rem;
+  }
 }
 
 /* Thai fantasy skin — ภาพวาดพญานาคและคลังสมบัติ */
@@ -102,12 +347,15 @@
   backdrop-filter: none;
 }
 
-.profile::after { display: none; }
+.profile::after {
+  display: none;
+}
 .profile:hover,
 .profile:focus-visible {
   border-color: transparent;
   box-shadow: none;
-  filter: brightness(1.08) drop-shadow(0 16px 15px rgb(0 0 0 / 70%)) drop-shadow(0 0 8px rgb(240 187 59 / 35%));
+  filter: brightness(1.08) drop-shadow(0 16px 15px rgb(0 0 0 / 70%))
+    drop-shadow(0 0 8px rgb(240 187 59 / 35%));
 }
 .profileTag {
   top: 27px;
@@ -136,12 +384,37 @@
   margin-block-end: -2px;
   padding: 5px 12px 4px 14px;
 }
-.name { max-width: 100%; overflow: hidden; color: #f6d885; font-size: 1.15rem; text-overflow: ellipsis; text-shadow: 0 2px 4px #000, 0 0 8px rgb(222 163 48 / 22%); }
-.power { color: #a8e0c8; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-shadow: 0 2px 4px #000; }
-.expRow { margin-top: 3px; }
-.expText { font-size: 0.7rem; }
-.expTrack { border-color: rgb(241 195 80 / 58%); background: rgb(25 7 14 / 88%); }
-.expFill { background: linear-gradient(90deg, #8d2631, #d79834 58%, #ffe392); box-shadow: 0 0 9px rgb(224 161 48 / 42%); }
+.name {
+  max-width: 100%;
+  overflow: hidden;
+  color: #f6d885;
+  font-size: 1.15rem;
+  text-overflow: ellipsis;
+  text-shadow:
+    0 2px 4px #000,
+    0 0 8px rgb(222 163 48 / 22%);
+}
+.power {
+  color: #a8e0c8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-shadow: 0 2px 4px #000;
+}
+.expRow {
+  margin-top: 3px;
+}
+.expText {
+  font-size: 0.7rem;
+}
+.expTrack {
+  border-color: rgb(241 195 80 / 58%);
+  background: rgb(25 7 14 / 88%);
+}
+.expFill {
+  background: linear-gradient(90deg, #8d2631, #d79834 58%, #ffe392);
+  box-shadow: 0 0 9px rgb(224 161 48 / 42%);
+}
 .avatarWrap::before {
   position: absolute;
   inset: -9px;
@@ -152,7 +425,10 @@
   content: '';
 }
 
-.wallet { gap: 9px; padding-top: 12px; }
+.wallet {
+  gap: 9px;
+  padding-top: 12px;
+}
 .walletLabel {
   top: -3px;
   right: 50%;
@@ -170,11 +446,21 @@
   min-height: 38px;
   padding: 3px 9px 3px 10px;
   border: 1px solid rgb(240 191 72 / 72%);
-  clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0 50%);
+  clip-path: polygon(
+    12px 0,
+    calc(100% - 12px) 0,
+    100% 50%,
+    calc(100% - 12px) 100%,
+    12px 100%,
+    0 50%
+  );
   background:
     radial-gradient(circle at 18% 45%, rgb(226 171 50 / 20%), transparent 33%),
     linear-gradient(155deg, rgb(50 29 35 / 97%), rgb(8 18 34 / 96%) 52%, rgb(11 42 37 / 96%));
-  box-shadow: 0 8px 20px rgb(0 0 0 / 60%), inset 0 0 0 3px rgb(4 8 20 / 65%), inset 0 0 18px rgb(227 176 50 / 9%);
+  box-shadow:
+    0 8px 20px rgb(0 0 0 / 60%),
+    inset 0 0 0 3px rgb(4 8 20 / 65%),
+    inset 0 0 18px rgb(227 176 50 / 9%);
 }
 .currency::after {
   position: absolute;
@@ -193,24 +479,52 @@
   pointer-events: none;
 }
 .gold .currencyIcon,
-.gem .currencyIcon { filter: drop-shadow(0 3px 4px rgb(0 0 0 / 65%)); }
-.gem { color: var(--c-gem); }
-.amount { font-size: 1.08rem; }
+.gem .currencyIcon {
+  filter: drop-shadow(0 3px 4px rgb(0 0 0 / 65%));
+}
+.gem {
+  color: var(--c-gem);
+}
+.amount {
+  font-size: 1.08rem;
+}
 
-.levelBadge { font-size: 0.77rem; }
+.levelBadge {
+  font-size: 0.77rem;
+}
 
 @media (max-width: 760px) {
-  .profile { width: 300px; height: 108px; min-height: 0; padding: 32px 24px 10px 36px; }
-  .identity { margin-block-end: -1px; padding: 3px 8px 3px 9px; }
+  .profile {
+    width: 300px;
+    height: 108px;
+    min-height: 0;
+    padding: 32px 24px 10px 36px;
+  }
+  .identity {
+    margin-block-end: -1px;
+    padding: 3px 8px 3px 9px;
+  }
   /*
      .name/.power ต้องประกาศซ้ำในนี้ เพราะ block นี้มาหลัง block มือถือทั่วไป (บรรทัด ~63)
      แต่มาก่อนกฎแบบไม่มี media query ที่บรรทัด ~137 — ถ้าไม่ประกาศซ้ำ ฟอนต์เดสก์ท็อป
      (1.15rem) จะชนะบนมือถือ ทำให้ชื่อ/พลังรบล้นกรอบที่แคบลง
   */
-  .name { font-size: 0.86rem; }
-  .power { font-size: 0.6rem; }
-  .currency { grid-template-columns: 22px minmax(66px, auto) 19px; gap: 6px; min-height: 29px; padding: 2px 6px 2px 7px; }
-  .currencyIcon { width: 23px; height: 23px; }
+  .name {
+    font-size: 0.86rem;
+  }
+  .power {
+    font-size: 0.6rem;
+  }
+  .currency {
+    grid-template-columns: 22px minmax(66px, auto) 19px;
+    gap: 6px;
+    min-height: 29px;
+    padding: 2px 6px 2px 7px;
+  }
+  .currencyIcon {
+    width: 23px;
+    height: 23px;
+  }
 }
 
 /*
@@ -241,10 +555,21 @@
     padding: 30px calc(var(--frame-w) * 0.084) 10px calc(var(--frame-w) * 0.134);
   }
 
-  .avatarFrame { --frame-size: 2.4rem; }
-  .avatarWrap::before { inset: -5px; }
-  .levelBadge { font-size: 0.46rem; min-width: 1.5rem; }
-  .profileTag { top: 16px; padding: 1px 10px; font-size: 0.4rem; }
+  .avatarFrame {
+    --frame-size: 2.4rem;
+  }
+  .avatarWrap::before {
+    inset: -5px;
+  }
+  .levelBadge {
+    font-size: 0.46rem;
+    min-width: 1.5rem;
+  }
+  .profileTag {
+    top: 16px;
+    padding: 1px 10px;
+    font-size: 0.4rem;
+  }
 
   /*
      ชื่อ/พลังรบเคยล้นออกนอกลายกรอบ เพราะกล่องข้อความถูกวางด้วย padding + flex
@@ -267,14 +592,22 @@
   /* ซ่อนแถบ EXP (ทั้งหลอดและตัวเลข x/y ที่อยู่แถวเดียวกัน) เฉพาะ desktop ตามที่สั่ง
      เพื่อคืนพื้นที่แนวตั้งให้ชื่อ/พลังรบ — บนมือถือยังแสดงตามเดิม ไม่ถูกแตะ
      display:none ตัดออกจาก accessibility tree ไปด้วย จึงไม่เหลือ progressbar ที่มองไม่เห็นค้างไว้ */
-  .expRow { display: none; }
+  .expRow {
+    display: none;
+  }
 
   /* พื้นที่แนวตั้งที่ใช้ได้จริง ~34.7px และตอนนี้เหลือแค่ 2 บรรทัด จึงขยายฟอนต์ได้
      line-height ระบุชัดเพื่อให้คำนวณได้แน่นอน ไม่ต้องลุ้นค่า normal ของแต่ละฟอนต์
      (12px×1.05 + gap 2px + 14.4px×1.05 ≈ 29.7px เหลือขอบบน/ล่างอย่างละ ~2.5px)
      ตามที่สั่ง: ตัวอักษรชื่อเล็กกว่าพลังรบ */
-  .name { font-size: 0.75rem; line-height: 1.05; }
-  .power { font-size: 0.9rem; line-height: 1.05; }
+  .name {
+    font-size: 0.75rem;
+    line-height: 1.05;
+  }
+  .power {
+    font-size: 0.9rem;
+    line-height: 1.05;
+  }
 
   /* คลังสมบัติ: สูงลด 30% (38px→27px), กว้างขึ้น 20% (ช่องตัวเลข 96px→115px)
      ไอคอนต้องลงมาที่ 20px คู่กัน ไม่งั้นความสูงจริงจะถูกไอคอนดันไว้ ไม่ลดจริงตามที่ตั้งใจ */
@@ -284,5 +617,8 @@
     min-height: 27px;
     padding: 2px 11px;
   }
-  .currencyIcon { width: 20px; height: 20px; }
+  .currencyIcon {
+    width: 20px;
+    height: 20px;
+  }
 }

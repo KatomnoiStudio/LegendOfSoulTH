@@ -12,10 +12,13 @@
  * ────────────────────────────────────────────────────────────
  */
 
+import type { EffectDefinition } from './EffectsSystem'
+import type { MovePhaseOverrides } from './combatMoveSchema'
+
 export interface AttackDefinition {
   id: string
   /** ชุดเฟรมที่จะเล่น (ดู src/game/battleSpriteSequences.ts) */
-  animationId: 'attack-1' | 'attack-2' | 'attack-3' | 'skill-1' | 'skill-2'
+  animationId: 'attack-1' | 'attack-2' | 'attack-3' | 'skill-1'
 
   startupMs: number
   activeMs: number
@@ -28,59 +31,66 @@ export interface AttackDefinition {
   damageMultiplier: number
   /** ระยะจากกึ่งกลางตัวผู้โจมตีถึงขอบนอกของ hitbox */
   range: number
-  /** ความกว้างของกรวยโจมตี (องศา) — 360 = รอบตัว */
+  /**
+   * รูปทรง hitbox
+   * - horizontal: โจมตีซ้าย/ขวา + depth tolerance (P2 basic attack)
+   * - radial: กรวย/รอบตัว (สกิล — ยังใช้ arcDegrees)
+   */
+  hitShape: 'horizontal' | 'radial'
+  /** ความกว้างของกรวยโจมตี (องศา) — ใช้เมื่อ hitShape = radial */
   arcDegrees: number
+  /** ระยะ depth ที่ยังโดนได้ (runtime y) — ใช้เมื่อ hitShape = horizontal */
+  depthTolerance: number
   knockback: number
+  /**
+   * ล็อกเป้าหมายที่ใกล้สุดตอนเริ่มร่าย แล้วคงเป้านั้นไว้ตลอดช่วง active window เดียว
+   * (ระบบ #8 Skill-Targeting) — ไม่ใส่ = พฤติกรรมเดิม (กวาด hitShape ตามปกติ)
+   */
+  targetLock?: 'nearest'
+  /**
+   * เอฟเฟกต์ที่ไม่ใช่ดาเมจ (heal/buff/cc/summon) — ระบบ #7 Effects System
+   * ไม่ใส่ = ท่าดาเมจล้วน พฤติกรรมเดิมทุกประการ (ดู EffectsSystem.ts)
+   */
+  effects?: EffectDefinition[]
+  /**
+   * ท่านี้ทำ Knockdown ได้ (§3.6.12: elite/boss + heavy move/combo finisher) — DamageSystem
+   * เป็นคนเช็คว่าเป้าหมาย eligible ไหม (tier elite/entityType boss) ไม่ใช่ท่านี้เอง
+   * ไม่ใส่ = ท่าปกติ ไม่ทำ knockdown (พฤติกรรมเดิม)
+   */
+  knockdown?: boolean
+  /**
+   * ระยะทางพุ่งตัวละครไปข้างหน้า (§3.6.2/§3.6.11) ระหว่างช่วง startupMs
+   * ไม่ใส่ = ไม่พุ่ง (พฤติกรรมเดิม)
+   */
+  lungeDistance?: number
+
+  /** Wind-up before startup — enemy telegraph (ms). Default 0 for player attacks. */
+  telegraphMs?: number
+  /** Stun applied to target — default 200ms baseline. */
+  hitstunMs?: number
+  /** Knockdown / getUp durations (ms) — defaults from COMBAT_DEFAULTS. */
+  knockdownMs?: number
+  getUpMs?: number
+  /** Default true — false for ultimate setup etc. */
+  interruptible?: boolean
+  phaseOverrides?: MovePhaseOverrides
+  /** Multi-hit active window slices (ultimate). */
+  strikeCount?: number
+  /** Hero Kit missing fields per Done-criterion #1 */
+  castDelayMs?: number
+  movementDuringCast?: boolean
+  multiTarget?: boolean
 }
 
 /**
- * คอมโบสามไม้ของผู้เล่น (§14)
- *
- * ไม้ที่สามแรงและกระเด็นไกลกว่าสองไม้แรกชัดเจน เพื่อให้การต่อคอมโบจนจบมีรางวัลจริง
- * ไม่ใช่แค่ตีเร็วขึ้น และ recovery ของไม้สามยาวกว่าเพื่อไม่ให้วนคอมโบไม่รู้จบ
+ * คอมโบสามไม้ — ย้ายไป heroes/attackChains.ts (per-hero chains, P10)
+ * คง re-export ไว้เพื่อ backward compat กับเทสต์/โมดูลเดิม
  */
-export const PLAYER_ATTACK_CHAIN: AttackDefinition[] = [
-  {
-    id: 'monkey-attack-1',
-    animationId: 'attack-1',
-    startupMs: 110,
-    activeMs: 90,
-    recoveryMs: 180,
-    comboWindowStartMs: 110,
-    comboWindowEndMs: 700,
-    damageMultiplier: 1,
-    range: 120,
-    arcDegrees: 110,
-    knockback: 60,
-  },
-  {
-    id: 'monkey-attack-2',
-    animationId: 'attack-2',
-    startupMs: 100,
-    activeMs: 90,
-    recoveryMs: 190,
-    comboWindowStartMs: 100,
-    comboWindowEndMs: 700,
-    damageMultiplier: 1.15,
-    range: 128,
-    arcDegrees: 120,
-    knockback: 80,
-  },
-  {
-    id: 'monkey-attack-3',
-    animationId: 'attack-3',
-    startupMs: 150,
-    activeMs: 120,
-    recoveryMs: 320,
-    // ไม้สุดท้ายไม่มีหน้าต่างต่อคอมโบ — จบคอมโบแล้วต้องเริ่มใหม่
-    comboWindowStartMs: 0,
-    comboWindowEndMs: 0,
-    damageMultiplier: 1.55,
-    range: 150,
-    arcDegrees: 150,
-    knockback: 210,
-  },
-]
+export {
+  getPlayerAttackChain,
+  PLAYER_ATTACK_CHAIN,
+  HERO_ATTACK_CHAINS,
+} from '../heroes/attackChains'
 
 /**
  * ค่าจังหวะของระบบคอมโบ — อยู่ที่เดียว ห้าม hard-code กระจายหลายไฟล์ (§14)
@@ -95,17 +105,8 @@ export const COMBO_CONFIG = {
   hitStopMs: 55,
 } as const
 
-/** ค่าจังหวะของ dash (§17) */
-export const DASH_CONFIG = {
-  durationMs: 220,
-  invulnerableMs: 170,
-  cooldownMs: 1300,
-  /** ระยะทางรวมของการพุ่งหนึ่งครั้ง (หน่วย runtime) */
-  distance: 300,
-} as const
-
 /**
- * สกิลหมุนกระบวนทองคำของหงอคง (§18)
+ * สกิลหมุนกระบวนทองคำของหงอคง — Skill 1 (Blueprint v3 P3)
  *
  * โจมตีรอบตัว 360° ช่วง active ยาวกว่าคอมโบไม้เดียว — ศัตรูแต่ละตัวโดนได้ครั้งเดียวต่อการร่าย
  * damageMultiplier สูงกว่าไม้สามของคอมโบเล็กน้อย เพื่อให้คูลดาวน์ 8 วินาทีคุ้มค่า
@@ -120,54 +121,194 @@ export const MONKEY_SPINNING_STAFF: AttackDefinition = {
   comboWindowEndMs: 0,
   damageMultiplier: 1.65,
   range: 158,
+  hitShape: 'radial',
   arcDegrees: 360,
+  depthTolerance: 0,
   knockback: 140,
 }
 
-/** Erlang's second, gold-lightning skill uses its own one-shot animation. */
-export const ERLANG_GOLDEN_LIGHTNING: AttackDefinition = {
-  id: 'erlang-golden-lightning',
-  animationId: 'skill-2',
-  // Six casts play at 10fps. The sixth is the final skill frame; the next
-  // visual frame is canonical Idle, so do not hold a recovery pose here.
-  startupMs: 200,
-  activeMs: 200,
-  recoveryMs: 200,
+/** สกิล 2 — พุ่งไม้เท้าแนวนอน (magnitude still playtest-pending — placeholder content, P3 framework) */
+export const MONKEY_STAFF_THRUST: AttackDefinition = {
+  id: 'monkey-staff-thrust',
+  animationId: 'attack-2',
+  startupMs: 140,
+  activeMs: 100,
+  recoveryMs: 360,
   comboWindowStartMs: 0,
   comboWindowEndMs: 0,
-  damageMultiplier: 1.65,
-  range: 158,
-  arcDegrees: 360,
-  knockback: 140,
+  damageMultiplier: 1.35,
+  range: 145,
+  hitShape: 'horizontal',
+  arcDegrees: 0,
+  depthTolerance: 92,
+  knockback: 120,
+  castDelayMs: 250,
 }
 
-/** ค่าจังหวะของสกิล (§18) — อยู่ที่เดียว ห้าม hard-code กระจายหลายไฟล์ */
+/** สกิล 3 — กวาดไม้กว้าง (magnitude still playtest-pending — placeholder content, P3 framework) */
+export const MONKEY_STAFF_SWEEP: AttackDefinition = {
+  id: 'monkey-staff-sweep',
+  animationId: 'attack-3',
+  startupMs: 160,
+  activeMs: 130,
+  recoveryMs: 400,
+  comboWindowStartMs: 0,
+  comboWindowEndMs: 0,
+  damageMultiplier: 1.5,
+  range: 138,
+  hitShape: 'horizontal',
+  arcDegrees: 0,
+  depthTolerance: 110,
+  knockback: 160,
+  castDelayMs: 320,
+}
+
+/**
+ * อัลติเมท — กระบวนทองคำรุนแรง
+ *
+ * targetLock: 'nearest' — ล็อกศัตรูที่ใกล้สุดตอนเริ่มร่าย คงเป้านั้นไว้ตลอด active window
+ * เดียวที่มีตอนนี้ (ระบบ #8, ดู docs/agent-blueprint/08-skill-targeting-system.md)
+ *
+ * damageMultiplier 2026-08-09 (CoalBoard opinion-lane, ask CB): เดิม 2.4 คูณอิสระต่อ strike
+ * (strikeCount 4, ไม่มีการหาร per-strike ใน SkillSystem/DamageSystem) รวมแล้ว 9.6x ATK ต่อการร่ายครั้ง
+ * — หลุด scale จากคีย์ทั้งชุด (combo finisher 1.55x, S1 1.65x, S3 1.5x) ปรับเหลือ 1.1 ต่อ strike
+ * (รวม 4.4x ≈ 2.8x ของ finisher — ยังเป็น payoff สูงสุดในชุดแต่ไม่ใช่ outlier). ตัวเลขสัมบูรณ์สุดท้าย
+ * ยังรอ playtest — นี่คือ internal-consistency fix ไม่ใช่ final lock.
+ */
+export const MONKEY_GOLDEN_FURY: AttackDefinition = {
+  id: 'monkey-golden-fury',
+  animationId: 'skill-1',
+  startupMs: 220,
+  activeMs: 520,
+  recoveryMs: 620,
+  comboWindowStartMs: 0,
+  comboWindowEndMs: 0,
+  damageMultiplier: 1.1,
+  range: 175,
+  hitShape: 'radial',
+  arcDegrees: 360,
+  depthTolerance: 0,
+  knockback: 200,
+  targetLock: 'nearest',
+  interruptible: false,
+  phaseOverrides: {
+    telegraph: { interruptible: false },
+    startup: { interruptible: false },
+    active: { interruptible: false },
+    recovery: { interruptible: true },
+  },
+  strikeCount: 4,
+  castDelayMs: 480,
+}
+
+/** ค่าจังหวะของสกิล (Blueprint v3 P3) — อยู่ที่เดียว ห้าม hard-code กระจายหลายไฟล์ */
 export const SKILL_CONFIG = {
-  cooldownMs: 8000,
+  skill1CooldownMs: 8000,
+  skill2CooldownMs: 6000,
+  skill3CooldownMs: 10000,
   /** i-frame ช่วงเปิดท่า — สั้นกว่าเวลาร่ายทั้งหมด ไม่ให้รอดฟรีตลอดท่า */
   invulnerableMs: 280,
+  ultimateInvulnerableMs: 420,
 } as const
 
-/** ท่าโจมตีของศัตรู — จังหวะเดียวกับที่ EnemyAISystem ใช้ตัดสินใจ */
-export const ENEMY_ATTACK: AttackDefinition = {
+/** ท่าโจมตีม็อบ — telegraph ก่อน startup/active/recovery */
+export const ENEMY_ATTACK_MELEE: AttackDefinition = {
   id: 'enemy-melee',
   animationId: 'attack-1',
-  startupMs: 320,
+  telegraphMs: 280,
+  startupMs: 120,
   activeMs: 140,
   recoveryMs: 420,
   comboWindowStartMs: 0,
   comboWindowEndMs: 0,
   damageMultiplier: 1,
   range: 110,
-  arcDegrees: 120,
+  hitShape: 'horizontal',
+  arcDegrees: 0,
+  depthTolerance: 88,
   knockback: 90,
+  hitstunMs: 200,
 }
 
+/** ท่า elite — ช้ากว่าเล็กน้อย ล้มได้ */
+export const ENEMY_ATTACK_ELITE: AttackDefinition = {
+  id: 'enemy-elite-slam',
+  animationId: 'attack-1',
+  telegraphMs: 340,
+  startupMs: 160,
+  activeMs: 160,
+  recoveryMs: 480,
+  comboWindowStartMs: 0,
+  comboWindowEndMs: 0,
+  damageMultiplier: 1.25,
+  range: 118,
+  hitShape: 'horizontal',
+  arcDegrees: 0,
+  depthTolerance: 92,
+  knockback: 120,
+  hitstunMs: 240,
+  knockdown: true,
+}
+
+/** @deprecated Use ENEMY_ATTACK_MELEE — kept for imports */
+export const ENEMY_ATTACK = ENEMY_ATTACK_MELEE
+
+/** Boss attack rows — telegraphMs 800–1200ms baseline (§3.6.12) */
+export const SPIRIT_GUARDIAN_BOSS_PHASE_1_ATTACKS: AttackDefinition[] = [
+  {
+    ...ENEMY_ATTACK_MELEE,
+    id: 'sgb-phase1-strike',
+    telegraphMs: 900,
+    damageMultiplier: 1.1,
+    range: 118,
+  },
+  {
+    ...ENEMY_ATTACK_MELEE,
+    id: 'sgb-phase1-sweep',
+    telegraphMs: 1000,
+    damageMultiplier: 1.05,
+    range: 130,
+    hitShape: 'radial',
+    arcDegrees: 120,
+  },
+]
+
+export const SPIRIT_GUARDIAN_BOSS_PHASE_2_ATTACKS: AttackDefinition[] = [
+  {
+    ...ENEMY_ATTACK_ELITE,
+    id: 'sgb-phase2-slam',
+    telegraphMs: 850,
+    damageMultiplier: 1.35,
+    range: 128,
+    knockdown: true,
+  },
+  {
+    ...ENEMY_ATTACK_ELITE,
+    id: 'sgb-phase2-burst',
+    telegraphMs: 1100,
+    damageMultiplier: 1.2,
+    range: 140,
+    hitShape: 'radial',
+    arcDegrees: 180,
+  },
+]
+
+export const ENEMY_ATTACKS: Record<string, AttackDefinition> = {
+  'enemy-melee': ENEMY_ATTACK_MELEE,
+  'enemy-elite-slam': ENEMY_ATTACK_ELITE,
+}
+
+export function getEnemyAttackById(attackId: string): AttackDefinition {
+  return ENEMY_ATTACKS[attackId] ?? ENEMY_ATTACK_MELEE
+}
+
+import { attackTotalDurationMs, isFullMoveActiveWindow } from './combatMoveSchema'
+
 export function totalDurationMs(attack: AttackDefinition): number {
-  return attack.startupMs + attack.activeMs + attack.recoveryMs
+  return attackTotalDurationMs(attack)
 }
 
 /** อยู่ในช่วงที่ hitbox มีผลจริงหรือยัง */
 export function isActiveWindow(attack: AttackDefinition, sinceStartMs: number): boolean {
-  return sinceStartMs >= attack.startupMs && sinceStartMs < attack.startupMs + attack.activeMs
+  return isFullMoveActiveWindow(attack, sinceStartMs)
 }

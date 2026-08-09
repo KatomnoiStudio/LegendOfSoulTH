@@ -48,7 +48,11 @@
   aspect-ratio: 1;
   translate: -50% 0;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 62%, color-mix(in srgb, var(--hero-accent) 26%, transparent), transparent 62%);
+  background: radial-gradient(
+    circle at 50% 62%,
+    color-mix(in srgb, var(--hero-accent) 26%, transparent),
+    transparent 62%
+  );
   filter: blur(6px);
   pointer-events: none;
 }
@@ -74,19 +78,26 @@
 }
 
 /*
-   กล่องภาพตัวละคร — ขนาดคงที่ตามอัตราส่วนของไฟล์เฟรม (640x512)
+   กล่องภาพตัวละคร — ขนาดคงที่ตามอัตราส่วนของไฟล์เฟรม (396x376 หลัง re-crop 2026-08-08)
    ทุกเฟรมซ้อนทับกันที่พิกัดเดียวกันเป๊ะ เปลี่ยนแค่ opacity
    จึงไม่มีการขยับ ไม่มีการขยาย-หด และแนวเท้าคงที่ทุกเฟรม
+
+   396x376 = 640x512 crop ด้วย rect เดียวกันร่วมทั้ง 3 ตัวละคร (union ของ safe bbox ต่อตัว
+   จาก alpha-channel scan) — ไม่ใช่ per-character rect เพราะต้องคง single aspect-ratio/
+   single SPRITE_ZOOM (ดูเหตุผลเต็มใน CharacterPreview.tsx จุดที่ประกาศ SPRITE_ZOOM)
 */
 .figure {
   position: relative;
   width: 100%;
   max-width: 540px;
-  aspect-ratio: 640 / 512;
+  aspect-ratio: 396 / 376;
   flex: none;
   cursor: grab;
   touch-action: none;
-  transition: opacity 200ms ease, transform 180ms cubic-bezier(.2, .8, .2, 1), filter 180ms ease;
+  transition:
+    opacity 200ms ease,
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 180ms ease;
 }
 
 .figure:hover,
@@ -101,7 +112,9 @@
 
 .figure[data-dragging='true'] {
   cursor: grabbing;
-  transition: opacity 200ms ease, filter 180ms ease;
+  transition:
+    opacity 200ms ease,
+    filter 180ms ease;
 }
 
 /* ระหว่างสลับตัวละคร: จางออกแล้วจางเข้า (crossfade) */
@@ -118,7 +131,10 @@
   object-fit: contain;
   /* จุดอ้างอิงอยู่ที่ขอบล่างเสมอ — กันไม่ให้แนวเท้าขยับเมื่อกล่องเปลี่ยนขนาด */
   object-position: 50% 100%;
-  transform: scale(1.82);
+  /* --sprite-zoom มาจาก SPRITE_ZOOM ใน CharacterPreview.tsx จุดเดียว — scale() คำนวณจาก
+     กล่องตัวเอง ไม่ใช่ viewport จึงไม่มีเหตุผลที่ desktop/mobile ควรมีค่าต่างกัน (ดูคอมเมนต์
+     ที่มาเต็ม ๆ ใน .tsx) ห้ามเพิ่มค่า scale() ที่สองใน media query ด้านล่าง */
+  transform: scale(var(--sprite-zoom));
   transform-origin: 50% 100%;
   opacity: 0;
   will-change: opacity;
@@ -145,7 +161,9 @@
   color: #eec86f;
   font-size: clamp(0.8rem, 0.85vw, 1rem);
   box-shadow: 0 4px 10px rgb(0 0 0 / 38%);
-  transition: transform 160ms ease, filter 160ms ease;
+  transition:
+    transform 160ms ease,
+    filter 160ms ease;
 }
 
 .resetTurn:hover,
@@ -155,7 +173,40 @@
   transform: rotate(-35deg) scale(1.06);
 }
 
-.resetTurn:active { transform: rotate(-35deg) scale(0.94); }
+/* ปุ่ม exit ที่มองเห็นได้เสมอตอน fullscreen — ห้ามพึ่ง Escape/gesture อย่างเดียว (ดูคอมเมนต์ .tsx) */
+.fullscreenToggle {
+  position: absolute;
+  z-index: 5;
+  inset-block-start: 16px;
+  inset-inline-start: 14px;
+  display: grid;
+  place-items: center;
+  width: clamp(24px, 1.9vw, 30px);
+  height: clamp(24px, 1.9vw, 30px);
+  padding: 0;
+  border: 1px solid rgb(231 187 86 / 42%);
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgb(76 37 30 / 86%), rgb(7 22 31 / 92%));
+  color: #eec86f;
+  font-size: clamp(0.75rem, 0.8vw, 0.95rem);
+  box-shadow: 0 4px 10px rgb(0 0 0 / 38%);
+  transition: filter 160ms ease;
+}
+
+.fullscreenToggle:hover,
+.fullscreenToggle:focus-visible {
+  outline: none;
+  filter: brightness(1.18);
+}
+
+.stage[data-fullscreen='true'] {
+  background: radial-gradient(ellipse at 50% 40%, rgb(20 32 44 / 100%), rgb(4 8 14 / 100%));
+  padding-block-start: 10vh;
+}
+
+.resetTurn:active {
+  transform: rotate(-35deg) scale(0.94);
+}
 
 .frame[data-active='true'] {
   opacity: 1;
@@ -172,7 +223,14 @@
   margin-block-start: 8px;
   padding: 6px 34px 5px;
   border-block: 1px solid rgb(226 183 88 / 45%);
-  clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 18px 100%, 0 50%);
+  clip-path: polygon(
+    18px 0,
+    calc(100% - 18px) 0,
+    100% 50%,
+    calc(100% - 18px) 100%,
+    18px 100%,
+    0 50%
+  );
   background: linear-gradient(180deg, rgb(28 12 25 / 88%), rgb(6 20 28 / 92%));
   text-align: center;
 }
@@ -206,12 +264,13 @@
     max-width: 260px;
   }
 
-  .frame {
-    transform: scale(1.55);
+  .interactionHint {
+    inset-block-start: 8px;
   }
-
-  .interactionHint { inset-block-start: 8px; }
-  .resetTurn { inset-block-start: 7px; inset-inline-end: 7px; }
+  .resetTurn {
+    inset-block-start: 7px;
+    inset-inline-end: 7px;
+  }
 
   .plateName {
     font-size: 0.92rem;
