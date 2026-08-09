@@ -10,8 +10,11 @@
 
 ## Rules
 
-- **LAZY** — a file is born at the caretaker's FIRST dispatch, never pre-created. 28 systems
-  ≠ 28 upfront files (same principle as the registry's caretaker table).
+- **LAZY** — a file is born at the caretaker's FIRST WORK dispatch, never pre-created. 28
+  systems ≠ 28 upfront files. (The registry's caretaker ROWS were pre-created at install with
+  hired sids — an owner-ratified supersession of the row-side lazy rule; the FILE-side lazy
+  rule here still stands: hiring a caretaker does not birth its memory file, its first real
+  work does.)
 - **ของใครของมัน** — only the owning caretaker WRITES its file. The belt end may READ all
   (dispatch needs context); writing another seat's file is a boundary violation, same class
   as editing another system's owned code.
