@@ -42,6 +42,7 @@ import type {
 } from './pvpTypes'
 
 export const PVP_FIXED_TICK_MS = 50
+export const PVP_LIVENESS_TIMEOUT_MS = 1_000
 export const PVP_RECONNECT_GRACE_MS = 10_000
 export const PVP_MAX_PENDING_ACTIONS = 4
 export const PVP_STAGE_ID = 'trial-01'
@@ -174,6 +175,7 @@ export function createPvPAuthorityState(
   host: { playerId: string; entity: RealtimeBattleEntity },
   guest: { playerId: string; entity: RealtimeBattleEntity },
   nowMs = 0,
+  rngSeed = 0x51f15e,
 ): PvPAuthorityState {
   const stage = getRealtimeStage(PVP_STAGE_ID)
   if (!stage) throw new Error(`PvP stage not found: ${PVP_STAGE_ID}`)
@@ -205,7 +207,7 @@ export function createPvPAuthorityState(
     loserPlayerId: null,
     resultReason: null,
     finishedAt: null,
-    rngSeed: 0x51f15e,
+    rngSeed: rngSeed >>> 0,
     stateHash: '',
   }
   state.stateHash = hashPvPAuthorityState(state)
@@ -226,7 +228,7 @@ function ingestFrames(state: PvPAuthorityState, frames: PvPInputFrame[], nowMs: 
   const ordered = frames.toSorted(
     (left, right) =>
       left.clientTick - right.clientTick ||
-      left.playerId.localeCompare(right.playerId) ||
+      compareStableIds(left.playerId, right.playerId) ||
       left.sequence - right.sequence,
   )
   for (const frame of ordered) {
@@ -238,7 +240,7 @@ function ingestFrames(state: PvPAuthorityState, frames: PvPInputFrame[], nowMs: 
     participant.disconnectedAtMs = null
     participant.latestInput = { ...frame.input }
     participant.pendingActions.push(...actionFromInput(frame.input))
-    participant.pendingActions = participant.pendingActions.slice(0, PVP_MAX_PENDING_ACTIONS)
+    participant.pendingActions = participant.pendingActions.slice(-PVP_MAX_PENDING_ACTIONS)
   }
 }
 
@@ -400,7 +402,7 @@ function nextRandom(state: PvPAuthorityState): number {
 function applyIntents(state: PvPAuthorityState, intents: HitIntent[]): void {
   const stage = getRealtimeStage(PVP_STAGE_ID)!
   for (const intent of intents.toSorted((a, b) =>
-    a.attacker.playerId.localeCompare(b.attacker.playerId),
+    compareStableIds(a.attacker.playerId, b.attacker.playerId),
   )) {
     const outcome = applyCombatReaction({
       attacker: intent.attacker.entity,
@@ -457,6 +459,18 @@ function finishIfNeeded(state: PvPAuthorityState, nowMs: number): void {
   }
 }
 
+function markSilentParticipantsDisconnected(state: PvPAuthorityState, nowMs: number): void {
+  for (const participant of state.participants) {
+    if (
+      participant.connected &&
+      nowMs - participant.lastSeenAtMs >= PVP_LIVENESS_TIMEOUT_MS
+    ) {
+      participant.connected = false
+      participant.disconnectedAtMs = participant.lastSeenAtMs + PVP_LIVENESS_TIMEOUT_MS
+    }
+  }
+}
+
 function finishExpiredDisconnect(state: PvPAuthorityState, nowMs: number): boolean {
   if (state.status === 'completed') return true
   const disconnected = state.participants.filter(
@@ -498,6 +512,11 @@ export function advancePvPAuthority(
     ],
   }
   if (state.status === 'completed') return state
+  markSilentParticipantsDisconnected(state, nowMs)
+  if (finishExpiredDisconnect(state, nowMs)) {
+    state.stateHash = hashPvPAuthorityState(state)
+    return state
+  }
   ingestFrames(state, frames, nowMs)
   if (finishExpiredDisconnect(state, nowMs)) {
     state.stateHash = hashPvPAuthorityState(state)
@@ -563,7 +582,7 @@ export function markPvPParticipantDisconnected(
   const participant = state.participants.find((entry) => entry.playerId === playerId)
   if (!participant || state.status === 'completed') return state
   participant.connected = false
-  participant.disconnectedAtMs = nowMs
+  participant.disconnectedAtMs ??= nowMs
   state.status = 'reconnecting'
   state.stateHash = hashPvPAuthorityState(state)
   return state
@@ -574,13 +593,7 @@ export function markPvPParticipantConnected(
   playerId: string,
   nowMs: number,
 ): PvPAuthorityState {
-  const state: PvPAuthorityState = {
-    ...source,
-    participants: [
-      cloneParticipant(source.participants[0]),
-      cloneParticipant(source.participants[1]),
-    ],
-  }
+  const state = advancePvPAuthority(source, [], 0, nowMs)
   const participant = state.participants.find((entry) => entry.playerId === playerId)
   if (!participant || state.status === 'completed') return state
   participant.connected = true
@@ -593,6 +606,11 @@ export function markPvPParticipantConnected(
 
 function rounded(value: number): number {
   return Math.round(value * 10_000) / 10_000
+}
+
+function compareStableIds(left: string, right: string): number {
+  if (left === right) return 0
+  return left < right ? -1 : 1
 }
 
 function hashableEntity(entity: RealtimeBattleEntity): unknown {
@@ -636,20 +654,21 @@ export function hashPvPAuthorityState(state: PvPAuthorityState): string {
     matchId: state.matchId,
     tick: state.tick,
     elapsedMs: state.elapsedMs,
+    lastAdvancedAtMs: state.lastAdvancedAtMs,
     status: state.status,
     winner: state.winnerPlayerId,
     loser: state.loserPlayerId,
     reason: state.resultReason,
-    finishedAt: state.finishedAt,
     rngSeed: state.rngSeed,
     participants: state.participants.map((participant) => ({
       playerId: participant.playerId,
       sequence: participant.lastProcessedSequence,
       connected: participant.connected,
+      lastSeenAtMs: participant.lastSeenAtMs,
       disconnectedAtMs: participant.disconnectedAtMs,
       entity: hashableEntity(participant.entity),
       summons: participant.summons
-        .toSorted((left, right) => left.id.localeCompare(right.id))
+        .toSorted((left, right) => compareStableIds(left.id, right.id))
         .map(hashableEntity),
       combo: participant.combo,
       skill: participant.skill,

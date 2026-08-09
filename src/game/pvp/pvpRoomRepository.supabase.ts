@@ -1,6 +1,7 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabaseClient'
 import type { PlayerInputState } from '../realtimeBattle/playerInput'
+import { authorityErrorMessage } from './pvpAuthorityError'
 import type { PvPAuthorityState, PvPRoomSummary, RealtimePvPResult } from './pvpTypes'
 
 interface PvPRoomRow {
@@ -15,7 +16,7 @@ interface PvPRoomRow {
   authoritative_state: PvPAuthorityState | null
 }
 
-interface AuthorityResponse {
+export interface AuthorityResponse {
   stateVersion: number
   authoritativeState: PvPAuthorityState
   result: RealtimePvPResult | null
@@ -79,7 +80,8 @@ export async function invokePvPAuthority(
   const { data, error } = await supabase.functions.invoke<AuthorityResponse>('pvp-authority', {
     body: { roomId, ...command },
   })
-  if (error || !data) throw new Error(error?.message ?? 'PvP authority ไม่ตอบกลับ')
+  if (error) throw new Error(await authorityErrorMessage(error))
+  if (!data) throw new Error('PvP authority ไม่ตอบกลับ')
   return data
 }
 

@@ -9,11 +9,17 @@ clients create/join through narrow RPCs, submit only input commands to the JWT-p
 `pvp-authority` Edge Function, predict locally, and reconcile against fixed-tick authoritative
 snapshots. Only the service role can compare-and-swap committed state/results; Postgres sends those
 snapshots over a participant-only private Realtime Broadcast topic for which clients have no INSERT
-policy. Disconnect gets a 10-second reconnect grace before authority-confirmed forfeit. The session
-constructs both combatants through #20 ranked normalization and treats opposing player heroes as
-elite-tier for hit reactions. Matchmaking, Rank/MMR, rewards, and public lobbies remain P13 scope.
+policy. A one-second server liveness timeout catches force-quit/network loss even without an
+explicit disconnect command; the 10-second reconnect deadline is resolved before later reconnect
+or input commands. HTTP and Realtime snapshots enter through one monotonic `stateVersion` guard,
+failed input POSTs retry the same sequence, and each match starts from a cryptographically generated
+seed committed into its deterministic hash. Completed results survive ephemeral-room cleanup in a
+detached audit table. The session constructs both combatants through #20 ranked normalization and
+treats opposing player heroes as elite-tier for hit reactions. Matchmaking, Rank/MMR, rewards, and
+public lobbies remain P13 scope.
 
-The local/PGLite contract and two-client simulation are implemented and tested. Production
+The local/PGLite contract, Deno-checked/executed Edge entry point, and two-client simulation are
+implemented and tested. Production
 graduation still requires applying the migration/function to the actual Supabase project and
 repeating the two-client live verification there.
 

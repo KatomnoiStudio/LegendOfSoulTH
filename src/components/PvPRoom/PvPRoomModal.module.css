@@ -198,6 +198,17 @@
   font: 0.65rem monospace;
 }
 
+.reconnecting {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid rgb(236 194 91 / 45%);
+  border-radius: 8px;
+  color: #ffe2a3;
+  background: rgb(85 50 24 / 72%);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
 .controls {
   display: flex;
   align-items: center;

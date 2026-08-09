@@ -92,7 +92,7 @@ export function PvPRoomModal({ player, onClose }: PvPRoomModalProps) {
                 inputMode="text"
                 autoCapitalize="characters"
                 onChange={(event) =>
-                  setRoomCode(event.target.value.toUpperCase().replace(/[^A-Z2-9]/g, ''))
+                  setRoomCode(event.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, ''))
                 }
               />
             </label>
@@ -159,6 +159,14 @@ export function PvPRoomModal({ player, onClose }: PvPRoomModalProps) {
                 tick {authority.tick} · {authority.stateHash}
               </span>
             </div>
+
+            {authority.status === 'reconnecting' ? (
+              <p className={styles.reconnecting} role="status" aria-live="polite">
+                {!opponent.connected
+                  ? 'คู่ต่อสู้ขาดการเชื่อมต่อ — รอกลับเข้าห้องภายใน 10 วินาที'
+                  : 'การเชื่อมต่อของคุณสะดุด — กำลังกลับเข้าห้อง'}
+              </p>
+            ) : null}
 
             {authority.status !== 'completed' ? (
               <div className={styles.controls}>

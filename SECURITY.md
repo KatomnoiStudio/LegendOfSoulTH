@@ -53,7 +53,8 @@ In scope:
   reusing an idempotency request for another Hero, or bypassing the 1/2/4/8/12 shard ladder
 - Private PvP authority bypasses: joining a room without being one of its two participants,
   sending input as the other player, publishing a forged authoritative snapshot/result, reading
-  another room's private Realtime topic, or bypassing the compare-and-swap state version
+  another room's private Realtime topic, reviving a participant after reconnect grace, replaying an
+  older state version, or bypassing the compare-and-swap state version
 
 ## Out of Scope
 
@@ -83,8 +84,13 @@ By design, not bugs — don't file these:
   presentation-only. The JWT-protected `pvp-authority` Edge Function injects the authenticated
   player identity, advances fixed-tick combat, and is the only caller allowed to commit state or
   results. Postgres broadcasts those committed snapshots to a participant-only private Realtime
-  topic; authenticated clients have receive permission but no Broadcast INSERT policy. Report a
-  change only if it persists as authority state or becomes visible in a room you do not belong to.
+  topic; authenticated clients have receive permission but no Broadcast INSERT policy. It reads
+  hosted Supabase keys from the platform's plural JSON key sets (`SUPABASE_PUBLISHABLE_KEYS` and
+  `SUPABASE_SECRET_KEYS`) with legacy project-secret fallbacks; no secret enters the browser bundle.
+  A heartbeat timeout and monotonic snapshot version gate make reconnect/prediction disposable.
+  Completed results live in a detached audit table while expired unfinished rooms are reaped.
+  Report a change only if it persists as authority state or becomes visible in a room you do not
+  belong to.
 - **Matchmaking, Rank/MMR, PvP rewards, and public PvP lobbies.** These are intentionally excluded
   from P12 and therefore do not yet define a production trust boundary.
 - **"Passwords are hashed client-side with no real server auth."** No longer applies to the live

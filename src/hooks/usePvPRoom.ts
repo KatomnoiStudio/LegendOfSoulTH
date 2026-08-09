@@ -9,7 +9,12 @@ import {
   joinPrivatePvPRoom,
   subscribeToPrivatePvPRoom,
 } from '../game/pvp/pvpRoomRepository.supabase'
-import type { PvPAuthorityState, PvPRoomSummary, RealtimePvPResult } from '../game/pvp/pvpTypes'
+import type {
+  PvPAuthorityState,
+  PvPInputFrame,
+  PvPRoomSummary,
+  RealtimePvPResult,
+} from '../game/pvp/pvpTypes'
 import { toRealtimePvPResult } from '../game/pvp/PvPAuthorityEngine'
 import { reportError } from '../lib/errors/reportError'
 
@@ -37,17 +42,36 @@ export function usePvPRoom(player: Player): PvPRoomController {
   const sequence = useRef(0)
   const input = useRef(createEmptyPlayerInputState())
   const reconciler = useRef<PvPReconciler | null>(null)
+  const outboundFrame = useRef<PvPInputFrame | null>(null)
   const requestInFlight = useRef(false)
   const roomId = room?.roomId
   const roomStatus = room?.status
 
   const acceptAuthority = useCallback(
-    (authoritative: PvPAuthorityState, nextResult: RealtimePvPResult | null = null) => {
-      if (!reconciler.current) reconciler.current = new PvPReconciler(player.id, authoritative)
-      else reconciler.current.reconcile(authoritative, Date.now())
+    (
+      stateVersion: number,
+      authoritative: PvPAuthorityState,
+      nextResult: RealtimePvPResult | null = null,
+    ): boolean => {
+      if (!reconciler.current) {
+        reconciler.current = new PvPReconciler(player.id, authoritative, stateVersion)
+      } else if (!reconciler.current.reconcile(authoritative, stateVersion, Date.now()).accepted) {
+        return false
+      }
       setState(reconciler.current.getState())
+      setRoom((current) =>
+        current
+          ? {
+              ...current,
+              stateVersion,
+              status: authoritative.status,
+              authoritativeState: authoritative,
+            }
+          : current,
+      )
       const resolvedResult = nextResult ?? toRealtimePvPResult(authoritative)
       if (resolvedResult) setResult(resolvedResult)
+      return true
     },
     [player.id],
   )
@@ -57,27 +81,21 @@ export function usePvPRoom(player: Player): PvPRoomController {
     const unsubscribe = subscribeToPrivatePvPRoom(
       roomId,
       (response) => {
-        setRoom((current) =>
-          current
-            ? {
-                ...current,
-                stateVersion: response.stateVersion,
-                status: response.authoritativeState.status,
-                authoritativeState: response.authoritativeState,
-              }
-            : current,
-        )
-        acceptAuthority(response.authoritativeState, response.result)
+        acceptAuthority(response.stateVersion, response.authoritativeState, response.result)
       },
       setConnected,
     )
     void invokePvPAuthority(roomId, { action: 'reconnect' })
-      .then((response) => acceptAuthority(response.authoritativeState, response.result))
-      .catch(() => undefined)
+      .then((response) =>
+        acceptAuthority(response.stateVersion, response.authoritativeState, response.result),
+      )
+      .catch((cause: unknown) => reportError('PVP_AUTHORITY_FAIL', 'silent', cause))
 
     return () => {
       unsubscribe()
-      void invokePvPAuthority(roomId, { action: 'disconnect' }).catch(() => undefined)
+      void invokePvPAuthority(roomId, { action: 'disconnect' }).catch((cause: unknown) =>
+        reportError('PVP_AUTHORITY_FAIL', 'silent', cause),
+      )
     }
   }, [acceptAuthority, roomId])
 
@@ -86,22 +104,24 @@ export function usePvPRoom(player: Player): PvPRoomController {
     const timer = window.setInterval(() => {
       if (requestInFlight.current) return
       requestInFlight.current = true
-      sequence.current += 1
-      const frameInput = { ...input.current }
-      input.current.basicAttackPressed = false
-      input.current.skill1Pressed = false
-      input.current.skill2Pressed = false
-      input.current.skill3Pressed = false
-      input.current.ultimatePressed = false
-
-      const frame = {
-        playerId: player.id,
-        sequence: sequence.current,
-        clientTick: sequence.current,
-        input: frameInput,
-      }
-      if (reconciler.current) {
-        setState(reconciler.current.predict(frame, Date.now()))
+      let frame = outboundFrame.current
+      if (!frame) {
+        sequence.current += 1
+        frame = {
+          playerId: player.id,
+          sequence: sequence.current,
+          clientTick: sequence.current,
+          input: { ...input.current },
+        }
+        outboundFrame.current = frame
+        input.current.basicAttackPressed = false
+        input.current.skill1Pressed = false
+        input.current.skill2Pressed = false
+        input.current.skill3Pressed = false
+        input.current.ultimatePressed = false
+        if (reconciler.current) {
+          setState(reconciler.current.predict(frame, Date.now()))
+        }
       }
       void invokePvPAuthority(roomId, {
         action: 'input',
@@ -110,7 +130,8 @@ export function usePvPRoom(player: Player): PvPRoomController {
         input: frame.input,
       })
         .then((response) => {
-          acceptAuthority(response.authoritativeState, response.result)
+          if (outboundFrame.current?.sequence === frame.sequence) outboundFrame.current = null
+          acceptAuthority(response.stateVersion, response.authoritativeState, response.result)
           setError(null)
           return undefined
         })
@@ -130,8 +151,10 @@ export function usePvPRoom(player: Player): PvPRoomController {
     const onVisibility = () => {
       if (document.visibilityState !== 'visible') return
       void invokePvPAuthority(roomId, { action: 'reconnect' })
-        .then((response) => acceptAuthority(response.authoritativeState, response.result))
-        .catch(() => undefined)
+        .then((response) =>
+          acceptAuthority(response.stateVersion, response.authoritativeState, response.result),
+        )
+        .catch((cause: unknown) => reportError('PVP_AUTHORITY_FAIL', 'silent', cause))
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)
@@ -144,9 +167,12 @@ export function usePvPRoom(player: Player): PvPRoomController {
       try {
         const nextRoom = await action()
         sequence.current = 0
+        outboundFrame.current = null
         reconciler.current = null
         setRoom(nextRoom)
-        if (nextRoom.authoritativeState) acceptAuthority(nextRoom.authoritativeState)
+        if (nextRoom.authoritativeState) {
+          acceptAuthority(nextRoom.stateVersion, nextRoom.authoritativeState)
+        }
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : 'ทำรายการห้อง PvP ไม่สำเร็จ')
       } finally {

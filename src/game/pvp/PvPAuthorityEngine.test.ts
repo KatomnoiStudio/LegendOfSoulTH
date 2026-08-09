@@ -12,6 +12,7 @@ import {
   markPvPParticipantConnected,
   markPvPParticipantDisconnected,
   PVP_FIXED_TICK_MS,
+  PVP_LIVENESS_TIMEOUT_MS,
   PVP_MAX_PENDING_ACTIONS,
   PVP_RECONNECT_GRACE_MS,
   toRealtimePvPResult,
@@ -52,7 +53,7 @@ function player(id: string, star = 1): Player {
   }
 }
 
-function matchState(): PvPAuthorityState {
+function matchState(rngSeed?: number): PvPAuthorityState {
   const host = createRankedPlayerEntity(player('host'))
   const guest = createRankedPlayerEntity(player('guest'))
   if (!host || !guest) throw new Error('ranked entity setup failed')
@@ -60,6 +61,8 @@ function matchState(): PvPAuthorityState {
     'match-1',
     { playerId: 'host', entity: host },
     { playerId: 'guest', entity: guest },
+    0,
+    rngSeed,
   )
 }
 
@@ -78,6 +81,15 @@ function inputFrame(
 }
 
 describe('P12 PvP authoritative simulation', () => {
+  test('keeps each server-provided match seed in the signed deterministic state', () => {
+    const first = matchState(0x12345678)
+    const second = matchState(0x87654321)
+
+    expect(first.rngSeed).toBe(0x12345678)
+    expect(second.rngSeed).toBe(0x87654321)
+    expect(first.stateHash).not.toBe(second.stateHash)
+  })
+
   test('consumes #20 ranked entities and explicitly maps both heroes to elite-like reactions', () => {
     const state = matchState()
     const [host, guest] = state.participants
@@ -108,12 +120,25 @@ describe('P12 PvP authoritative simulation', () => {
     const hiddenDifference = structuredClone(initial)
     hiddenDifference.participants[0].entity.skillCooldownsMs.skill1 = 500
     expect(hashPvPAuthorityState(hiddenDifference)).not.toBe(initial.stateHash)
+    const clockDifference = structuredClone(initial)
+    clockDifference.lastAdvancedAtMs += 1
+    expect(hashPvPAuthorityState(clockDifference)).not.toBe(initial.stateHash)
+    const presentationOnlyDifference = structuredClone(initial)
+    presentationOnlyDifference.finishedAt = '2026-08-09T00:00:00.000Z'
+    expect(hashPvPAuthorityState(presentationOnlyDifference)).toBe(initial.stateHash)
 
     const frames = Array.from({ length: 20 }, (_, index) =>
       inputFrame('host', index + 1, index + 1, { basicAttackPressed: true }),
     )
     const queued = advancePvPAuthority(initial, frames, 0, 1)
     expect(queued.participants[0].pendingActions).toHaveLength(PVP_MAX_PENDING_ACTIONS)
+    const newestPress = advancePvPAuthority(
+      queued,
+      [inputFrame('host', 21, 21, { ultimatePressed: true })],
+      0,
+      2,
+    )
+    expect(newestPress.participants[0].pendingActions).toContain('ultimate')
   })
 
   test('identical recorded inputs are deterministic frame-by-frame', () => {
@@ -141,10 +166,11 @@ describe('P12 PvP authoritative simulation', () => {
     const hostClient = new PvPReconciler('host', authority)
     const guestClient = new PvPReconciler('guest', authority)
     const inputTransit: Array<{ deliverAt: number; frame: PvPInputFrame }> = []
-    const hostSnapshots: Array<{ deliverAt: number; state: PvPAuthorityState }> = []
-    const guestSnapshots: Array<{ deliverAt: number; state: PvPAuthorityState }> = []
+    const hostSnapshots: Array<{ deliverAt: number; version: number; state: PvPAuthorityState }> = []
+    const guestSnapshots: Array<{ deliverAt: number; version: number; state: PvPAuthorityState }> = []
     let hostCorrections = 0
     let guestCorrections = 0
+    let authorityVersion = 0
 
     for (let tick = 1; tick <= 420 && authority.status !== 'completed'; tick += 1) {
       const nowMs = tick * PVP_FIXED_TICK_MS
@@ -177,14 +203,23 @@ describe('P12 PvP authoritative simulation', () => {
         if (inputTransit[index].deliverAt <= nowMs) inputTransit.splice(index, 1)
       }
       authority = advancePvPAuthority(authority, arrived, PVP_FIXED_TICK_MS, nowMs)
-      hostSnapshots.push({ deliverAt: nowMs + 50, state: structuredClone(authority) })
-      guestSnapshots.push({ deliverAt: nowMs + 200, state: structuredClone(authority) })
+      authorityVersion += 1
+      hostSnapshots.push({
+        deliverAt: nowMs + (tick % 11 === 0 ? 260 : 50),
+        version: authorityVersion,
+        state: structuredClone(authority),
+      })
+      guestSnapshots.push({
+        deliverAt: nowMs + (tick % 13 === 0 ? 360 : 200),
+        version: authorityVersion,
+        state: structuredClone(authority),
+      })
 
       for (const queue of [hostSnapshots, guestSnapshots]) {
         const client = queue === hostSnapshots ? hostClient : guestClient
         const ready = queue.filter((packet) => packet.deliverAt <= nowMs)
         for (const packet of ready) {
-          if (client.reconcile(packet.state, nowMs).corrected) {
+          if (client.reconcile(packet.state, packet.version, nowMs).corrected) {
             if (client === hostClient) hostCorrections += 1
             else guestCorrections += 1
           }
@@ -195,38 +230,129 @@ describe('P12 PvP authoritative simulation', () => {
       }
     }
 
-    hostClient.reconcile(authority, authority.elapsedMs + 1_000)
-    guestClient.reconcile(authority, authority.elapsedMs + 1_000)
+    hostClient.reconcile(authority, authorityVersion, authority.elapsedMs + 1_000)
+    guestClient.reconcile(authority, authorityVersion, authority.elapsedMs + 1_000)
 
     expect(authority.status).toBe('completed')
     expect(hostCorrections).toBeGreaterThan(0)
     expect(guestCorrections).toBeGreaterThan(0)
+    expect(hostClient.getAcceptedStateVersion()).toBe(authorityVersion)
+    expect(guestClient.getAcceptedStateVersion()).toBe(authorityVersion)
+    expect(hostClient.getPendingInputCount()).toBe(0)
+    expect(guestClient.getPendingInputCount()).toBe(0)
     expect(hostClient.getState().stateHash).toBe(authority.stateHash)
     expect(guestClient.getState().stateHash).toBe(authority.stateHash)
     expect(hashPvPAuthorityState(hostClient.getState())).toBe(authority.stateHash)
     expect(hashPvPAuthorityState(guestClient.getState())).toBe(authority.stateHash)
   })
 
+  test('rejects an older HTTP/Realtime snapshot instead of rewinding HP, position, or tick', () => {
+    const initial = matchState()
+    const tickOne = advancePvPAuthority(
+      initial,
+      [inputFrame('host', 1, 1, { moveX: 1 })],
+      PVP_FIXED_TICK_MS,
+      PVP_FIXED_TICK_MS,
+    )
+    const tickTwo = advancePvPAuthority(
+      tickOne,
+      [inputFrame('host', 2, 2, { moveX: 1 })],
+      PVP_FIXED_TICK_MS,
+      PVP_FIXED_TICK_MS * 2,
+    )
+    tickOne.participants[0].entity.hp -= 10
+    tickOne.stateHash = hashPvPAuthorityState(tickOne)
+    const client = new PvPReconciler('host', initial, 0)
+
+    expect(client.reconcile(tickTwo, 2, 100).accepted).toBe(true)
+    const accepted = structuredClone(client.getState())
+    const stale = client.reconcile(tickOne, 1, 150)
+
+    expect(stale.accepted).toBe(false)
+    expect(client.getState()).toEqual(accepted)
+    expect(client.getAcceptedStateVersion()).toBe(2)
+  })
+
+  test('force-quit without a disconnect command transitions to reconnecting then forfeits', () => {
+    let authority = matchState()
+    const reconnectingAt = PVP_LIVENESS_TIMEOUT_MS
+    authority = advancePvPAuthority(
+      authority,
+      [inputFrame('host', 1, 1)],
+      0,
+      reconnectingAt,
+    )
+    expect(authority.status).toBe('reconnecting')
+    expect(authority.participants[1]).toMatchObject({
+      connected: false,
+      disconnectedAtMs: reconnectingAt,
+    })
+
+    const expiredAt = reconnectingAt + PVP_RECONNECT_GRACE_MS
+    authority = advancePvPAuthority(
+      authority,
+      [inputFrame('host', 2, 2)],
+      PVP_FIXED_TICK_MS,
+      expiredAt,
+    )
+    expect(authority).toMatchObject({
+      status: 'completed',
+      winnerPlayerId: 'host',
+      loserPlayerId: 'guest',
+      resultReason: 'forfeit',
+    })
+  })
+
+  test('a reconnect or ordinary input after grace cannot cancel an already-due forfeit', () => {
+    const droppedAt = 500
+    const disconnected = markPvPParticipantDisconnected(matchState(), 'guest', droppedAt)
+    const lateReconnect = markPvPParticipantConnected(
+      disconnected,
+      'guest',
+      droppedAt + PVP_RECONNECT_GRACE_MS + 1,
+    )
+    const lateInput = advancePvPAuthority(
+      disconnected,
+      [inputFrame('guest', 1, 1, { basicAttackPressed: true })],
+      0,
+      droppedAt + PVP_RECONNECT_GRACE_MS + 1,
+    )
+
+    for (const result of [lateReconnect, lateInput]) {
+      expect(result.status).toBe('completed')
+      expect(result.winnerPlayerId).toBe('host')
+      expect(result.resultReason).toBe('forfeit')
+    }
+  })
+
   test('reconnect inside grace resumes; expiry produces an authority-signed forfeit result', () => {
     const initial = matchState()
-    const droppedAt = 1_000
+    const droppedAt = 500
     const disconnected = markPvPParticipantDisconnected(initial, 'guest', droppedAt)
 
     expect(disconnected.status).toBe('reconnecting')
     const resumed = markPvPParticipantConnected(
-      advancePvPAuthority(disconnected, [], PVP_FIXED_TICK_MS, droppedAt + 5_000),
+      advancePvPAuthority(
+        disconnected,
+        [inputFrame('host', 1, 1)],
+        PVP_FIXED_TICK_MS,
+        droppedAt + 5_000,
+      ),
       'guest',
       droppedAt + 5_001,
     )
     expect(resumed.status).toBe('active')
 
     const droppedAgain = markPvPParticipantDisconnected(resumed, 'guest', droppedAt + 6_000)
-    const expired = advancePvPAuthority(
-      droppedAgain,
-      [],
-      PVP_FIXED_TICK_MS,
-      droppedAt + 6_000 + PVP_RECONNECT_GRACE_MS,
-    )
+    let expired = droppedAgain
+    for (let offset = 6_500, sequence = 2; offset <= 16_000; offset += 500, sequence += 1) {
+      expired = advancePvPAuthority(
+        expired,
+        [inputFrame('host', sequence, sequence)],
+        PVP_FIXED_TICK_MS,
+        droppedAt + offset,
+      )
+    }
     const result = toRealtimePvPResult(expired)
 
     expect(expired.status).toBe('completed')

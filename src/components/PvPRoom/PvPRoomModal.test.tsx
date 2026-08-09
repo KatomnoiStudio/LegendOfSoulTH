@@ -130,4 +130,38 @@ describe('PvPRoomModal', () => {
     expect(screen.getByText('ชนะ')).toBeInTheDocument()
     expect(screen.getByText(/ผลยืนยันโดย server authority/)).toBeInTheDocument()
   })
+
+  test('surfaces the ten-second reconnect grace when the opponent heartbeat stops', () => {
+    const host = player('host')
+    const guest = player('guest')
+    const authority = createPvPAuthorityState(
+      'room-reconnect',
+      { playerId: host.id, entity: createRankedPlayerEntity(host)! },
+      { playerId: guest.id, entity: createRankedPlayerEntity(guest)! },
+    )
+    authority.status = 'reconnecting'
+    authority.participants[1].connected = false
+    authority.participants[1].disconnectedAtMs = 1_000
+    mocks.usePvPRoom.mockReturnValue(
+      controller({
+        room: {
+          roomId: 'room-reconnect',
+          roomCode: 'ABC2D3',
+          status: 'reconnecting',
+          hostPlayerId: host.id,
+          guestPlayerId: guest.id,
+          hostHeroId: 'monkey-king',
+          guestHeroId: 'monkey-king',
+          stateVersion: 2,
+          authoritativeState: authority,
+        },
+        state: authority,
+        connected: true,
+      }),
+    )
+
+    render(<PvPRoomModal player={host} onClose={vi.fn()} />)
+
+    expect(screen.getByRole('status')).toHaveTextContent('รอกลับเข้าห้องภายใน 10 วินาที')
+  })
 })

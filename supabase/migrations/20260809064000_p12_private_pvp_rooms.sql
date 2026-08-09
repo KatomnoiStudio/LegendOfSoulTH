@@ -45,13 +45,44 @@ create table if not exists public.pvp_rooms (
 create index if not exists pvp_rooms_participant_status_idx
   on public.pvp_rooms (host_profile_id, guest_profile_id, status);
 
+-- Completed results survive profile cleanup even though ephemeral room rows intentionally cascade.
+-- P13 may consume this server-only audit record; P12 does not write rank/MMR/rewards.
+create table if not exists public.pvp_match_results (
+  match_id uuid primary key,
+  host_profile_id uuid not null,
+  guest_profile_id uuid not null,
+  winner_profile_id uuid,
+  loser_profile_id uuid,
+  result_reason text not null check (
+    result_reason in ('knockout', 'forfeit', 'double-forfeit', 'simultaneous-knockout')
+  ),
+  final_state_hash text not null,
+  elapsed_ms bigint not null check (elapsed_ms >= 0),
+  finished_at timestamptz not null,
+  check (winner_profile_id is null or winner_profile_id in (host_profile_id, guest_profile_id)),
+  check (loser_profile_id is null or loser_profile_id in (host_profile_id, guest_profile_id))
+);
+
 alter table public.pvp_rooms enable row level security;
+alter table public.pvp_match_results enable row level security;
 revoke all on public.pvp_rooms from public, anon, authenticated;
+revoke all on public.pvp_match_results from public, anon, authenticated;
 grant select on public.pvp_rooms to authenticated;
+grant select on public.pvp_match_results to authenticated;
 
 drop policy if exists "pvp participants read own room" on public.pvp_rooms;
 create policy "pvp participants read own room"
   on public.pvp_rooms
+  for select
+  to authenticated
+  using (
+    (select auth.uid()) = host_profile_id
+    or (select auth.uid()) = guest_profile_id
+  );
+
+drop policy if exists "pvp participants read own completed result" on public.pvp_match_results;
+create policy "pvp participants read own completed result"
+  on public.pvp_match_results
   for select
   to authenticated
   using (
@@ -85,6 +116,7 @@ begin
   ) then
     raise exception 'ไม่พบฮีโร่ที่ครอบครอง';
   end if;
+  perform public.check_and_log_rpc_rate_limit('create_private_pvp_room', 5, 60);
 
   -- One open room per host prevents room-code farming and stale parallel sessions.
   delete from public.pvp_rooms
@@ -94,7 +126,11 @@ begin
   for v_attempt in 1..20 loop
     v_code := '';
     for v_index in 1..6 loop
-      v_code := v_code || substr(v_alphabet, 1 + floor(random() * length(v_alphabet))::integer, 1);
+      v_code := v_code || substr(
+        v_alphabet,
+        1 + (get_byte(extensions.gen_random_bytes(1), 0) % length(v_alphabet)),
+        1
+      );
     end loop;
     begin
       insert into public.pvp_rooms (room_code, host_profile_id, host_hero_id)
@@ -132,20 +168,19 @@ begin
   ) then
     raise exception 'ไม่พบฮีโร่ที่ครอบครอง';
   end if;
+  perform public.check_and_log_rpc_rate_limit('join_private_pvp_room', 12, 60);
 
   select * into v_room
   from public.pvp_rooms
   where room_code = upper(btrim(p_room_code))
   for update;
 
-  if not found or v_room.expires_at <= now() then
-    raise exception 'ไม่พบห้องหรือรหัสหมดอายุ';
-  end if;
-  if v_room.host_profile_id = v_profile_id then
-    raise exception 'ไม่สามารถเข้าห้องของตัวเองเป็นผู้เล่นคนที่สอง';
-  end if;
-  if v_room.status <> 'waiting' or v_room.guest_profile_id is not null then
-    raise exception 'ห้องนี้มีผู้เล่นครบแล้ว';
+  if not found
+    or v_room.expires_at <= now()
+    or v_room.host_profile_id = v_profile_id
+    or v_room.status <> 'waiting'
+    or v_room.guest_profile_id is not null then
+    raise exception 'ไม่พบห้องหรือเข้าร่วมไม่ได้';
   end if;
 
   update public.pvp_rooms
@@ -179,6 +214,7 @@ set search_path = ''
 as $$
 declare
   v_next_version bigint;
+  v_room public.pvp_rooms%rowtype;
 begin
   if p_status not in ('active', 'reconnecting', 'completed') then
     raise exception 'สถานะ PvP ไม่ถูกต้อง';
@@ -224,15 +260,50 @@ begin
       winner_profile_id = p_winner_profile_id,
       loser_profile_id = p_loser_profile_id,
       result_reason = p_result_reason,
-      finished_at = case when p_status = 'completed' then now() else finished_at end,
+      host_last_seen_at = to_timestamp(
+        ((p_authoritative_state #>> '{participants,0,lastSeenAtMs}')::double precision) / 1000
+      ),
+      guest_last_seen_at = to_timestamp(
+        ((p_authoritative_state #>> '{participants,1,lastSeenAtMs}')::double precision) / 1000
+      ),
+      finished_at = case
+        when p_status = 'completed'
+          then (p_authoritative_state ->> 'finishedAt')::timestamptz
+        else finished_at
+      end,
       updated_at = now()
   where id = p_room_id
     and state_version = p_expected_version
     and status <> 'completed'
-  returning state_version into v_next_version;
+  returning * into v_room;
 
-  if v_next_version is null then
+  if v_room.id is null then
     raise exception 'PVP_STATE_VERSION_CONFLICT';
+  end if;
+  v_next_version := v_room.state_version;
+
+  if p_status = 'completed' then
+    insert into public.pvp_match_results (
+      match_id,
+      host_profile_id,
+      guest_profile_id,
+      winner_profile_id,
+      loser_profile_id,
+      result_reason,
+      final_state_hash,
+      elapsed_ms,
+      finished_at
+    ) values (
+      v_room.id,
+      v_room.host_profile_id,
+      v_room.guest_profile_id,
+      p_winner_profile_id,
+      p_loser_profile_id,
+      p_result_reason,
+      p_state_hash,
+      (p_authoritative_state ->> 'elapsedMs')::bigint,
+      v_room.finished_at
+    ) on conflict (match_id) do nothing;
   end if;
   return v_next_version;
 end;
@@ -248,6 +319,7 @@ grant execute on function public.commit_pvp_authority_state(uuid, bigint, jsonb,
   to service_role;
 
 -- Private Realtime is receive-only for players. Input never travels as a client-authored broadcast.
+alter table realtime.messages enable row level security;
 drop policy if exists "pvp participants receive authority broadcast" on realtime.messages;
 create policy "pvp participants receive authority broadcast"
   on realtime.messages
@@ -301,3 +373,30 @@ after update of authoritative_state, state_version, status on public.pvp_rooms
 for each row execute function private.broadcast_pvp_authority_state();
 
 revoke all on function private.broadcast_pvp_authority_state() from public, anon, authenticated;
+
+-- Remove abandoned waiting/active rooms after their bounded lifetime. Completed results live in
+-- pvp_match_results, so this ephemeral cleanup cannot erase the authority audit record.
+create or replace function private.reap_expired_pvp_rooms()
+returns bigint
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_deleted bigint;
+begin
+  delete from public.pvp_rooms
+  where expires_at <= now()
+    and status <> 'completed';
+  get diagnostics v_deleted = row_count;
+  return v_deleted;
+end;
+$$;
+
+revoke all on function private.reap_expired_pvp_rooms() from public, anon, authenticated;
+
+select cron.schedule(
+  'reap-expired-private-pvp-rooms',
+  '* * * * *',
+  $$select private.reap_expired_pvp_rooms();$$
+);

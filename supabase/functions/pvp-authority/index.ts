@@ -1,9 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.112.2'
 import {
-  mapOwnedCharacterRow,
-  type OwnedCharacterRow,
-} from '../../../src/data/accountRepository.supabase.mapping.ts'
-import {
   createPvPAuthorityState,
   toRealtimePvPResult,
 } from '../../../src/game/pvp/PvPAuthorityEngine.ts'
@@ -13,7 +9,7 @@ import {
 } from '../../../src/game/pvp/PvPAuthorityService.ts'
 import { createRankedPlayerEntity } from '../../../src/game/pvp/rankedNormalization.ts'
 import type { PvPAuthorityState } from '../../../src/game/pvp/pvpTypes.ts'
-import type { Player } from '../../../src/types/player.ts'
+import type { OwnedCharacter, Player } from '../../../src/types/player.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,9 +28,18 @@ interface RoomRow {
   authoritative_state: PvPAuthorityState | null
 }
 
-interface RequestBody extends PvPAuthorityCommand {
-  roomId: string
+interface OwnedCharacterRow {
+  character_id: string
+  level: number
+  exp: number
+  exp_to_next: number
+  obtained_at: string
+  skill_levels?: OwnedCharacter['skillLevels'] | null
+  star?: number | null
+  shards?: number | null
 }
+
+type RequestBody = PvPAuthorityCommand & { roomId: string }
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -43,8 +48,41 @@ function json(body: unknown, status = 200): Response {
   })
 }
 
+function readDefaultKeySet(name: 'SUPABASE_PUBLISHABLE_KEYS' | 'SUPABASE_SECRET_KEYS'): string | null {
+  const raw = Deno.env.get(name)
+  if (!raw) return null
+  try {
+    const keys = JSON.parse(raw) as Record<string, unknown>
+    return typeof keys.default === 'string' ? keys.default : null
+  } catch {
+    return null
+  }
+}
+
+function createMatchSeed(): number {
+  const seed = crypto.getRandomValues(new Uint32Array(1))[0]
+  return seed === 0 ? 1 : seed
+}
+
 function minimalPlayer(profileId: string, heroRow: OwnedCharacterRow): Player {
-  const hero = mapOwnedCharacterRow(heroRow)
+  const defaultSkillProgress = { level: 1, exp: 0, expToNext: 200 }
+  const hero: OwnedCharacter = {
+    characterId: heroRow.character_id,
+    level: heroRow.level,
+    exp: heroRow.exp,
+    expToNext: heroRow.exp_to_next,
+    obtainedAt: heroRow.obtained_at,
+    skillLevels: heroRow.skill_levels ?? {
+      skill1: { ...defaultSkillProgress },
+      skill2: { ...defaultSkillProgress },
+      skill3: { ...defaultSkillProgress },
+      ultimate: { ...defaultSkillProgress },
+    },
+    talentState: { unlockedNodes: [] },
+    awakeningState: { tier: 0, unlockedEffects: [] },
+    star: heroRow.star ?? 1,
+    shards: heroRow.shards ?? 0,
+  }
   return {
     id: profileId,
     uid: profileId,
@@ -77,7 +115,7 @@ function isRequestBody(value: unknown): value is RequestBody {
   )
 }
 
-Deno.serve(async (request) => {
+export async function handlePvPAuthorityRequest(request: Request): Promise<Response> {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (request.method !== 'POST') return json({ error: 'METHOD_NOT_ALLOWED' }, 405)
 
@@ -86,13 +124,17 @@ Deno.serve(async (request) => {
   if (!jwt) return json({ error: 'AUTH_REQUIRED' }, 401)
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
-  const publishableKey = Deno.env.get('SUPABASE_ANON_KEY')
-  const secretKey = Deno.env.get('SUPABASE_SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const publishableKey =
+    readDefaultKeySet('SUPABASE_PUBLISHABLE_KEYS') ?? Deno.env.get('SUPABASE_ANON_KEY')
+  const secretKey =
+    readDefaultKeySet('SUPABASE_SECRET_KEYS') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   if (!supabaseUrl || !publishableKey || !secretKey) {
     return json({ error: 'SERVER_CONFIG_MISSING' }, 500)
   }
 
-  const authClient = createClient(supabaseUrl, publishableKey)
+  const authClient = createClient(supabaseUrl, publishableKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
   const { data: userData, error: userError } = await authClient.auth.getUser(jwt)
   const playerId = userData.user?.id
   if (userError || !playerId) return json({ error: 'AUTH_INVALID' }, 401)
@@ -158,6 +200,7 @@ Deno.serve(async (request) => {
         { playerId: room.host_profile_id, entity: hostEntity },
         { playerId: room.guest_profile_id, entity: guestEntity },
         Date.now(),
+        createMatchSeed(),
       )
     }
 
@@ -190,4 +233,6 @@ Deno.serve(async (request) => {
   }
 
   return json({ error: 'PVP_STATE_BUSY' }, 409)
-})
+}
+
+if (import.meta.main) Deno.serve(handlePvPAuthorityRequest)
