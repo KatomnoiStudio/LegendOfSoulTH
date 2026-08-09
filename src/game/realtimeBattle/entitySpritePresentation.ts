@@ -137,6 +137,19 @@ export function resolveSpriteGroundOffsetY(kind: CharacterModelKind): number {
   return SPRITE_GROUND_OFFSET_BY_KIND[kind] ?? DEFAULT_SPRITE_GROUND_OFFSET_Y
 }
 
+/**
+ * Temporary presentation-only lift applied to the visual container.
+ *
+ * The currently shipped sprite families were calibrated with a negative foot
+ * target, which visibly sinks the art below the battle plane. Keep that legacy
+ * sheet calibration untouched while new assets are pending, and cancel it at
+ * the container boundary instead. The shadow and gameplay entity remain at
+ * world Y=0.
+ */
+export function resolveTemporaryEntityContainerLiftY(kind: CharacterModelKind): number {
+  return -resolveSpriteGroundOffsetY(kind)
+}
+
 function resolveSheetCalibration(frameUrl: string): SpriteSheetCalibration {
   return (
     SPRITE_SHEET_CALIBRATIONS.find((calibration) => frameUrl.includes(calibration.pathFragment)) ??
