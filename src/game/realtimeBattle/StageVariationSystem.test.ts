@@ -12,7 +12,7 @@ import {
 import { RealtimeBattleRuntime } from './RealtimeBattleRuntime'
 import { calculateBattleReward } from './RewardSystem'
 import { toRealtimeBattleResult } from './BattleResultAdapter'
-import { getRealtimeStage, type RealtimeBattleStage } from './stageConfig'
+import { getAdventureChapters, getRealtimeStage, type RealtimeBattleStage } from './stageConfig'
 import { resolveStageOutcome } from './StageVariationSystem'
 
 /**
@@ -91,13 +91,13 @@ describe('resolveStageOutcome — wave', () => {
 describe('resolveStageOutcome — survival', () => {
   it('รอดจนครบเวลา = ชนะ แม้ศัตรูยังไม่ตายสักตัว', () => {
     const state = makeState({ stageType: 'survival', survival: { durationMs: 1000 } })
-    state.elapsedMs = 1000
+    state.stageElapsedMs = 1000
     expect(resolveStageOutcome(state, 16)).toBe('victory')
   })
 
   it('ยังไม่ครบเวลา = ยังไม่จบ', () => {
     const state = makeState({ stageType: 'survival', survival: { durationMs: 1000 } })
-    state.elapsedMs = 999
+    state.stageElapsedMs = 999
     expect(resolveStageOutcome(state, 16)).toBeNull()
   })
 })
@@ -126,8 +126,16 @@ describe('resolveStageOutcome — defend', () => {
 describe('resolveStageOutcome — time-attack', () => {
   it('เวลาเกินงบก่อนเคลียร์เสร็จ = แพ้', () => {
     const state = makeState({ stageType: 'time-attack', timeAttack: { timeBudgetMs: 1000 } })
-    state.elapsedMs = 1001
+    state.stageElapsedMs = 1001
     expect(resolveStageOutcome(state, 16)).toBe('defeat')
+  })
+
+  it('ไม่เอาช่วง intro มาหักเวลาที่ผู้เล่นมีจริง', () => {
+    const state = makeState({ stageType: 'time-attack', timeAttack: { timeBudgetMs: 1000 } })
+    state.elapsedMs = 1700
+    state.stageElapsedMs = 1000
+    killAllEnemies(state)
+    expect(resolveStageOutcome(state, 16)).toBe('victory')
   })
 
   it('เคลียร์ศัตรูหมดภายในเวลา = ชนะ', () => {
@@ -161,8 +169,16 @@ describe('resolveStageOutcome — chase', () => {
   it('เวลาเกินงบก่อนถึงเป้าหมาย = แพ้', () => {
     const state = makeState({ stageType: 'chase', chase: params })
     state.player.position = { x: 0, y: 0 }
-    state.elapsedMs = 1001
+    state.stageElapsedMs = 1001
     expect(resolveStageOutcome(state, 16)).toBe('defeat')
+  })
+
+  it('ไม่เอาช่วง intro มาหักเวลาที่ผู้เล่นมีจริง', () => {
+    const state = makeState({ stageType: 'chase', chase: params })
+    state.player.position = { x: 0, y: 0 }
+    state.elapsedMs = 1700
+    state.stageElapsedMs = 1000
+    expect(resolveStageOutcome(state, 16)).toBeNull()
   })
 
   it('ยังไม่ถึงและเวลายังไม่หมด = ยังไม่จบ', () => {
@@ -211,6 +227,52 @@ describe('resolveStageOutcome — custom', () => {
     const state = makeState({ stageType: 'custom' })
     killAllEnemies(state)
     expect(resolveStageOutcome(state, 16)).toBe('victory')
+  })
+})
+
+describe('Adventure chapter 1 stage catalog/runtime contract', () => {
+  it('มีด่าน 1-1 ถึง 1-10 ครบ และ mode ตรงกับรูปแบบที่ออกแบบไว้', () => {
+    const stages = getAdventureChapters()[0]?.stages ?? []
+    expect(stages.map((stage) => stage.id)).toEqual([
+      'trial-01',
+      'trial-02',
+      'trial-03',
+      'trial-04',
+      'trial-05',
+      'trial-06',
+      'trial-07',
+      'trial-08',
+      'trial-09',
+      'trial-10',
+    ])
+    expect(stages.map((stage) => stage.stageType)).toEqual([
+      'wave',
+      'wave',
+      'survival',
+      'defend',
+      'wave',
+      'hazard',
+      'chase',
+      'wave',
+      'time-attack',
+      'wave',
+    ])
+  })
+
+  it('ด่านที่มี objective มี parameter ครบและไม่ถูกลดรูปเป็น wave', () => {
+    const survival = getRealtimeStage('trial-03')
+    const defend = getRealtimeStage('trial-04')
+    const hazard = getRealtimeStage('trial-06')
+    const chase = getRealtimeStage('trial-07')
+    const timeAttack = getRealtimeStage('trial-09')
+
+    expect(survival?.survival?.durationMs).toBeGreaterThan(0)
+    expect(defend?.defend?.objectiveHp).toBeGreaterThan(0)
+    expect(hazard?.hazard?.hazardHp).toBeGreaterThan(0)
+    expect(hazard?.hazard?.decayPerSecond).toBeGreaterThan(0)
+    expect(chase?.chase?.arrivalRadius).toBeGreaterThan(0)
+    expect(chase?.chase?.timeBudgetMs).toBeGreaterThan(0)
+    expect(timeAttack?.timeAttack?.timeBudgetMs).toBeGreaterThan(0)
   })
 })
 
@@ -301,6 +363,18 @@ function createPlayerEntityStub(position: { x: number; y: number }) {
  * win/lose → RewardSystem payout ผ่าน runtime จริง (ไม่ใช่แค่มี type ไว้เฉย ๆ)
  */
 describe('Survival เล่นจบได้จริง (Done-criteria #4)', () => {
+  it('ไม่นับช่วง intro เป็นเวลารอดของผู้เล่น', () => {
+    const state = createRealtimeBattle('trial-03', makePlayer())
+    if (!state) throw new Error('เตรียม fixture ไม่สำเร็จ')
+    const runtime = new RealtimeBattleRuntime(state)
+
+    runtime.step(700)
+
+    expect(state.status).toBe('running')
+    expect(state.stageElapsedMs).toBe(0)
+    expect(runtime.getSnapshot().status).toBe('running')
+  })
+
   it('spawn → รอดครบเวลา → victory → RewardSystem จ่ายรางวัลจริง', () => {
     const state = createRealtimeBattle('trial-03', makePlayer())
     if (!state) throw new Error('เตรียม fixture ไม่สำเร็จ')
