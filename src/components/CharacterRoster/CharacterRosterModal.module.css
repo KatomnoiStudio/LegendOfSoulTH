@@ -297,6 +297,38 @@
   overflow: hidden;
 }
 
+.battleSelection {
+  display: grid;
+  gap: var(--sp-2);
+  margin-top: auto;
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--c-border);
+}
+
+.activeHeroLabel,
+.selectionMessage {
+  color: var(--c-text-dim);
+  font-size: 0.75rem;
+}
+
+.selectForBattleButton {
+  min-height: 48px;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--c-gold);
+  border-radius: var(--r-md);
+  color: #241608;
+  background: linear-gradient(180deg, var(--c-gold-light), var(--c-gold));
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.selectForBattleButton:disabled {
+  color: var(--c-text-dim);
+  background: rgb(255 255 255 / 7%);
+  border-color: var(--c-border);
+  cursor: default;
+}
+
 .tabRow {
   display: flex;
   gap: 6px;

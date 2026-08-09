@@ -53,9 +53,16 @@ interface MainNavigationProps {
   onOpenBattle: () => void
   /** เปิดกระเป๋าไอเทม — ผูกกับปุ่ม id="items" เท่านั้น */
   onOpenItems: () => void
+  /** เปิดตู้กาชาจริง — ผูกกับปุ่ม id="summon" เท่านั้น */
+  onOpenSummon: () => void
 }
 
-export function MainNavigation({ onOpenHeroes, onOpenBattle, onOpenItems }: MainNavigationProps) {
+export function MainNavigation({
+  onOpenHeroes,
+  onOpenBattle,
+  onOpenItems,
+  onOpenSummon,
+}: MainNavigationProps) {
   const { comingSoon } = useToast()
 
   const handleSelect = (id: string, label: string) => {
@@ -70,6 +77,10 @@ export function MainNavigation({ onOpenHeroes, onOpenBattle, onOpenItems }: Main
     }
     if (id === 'items') {
       onOpenItems()
+      return
+    }
+    if (id === 'summon') {
+      onOpenSummon()
       return
     }
     comingSoon(label)

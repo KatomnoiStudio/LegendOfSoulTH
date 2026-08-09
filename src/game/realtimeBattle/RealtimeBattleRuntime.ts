@@ -46,6 +46,7 @@ import type {
 } from './types'
 import { addUltimateGauge, ULTIMATE_GAUGE_CONFIG } from './ultimateGauge'
 import { tickStatusEffects } from './statusEffects'
+import { buildStageObjectiveSnapshot } from './stageObjectiveSnapshot'
 
 /**
  * หัวใจของห้องต่อสู้ real-time — ถือสถานะทั้งหมดไว้ "นอก React state"
@@ -789,6 +790,7 @@ export class RealtimeBattleRuntime {
       })),
       currentWave: state.currentWaveIndex + 1,
       totalWaves: state.stage.waves.length,
+      objective: buildStageObjectiveSnapshot(state),
       castingSkillSlot: this.playerSkill.definition?.slot ?? null,
       damageEvents: this.damageEvents,
       effectEvents: this.effectEvents,

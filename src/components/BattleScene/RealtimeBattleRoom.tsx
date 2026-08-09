@@ -16,6 +16,7 @@ import { EnemyHealthBar } from './EnemyHealthBar'
 import { ScreenProjector, type ScreenProjection } from './ScreenProjector'
 import { BattleFullscreenPrompt, BattlePortraitOverlay } from './BattleViewportOverlays'
 import { useBattleViewport } from '../../hooks/useBattleViewport'
+import { AdventureObjectiveHud } from './AdventureObjectiveHud'
 import styles from './BattleScene.module.css'
 
 /**
@@ -123,6 +124,7 @@ export function RealtimeBattleRoom({
       <DamageNumberLayer runtime={runtime} projection={projection} />
 
       <BattleHud snapshot={snapshot} onExit={onExit} />
+      <AdventureObjectiveHud snapshot={snapshot} />
       {overlay}
       <BattleControls
         runtime={runtime}

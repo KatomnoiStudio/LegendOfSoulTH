@@ -1,0 +1,208 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: max(var(--sp-3), env(safe-area-inset-top)) max(var(--sp-3), env(safe-area-inset-right))
+    max(var(--sp-3), env(safe-area-inset-bottom)) max(var(--sp-3), env(safe-area-inset-left));
+  background: rgb(4 6 13 / 86%);
+  backdrop-filter: blur(8px);
+}
+
+.dialog {
+  width: min(920px, 96vw);
+  max-height: min(88dvh, 680px);
+  overflow: auto;
+  padding: clamp(var(--sp-3), 2.4vw, var(--sp-6));
+  border: 1px solid var(--c-border-arcane);
+  border-radius: var(--r-lg);
+  color: var(--c-text);
+  background:
+    radial-gradient(circle at 80% 5%, rgb(80 220 165 / 18%), transparent 38%),
+    linear-gradient(145deg, rgb(18 18 36 / 98%), rgb(7 10 20 / 98%));
+  box-shadow: var(--shadow-3), 0 0 38px rgb(80 220 165 / 12%);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.eyebrow,
+.description,
+.title {
+  margin: 0;
+}
+
+.eyebrow {
+  color: #67d6a0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.title {
+  margin-top: var(--sp-1);
+  color: var(--c-gold-light);
+  font-size: clamp(1.2rem, 3vw, 2rem);
+}
+
+.description {
+  margin-top: var(--sp-1);
+  color: var(--c-text-dim);
+}
+
+.close {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--c-border);
+  border-radius: 50%;
+  color: var(--c-text);
+  background: rgb(255 255 255 / 6%);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin: var(--sp-4) 0;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid rgb(103 214 160 / 28%);
+  border-radius: var(--r-md);
+  background: rgb(103 214 160 / 8%);
+  font-variant-numeric: tabular-nums;
+}
+
+.pool {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+
+.poolCard {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: rgb(255 255 255 / 4%);
+}
+
+.poolCard img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1.18;
+  object-fit: cover;
+  object-position: top center;
+  background: rgb(255 255 255 / 4%);
+}
+
+.poolCard div {
+  display: grid;
+  gap: 2px;
+  padding: var(--sp-2);
+}
+
+.poolCard strong,
+.poolCard span,
+.poolCard small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.poolCard span,
+.poolCard small {
+  color: var(--c-text-dim);
+  font-size: 0.72rem;
+}
+
+.results {
+  margin-top: var(--sp-4);
+}
+
+.results h3 {
+  margin: 0 0 var(--sp-2);
+  color: var(--c-gold);
+}
+
+.results ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.results li {
+  display: grid;
+  gap: 2px;
+  padding: var(--sp-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  background: rgb(255 255 255 / 5%);
+}
+
+.results span,
+.results small {
+  color: var(--c-text-dim);
+  font-size: 0.72rem;
+}
+
+.error {
+  margin: var(--sp-3) 0 0;
+  color: #ff9a8c;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+.actions button {
+  min-height: 48px;
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid #67d6a0;
+  border-radius: var(--r-md);
+  color: #07140e;
+  background: linear-gradient(180deg, #8be8bd, #55bf8e);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.actions button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.disclosure {
+  margin: var(--sp-3) 0 0;
+  color: var(--c-text-dim);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 720px) {
+  .pool {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-height: 480px) and (orientation: landscape) {
+  .dialog {
+    max-height: 94dvh;
+  }
+
+  .poolCard img {
+    display: none;
+  }
+}

@@ -7,6 +7,7 @@ import type {
   GoldSource,
   ItemResult,
   ItemSource,
+  GachaPullResult,
 } from '../data/accountRepository.supabase'
 import { reportError } from '../lib/errors/reportError'
 import { downloadSaveJson } from '../lib/saveFile'
@@ -88,6 +89,8 @@ export interface AuthState {
   ) => Promise<boolean>
   clearPendingLobbyReward: (transactionId: string) => Promise<void>
   getPendingLobbyRewards: () => Promise<accounts.PendingLobbyRewardRow[]>
+  /** อัญเชิญผ่าน atomic Supabase RPC — Client ไม่มีสิทธิ์ตัด Gem/RNG/เพิ่ม Hero เอง */
+  pullGacha: (bannerId: string, pullCount: 1 | 10, requestId: string) => Promise<GachaPullResult>
   /** ส่งออก save เป็นไฟล์ JSON ไว้สำรอง/ย้ายเครื่อง — คืน null เมื่อสำเร็จ (ไฟล์ถูกดาวน์โหลดแล้ว) */
   exportSave: () => Promise<string | null>
 }
@@ -332,6 +335,16 @@ export function useAuth(): AuthState {
 
   const getPendingLobbyRewards = useCallback(async () => accounts.getPendingLobbyRewards(), [])
 
+  const pullGacha = useCallback(
+    async (bannerId: string, pullCount: 1 | 10, requestId: string) => {
+      if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
+      const result = await accounts.pullGacha(bannerId, pullCount, requestId)
+      if (result.ok) setPlayer(result.player)
+      return result
+    },
+    [player],
+  )
+
   const exportSave = useCallback(async () => {
     const result = await accounts.exportSave()
     if (!result.ok) return result.error
@@ -367,6 +380,7 @@ export function useAuth(): AuthState {
     upsertPendingLobbyReward,
     clearPendingLobbyReward,
     getPendingLobbyRewards,
+    pullGacha,
     exportSave,
   }
 }

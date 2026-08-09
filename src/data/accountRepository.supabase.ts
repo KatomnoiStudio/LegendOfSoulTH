@@ -20,6 +20,7 @@ import {
   type GemSource,
   type GoldPackage,
   type GoldSource,
+  type GachaPullResult,
   type ItemResult,
   type ItemSource,
   type StarAscensionResult,
@@ -47,6 +48,7 @@ import {
 export type { GoldSource, GemSource, ItemSource, AuthResult, CurrencyResult, ItemResult }
 export type { CharacterGrantResult, CurrencyTransaction, FriendCandidate, GemPackage, GoldPackage }
 export type { StarAscensionResult }
+export type { GachaPullResult }
 export { GEM_PACKAGES, GOLD_PACKAGES, PASSWORD_MIN_LENGTH, validateEmail, validatePassword }
 export { mapOwnedCharacterRow } from './accountRepository.supabase.mapping'
 export type { OwnedCharacterRow } from './accountRepository.supabase.mapping'
@@ -68,7 +70,7 @@ interface ProfileRow {
 
 /** ประกอบ Player เต็มรูปจากตารางลูกทั้งหมด — เรียกซ้ำได้จากหลายจุด (login/register/session) */
 async function loadPlayer(profileId: string): Promise<Player | null> {
-  const [profileRes, charsRes, slotsRes, itemsRes, friendsRes, historyRes, adminRes] =
+  const [profileRes, charsRes, slotsRes, itemsRes, friendsRes, historyRes, adminRes, pityRes] =
     await Promise.all([
       supabase.from('profiles').select('*').eq('id', profileId).maybeSingle(),
       supabase.from('owned_characters').select('*').eq('profile_id', profileId),
@@ -81,6 +83,7 @@ async function loadPlayer(profileId: string): Promise<Player | null> {
         .select('profile_id')
         .eq('profile_id', profileId)
         .maybeSingle(),
+      supabase.from('gacha_pity').select('banner_id,pity_count').eq('profile_id', profileId),
     ])
 
   const profile = profileRes.data as ProfileRow | null
@@ -130,6 +133,61 @@ async function loadPlayer(profileId: string): Promise<Player | null> {
         durationMs: h.duration_ms ?? undefined,
       })),
     },
+    gachaPity: Object.fromEntries(
+      (pityRes.data ?? []).map((row) => [row.banner_id as string, row.pity_count as number]),
+    ),
+  }
+}
+
+interface GachaRpcPayload {
+  results: Array<{
+    characterId: string
+    rarity: 'common' | 'rare' | 'epic' | 'legendary'
+    isPity: boolean
+    isNew: boolean
+    shardsGranted: number
+  }>
+  cost: number
+  currencyUsed: 'gem' | 'gold'
+  newPity: number
+}
+
+interface GachaRpcRow {
+  payload: GachaRpcPayload
+  replayed: boolean
+}
+
+/** Server-authoritative Gacha: Gem debit, RNG, pity and Hero/shard grants commit in one RPC. */
+export async function pullGacha(
+  bannerId: string,
+  pullCount: 1 | 10,
+  requestId: string,
+): Promise<GachaPullResult> {
+  const { data, error } = await supabase.rpc('perform_gacha_pull', {
+    p_request_id: requestId,
+    p_banner_id: bannerId,
+    p_pull_count: pullCount,
+  })
+  if (error) return { ok: false, error: error.message }
+
+  const row = (data as GachaRpcRow[] | null)?.[0]
+  if (!row?.payload) return { ok: false, error: 'อัญเชิญไม่สำเร็จ ลองใหม่อีกครั้ง' }
+
+  const { data: sessionData } = await supabase.auth.getSession()
+  const profileId = sessionData.session?.user.id
+  if (!profileId) return { ok: false, error: 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่' }
+
+  const player = await loadPlayer(profileId)
+  if (!player) return { ok: false, error: 'อัญเชิญสำเร็จแต่โหลดข้อมูลผู้เล่นไม่สำเร็จ' }
+
+  return {
+    ok: true,
+    player,
+    results: row.payload.results,
+    cost: row.payload.cost,
+    currencyUsed: row.payload.currencyUsed,
+    newPity: row.payload.newPity,
+    replayed: row.replayed,
   }
 }
 

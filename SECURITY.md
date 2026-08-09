@@ -51,6 +51,9 @@ In scope:
   bypassing the 10-message/minute throttle, or writing directly to `world_chat_messages`
 - Star Ascension authority bypasses: inserting an owned Hero directly, writing `star`/`shards`,
   reusing an idempotency request for another Hero, or bypassing the 1/2/4/8/12 shard ladder
+- Gacha authority bypasses: controlling a roll from the client, changing a banner/cost after a
+  request ID is committed, spending Gem twice on retry, bypassing pity, or directly writing
+  `gacha_pity`, pull history, owned Heroes, or duplicate shards
 
 ## Out of Scope
 
@@ -74,6 +77,9 @@ By design, not bugs — don't file these:
 - **"I changed Star/Shard values in React state or called the preview calculator."** The preview
   is presentation-only. Report it only if the change persists in Supabase without a valid
   `ascend_character_star` transaction.
+- **"I changed the displayed Gacha result, pity, or Gem balance in React state."** The display is
+  not authoritative. Report it only if a roll persists without `perform_gacha_pull`, if retrying
+  the same request debits twice, or if a direct table write succeeds.
 - **"I can locally hide/show a World Chat author by editing my block list."** `/block` is a
   client-local viewing preference by design. Chat rows themselves remain server-authoritative.
 - **"Passwords are hashed client-side with no real server auth."** No longer applies to the live

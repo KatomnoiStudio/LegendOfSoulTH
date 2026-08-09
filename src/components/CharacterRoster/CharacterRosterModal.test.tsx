@@ -99,6 +99,20 @@ describe('CharacterRosterModal', () => {
     expect(screen.getByRole('heading', { name: 'ตือโป๊ยก่าย' })).toBeInTheDocument()
   })
 
+  test('เลือกฮีโร่หนึ่งตัวลงด่านแล้วบันทึกเป็น slot 0 เพียงตัวเดียว', async () => {
+    const user = userEvent.setup()
+    const onPlayerChange = vi.fn(async () => true)
+    renderModal(vi.fn(), onPlayerChange)
+
+    await user.click(screen.getByRole('button', { name: /ตือโป๊ยก่าย เลเวล 38/ }))
+    await user.click(screen.getByRole('button', { name: 'เลือกเป็นตัวหลักลงด่าน' }))
+
+    expect(onPlayerChange).toHaveBeenCalledWith(
+      expect.objectContaining({ teamSlots: ['pig-warrior', null, null, null] }),
+    )
+    expect(await screen.findByText('เลือก ตือโป๊ยก่าย เป็นตัวหลักแล้ว')).toBeInTheDocument()
+  })
+
   test('กดปุ่มปิด — เล่นแอนิเมชันปิดแล้วค่อยเรียก onClose (ไม่ปิดทันที)', async () => {
     const user = userEvent.setup()
     const { onClose } = renderModal()

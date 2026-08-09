@@ -75,6 +75,26 @@ export type StarAscensionResult =
     }
   | { ok: false; error: string }
 
+export interface GachaPullItemResult {
+  characterId: string
+  rarity: 'common' | 'rare' | 'epic' | 'legendary'
+  isPity: boolean
+  isNew: boolean
+  shardsGranted: number
+}
+
+export type GachaPullResult =
+  | {
+      ok: true
+      player: Player
+      results: GachaPullItemResult[]
+      cost: number
+      currencyUsed: 'gem' | 'gold'
+      newPity: number
+      replayed: boolean
+    }
+  | { ok: false; error: string }
+
 /** ตรวจรูปแบบอีเมลแบบพอดี ๆ — ไม่เข้มจนบล็อกอีเมลที่ใช้ได้จริง */
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
