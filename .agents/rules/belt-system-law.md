@@ -48,7 +48,7 @@ binding order: (1) the dispatch prompt, then (2) the seat's own file (`.claude/a
 3. **Assignment follows deepest knowledge.** A system's work goes to its caretaker (contract +
    `MEMORY/NN` + scars). No deeper knower → fallback main (judgment) or the aide (mechanics),
    still gated. NEWBORN systems never take the fallback: registry walk → owner ratifies → hire
-   the caretaker immediately. A topic hitting main REPEATEDLY = hire a topic-caretaker (main
+   the caretaker immediately. A worker killed by the account LIMIT is TRANSIENT — sid and transcript survive: wait for reset, re-dispatch the SAME sid with a SELF-CONTAINED restated order (the dying turn may never have reached its transcript); the fallback NEVER fires for a temporarily-down caretaker. A topic hitting main REPEATEDLY = hire a topic-caretaker (main
    จับฉ่าย — grab-bag, never pack-mule).
 4. **The task queue, always.** Every incoming task is queued on arrival, the whole queue
    re-banded (เร่งด่วนมาก/เร่งกลาง/เร่งน้อย), and NOTHING executes until the owner's switch. An
@@ -58,7 +58,10 @@ binding order: (1) the dispatch prompt, then (2) the seat's own file (`.claude/a
    `MEMORY.md`/git, the queue holds nothing). **Cleanup is MAIN's own duty, never delegated, never assumed done by a worker.
    And DONE requires SHIP-verification: a task is marked completed only after the shipped
    artifact is verified — the gate cleared named, the landing checked (remote commit / deploy
-   state / migration verified / behavior observed). "Code written" is not done.**
+   state / migration verified / behavior observed). "Code written" is not done. Worker DONE
+   verdicts are verified by MAIN on the COMMIT STREAM (everything flows to main); on an
+   incomplete return or a doubted DONE, main fires a completion-challenge at the caretaker —
+   answered with evidence. Main's standing right, not a new worker self-duty.**
 5. **Merge + version authority.** Auto commit+push = main or the aide (aide executes only
    gate-approved content main hands it), **with the fresh-tip re-check before every merge/push**
    (fetch + behind-check — the mechanism that closed the PR #19 silent-regression class). Auto
@@ -81,7 +84,7 @@ binding order: (1) the dispatch prompt, then (2) the seat's own file (`.claude/a
    review-flips at high not xhigh); haiku = never; sensitive work (auth · payments · RLS ·
    schema migration) NEVER delegates down — size is not the test.
 
-## Layer 2 — Ring-1 intake (rules 1–2) + worker-seat duties (rules 3–6 — every worker seat, any ring)
+## Layer 2 — Ring-1 intake (rules 1–2) + worker-seat duties (rules 3–7 — every worker seat, any ring)
 
 1. **PR only, and submitting it IS the whole duty.** Code reaches this repo as a PR or it has
    not arrived — no direct pushes, no informal hand-offs of code. No review-request step, no
@@ -106,8 +109,9 @@ binding order: (1) the dispatch prompt, then (2) the seat's own file (`.claude/a
    ONLY by its owner, read by the belt end. **Lifecycle: woken → LOAD it first; return →
    CRYSTALLIZE + COMPRESS + UPDATE everything stale; cut aggressively — git log holds all
    history, the file holds only what the seat needs at next wake.**
-6. **Never edit Ring-0 rule files** (`AGENTS.md`, `.agents/rules/**`) — flag disagreement
-   instead (rule 6 unchanged, restated inside the belt).
+6. **cwd hygiene**: what has outlived its purpose gets cleaned — inspect contents first, remove empty folders the cleanup leaves (verified incl. hidden files), obsolete items swept within 5 main-turns, full sweep once per session + before each release train. Binds every worker seat, every ring.
+7. **Never edit Ring-0 rule files** (`AGENTS.md`, `.agents/rules/**`) — flag disagreement
+   instead (AGENTS.md rule 6 unchanged, restated inside the belt).
 
 ## Cross-cutting
 
