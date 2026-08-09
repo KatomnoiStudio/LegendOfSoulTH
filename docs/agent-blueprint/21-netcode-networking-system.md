@@ -2,18 +2,36 @@
 
 > Category: PvP · Generated via gold-standard FILL + adversarial CB-lite verify (2 seats), 2026-08-07 · **revised after verify flagged an issue**.
 
+### P12 implementation status (2026-08-09)
+
+The prototype now uses two-player invite-code rooms rather than P13 matchmaking. Authenticated
+clients create/join through narrow RPCs, submit only input commands to the JWT-protected
+`pvp-authority` Edge Function, predict locally, and reconcile against fixed-tick authoritative
+snapshots. Only the service role can compare-and-swap committed state/results; Postgres sends those
+snapshots over a participant-only private Realtime Broadcast topic for which clients have no INSERT
+policy. Disconnect gets a 10-second reconnect grace before authority-confirmed forfeit. The session
+constructs both combatants through #20 ranked normalization and treats opposing player heroes as
+elite-tier for hit reactions. Matchmaking, Rank/MMR, rewards, and public lobbies remain P13 scope.
+
+The local/PGLite contract and two-client simulation are implemented and tested. Production
+graduation still requires applying the migration/function to the actual Supabase project and
+repeating the two-client live verification there.
+
 ### Scope
 
-Owns wiring an already-simulated combat match (§6.3: "same 2.5D movement + L/R attack + 3 skills + ultimate as PvE") between two clients — input transport, state reconciliation/desync detection, match session lifecycle (connect → combat → result), and disconnect/forfeit handling for the 1v1 flow in §6.1 ("Select Hero → Queue → Match by Rank/MMR → 1v1 → Win/Lose → Rank update"). It also owns resolving §3.8.7's open question (opposing-player-hero hit-reaction tier: knockdown-immune like a normal mob, or knockdown-eligible like elite) since that's explicitly deferred to "alongside the PvP netcode model." It does **not** own: the combat simulation rules themselves (owned by `src/game/realtimeBattle/*` — `MovementSystem.ts`, `HitboxSystem.ts`, `DamageSystem.ts`, `ComboSystem.ts`, `SkillSystem.ts`, already built/tested for PvE and reused as-is per §6.3); matchmaking/queue/MMR-band logic (§6.2, itself deferred to P13); rank/Elo persistence semantics or currency (§8/economy); or PvE enemy AI.
+Owns wiring an already-simulated combat match (§6.3: "same 2.5D movement + L/R attack + 3 skills + ultimate as PvE") between two clients — input transport, state reconciliation/desync detection, private invite-session lifecycle (connect → combat → result), and disconnect/forfeit handling. It also owns resolving §3.8.7's open question (opposing-player-hero hit-reaction tier: knockdown-immune like a normal mob, or knockdown-eligible like elite) since that's explicitly deferred to "alongside the PvP netcode model." It does **not** own: the combat simulation rules themselves (owned by `src/game/realtimeBattle/*` — `MovementSystem.ts`, `HitboxSystem.ts`, `DamageSystem.ts`, `ComboSystem.ts`, `SkillSystem.ts`, already built/tested for PvE and reused as-is per §6.3); matchmaking/queue/MMR-band logic, rank/Elo persistence, or rewards (all P13); currency (§8/economy); or PvE enemy AI.
 
 ### Inputs/Outputs
 
-Nothing here exists in code yet, so this is the contract to design, built on existing adjacent types:
+The implementation follows this contract, built on existing adjacent types:
 
 - **In (per-frame, local→remote):** the player's `MovementInput` / `SkillSlot` action (`src/game/realtimeBattle/playerInput.ts`, `skills.ts`) — reuse rather than invent a new input shape.
-- **In (session):** match metadata from the Matchmaking system — `matchId`, both `playerId`s, both hero IDs (identifiers only). The Hero system separately supplies each hero's **stats normalized to the ranked baseline level/skill-level per §3.8.5** (see Dependencies) — normalization applies to the computed stat snapshot, not to the hero ID itself.
+- **In (session):** P12 invite-room metadata — `matchId`, both `playerId`s, both hero IDs
+  (identifiers only). P13 may replace the invite handoff with Matchmaking. The Hero system supplies
+  each hero's **stats normalized to the ranked baseline level/skill-level per §3.8.5** (see
+  Dependencies) — normalization applies to the computed stat snapshot, not to the hero ID itself.
 - **Out (local→UI, throttled):** `RealtimeBattleSnapshot` (`src/game/realtimeBattle/types.ts`) for each client's own `RealtimeBattleRuntime` — HUD-facing only. Per its own doc comment it is rebuilt "only at publish, not every simulated frame" (deliberately coarser than sim rate; HUD doesn't need 60Hz). **This is not a reconciliation payload.** Desync detection needs a separate, higher-frequency output this contract must design (e.g. a fixed-tick-rate state hash or authoritative position/HP diff) — `RealtimeBattleSnapshot` should not be repurposed for it as-is.
-- **Out (session end):** a PvP match result — **not `RealtimeBattleResult` unmodified**. That type (`types.ts:116-128`) is entirely PvE-shaped — `stageId`, `stageName`, `defeatedEnemyIds`, `earnedExp`, `earnedGold`, `droppedItems`, sourced via `BattleResultAdapter.ts` from `RewardSystem`'s per-enemy/per-wave reward calc — with no field for `matchId`, opponent identity, or a two-sided win/loss. This contract must define a PvP-specific result (a new `RealtimePvPResult` type, or a wrapper carrying `matchId` + both `playerId`s + per-player outcome), sent server-side as the sole write path for §6.1's "Rank update," never trusted client-side.
+- **Out (session end):** a PvP match result — **not `RealtimeBattleResult` unmodified**. That type (`types.ts:116-128`) is entirely PvE-shaped — `stageId`, `stageName`, `defeatedEnemyIds`, `earnedExp`, `earnedGold`, `droppedItems`, sourced via `BattleResultAdapter.ts` from `RewardSystem`'s per-enemy/per-wave reward calc — with no field for `matchId`, opponent identity, or a two-sided win/loss. P12 defines `RealtimePvPResult` with both player IDs, outcome reason, final authority hash, and authority time. P13 may consume that server result; it must never trust a client-reported win.
 
 ### Dependencies
 
@@ -29,7 +47,9 @@ Nothing here exists in code yet, so this is the contract to design, built on exi
 2. Under an injected ~150ms one-way latency + packet-loss test harness, both clients' final HP/state snapshots match within a stated tolerance — no silent desync.
 3. Mid-match disconnect resolves per a written rule (e.g., forfeit-to-opponent after N seconds), covered by a test — never hangs or crashes either client.
 4. §3.8.7 is explicitly resolved in code with a passing test asserting the chosen hit-reaction tier for an opposing player-hero.
-5. Rank/MMR update after a match goes through the server-authority path only (§8) — verify no client write path exists to the rank table (RLS/API boundary check), so a modified client cannot self-report a win.
+5. P12 persists only the authority-confirmed PvP result; it has no rank/MMR or reward write path.
+   P13 must consume this server result through its own RLS-protected authority path, never from a
+   client-reported win.
 
 ### World-class bar
 

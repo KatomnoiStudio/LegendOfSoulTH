@@ -11,6 +11,7 @@ import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRos
 import { ItemsModal } from '../components/ItemsModal/ItemsModal'
 import { MainNavigation } from '../components/MainNavigation/MainNavigation'
 import { ProfileModal } from '../components/ProfileModal/ProfileModal'
+import { PvPRoomModal } from '../components/PvPRoom/PvPRoomModal'
 import { SettingsModal, type AudioSettings } from '../components/SettingsModal/SettingsModal'
 import { getAudioSettings, initAudioEngine, setAudioSettings } from '../lib/audio/AudioEngine'
 import { getPerformanceSettings, setPerformanceSettings } from '../lib/performanceSettings'
@@ -147,6 +148,7 @@ export function LobbyPage({
   const [settingsOpen, setSettingsOpen] = useState(() => previewModal === 'settings')
   const [rosterOpen, setRosterOpen] = useState(() => previewModal === 'roster')
   const [battleOpen, setBattleOpen] = useState(() => previewModal === 'battle')
+  const [pvpOpen, setPvpOpen] = useState(() => previewModal === 'pvp')
   const [addFriendOpen, setAddFriendOpen] = useState(() => previewModal === 'friend')
   const [itemsOpen, setItemsOpen] = useState(() => previewModal === 'items')
 
@@ -154,6 +156,7 @@ export function LobbyPage({
     if (previewModal) {
       setRosterOpen(previewModal === 'roster')
       setBattleOpen(previewModal === 'battle')
+      setPvpOpen(previewModal === 'pvp')
       setItemsOpen(previewModal === 'items')
       setSettingsOpen(previewModal === 'settings')
       setProfileOpen(previewModal === 'profile')
@@ -239,6 +242,7 @@ export function LobbyPage({
       <MainNavigation
         onOpenHeroes={() => setRosterOpen(true)}
         onOpenBattle={() => setBattleOpen(true)}
+        onOpenPvP={() => setPvpOpen(true)}
         onOpenItems={() => setItemsOpen(true)}
       />
 
@@ -272,6 +276,8 @@ export function LobbyPage({
           onExit={() => setBattleOpen(false)}
         />
       ) : null}
+
+      {pvpOpen ? <PvPRoomModal player={player} onClose={() => setPvpOpen(false)} /> : null}
 
       {/* หน้า Lobby ยังคง mount อยู่ข้างหลัง ฉาก 3D และแอนิเมชันตัวละครจึงไม่รีเซ็ต */}
       {rosterOpen ? (
