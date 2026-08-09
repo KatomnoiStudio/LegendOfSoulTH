@@ -14,6 +14,8 @@ Not build-order fantasy — grounded in `docs/MASTER_BLUEPRINT_v3.0.md` §10's L
 > **REBUILT 2026-08-09.** The 2026-08-07 version of this queue was a source-scan snapshot and had gone badly stale — it still read "zero implementation found" for Boss, Elite Tier, Progression, Gacha, Star Ascension, Effects and Skill-Targeting, all of which shipped and graduated in the days after it was written. That staleness is not incidental: a 19-agent systems audit on 2026-08-09 named "contracts and index files still describing shipped systems as not-implemented" as one of four cross-cutting themes, and several `docs/agent-blueprint/NN-*.md` contracts carry the same drift (tracked as `TASKS.md` row **U26**). Ground the tier of any system in `TASKS.md`, not in a remembered read of this file.
 >
 > **Where the real queue lives now.** 24 of 28 systems are graduated, so "what to build next" is no longer the interesting question for most of them — **`TASKS.md` → Upgrade Tasks (U1–U45)** is the live, ranked backlog, and it is where a dev should pick work. This queue now only answers "what tier is this system in", which is a coarser question.
+>
+> **All 28 systems have now been audited** (2026-08-09): the 24 graduated ones as shipped code, and the 4 not-started ones as readiness reads in `TASKS.md` → **Deferred-System Readiness Notes (R1–R15)**. Every R-row came back `LATER-IS-FINE` — **none of them is scheduled work**, and Tier 2/3 below stay deferred exactly as the blueprint locks them. Read the R-rows when a deferred system actually opens, not before.
 
 ### Tier 0 — Graduated (24/28), maintain + upgrade
 
