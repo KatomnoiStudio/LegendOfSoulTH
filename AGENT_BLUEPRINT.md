@@ -33,7 +33,8 @@ Not a list of unbuilt systems any more. **`TASKS.md` → Upgrade Tasks, rows U1�
 
 ### Tier 2 — Not started, sequenced later (roadmap P12+)
 
-- #19 PvP/Ranked, #20 PvP Power Normalization, #21 Netcode/Networking — zero implementation; blueprint §3.8.7/§8 defer these to P12. The 2026-08-09 audit did **not** design them, but did note that architectural debt in the graduated systems compounds against them; #21's readiness angle surfaced only as a side effect of World Chat (`TASKS.md` U18).
+- #20 PvP Power Normalization — **no longer zero: PR #95 landed a match-scoped projection at 70%** (`src/game/pvp/rankedNormalization.ts`), pulled forward from P12 with explicit Ring 0 approval as master-blueprint-law rule 15 requires. It adds no matchmaking, MMR, rewards or session authority; those stay deferred. Its readiness rows R4–R8 now describe shipped code.
+- #19 PvP/Ranked, #21 Netcode/Networking — zero implementation; blueprint §3.8.7/§8 defer these to P12. The 2026-08-09 audit did **not** design them, but did note that architectural debt in the graduated systems compounds against them; #21's readiness angle surfaced only as a side effect of World Chat (`TASKS.md` U18).
 - **Roadmap-order divergence still standing (item #12 of the blueprint-vs-code audit)** — §10's LOCKED sequence puts P9 (#23 Gacha / #15 Star Ascension) before P10 (#13 Hero Collection expansion), and it shipped in reverse. All three are now graduated (Tier 0), so the build-order question is moot, but HetCreep's resolution still binds the _expansion_ work: **pause further #13 Hero Collection expansion** until the P9 pair has caught up in depth, not just in existence. `TASKS.md` U21 is the concrete blocker — neither `performGachaPull` nor `ascendStar` has a production caller yet.
 
 ### Tier 3 — Decorative / optional, add on later
