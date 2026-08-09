@@ -216,11 +216,33 @@ export async function signInAsGuest(captchaToken?: string): Promise<AuthResult> 
 }
 
 /**
+ * URL ที่ผู้ให้บริการ OAuth ต้องส่งผู้ใช้กลับมา — ต้องเป็น "หน้าแอปจริง" ไม่ใช่แค่ origin
+ *
+ * เดิมโค้ดส่ง `window.location.origin` ตรง ๆ ซึ่งเป็นบั๊กจริงที่เจอบน production (2026-08-09):
+ * แอปอยู่ที่ https://katomnoistudio.github.io/LegendOfSoulTH/ (GitHub Pages *project site*,
+ * vite ตั้ง base = '/LegendOfSoulTH/') แต่ `origin` ตัด path ทิ้งเสมอ คืนแค่
+ * https://katomnoistudio.github.io — Google จึงส่งกลับไปที่ root ขององค์กรซึ่ง "ไม่มีแอปอยู่"
+ * ผลคือไม่มีใครเรียก detectSessionInUrl → token ค้างอยู่ในช่อง address และผู้ใช้ไม่ได้ล็อกอิน
+ *
+ * แยกเป็นฟังก์ชันบริสุทธิ์เพื่อให้เทสต์ตรึงได้ว่า base path ไม่หลุดอีก (ดูเทสต์ในไฟล์คู่)
+ */
+export function resolveOAuthRedirectUrl(origin: string, basePath: string): string {
+  return new URL(basePath, origin).href
+}
+
+function appRedirectUrl(): string {
+  return resolveOAuthRedirectUrl(window.location.origin, import.meta.env.BASE_URL)
+}
+
+/**
  * เริ่ม OAuth flow กับ Google — เปลี่ยนหน้าออกไปยัง Google ทันที (ไม่ใช่ popup)
- * แล้ว Google ส่งกลับมาที่ redirectTo พร้อม session ใน URL fragment ซึ่ง supabase-js
- * ดักจับเองอัตโนมัติ (ค่าเริ่มต้น detectSessionInUrl: true) — useAuth's getSessionPlayer()/
- * onAuthStateChange ที่มีอยู่แล้วจะเห็น session นี้เหมือน login ปกติทุกประการ ไม่ต้องเพิ่ม
- * โค้ดฝั่งรับ callback เอง
+ * แล้ว Google ส่งกลับมาที่ redirectTo พร้อม `?code=` (PKCE — ดู supabaseClient.ts) ซึ่ง
+ * supabase-js แลกเป็น session เองอัตโนมัติ (ค่าเริ่มต้น detectSessionInUrl: true) —
+ * useAuth's getSessionPlayer()/onAuthStateChange ที่มีอยู่แล้วจะเห็น session นี้เหมือน login
+ * ปกติทุกประการ ไม่ต้องเพิ่มโค้ดฝั่งรับ callback เอง
+ *
+ * ⚠️ redirectTo ต้องถูกเพิ่มใน Supabase Dashboard → Authentication → URL Configuration →
+ * Redirect URLs ด้วย ไม่งั้น Supabase ปฏิเสธ redirect
  *
  * handle_new_user() trigger (0001_init.sql) สร้าง profile/starter character ให้อัตโนมัติ
  * เหมือน register() ทุกประการ — ไม่สนใจว่าผู้ใช้เข้ามาทาง email/password หรือ OAuth
@@ -231,7 +253,7 @@ export async function signInAsGuest(captchaToken?: string): Promise<AuthResult> 
 export async function signInWithGoogle(): Promise<{ ok: boolean; error?: string }> {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin },
+    options: { redirectTo: appRedirectUrl() },
   })
   if (error) return { ok: false, error: 'เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง' }
   return { ok: true }
@@ -257,7 +279,7 @@ export async function getLinkedProviders(): Promise<string[]> {
 export async function linkGoogleIdentity(): Promise<{ ok: boolean; error?: string }> {
   const { error } = await supabase.auth.linkIdentity({
     provider: 'google',
-    options: { redirectTo: window.location.origin },
+    options: { redirectTo: appRedirectUrl() },
   })
   if (error) return { ok: false, error: 'เชื่อมบัญชี Google ไม่สำเร็จ ลองใหม่อีกครั้ง' }
   return { ok: true }
