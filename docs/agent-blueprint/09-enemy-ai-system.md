@@ -17,15 +17,15 @@ stepEnemyAI(
 ): EnemyDecision                 // { move: Vec2 } — zero vector when not moving
 ```
 
-`EnemyBrain = { state: EnemyAIState; stateElapsedMs: number; hitTargets: Set<string> }` (`EnemyAISystem.ts:34-49`). One `EnemyBrain` per enemy, held in `RealtimeBattleRuntime`'s `brains: Map<string, EnemyBrain>` (`RealtimeBattleRuntime.ts:74`, `:448-454`), not persisted to the React-facing snapshot (`RealtimeBattleSnapshot`, `types.ts:96-113`).
+`EnemyBrain = { state: EnemyAIState; stateElapsedMs: number; hitTargets: Set<string> }` (`EnemyAISystem.ts:44-58` — interface now also carries boss-only fields `bossPhaseIndex`/`bossPendingPhaseTransition`/`bossAttackIndex`/`selectedAttack`). One `EnemyBrain` per enemy, held in `RealtimeBattleRuntime`'s `brains: Map<string, EnemyBrain>` (`RealtimeBattleRuntime.ts:90`, get-or-create at `:600-606`), not persisted to the React-facing snapshot (`RealtimeBattleSnapshot`, `types.ts:146-166`).
 
 ### Dependencies
 
 - **combat** (Per-Move Property Schema / Basic Attack&Skill systems) — consumes `AttackDefinition`/`ENEMY_ATTACK` timing (`attacks.ts`).
 - **combat** (Hit Reaction System) — reads `enemy.hitStunRemainingMs` to enter `hit` state (`EnemyAISystem.ts:156-161`). Knockdown/GetUp are also handled here: the brain mirrors `enemy.state` while it is `knockdown`/`getUp` (set by `combatReaction.ts`'s `tickKnockdownState`) and resolves back to `chase`/`idle` once cleared (`EnemyAISystem.ts:150-153,245-252`).
-- **adventure** (Stage/Adventure System) — reads `RealtimeEnemyTemplate` via `getEnemyTemplate()` sourced from `stageConfig.ts`'s shared `ENEMY_TEMPLATES` map (a flat `Record<string, RealtimeEnemyTemplate>` keyed by template id, `stageConfig.ts:78`; per-stage composition is a separate structure, `RealtimeBattleStage.waves`).
-- **feeds** Elite/Mini-boss Tier System (#10, per `AGENT_BLUEPRINT.md:55`, source §3.8.3/§3.8.4) and Boss System (#11, per `AGENT_BLUEPRINT.md:56`, source §3.6.9/§3.6.8) — both systems are now built on top of this one and graduated (TASKS.md: #11 Boss System PR #57, #10 Elite/Mini-boss Tier System PR #58, both 2026-08-08) — `EnemyAISystem.ts` carries boss phase-transition branching (`bossTemplate`, `bossPhaseIndex`, `bossPendingPhaseTransition`, the `phase-transition` state) and `RealtimeBattleEntity` carries both `combatTier` and `tier` fields. (§3.8.3 covers summons reusing the enemy AI core; §3.8.4 maps Mini-boss to Elite-tier stats/knockdown-eligibility without the Boss phase-transition system — neither section states AI-core reuse for Elite/Boss specifically, but #10's own citation in the project's system inventory is §3.8.3/§3.8.4.)
-- **feeds** Combat Facing System — calls `faceTargetHorizontally()` on attack entry (`EnemyAISystem.ts:134`).
+- **adventure** (Stage/Adventure System) — reads `RealtimeEnemyTemplate` via `getEnemyTemplate()` sourced from `stageConfig.ts`'s shared `ENEMY_TEMPLATES` map (a flat `Record<string, RealtimeEnemyTemplate>` keyed by template id, `stageConfig.ts:267`; per-stage composition is a separate structure, `RealtimeBattleStage.waves`).
+- **feeds** Elite/Mini-boss Tier System (#10, per `AGENT_BLUEPRINT.md:74`, source §3.8.3/§3.8.4) and Boss System (#11, per `AGENT_BLUEPRINT.md:76`, source §3.6.9/§3.6.8) — both systems are now built on top of this one and graduated (TASKS.md: #11 Boss System PR #57, #10 Elite/Mini-boss Tier System PR #58, both 2026-08-08) — `EnemyAISystem.ts` carries boss phase-transition branching (`bossTemplate`, `bossPhaseIndex`, `bossPendingPhaseTransition`, the `phase-transition` state) and `RealtimeBattleEntity` carries both `combatTier` and `tier` fields. (§3.8.3 covers summons reusing the enemy AI core; §3.8.4 maps Mini-boss to Elite-tier stats/knockdown-eligibility without the Boss phase-transition system — neither section states AI-core reuse for Elite/Boss specifically, but #10's own citation in the project's system inventory is §3.8.3/§3.8.4.)
+- **feeds** Combat Facing System — calls `faceTargetHorizontally()` on attack entry (`EnemyAISystem.ts:262`).
 
 ### Done-criteria
 
@@ -48,7 +48,7 @@ Resolved: Elite/Mini-boss Tier System (#10) and Boss System (#11) are now both g
 
 ### Low-maintenance-cost design
 
-The **existing single-source data files** were extended rather than branching the state machine per enemy type, as recommended: `AttackDefinition` (`attacks.ts:60,68`) already carries `knockdown?: boolean` and `telegraphMs?: number` fields, and `RealtimeEnemyTemplate` (`stageConfig.ts:64,66`) already carries `tier: EnemyTier` and `attackId: string` fields — no second `EnemyAISystem` was written for elites/bosses. This directly matches the project's own already-stated reasoning in `EnemyAISystem.ts:9-11` (reusing `MovementSystem` instead of a second movement implementation) and §3.8.3/§3.8.4's core-reuse framing for #10 — one state machine, data-driven per enemy, no premature per-tier abstraction until #10/#11 actually need it.
+The **existing single-source data files** were extended rather than branching the state machine per enemy type, as recommended: `AttackDefinition` (`attacks.ts:60,68`) already carries `knockdown?: boolean` and `telegraphMs?: number` fields, and `RealtimeEnemyTemplate` (`stageConfig.ts:64,66`) already carries `tier: EnemyTier` and `attackId: string` fields — no second `EnemyAISystem` was written for elites/bosses. This directly matches the project's own already-stated reasoning in `EnemyAISystem.ts:16-18` (reusing `MovementSystem` instead of a second movement implementation) and §3.8.3/§3.8.4's core-reuse framing for #10 — one state machine, data-driven per enemy, no premature per-tier abstraction until #10/#11 actually need it.
 
 ### Known scars (real historical precedent)
 
