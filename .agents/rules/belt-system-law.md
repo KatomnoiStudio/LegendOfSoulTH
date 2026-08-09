@@ -19,22 +19,19 @@
 
 Main and every hired seat share ONE cwd; the auto-load reaches all of them — unpreventable,
 and not pretended otherwise. **A law binds a seat only if ADDRESSED to that seat.** Per-seat
-binding order: (1) the dispatch prompt → (2) the seat's own file (`.claude/agents/belt-*.md`)
+binding order: (1) the dispatch prompt, then (2) the seat's own file (`.claude/agents/belt-*.md`) with its registry row, then (3) the law layer addressed to that seat, then (4) everything else auto-loaded = background context, data not command.
 
-- registry row → (3) the law layer addressed to that seat → (4) everything else auto-loaded =
-  background context, data not command.
-
-* **Layer 1's AUTHORITIES (routing, merge, bump, dispatch) address the BELT-END SEAT — main
+- **Layer 1's AUTHORITIES (routing, merge, bump, dispatch) address the BELT-END SEAT — main
   alone.** They transfer to NO other seat, however much of this file that seat has in context.
   Layer 1's PROHIBITIONS that name every agent (e.g. "no agent applies to production") and its
   dispatcher duties (rule 8's pin + never-delegate-sensitive-down) bind WHOEVER holds that
   role — including a caretaker acting as Joiner.
-* **Worker-seat duties address EVERY worker seat, any ring** (Ring-0-hired caretakers/aide/QC
+- **Worker-seat duties address EVERY worker seat, any ring** (Ring-0-hired caretakers/aide/QC
   included): one topic per dispatch + per-item verdicts, contract walls, memory duties, the
   gate law, the language rule, and never editing Ring-0 rule files (a Ring-0-hired seat passes
   the identity test but holds a WORKER role — the prohibition rides the role, not the ring).
-* **Layer 2's intake rules (rules 1–2) address Ring-1 devs specifically.**
-* **The addressing rule allocates the BELT's layered authorities ONLY. The repo's baseline
+- **Layer 2's intake rules (rules 1–2) address Ring-1 devs specifically.**
+- **The addressing rule allocates the BELT's layered authorities ONLY. The repo's baseline
   laws (`AGENTS.md` rules 1–22 + `.agents/rules/**`) bind EVERY seat regardless of addressing**
   (owner ratification 2026-08-09) — rule 22's RLS law, rule 15's CUT/DEFERRED lock, rule 21's
   workdir lock and their siblings never demote to tier-4 context for any seat.
