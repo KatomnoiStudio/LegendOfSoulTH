@@ -11,6 +11,8 @@ export interface OwnedCharacterRow {
   skill_levels?: OwnedCharacter['skillLevels'] | null
   talent_state?: OwnedCharacter['talentState'] | null
   awakening_state?: OwnedCharacter['awakeningState'] | null
+  star?: number | null
+  shards?: number | null
 }
 
 /**
@@ -27,5 +29,7 @@ export function mapOwnedCharacterRow(row: OwnedCharacterRow): OwnedCharacter {
     skillLevels: row.skill_levels ?? createDefaultSkillLevels(),
     talentState: row.talent_state ?? { unlockedNodes: [] },
     awakeningState: row.awakening_state ?? { tier: 0, unlockedEffects: [] },
+    star: row.star ?? 1,
+    shards: row.shards ?? 0,
   }
 }

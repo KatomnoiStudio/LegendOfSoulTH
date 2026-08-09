@@ -1,4 +1,4 @@
-import type { Player } from '../types/player'
+import type { Player, FriendCandidate } from '../types/player'
 
 /**
  * ชนิด/ค่าคงที่/ตัวตรวจสอบที่ใช้ร่วมกันระหว่างทุก backend ของบัญชีผู้เล่น
@@ -65,6 +65,16 @@ export type ItemResult = { ok: true; player: Player } | { ok: false; error: stri
 export type CharacterGrantResult =
   { ok: true; player: Player; characterId: string } | { ok: false; error: string }
 
+export type StarAscensionResult =
+  | {
+      ok: true
+      newStar: number
+      shardsRemaining: number
+      shardsSpent: number
+      replayed: boolean
+    }
+  | { ok: false; error: string }
+
 /** ตรวจรูปแบบอีเมลแบบพอดี ๆ — ไม่เข้มจนบล็อกอีเมลที่ใช้ได้จริง */
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
@@ -107,4 +117,32 @@ export function validatePassword(password: string): string | null {
     return 'รหัสผ่านนี้ถูกใช้ทั่วไปมากเกินไป กรุณาตั้งรหัสอื่น'
   }
   return null
+}
+
+/**
+ * อินเตอร์เฟสแสดงฟังก์ชันที่ต้องมีร่วมกันในทั้งสอง Repository
+ * (localStorage vs Supabase) เพื่อความสม่ำเสมอของโครงสร้างข้อมูลและการเรียกใช้งาน
+ * ไม่รวม importSave/exportSave เนื่องจากมีความเป็นเอกเทศของแต่ละระบบ
+ */
+export interface AccountRepositorySubset {
+  register(email: string, password: string): Promise<AuthResult>
+  login(email: string, password: string): Promise<AuthResult>
+  logout(): Promise<void>
+  getSessionPlayer(): Promise<Player | null>
+  getSessionEmail(): string | null
+  findPlayerByUid(uid: string): Promise<FriendCandidate | null>
+  savePlayer(player: Player): Promise<boolean>
+  earnGold(uid: string, source: GoldSource, amount: number, refId?: string): Promise<CurrencyResult>
+  redeemCoupon(uid: string, code: string): Promise<CurrencyResult>
+  topUpGold(uid: string, packageId: string): Promise<CurrencyResult>
+  topUpGems(uid: string, packageId: string): Promise<CurrencyResult>
+  getTransactions(uid: string): Promise<CurrencyTransaction[]>
+  grantItem(
+    uid: string,
+    itemId: string,
+    quantity: number,
+    source: ItemSource,
+    refId?: string,
+  ): Promise<ItemResult>
+  grantCharacter(uid: string, characterId: string): Promise<CharacterGrantResult>
 }

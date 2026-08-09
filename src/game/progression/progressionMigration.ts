@@ -40,14 +40,17 @@ export function createInitialOwnedCharacterProgress(
     talentState: { unlockedNodes: [] },
     awakeningState: { tier: 0, unlockedEffects: [] },
     progressionVersion: 1,
+    star: 1,
+    shards: 0,
   }
 }
 
 export function sanitizeOwnedCharacter(owned: OwnedCharacter): OwnedCharacter {
   const level = Math.max(1, Math.min(progressionConfig.maxHeroLevel, Math.floor(owned.level) || 1))
   const exp = Math.max(0, Math.floor(owned.exp) || 0)
-  const expToNext =
-    level >= progressionConfig.maxHeroLevel ? 0 : getExpToNextForLevel(level)
+  const expToNext = level >= progressionConfig.maxHeroLevel ? 0 : getExpToNextForLevel(level)
+  const star = Math.max(1, Math.min(6, Math.floor(owned.star ?? 1) || 1))
+  const shards = Math.max(0, Math.floor(owned.shards ?? 0) || 0)
 
   return {
     ...owned,
@@ -63,6 +66,8 @@ export function sanitizeOwnedCharacter(owned: OwnedCharacter): OwnedCharacter {
       unlockedEffects: [...(owned.awakeningState?.unlockedEffects ?? [])],
     },
     progressionVersion: owned.progressionVersion ?? 1,
+    star,
+    shards,
   }
 }
 

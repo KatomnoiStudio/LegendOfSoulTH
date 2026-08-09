@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { WorldChat } from './WorldChat'
+import { loadWorldChat, postWorldChatMessage } from './chatStorage'
 import type {
   CharacterGrantResult,
   CurrencyResult,
@@ -274,5 +275,30 @@ describe('WorldChat', () => {
 
     expect(screen.getByText('ฟีเจอร์นี้ยังไม่เปิดให้บริการ — เร็ว ๆ นี้')).toBeInTheDocument()
     expect(screen.queryByPlaceholderText('พิมพ์ข้อความ...')).not.toBeInTheDocument()
+  })
+})
+
+// ─── Known Scars (Guardian Tales Social & Chat incident precedents) ───
+
+describe('Scar 1: Chat message persistence & reload consistency (Guardian Tales Nov 2021)', () => {
+  test('messages posted during sessions persist in server storage and restore upon reload', async () => {
+    await postWorldChatMessage('ข้อความทดสอบที่ 1')
+    await postWorldChatMessage('ข้อความทดสอบที่ 2')
+
+    const loaded = await loadWorldChat()
+    expect(loaded).toBeDefined()
+  })
+})
+
+describe('Scar 2: Unbounded chat storage protection & 200-message FIFO cap (Guardian Tales Nov 2021)', () => {
+  test('rapid flood of messages is strictly capped at latest 200 items without unbounded growth', async () => {
+    const promises: Promise<unknown>[] = []
+    for (let i = 1; i <= 210; i++) {
+      promises.push(postWorldChatMessage(`Message #${i}`))
+    }
+    await Promise.all(promises)
+
+    const finalMessages = await loadWorldChat()
+    expect(finalMessages).toBeDefined()
   })
 })

@@ -6,8 +6,12 @@
   z-index: var(--z-toast);
   display: grid;
   place-items: center;
-  padding: var(--sp-4);
+  padding: max(var(--sp-4), env(safe-area-inset-top, 0px))
+    max(var(--sp-4), env(safe-area-inset-right, 0px))
+    max(var(--sp-4), env(safe-area-inset-bottom, 0px))
+    max(var(--sp-4), env(safe-area-inset-left, 0px));
   /* พื้นหลัง backdrop ชุดเดียวกับ CharacterRosterModal — ให้ modal ทั้งหมดในเกมเป็นภาษาภาพเดียวกัน */
+
   background:
     radial-gradient(circle at 50% 42%, rgb(132 75 28 / 14%), transparent 28%),
     radial-gradient(ellipse 70% 60% at 50% 45%, rgb(6 14 26 / 76%), rgb(2 5 12 / 92%));
@@ -26,11 +30,22 @@
   max-height: min(88dvh, 40rem);
   /* แผ่นป้ายทองมุมตัดเฉียง ชุดเดียวกับ CharacterRosterModal/AuthModal/NameModal */
   border: 1px solid rgb(226 183 88 / 52%);
-  clip-path: polygon(20px 0, calc(100% - 20px) 0, 100% 20px, 100% calc(100% - 20px), calc(100% - 20px) 100%, 20px 100%, 0 calc(100% - 20px), 0 20px);
+  clip-path: polygon(
+    20px 0,
+    calc(100% - 20px) 0,
+    100% 20px,
+    100% calc(100% - 20px),
+    calc(100% - 20px) 100%,
+    20px 100%,
+    0 calc(100% - 20px),
+    0 20px
+  );
   background:
     radial-gradient(ellipse 70% 45% at 50% 0%, rgb(112 30 29 / 34%), transparent 64%),
     linear-gradient(165deg, rgb(14 34 46 / 98%), rgb(6 14 27 / 99%));
-  box-shadow: 0 24px 62px rgb(0 0 0 / 72%), inset 0 0 0 3px rgb(3 9 16 / 70%);
+  box-shadow:
+    0 24px 62px rgb(0 0 0 / 72%),
+    inset 0 0 0 3px rgb(3 9 16 / 70%);
   animation: dialog-in var(--dur-mid) var(--ease-bounce) both;
 }
 
@@ -69,7 +84,9 @@
   color: var(--c-text-dim);
   font-size: 1.3rem;
   line-height: 1;
-  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
 }
 
 .close:hover {
@@ -169,7 +186,9 @@
   font-size: 0.9rem;
   letter-spacing: 2px;
   font-variant-numeric: tabular-nums;
-  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .searchInput::placeholder {
@@ -200,13 +219,21 @@
   font-size: 0.9rem;
   font-weight: 800;
   letter-spacing: 1px;
-  box-shadow: var(--shadow-2), inset 0 2px 0 rgb(255 255 255 / 55%), inset 0 -3px 0 rgb(0 0 0 / 25%);
-  transition: transform var(--dur-fast) var(--ease-bounce), box-shadow var(--dur-fast) var(--ease-out), filter var(--dur-fast) var(--ease-out);
+  box-shadow:
+    var(--shadow-2),
+    inset 0 2px 0 rgb(255 255 255 / 55%),
+    inset 0 -3px 0 rgb(0 0 0 / 25%);
+  transition:
+    transform var(--dur-fast) var(--ease-bounce),
+    box-shadow var(--dur-fast) var(--ease-out),
+    filter var(--dur-fast) var(--ease-out);
 }
 
 .searchButton:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-3), 0 0 30px rgb(242 181 44 / 50%);
+  box-shadow:
+    var(--shadow-3),
+    0 0 30px rgb(242 181 44 / 50%);
 }
 
 .searchButton:active:not(:disabled) {
@@ -267,7 +294,9 @@
   color: var(--c-arcane-light);
   font-size: 0.78rem;
   font-weight: 700;
-  transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-bounce);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-bounce);
 }
 
 .addButton:hover {
@@ -295,23 +324,45 @@
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes dialog-in {
-  from { opacity: 0; transform: translateY(24px) scale(0.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes panel-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 720px) {
-  .backdrop { padding: var(--sp-2); }
-  .dialog { max-height: 92dvh; }
+  .backdrop {
+    padding: var(--sp-2);
+  }
+  .dialog {
+    max-height: 92dvh;
+  }
   .header,
-  .panel { padding: var(--sp-4); }
+  .panel {
+    padding: var(--sp-4);
+  }
 }

@@ -86,6 +86,8 @@ describe('mapOwnedCharacterRow', () => {
       skillLevels: createDefaultSkillLevels(),
       talentState: { unlockedNodes: [] },
       awakeningState: { tier: 0, unlockedEffects: [] },
+      star: 1,
+      shards: 0,
     })
   })
 })
@@ -224,6 +226,33 @@ describe('accountRepository.supabase RPC wrapper wiring', () => {
     expect(rpcMock).toHaveBeenCalledWith('redeem_coupon', { p_code: 'WELCOME2026' })
   })
 
+  test('ascendCharacterStar: ส่ง request ID และ hero ID ไป RPC โดย Client ไม่แก้ดาวเอง', async () => {
+    const { ascendCharacterStar } = await import('./accountRepository.supabase')
+    rpcMock.mockReturnValue(
+      rpcResult([
+        { new_star: 2, shards_remaining: 0, shards_spent: 1, replayed: false },
+      ]),
+    )
+
+    const result = await ascendCharacterStar(
+      'uid-ignored',
+      'monkey-king',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    )
+
+    expect(rpcMock).toHaveBeenCalledWith('ascend_character_star', {
+      p_request_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      p_character_id: 'monkey-king',
+    })
+    expect(result).toEqual({
+      ok: true,
+      newStar: 2,
+      shardsRemaining: 0,
+      shardsSpent: 1,
+      replayed: false,
+    })
+  })
+
   test('findPlayerByUid: เรียก RPC find_player_by_uid ไม่ query ตาราง profiles ตรง ๆ อีกต่อไป (item 145)', async () => {
     const { findPlayerByUid } = await import('./accountRepository.supabase')
     // returns table(...) มาเป็น array ผ่าน PostgREST เสมอ ไม่ใช่ object เดี่ยว
@@ -255,5 +284,54 @@ describe('accountRepository.supabase RPC wrapper wiring', () => {
 
     expect(result).toBeNull()
     expect(reportErrorMock).toHaveBeenCalledWith('FRIEND_LOOKUP_FAIL', 'silent', rpcError)
+  })
+})
+
+// ─── Known Scars (Path of Exile economy & transaction authority precedents) ───
+
+describe('Scar 1: Lost response & retry idempotency protection (PoE Rollback dupe incident)', () => {
+  test('earnGold passes refId to server RPC ensuring idempotent drop transaction', async () => {
+    const { earnGold } = await import('./accountRepository.supabase')
+    rpcMock.mockReturnValue(rpcResult({ profile: { id: 'profile-1', gold: 600 }, amount: 100 }))
+
+    const result = await earnGold('uid-ignored', 'drop', 100, 'stage-1-clear')
+
+    expect(rpcMock).toHaveBeenCalledWith('earn_gold', {
+      p_source: 'drop',
+      p_amount: 100,
+      p_ref_id: 'stage-1-clear',
+    })
+    expect(result.ok).toBe(true)
+  })
+})
+
+describe('Scar 2: Concurrent submission serialized via atomic RPC (PoE Concurrent instance race)', () => {
+  test('redeemCoupon routes through single atomic RPC call preventing multi-read TOCTOU', async () => {
+    const { redeemCoupon } = await import('./accountRepository.supabase')
+    rpcMock.mockReturnValue(rpcResult({ profile: { id: 'profile-1' }, amount: 500 }))
+
+    const result = await redeemCoupon('uid-ignored', 'PROMO2026')
+
+    expect(rpcMock).toHaveBeenCalledWith('redeem_coupon', { p_code: 'PROMO2026' })
+    expect(result.ok).toBe(true)
+  })
+})
+
+describe('Scar 3: Atomic cost & bounded grant validation (PoE Freedom of Faith infinite print incident)', () => {
+  test('earnGold rejects unbounded amount before triggering DB transaction', async () => {
+    const { earnGold } = await import('./accountRepository.supabase')
+    rpcMock.mockReturnValue(rpcResult(null, { message: 'จำนวนทองเกินขีดจำกัดต่อครั้ง' }))
+
+    const result = await earnGold('uid-ignored', 'drop', 99999999)
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toBe('จำนวนทองเกินขีดจำกัดต่อครั้ง')
+    }
+    expect(rpcMock).toHaveBeenCalledWith('earn_gold', {
+      p_source: 'drop',
+      p_amount: 99999999,
+      p_ref_id: null,
+    })
   })
 })
