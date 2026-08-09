@@ -5,7 +5,11 @@
 > ตัดสินผ่าน ask CB 4 ที่นั่ง 2026-08-07 ตามที่ HetCreep สั่งให้ใช้มาตรฐานสากลเป็นเกณฑ์
 > ไม่ใช่กฎที่คิดขึ้นเอง
 
-## สถานะปัจจุบัน: สร้างแล้ว (2026-08-09, `supabase/migrations/20260809090000_p_currency_ledger_archive.sql`)
+## สถานะปัจจุบัน: สร้างแล้ว + apply เข้า production + ตรวจยืนยันแล้ว (2026-08-09, `supabase/migrations/20260809090000_p_currency_ledger_archive.sql`)
+
+> ตรวจ read-only ผ่าน Management API หลัง apply: lifetime columns ×2, archive table (RLS+policy),
+> archive function, cron jobid 5 (`0 4 1 * *`), credit functions ทั้ง 3 มี lifetime increment,
+> backfill 0 mismatches — ครบทุกข้อ (MEMORY.md item 179)
 
 **เงื่อนไขทริกเกอร์ด้านล่างนี้จุดจริงแล้ว** — `src/game/reward/lobbyBattleRewardPipeline.ts`
 (commit `6172d52`, 2026-08-08) ต่อ `earnGold`/`grantItem` เข้ากับผลจบการต่อสู้อัตโนมัติ
