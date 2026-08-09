@@ -5,6 +5,26 @@
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-08-09
+
+### Fixed
+
+- **Google login left the session token sitting in the URL, and did not actually sign the user in.**
+  Both OAuth entry points passed `window.location.origin` as `redirectTo`, but the game is served
+  from `/LegendOfSoulTH/` and `origin` always strips the path — so Google sent users to
+  `https://katomnoistudio.github.io/` (a 404 page with no app on it). Nothing was there to consume
+  the callback, so the access token stayed in the address bar and browser history, and the login
+  silently failed. Reproduced on a real device before and after the fix.
+
+### Security
+
+- Auth now uses the **PKCE flow** (`flowType: 'pkce'`) instead of supabase-js's default implicit
+  flow. The callback carries a single-use `?code=` that is worthless without the `code_verifier`
+  held in the originating browser, so a copied login URL can no longer hand anyone a live session —
+  previously the URL fragment carried the raw JWT.
+- `SECURITY.md` now lists session-token exposure in scope, and `.env.local.example` names the exact
+  Supabase Redirect URLs that must be whitelisted.
+
 ## [0.14.0] - 2026-08-09
 
 ### Added
