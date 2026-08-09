@@ -2,47 +2,46 @@
 
 > **Purpose**: `docs/MASTER_BLUEPRINT_v3.0.md` is the **product** source of truth — written for human design review, organized by product section (§1 identity, §2 core loop, …). This file is the **same locked decisions**, re-organized by **implementable system**, for an agent about to pick up implementation work. It does not introduce new decisions — every entry cross-references the section that actually locks it.
 > **Status**: 28/28 systems have a full gold-standard work contract (scope / inputs-outputs / dependencies / done-criteria / world-class exemplar / stay-current note / low-maintenance-cost design) under `docs/agent-blueprint/`, generated 2026-08-07 via a 28-system ultracode workflow (gold-standard FILL + 2-seat adversarial verify + revise-on-flag; all 28 were revised at least once before passing).
+> **Contract drift warning (2026-08-09)**: those contracts were written before most systems shipped, and a 19-agent systems audit confirmed several now describe the code inaccurately — scope exclusions resting on greps that are no longer true, done-criteria pointing at line numbers past a file's EOF, and systems still called "not implemented" after graduating. Read a contract as _intent_, and verify its claims against `src/` before treating any of them as current fact. Re-syncing them is queued as `TASKS.md` row **U26**.
 > **Source of truth for content**: `docs/MASTER_BLUEPRINT_v3.0.md` always wins on any conflict — this file is a derived view, not a second locked-decision-record.
 
 ---
 
 ## Priority queue
 
-Not build-order fantasy — grounded in `docs/MASTER_BLUEPRINT_v3.0.md` §10's LOCKED roadmap (P0–P15) + what's actually already in `src/` (verified via source-scan, 2026-08-07). 4 tiers: shipped → urgent/core → sequenced-later → decorative/optional.
+Not build-order fantasy — grounded in `docs/MASTER_BLUEPRINT_v3.0.md` §10's LOCKED roadmap (P0–P15) + what's actually in `src/`.
 
-### Tier 0 — Already shipped, maintain only
+> **REBUILT 2026-08-09.** The 2026-08-07 version of this queue was a source-scan snapshot and had gone badly stale — it still read "zero implementation found" for Boss, Elite Tier, Progression, Gacha, Star Ascension, Effects and Skill-Targeting, all of which shipped and graduated in the days after it was written. That staleness is not incidental: a 19-agent systems audit on 2026-08-09 named "contracts and index files still describing shipped systems as not-implemented" as one of four cross-cutting themes, and several `docs/agent-blueprint/NN-*.md` contracts carry the same drift (tracked as `TASKS.md` row **U26**). Ground the tier of any system in `TASKS.md`, not in a remembered read of this file.
+>
+> **Where the real queue lives now.** 24 of 28 systems are graduated, so "what to build next" is no longer the interesting question for most of them — **`TASKS.md` → Upgrade Tasks (U1–U45)** is the live, ranked backlog, and it is where a dev should pick work. This queue now only answers "what tier is this system in", which is a coarser question.
+>
+> **All 28 systems have now been audited** (2026-08-09): the 24 graduated ones as shipped code, and the 4 not-started ones as readiness reads in `TASKS.md` → **Deferred-System Readiness Notes (R1–R15)**. Every R-row came back `LATER-IS-FINE` — **none of them is scheduled work**, and Tier 2/3 below stay deferred exactly as the blueprint locks them. Read the R-rows when a deferred system actually opens, not before.
 
-No queue slot needed — touch only on bug/extension.
+### Tier 0 — Graduated (24/28), maintain + upgrade
 
-- #1 Movement, #2 Combat Facing, #3 Basic Attack, #4 Skill/Cast, #6 Hit Reaction, #9 Enemy AI — real files: `MovementSystem.ts`, `combatFacing.ts`, `ComboSystem.ts`/`HitboxSystem.ts`, `SkillSystem.ts`, `DamageSystem.ts`, `EnemyAISystem.ts`.
-- #18 Reward (`RewardSystem.ts`), #26 Control/Input (PR #24), #27 Error/Observability (SETTLED).
-- #22 Currency (DB RPCs) — **badge caveat (found via ask-CB dogfood-methodology sweep, 2026-08-07):** its own work contract (`docs/agent-blueprint/22-currency-system.md:38`) admits zero test coverage on `earnGold`/`redeemCoupon`/`topUpGold`/`topUpGems` — the "maintain only" stamp was earned by a source-scan grep (file exists), never by a dogfood/red-team pass or by tests. Real gap, tracked under `.agents/rules/gold-standard-baseline.md`'s open component-test-coverage MUST-HAVE (AGENTS.md rule 10) — not fixed here, flagged so nobody trusts this badge more than it's earned.
-- #25 Backend/Server-Authority — baseline shipped (auth/RLS/RPC); GROWS as Tier-1/2 systems land, not a one-time ship.
-- #28 Social/Communication — World Chat server-authority migration implemented (Postgres/RLS/RPC/Realtime); production remains pending migration apply. Player-local block preference stays separate from message authority.
+All 24 have passed their Dogfood loop (`TASKS.md` DF-rows) and sit at 100% **except #12 Hero Kit/Archetype, held at 90%** pending a playtest round. "Graduated" means the system works and is tested — it does **not** mean it has nothing left to gain: 45 grounded upgrade rows across these same 24 systems are queued in `TASKS.md`'s Upgrade Tasks table.
 
-### Tier 1 — Urgent / core (next up, blocks the rest — roadmap P3–P8, verified NOT yet in `src/`)
+- **Combat core** — #1 Movement, #2 Combat Facing, #3 Basic Attack, #4 Skill/Cast, #5 Per-Move Property Schema, #6 Hit Reaction, #7 Effects System, #8 Skill-Targeting, #9 Enemy AI, #10 Elite/Mini-boss Tier, #11 Boss System.
+- **Content + progression** — #12 Hero Kit/Archetype (90%), #13 Hero Collection, #14 Progression, #15 Star Ascension, #16 Stage/Adventure, #17 Stage Variation, #23 Gacha.
+- **Platform** — #18 Reward, #22 Currency, #25 Backend/Server-Authority, #26 Control/Input, #27 Error/Observability, #28 Social/Communication.
+- **Retired badge caveat** — the 2026-08-07 note that #22 Currency's "maintain only" stamp was earned by a grep rather than a dogfood pass is now **closed**: DF10 graduated and the economy-integrity migrations (`0009`–`0015`) shipped and were verified live. The successor concerns are specific and tracked, not a blanket caveat: `TASKS.md` **U5** (the PGlite migration harness never switches to the `authenticated` role, so RLS and column GRANTs are applied by the test and verified by nothing) and **U31** (no balance-vs-ledger reconciliation).
+- **#25 Backend/Server-Authority still GROWS** as later systems land — it is not a one-time ship. Its open trust-boundary rows are U1, U4, U5, U9, U10, U24, U28.
 
-- #5 Per-Move Property Schema — formalize as the real shared contract; #3/#4/#6/#7/#8 all silently depend on it existing.
-- #7 Effects System (heal/buff/cc/summon) — §3.7's locked Monkey King kit needs this; `SkillSystem.ts` currently reads damage-only.
-- #8 Skill-Targeting System — small, but the Ultimate's `targetLock:'nearest'` exception needs it to function per the locked kit.
-- #11 Boss System, #10 Elite/Mini-boss Tier — **zero implementation found** (`grep boss` = 1 stray type-field hit only). Blocks P6 (boss prototype) and vertical-slice-A (§11).
-- #16 Stage/Adventure System, #17 Stage Variation System — `stageConfig.ts` exists but partial; blocks P5/P7.
-- #12 Hero Kit/Archetype System — needed the moment a 2nd hero ships (P8 boundary); currently single-hero-implicit.
-- #14 Progression System (Hero Level/Skill Level) — **zero implementation found**; blocks P8.
+### Tier 1 — The live queue
 
-### Tier 2 — Not urgent yet (sequenced later, real work, roadmap P9–P13)
+Not a list of unbuilt systems any more. **`TASKS.md` → Upgrade Tasks, rows U1–U26** are the load-bearing set: each is a shipped feature that silently does nothing, a LOCKED-blueprint violation, or a trust-boundary gap. Pick from there.
 
-- #23 Gacha System, #15 Star Ascension — **zero implementation found** (`grep gacha/pity` = 0 hits); pity-mechanic SKELETON locked (§7.1, 2026-08-08, soft/hard pity per Genshin's shape), rate/cost numbers still deferred to P9.
-- #13 Hero Collection (expansion) — **stale claim corrected 2026-08-09**: this row previously said "zero implementation," which is now wrong — `TASKS.md` row 24 shows it 100% graduated. **Roadmap-order divergence, item #12 of the blueprint-vs-code audit**: §10's LOCKED sequence puts P9 (Gacha/Star, this tier) before P10 (Hero Collection expansion) — it shipped in the reverse order. HetCreep's resolution: pause further Hero Collection expansion work, prioritize #23 Gacha and #15 Star Ascension next to restore the intended order before resuming #13.
-- #20 PvP Power Normalization is implemented on its stacked PR; #21 now has a private room-code
-  prototype with JWT Edge authority, private receive-only Realtime snapshots, prediction/reconcile,
-  and reconnect/forfeit coverage. Production Supabase deployment/live two-client verification is
-  still required before P12 graduation. #19 Matchmaking/Rank/MMR remains deferred to P13.
+### Tier 2 — P12 in flight, P13 still deferred
+
+- **#20 PvP Power Normalization — shipped, row 26 at 90%** (`src/game/pvp/rankedNormalization.ts`, PR #95). A match-scoped projection pinning Hero Level and skill levels to their caps, pulled forward from P12 with explicit Ring 0 approval as master-blueprint-law rule 15 requires. Adds no matchmaking, MMR or rewards.
+- **#21 Netcode — a private 1v1 room prototype exists, row 27 at 90%** (PR #96): six-character invite codes, a JWT-verified Edge Function as sole authority, client prediction with authoritative reconciliation, participant-only Realtime snapshots, reconnect/forfeit. **Not deployed** — the migration and Edge Function still need applying, and live two-client verification is required before P12 graduation. Readiness rows R9–R12 now describe shipped code.
+- **#19 PvP/Ranked (matchmaking, Rank/MMR) remains deferred to P13.**
+- **Roadmap-order divergence, item #12 — now largely closed.** §10 puts P9 (#23 Gacha / #15 Star Ascension) before P10 (#13 Hero Collection expansion) and it shipped in reverse. PR #97 closed the Gacha half properly: a server-authoritative `perform_gacha_pull` RPC (atomic Gem debit, server RNG, pity, request-id replay protection) with a real Lobby caller. **Star Ascension is the half still open** — `ascendCharacterStar` has a server RPC but no UI caller, so `TASKS.md` U21 now stands on Star alone, and the #13-expansion pause stays in force until it closes.
 
 ### Tier 3 — Decorative / optional, add on later
 
-- #24 Monetization/Shop — category boundary locked (§7, 2026-08-08 — cosmetic/convenience only, never direct power), exact SKUs/pricing still TBD (P14); don't design the catalog ahead of that decision.
-- Formal blueprint-lock for #28 Social (moderation policy, data-ownership doc) — nice-to-have paperwork, not gameplay-blocking since the feature already runs.
+- #24 Monetization/Shop — category boundary locked (§7, 2026-08-08 — cosmetic/convenience only, never direct power), exact SKUs/pricing still TBD (P14); don't design the catalog ahead of that decision. One adjacent guard is already queued as `TASKS.md` U11 (assert the banner pool covers every declared rarity band) — that one is a Gacha-side invariant, not catalog design, so it is safe to do before the pricing decision.
+- Formal blueprint-lock for #28 Social (moderation policy, data-ownership doc) — nice-to-have paperwork, not gameplay-blocking since the feature already runs. Two audit rows touch the same area with real substance: U12 (chat identity keyed on display name, not account id) and U33 (no retention policy on `world_chat_messages`).
 
 ---
 
