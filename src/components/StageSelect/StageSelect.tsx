@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useModalA11y } from '../../hooks/useModalA11y'
 import { playSfx } from '../../lib/audio/AudioEngine'
+import { ENERGY_GATING_ENABLED } from '../../game/featureFlags'
 import {
   canAffordStageEnergy,
   normalizeEnergy,
@@ -100,7 +101,7 @@ export function StageSelect({ progress, onSelect, onClose }: StageSelectProps) {
               <ul className={styles.list}>
                 {stages.map((stage) => {
                   const unlocked = isStageUnlocked(stage.id, progress.flags)
-                  const affordable = canAffordStageEnergy(energy, stage)
+                  const affordable = !ENERGY_GATING_ENABLED || canAffordStageEnergy(energy, stage)
                   const cleared = progress.flags[`trial_cleared_${stage.id}`] === true
                   const selectable = unlocked && affordable
                   const label = formatStageLabel(stage)

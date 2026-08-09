@@ -63,4 +63,13 @@ _before_ applying `0001_init.sql`, so `handle_new_user()` never runs.
   drifted too. Flagged to main at onboarding; awaiting the call on who edits the contract
   (contract edits are security-grade per BELT-PORT §6).
 - Delivered this dispatch: `20260810101000_security_team_slots_ownership.sql` — **written, NOT
-  applied.** Production apply is owed through the owner relay.
+  applied.** Production apply is owed through the owner relay. Both triggers guarded with
+  `drop trigger if exists` before `create trigger` (repo precedent: 20260809064000:370-371) —
+  apply is a manual-paste relay, a re-paste/retry-after-interruption is realistic, and bare
+  `create trigger` aborts on retry. **Lesson: every DDL statement I write for the manual-relay
+  path needs its own idempotency guard, not just the table/policy-level ones** — trigger/function
+  creation is as retry-exposed as `create table`/`create policy`, easy to forget since it's the
+  last statement and doesn't "feel" like schema. Corollary: this guard only helps pre-apply — once
+  a migration file has actually landed in prod, a further fix is a NEW migration, never an
+  in-place edit of the applied file (prod's migration history table has already recorded the old
+  hash/content).

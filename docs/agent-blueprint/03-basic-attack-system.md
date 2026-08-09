@@ -11,16 +11,16 @@ Owns the player's 3-hit basic-attack chain: sequencing/state machine (`ComboSyst
 - In: `pressAttack(player: RealtimeBattleEntity, combo: ComboState)` on button press; `stepCombo(player, combo, deltaMs: number)` every frame.
 - `ComboState` (mutable, `ComboSystem.ts:22-35`): `attack: AttackDefinition | null`, `chainIndex`, `sinceStartMs`, `sinceLastFinishMs`, `bufferedInputAgeMs`, `hitTargets: Set<string>`, `hitStopRemainingMs`.
 - Out: `ComboTick { hitboxActive: boolean, attack: AttackDefinition | null }` (`ComboSystem.ts:103-106`) — consumed by `RealtimeBattleRuntime.ts:238-244`, which on `hitboxActive` calls `findHitTargets` then `applyDamage` per target.
-- Data contract per hit: `AttackDefinition` (`attacks.ts:15-42`) — `startupMs/activeMs/recoveryMs`, `comboWindowStartMs/EndMs`, `damageMultiplier`, `range`, `hitShape: 'horizontal'|'radial'`, `arcDegrees`, `depthTolerance`, `knockback`. Note: no `lungeDistance` field exists on this type despite being named in the locked schema (§3.6.7) — see Done-criteria #8. (`knockdown` is also named in §3.6.7/§3.6.12 but is out of scope here — see Dependencies, Hit Reaction System #6.)
+- Data contract per hit: `AttackDefinition` (`attacks.ts:18-83`) — `startupMs/activeMs/recoveryMs`, `comboWindowStartMs/EndMs`, `damageMultiplier`, `range`, `hitShape: 'horizontal'|'radial'`, `arcDegrees`, `depthTolerance`, `knockback`, plus `lungeDistance` (see Done-criteria #8) and `knockdown` (out of scope here — see Dependencies, Hit Reaction System #6).
 
 ### Dependencies
 
-- **Combat Facing System** (#2) — combo start snaps `player.facing = player.combatFacing` (`ComboSystem.ts:102`); horizontal hit test reads `attacker.combatFacing` (`HitboxSystem.ts:48`).
+- **Combat Facing System** (#2) — combo start snaps `player.facing = player.combatFacing` (`ComboSystem.ts:100`); horizontal hit test reads `attacker.combatFacing` (`HitboxSystem.ts:50`).
 - **Per-Move Property Schema** (#5) — `AttackDefinition` is the shared type this system's chain entries are instances of; the schema itself (including any `lungeDistance`/`knockdown` field additions) is that system's contract to extend, not this one's.
-- **Hit Reaction System** (#6) — every landed hit feeds `DamageSystem.applyDamage`, which sets hit-stun/knockback/invulnerability (`DamageSystem.ts:81-93`). Per the blueprint's system list (`AGENT_BLUEPRINT.md`), knockdown (elite/boss-only, per-move flag) is that system's charter, not this one's — the §3.6.12 finisher-knockdown gap belongs on Hit Reaction System's own done-criteria, not here.
-- **Skill/Cast System** (#4) — `cancelCombo()` is invoked when a skill starts (`RealtimeBattleRuntime.ts:231`); no reverse path exists (matches §3.6.11 "no cancel between combo and skills").
+- **Hit Reaction System** (#6) — every landed hit feeds `DamageSystem.applyDamage` (`DamageSystem.ts:71-79`), which delegates to `applyCombatReaction` to set hit-stun/knockback/invulnerability. Per the blueprint's system list (`AGENT_BLUEPRINT.md`), knockdown (elite/boss-only, per-move flag) is that system's charter, not this one's — the §3.6.12 finisher-knockdown gap belongs on Hit Reaction System's own done-criteria, not here.
+- **Skill/Cast System** (#4) — `cancelCombo()` is invoked when a skill starts (`RealtimeBattleRuntime.ts:302`); no reverse path exists (matches §3.6.11 "no cancel between combo and skills").
 - **Enemy AI System** (#9) — targets hit are enemy `RealtimeBattleEntity` instances driven by that system.
-- Feeds: `RealtimeBattleRuntime.getPlayerComboState()` (HUD/combo-counter UI, `RealtimeBattleRuntime.ts:513`).
+- Feeds: `RealtimeBattleRuntime.getPlayerComboState()` (HUD/combo-counter UI, `RealtimeBattleRuntime.ts:748`).
 
 ### Done-criteria
 
@@ -28,7 +28,7 @@ Owns the player's 3-hit basic-attack chain: sequencing/state machine (`ComboSyst
 2. No press for > `COMBO_CONFIG.comboResetMs` (700ms) after a hit finishes → next press restarts at hit 1.
 3. Damage applies only during `isActiveWindow`, once per target per hit (`combo.hitTargets` dedupe).
 4. Press buffered up to `COMBO_CONFIG.inputBufferMs` (160ms) before the current hit ends still chains; older buffer is dropped, never causes a skip-ahead of recovery.
-5. `player.hitStunRemainingMs > 0` during an active combo hit cancels it outright (chainIndex → 0, no partial credit) — `ComboSystem.ts:147-155`.
+5. `player.hitStunRemainingMs > 0` during an active combo hit cancels it outright (chainIndex → 0, no partial credit) — `ComboSystem.ts:146-151` calls `interruptPlayerCombo()`, the reset itself lives at `combatInterrupt.ts:42-52`.
 6. All enemies inside the horizontal hitbox (`range` + `depthTolerance`, facing-gated) take damage in one active window, not just the nearest — multi-target, not single-target selection (§3.6.2).
 7. `npm test -- ComboSystem HitboxSystem DamageSystem RealtimeBattleRuntime` green.
 8. **Lunge gap — CLOSED 2026-08-08** (TASKS.md row #4/DF4): §3.6.2/§3.6.11 lock an attack **lunge** (`lungeDistance` 32/36/44 per hit for Monkey King). `AttackDefinition.lungeDistance` (`attacks.ts:65`) exists and is populated per hero/per hit in `heroes/attackChains.ts` and `heroes/kits/*.ts`, and is consumed at `RealtimeBattleRuntime.ts:206-216` to move the player forward during `startupMs`, with dedicated coverage in `lungeMovement.test.ts` (5 tests). No further action needed. (The separate finisher-**knockdown** gap named in §3.6.12 is out of scope for this contract — see Dependencies, Hit Reaction System #6, whose own done-criteria should track it instead.)

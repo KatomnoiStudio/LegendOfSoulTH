@@ -16,3 +16,12 @@
  * "coming soon" rather than opening a modal that can only fail.
  */
 export const PVP_BACKEND_DEPLOYED = false
+
+/**
+ * Stage energy/stamina gating (#16). The `adventure/energySystem.ts` module and per-stage
+ * `energyCost` data are fully built, but §5.1's gating call (clear-gate only, or +stamina) is
+ * still OPEN — the owner has not locked it. Shipping the consumption/blocking path live would
+ * pre-empt a decision that isn't made yet, so it stays off until the owner locks §5.1.
+ * Design-lock 2.b, 2026-08-10.
+ */
+export const ENERGY_GATING_ENABLED = false

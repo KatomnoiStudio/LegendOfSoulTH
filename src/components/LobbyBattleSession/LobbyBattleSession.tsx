@@ -13,6 +13,7 @@ import {
   pendingLobbyRewardToResult,
   type LobbyBattleProgressionCommit,
 } from '../../game/reward/lobbyBattleRewardPipeline'
+import { ENERGY_GATING_ENABLED } from '../../game/featureFlags'
 import { getRealtimeStage, isStageUnlocked } from '../../game/realtimeBattle/stageConfig'
 import type { RealtimeBattleResult } from '../../game/realtimeBattle/types'
 import { reportError } from '../../lib/errors/reportError'
@@ -117,6 +118,11 @@ export function LobbyBattleSession({
     (id: string) => {
       const stage = getRealtimeStage(id)
       if (!stage || !isStageUnlocked(id, player.progress.flags)) return
+
+      if (!ENERGY_GATING_ENABLED) {
+        setStageId(id)
+        return
+      }
 
       const energy = tickEnergyRegen(normalizeEnergy(player.progress.energy))
       const nextEnergy = consumeStageEnergy(energy, stage)

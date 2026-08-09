@@ -330,7 +330,39 @@ describe('LobbyBattleSession', () => {
     await user.click(screen.getByTestId('btn-exit'))
 
     expect(onExit).toHaveBeenCalledTimes(1)
-    expect(onPlayerChange).toHaveBeenCalledTimes(1) // energy only — no battle save on early exit
+    // ENERGY_GATING_ENABLED=false (design-lock 2.b) — stage select no longer writes energy, and
+    // there is no battle save on early exit either, so onPlayerChange never fires.
+    expect(onPlayerChange).not.toHaveBeenCalled()
+  })
+
+  it('design-lock 2.b: ENERGY_GATING_ENABLED=false — เลือกด่านไม่เรียก onPlayerChange และไม่หัก energy', async () => {
+    const user = userEvent.setup()
+    const onPlayerChange = vi.fn(async (_p: Player) => true)
+    const onEarnGold = vi.fn(async (_s, amount): Promise<CurrencyResult> => ({
+      ok: true as const,
+      player: makePlayer(),
+      amount,
+    }))
+    const onGrantItem = vi.fn(async (): Promise<ItemResult> => ({
+      ok: true as const,
+      player: makePlayer(),
+    }))
+
+    render(
+      <LobbyBattleSession
+        player={makePlayer()}
+        onPlayerChange={onPlayerChange}
+        onEarnGold={onEarnGold}
+        onGrantItem={onGrantItem}
+        {...rewardMocks()}
+        onExit={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /ลานฝึกหน้าวิหาร/ }))
+
+    expect(await screen.findByTestId('mock-battle-scene')).toBeInTheDocument()
+    expect(onPlayerChange).not.toHaveBeenCalled()
   })
 
   it('Scar 2: ทุกด่านที่มีอยู่ในสารบัญ REALTIME_STAGES ต้องสามารถดึงค่าได้จริงและไม่เป็น null', () => {

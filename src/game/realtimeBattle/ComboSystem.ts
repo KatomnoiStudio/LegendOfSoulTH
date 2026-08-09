@@ -144,17 +144,9 @@ export function stepCombo(
 
   // โดนตีจนเซระหว่างท่า = ท่าถูกยกเลิกถ้า interruptible
   if (player.hitStunRemainingMs > 0 || player.state === 'dead') {
-    if (combo.attack) {
-      const phase = getPlayerAttackPhase(combo.attack, combo.sinceStartMs)
-      if (shouldInterruptMove(combo.attack, phase)) {
-        interruptPlayerCombo(player, combo)
-      }
-    } else {
-      combo.attack = null
-      combo.chainIndex = 0
-      combo.hitTargets.clear()
-      combo.bufferedInputAgeMs = null
-      combo.sinceLastFinishMs = 0
+    const phase = getPlayerAttackPhase(combo.attack, combo.sinceStartMs)
+    if (shouldInterruptMove(combo.attack, phase)) {
+      interruptPlayerCombo(player, combo)
     }
     return { hitboxActive: false, attack: null }
   }

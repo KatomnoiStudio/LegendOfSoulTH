@@ -68,6 +68,7 @@ begin
 end;
 $$;
 
+drop trigger if exists team_slots_ownership_check on public.team_slots;
 create trigger team_slots_ownership_check
   before insert or update on public.team_slots
   for each row execute function public.enforce_team_slot_ownership();
@@ -104,6 +105,7 @@ $$;
 -- AFTER, so the slot clear only happens once the character row is actually gone. Safe under a
 -- profile cascade delete in either order: if team_slots was cascaded first the update matches
 -- zero rows, and the update it does perform writes null, which the ownership trigger exempts.
+drop trigger if exists owned_characters_clear_team_slots on public.owned_characters;
 create trigger owned_characters_clear_team_slots
   after delete on public.owned_characters
   for each row execute function public.clear_team_slots_for_removed_character();
