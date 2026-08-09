@@ -46,10 +46,37 @@ describe('entitySpritePresentation', () => {
     expect(idleFootY).toBeCloseTo(walkFootY, 8)
   })
 
+  it('keeps Erlang the same stature across his 640x512 and 800x640 sheets', () => {
+    const idle = resolveSpriteMeshPresentation(
+      'spear-warrior',
+      '/characters/erlang-shen-v6-idle-0.webp',
+    )
+    const cast = resolveSpriteMeshPresentation(
+      'spear-warrior',
+      '/characters/erlang-shen-skill-2-cast-0.webp',
+    )
+    const reference = resolveSpriteMeshPresentation(
+      'monkey-king',
+      '/characters/monkey-v2-idle-0.webp',
+    )
+
+    // Alpha-scanned visible heights: idle 370/512, Skill 2 cast 447.7/640, reference idle 320/376.
+    const idleVisibleHeight = ENTITY_SPRITE_HEIGHT * (370 / 512) * idle.scaleY
+    const castVisibleHeight = ENTITY_SPRITE_HEIGHT * (447.7 / 640) * cast.scaleY
+    const referenceVisibleHeight = ENTITY_SPRITE_HEIGHT * (320 / 376) * reference.scaleY
+
+    expect(castVisibleHeight).toBeCloseTo(idleVisibleHeight, 2)
+    expect(idleVisibleHeight).toBeCloseTo(referenceVisibleHeight, 2)
+    // Unregistered sheets fall back to 396x376 and would render at the wrong scale.
+    expect(idle.scaleX / idle.scaleY).toBeCloseTo(640 / 512 / ENTITY_SPRITE_ASPECT, 8)
+    expect(cast.scaleX / cast.scaleY).toBeCloseTo(800 / 640 / ENTITY_SPRITE_ASPECT, 8)
+  })
+
   it.each([
     ['monkey-king', '/characters/monkey-v2-idle-0.webp', 11, 376],
     ['pig-warrior', '/characters/pigsy-idle-0.webp', 15, 376],
     ['pilgrim-monk', '/characters/tripitaka-idle-0.webp', 11, 376],
+    ['spear-warrior', '/characters/erlang-shen-v6-idle-0.webp', 31, 512],
   ] as const)(
     'lifts the %s visual container so feet land on Y=0 without moving gameplay',
     (kind, frameUrl, bottomInsetPx, canvasHeight) => {

@@ -11,6 +11,7 @@ export const HERO_ARCHETYPES = [
   'summoner',
   'heavy',
   'support',
+  'assassin',
 ] as const
 
 export type HeroArchetype = (typeof HERO_ARCHETYPES)[number]
@@ -22,6 +23,7 @@ export const HERO_ARCHETYPE_LABEL: Record<HeroArchetype, string> = {
   summoner: 'ผู้เรียกวิญญาณ',
   heavy: 'นักรบหนัก',
   support: 'ผู้สนับสนุน',
+  assassin: 'นักลอบสังหาร',
 }
 
 /** จุดประสงค์ของ archetype ใน Production Batch — ใช้ตรวจ pipeline */
@@ -32,4 +34,8 @@ export const HERO_ARCHETYPE_PURPOSE: Record<HeroArchetype, string> = {
   summoner: 'พิสูจน์ Summon ที่ใช้ Enemy AI Core',
   heavy: 'พิสูจน์ Heavy Finisher',
   support: 'พิสูจน์ Self-support / Heal',
+  // Blueprint §4.1 ระบุ Assassin ไว้ในรายชื่อ archetype เป้าหมายอยู่แล้ว (บรรทัด 388)
+  // ยังไม่มีฮีโร่ตัวไหนถือจนกระทั่งเอ้อหลางเสิน — ทุกท่าล็อกศัตรูใกล้สุดตัวเดียว
+  // แลกดาเมจก้อนใหญ่กับ startup ที่ยาวผิดปกติ (Skill 2 = 1450ms) ต่างจากอีกหกตัวชัดเจน
+  assassin: 'พิสูจน์ Burst เป้าหมายเดียวที่แลกมาด้วย startup ยาว',
 }

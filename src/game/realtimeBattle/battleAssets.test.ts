@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  collectCriticalTextureUrls,
-  collectDeferredTextureUrls,
-} from '../battleSpriteSequences'
+import { collectCriticalTextureUrls, collectDeferredTextureUrls } from '../battleSpriteSequences'
 import type { CharacterModelKind } from '../characters'
 import { REALTIME_STAGES } from './stageConfig'
 
@@ -22,7 +19,12 @@ import { REALTIME_STAGES } from './stageConfig'
  * ────────────────────────────────────────────────────────────
  */
 
-const ALL_KINDS: CharacterModelKind[] = ['monkey-king', 'pig-warrior', 'pilgrim-monk']
+const ALL_KINDS: CharacterModelKind[] = [
+  'monkey-king',
+  'pig-warrior',
+  'pilgrim-monk',
+  'spear-warrior',
+]
 
 /** รายชื่อไฟล์ภาพที่มีอยู่จริงใต้ public/ — glob ถูกคลี่ตอน build ไม่ได้อ่านดิสก์ตอนรัน */
 const EXISTING_FILES = new Set(

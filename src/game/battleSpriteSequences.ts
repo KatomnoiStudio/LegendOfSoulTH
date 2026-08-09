@@ -15,6 +15,7 @@ import type { Direction8 } from './realtimeBattle/types'
  *   attack-2 / attack-3 → ชุด attack เดียวกัน (ต่างที่จังหวะและ knockback ไม่ใช่ที่ภาพ)
  *   dash                → เฟรม walk ของทิศนั้น (เอฟเฟกต์เส้นลากทำด้วย effect layer)
  *   skill-1             → ชุด action ของตัวละคร (หงอคง = monkey-v2 10 เฟรม)
+ *   skill-2             → ชุดเดียวกับ skill-1 ยกเว้นเอ้อหลางเสินที่มีเฟรมร่ายของตัวเอง
  *   hit / death         → เฟรม idle แรก แล้วให้ material จัดการ flash/fade
  *   victory             → ชุด pose ของหงอคง, ตัวอื่นใช้ idle
  * ตัวละครที่ไม่มีชุดเดิน (พระถัง) ใช้ idle เป็นเฟรมเดิน — ประกาศไว้ตรงนี้
@@ -40,6 +41,7 @@ export type BattleAnimationId =
   | 'attack-3'
   | 'dash'
   | 'skill-1'
+  | 'skill-2'
   | 'hit'
   | 'death'
   | 'victory'
@@ -104,6 +106,25 @@ const PIGSY_IDLE = frames('pigsy-idle', 24)
 const PIGSY_ACTION = frames('pigsy-team', 8)
 const TRIPITAKA_IDLE = frames('tripitaka-idle', 24)
 
+const ERLANG_IDLE = frames('erlang-shen-v6-idle', 25)
+const ERLANG_ATTACK_1 = frames('erlang-shen-attack-v1', 18)
+const ERLANG_ATTACK_2 = frames('erlang-shen-normal-attack-v2', 8)
+const ERLANG_ATTACK_3 = frames('erlang-shen-normal-attack-v3-final', 8)
+const ERLANG_SKILL_1 = frames('erlang-shen-skill-1', 16)
+const ERLANG_SKILL_2_CAST = frames('erlang-shen-skill-2-cast', 6)
+
+/**
+ * เอฟเฟกต์ Skill 2 ของเอ้อหลางเสิน — วาดด้วย ErlangHoundSkillEffect ไม่ใช่ระนาบตัวละคร
+ * จึงไม่อยู่ใน BattleSpriteSet แต่ยังต้อง preload และต้องถูกเทสต์ว่ามีไฟล์จริง
+ * (ดู collectDeferredTextureUrls ท้ายไฟล์)
+ */
+export const ERLANG_SKILL_2_AURA_FRAMES = Array.from({ length: 7 }, (_, index) =>
+  publicUrl(`characters/erlang-shen-skill-2-fx/aura-${String(index + 1).padStart(2, '0')}.webp`),
+)
+export const ERLANG_SKILL_2_HOUND_FRAMES = Array.from({ length: 6 }, (_, index) =>
+  publicUrl(`characters/erlang-shen-skill-2-fx/hound-${String(index + 1).padStart(2, '0')}.webp`),
+)
+
 const MONKEY_KING_SET: BattleSpriteSet = {
   idle: { frames: allDirections(MONKEY_IDLE), rate: 8, loop: true },
   walk: { frames: walkFrames8('monkey-walk'), rate: 12, loop: true },
@@ -112,6 +133,7 @@ const MONKEY_KING_SET: BattleSpriteSet = {
   'attack-3': { frames: allDirections(MONKEY_ATTACK), rate: 14, loop: false },
   dash: { frames: walkFrames8('monkey-walk'), rate: 20, loop: false },
   'skill-1': { frames: allDirections(MONKEY_ACTION), rate: 16, loop: false },
+  'skill-2': { frames: allDirections(MONKEY_ACTION), rate: 16, loop: false },
   hit: { frames: allDirections([MONKEY_IDLE[0]]), rate: 1, loop: false },
   death: { frames: allDirections([MONKEY_IDLE[0]]), rate: 1, loop: false },
   victory: { frames: allDirections(MONKEY_VICTORY), rate: 5, loop: false },
@@ -125,6 +147,7 @@ const PIG_WARRIOR_SET: BattleSpriteSet = {
   'attack-3': { frames: allDirections(PIGSY_ACTION), rate: 12, loop: false },
   dash: { frames: walkFrames8('pigsy-walk'), rate: 16, loop: false },
   'skill-1': { frames: allDirections(PIGSY_ACTION), rate: 12, loop: false },
+  'skill-2': { frames: allDirections(PIGSY_ACTION), rate: 12, loop: false },
   hit: { frames: allDirections([PIGSY_IDLE[0]]), rate: 1, loop: false },
   death: { frames: allDirections([PIGSY_IDLE[0]]), rate: 1, loop: false },
   victory: { frames: allDirections(PIGSY_ACTION), rate: 6, loop: false },
@@ -138,9 +161,29 @@ const PILGRIM_MONK_SET: BattleSpriteSet = {
   'attack-3': { frames: allDirections(TRIPITAKA_IDLE), rate: 10, loop: false },
   dash: { frames: allDirections(TRIPITAKA_IDLE), rate: 16, loop: false },
   'skill-1': { frames: allDirections(TRIPITAKA_IDLE), rate: 10, loop: false },
+  'skill-2': { frames: allDirections(TRIPITAKA_IDLE), rate: 10, loop: false },
   hit: { frames: allDirections([TRIPITAKA_IDLE[0]]), rate: 1, loop: false },
   death: { frames: allDirections([TRIPITAKA_IDLE[0]]), rate: 1, loop: false },
   victory: { frames: allDirections(TRIPITAKA_IDLE), rate: 6, loop: false },
+}
+
+/**
+ * เอ้อหลางเสิน — ตัวเดียวที่มีเฟรม attack-2 / attack-3 / skill-2 เป็นของตัวเองจริง
+ * ชุดเดินยังวาดมาแค่ด้านขวา (ดู walkKits.ts) ท่า walk/dash จึงใช้ idle ไปก่อน
+ * แบบเดียวกับพระถัง — ประกาศไว้ตรงนี้ว่าเป็นการตัดสินใจ ไม่ใช่ asset หาย
+ */
+const SPEAR_WARRIOR_SET: BattleSpriteSet = {
+  idle: { frames: allDirections(ERLANG_IDLE), rate: 8, loop: true },
+  walk: { frames: allDirections(ERLANG_IDLE), rate: 8, loop: true },
+  'attack-1': { frames: allDirections(ERLANG_ATTACK_1), rate: 30, loop: false },
+  'attack-2': { frames: allDirections(ERLANG_ATTACK_2), rate: 14, loop: false },
+  'attack-3': { frames: allDirections(ERLANG_ATTACK_3), rate: 11, loop: false },
+  dash: { frames: allDirections(ERLANG_IDLE), rate: 12, loop: false },
+  'skill-1': { frames: allDirections(ERLANG_SKILL_1), rate: 14, loop: false },
+  'skill-2': { frames: allDirections(ERLANG_SKILL_2_CAST), rate: 10, loop: false },
+  hit: { frames: allDirections([ERLANG_IDLE[0]]), rate: 1, loop: false },
+  death: { frames: allDirections([ERLANG_IDLE[0]]), rate: 1, loop: false },
+  victory: { frames: allDirections(ERLANG_IDLE), rate: 8, loop: false },
 }
 
 /**
@@ -154,6 +197,7 @@ const BATTLE_SPRITE_SETS: Record<CharacterModelKind, BattleSpriteSet> = {
   'celestial-archer': PILGRIM_MONK_SET,
   'nezha-warden': MONKEY_KING_SET,
   'sand-sage': PIG_WARRIOR_SET,
+  'spear-warrior': SPEAR_WARRIOR_SET,
 }
 
 export function getBattleSpriteSet(kind: CharacterModelKind): BattleSpriteSet {
@@ -208,6 +252,7 @@ const ALL_ANIMATIONS: BattleAnimationId[] = [
   'attack-3',
   'dash',
   'skill-1',
+  'skill-2',
   'hit',
   'death',
   'victory',
@@ -230,5 +275,11 @@ export function collectCriticalTextureUrls(kinds: CharacterModelKind[]): string[
 /** ภาพที่เหลือ — โหลดเบื้องหลังหลังห้องเปิดแล้ว */
 export function collectDeferredTextureUrls(kinds: CharacterModelKind[]): string[] {
   const critical = new Set(collectCriticalTextureUrls(kinds))
-  return urlsFor(kinds, ALL_ANIMATIONS).filter((url) => !critical.has(url))
+  const urls = urlsFor(kinds, ALL_ANIMATIONS)
+  // เอฟเฟกต์ Skill 2 วาดแยกจากระนาบตัวละคร จึงไม่มีทางถูกเก็บโดย urlsFor
+  // ต่อท้ายตรงนี้เพื่อให้ preload ครบ และให้ battleAssets.test.ts ตรวจว่ามีไฟล์จริงด้วย
+  if (kinds.includes('spear-warrior')) {
+    urls.push(...ERLANG_SKILL_2_AURA_FRAMES, ...ERLANG_SKILL_2_HOUND_FRAMES)
+  }
+  return urls.filter((url) => !critical.has(url))
 }

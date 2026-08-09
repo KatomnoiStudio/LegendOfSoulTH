@@ -127,7 +127,14 @@ export interface DamageEvent {
   createdAtMs: number
 }
 
-export type BattleEffectKind = 'hit-spark' | 'skill-spin' | 'death' | 'spawn' | 'ground-marker'
+export type BattleEffectKind =
+  | 'hit-spark'
+  | 'skill-spin'
+  /** กระสุนสุนัขสวรรค์สามตัวของเอ้อหลางเสิน (Skill 2) — วาดด้วย ErlangHoundSkillEffect */
+  | 'erlang-hound'
+  | 'death'
+  | 'spawn'
+  | 'ground-marker'
 
 export interface BattleEffectEvent {
   id: string

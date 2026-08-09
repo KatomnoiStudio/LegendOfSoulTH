@@ -6,6 +6,7 @@ import { WORLD_SCALE } from '../../game/realtimeBattle/stageConfig'
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
 import { BattleCamera } from './BattleCamera'
 import { EnemyBattleSprite } from './EnemyBattleSprite'
+import { ErlangHoundSkillEffect } from './ErlangHoundSkillEffect'
 import { PlayerBattleSprite } from './PlayerBattleSprite'
 import { TelegraphMarkers } from './TelegraphMarkers'
 import { StageGoalMarker } from './StageGoalMarker'
@@ -116,6 +117,13 @@ export function BattleArena({ runtime }: { runtime: RealtimeBattleRuntime }) {
       <StageGoalMarker runtime={runtime} />
 
       <PlayerBattleSprite runtime={runtime} />
+      {/* เอฟเฟกต์ Skill 2 ของเอ้อหลางเสิน — ตัวคอมโพเนนต์ซ่อน/แสดงตัวเองตาม durationMs */}
+      {runtime
+        .getSnapshot()
+        .effectEvents.filter((event) => event.kind === 'erlang-hound')
+        .map((event) => (
+          <ErlangHoundSkillEffect key={event.id} runtime={runtime} event={event} />
+        ))}
       {state.enemies.map((enemy) => (
         <EnemyBattleSprite key={enemy.id} runtime={runtime} enemy={enemy} />
       ))}

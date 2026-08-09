@@ -13,6 +13,7 @@ import type { CharacterModelKind } from './characters'
  *                ยังไม่มีแถวท่าหายใจ เฟรมยืนเฉยจึงเป็นท่าหันหน้าท่าเดียวซ้ำ 24 เฟรม
  *                ถ้าได้แถวท่าหายใจมาเพิ่ม ให้แก้ส่วน idle ในสคริปต์ให้ไล่เฟรมจริงแทน
  * พระถังซัมจั๋ง  ยังไม่มีเฟรมเดิน มีแต่เฟรมหันทิศ 8 ทิศ
+ * เอ้อหลางเสิน   วาดชุดวิ่งมาเฉพาะด้านขวา ยังไม่ครบ 8 ทิศ จึงยังนับว่าไม่มีเฟรมเดิน
  *
  * ตัวที่ยังไม่มีเฟรมเดินจะเลือกมาเดินได้ แต่ใช้ภาพหันทิศแทน
  * (ขาไม่ขยับ) และ UI จะบอกผู้เล่นตามตรงว่ายังไม่มีชุดเฟรมเดิน
@@ -69,6 +70,19 @@ const WALK_KITS: Record<CharacterModelKind, WalkKit> = {
     turnPrefix: publicUrl('characters/turnaround/pigsy-turn'),
     idlePrefix: publicUrl('characters/pigsy-idle'),
     idleCount: 24,
+  },
+  /*
+     เอ้อหลางเสิน — ชุดเดินที่วาดมามีแต่ด้านขวาด้านเดียว (erlang-shen-v3-run-right-*)
+     ส่วนผู้เรียกใช้ (WukongAdventure.tsx) ขอ `${walkPrefix}-${ทิศ}-${เฟรม}.webp` ครบ 8 ทิศ
+     ใส่พาธด้านขวาลงไปตรง ๆ = 7 ใน 8 ทิศยิง 404 จึงประกาศตามจริงว่ายังไม่มีชุดเดิน
+     (walkPrefix: null) เหมือนพระถังกับจือหลาง — ฉากเดินชมจันทร์จะไม่ให้เลือกตัวนี้เอง
+     และ UI บอกผู้เล่นตามตรง วาดครบ 8 ทิศเมื่อไหร่ค่อยใส่ walkPrefix แล้วใช้งานได้ทันที
+  */
+  'spear-warrior': {
+    walkPrefix: null,
+    turnPrefix: publicUrl('characters/turnaround/spear-warrior-stop-turn'),
+    idlePrefix: publicUrl('characters/erlang-shen-v6-idle'),
+    idleCount: 25,
   },
 }
 

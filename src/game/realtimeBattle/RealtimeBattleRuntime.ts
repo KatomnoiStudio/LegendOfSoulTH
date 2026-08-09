@@ -316,6 +316,10 @@ export class RealtimeBattleRuntime {
 
     startSkill(state.player, this.playerSkill, definition, state.elapsedMs, lockedTargetId)
     this.pushEffectEvent('skill-spin', state.player.position, 700)
+    // Skill 2 ของเอ้อหลางเสินมีเอฟเฟกต์ของตัวเอง (ร่าย 600ms → ออร่า 630ms → สุนัขวิ่ง 660ms)
+    if (state.player.characterId === 'spear-warrior' && slot === 'skill2') {
+      this.pushEffectEvent('erlang-hound', state.player.position, 1900)
+    }
     this.publish()
   }
 
@@ -652,7 +656,15 @@ export class RealtimeBattleRuntime {
       this.damageEvents = this.damageEvents.filter((event) => event.createdAtMs >= cutoff)
     }
     if (this.effectEvents.length > 0 && this.effectEvents[0].createdAtMs < cutoff) {
-      this.effectEvents = this.effectEvents.filter((event) => event.createdAtMs >= cutoff)
+      /*
+         เอฟเฟกต์ต้องอยู่จนจบ durationMs ของตัวเอง ไม่ใช่แค่ EVENT_TTL_MS ตายตัว
+         ของเดิมทุกตัวสั้นกว่า 900ms เลยไม่เคยเห็นปัญหา แต่กระสุนสุนัขสวรรค์ของ
+         เอ้อหลางเสินยาว 1900ms — ตัดที่ 900ms แล้วมันหายกลางอากาศ
+      */
+      this.effectEvents = this.effectEvents.filter(
+        (event) =>
+          this.state.elapsedMs < event.createdAtMs + Math.max(EVENT_TTL_MS, event.durationMs),
+      )
     }
   }
 
@@ -756,6 +768,21 @@ export class RealtimeBattleRuntime {
   /** ช่องสกิลที่กำลังร่าย — null เมื่อไม่ได้ร่าย */
   getCastingSkillSlot(): SkillSlot | null {
     return this.playerSkill.definition?.slot ?? null
+  }
+
+  /**
+   * แอนิเมชันของท่าที่ผู้เล่นกำลังออกอยู่ — null เมื่อไม่ได้ออกท่า
+   *
+   * ท่าทุกท่ามี animationId ของตัวเองอยู่แล้ว (attack-1/2/3, skill-1, skill-2) แต่ชั้นวาด
+   * เคย hardcode ว่า state 'attack' = attack-1 เสมอ ไม้สองไม้สามจึงไม่เคยได้เล่นเฟรมของตัวเอง
+   * ที่นี่คืนค่าจริงจาก runtime ให้ EntitySprite ใช้ — สกิลมาก่อนคอมโบเพราะสกิลตัดคอมโบทิ้ง
+   */
+  getPlayerAttackAnimationId(): AttackDefinition['animationId'] | null {
+    return (
+      this.playerSkill.definition?.attack.animationId ??
+      this.playerCombat.attack?.animationId ??
+      null
+    )
   }
 
   getSnapshot = (): RealtimeBattleSnapshot => this.snapshot

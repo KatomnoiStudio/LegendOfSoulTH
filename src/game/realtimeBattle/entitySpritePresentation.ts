@@ -24,6 +24,13 @@ export const SPRITE_GROUND_OFFSET_BY_KIND: Partial<Record<CharacterModelKind, nu
   'monkey-king': -0.28,
   'pig-warrior': -0.25,
   'pilgrim-monk': -0.24,
+  /*
+     เอ้อหลางเสินยังไม่ได้จูนด้วยตาบนเครื่องจริง จึงประกาศค่า default ไว้ตรง ๆ ให้รู้ว่า
+     "ดูแล้วและยังไม่ได้ขยับ" ไม่ใช่ "ลืมลงทะเบียน" — ค่านี้ถูกหักล้างที่ container อยู่แล้ว
+     (resolveTemporaryEntityContainerLiftY) ตำแหน่งที่เห็นจริงจึงยังไม่เปลี่ยนไม่ว่าใส่เท่าไหร่
+     ระยะเท้าจริงต่อชีตอยู่ที่ bottomInsetPx ใน SPRITE_SHEET_CALIBRATIONS ด้านล่างแทน
+  */
+  'spear-warrior': DEFAULT_SPRITE_GROUND_OFFSET_Y,
 }
 
 /** Shadow disc radius at battle ground (not sprite center). */
@@ -116,6 +123,62 @@ const SPRITE_SHEET_CALIBRATIONS: readonly SpriteSheetCalibration[] = [
     canvasHeight: 627,
     pixelsPerCanonicalHeight: 548,
     bottomInsetPx: 87,
+  },
+  /*
+     เอ้อหลางเสิน — ทุกค่าด้านล่างวัดจากไฟล์ WebP ที่ชิปจริงด้วย alpha scan (sharp)
+     ไม่ได้เดา: pixelsPerCanonicalHeight = ความสูงที่มองเห็นเฉลี่ย x 376/320 ซึ่งเป็นสัดส่วน
+     เดียวกับที่ monkey-v2-idle (ชีตอ้างอิง 396x376) และ monkey-v2- ใช้อยู่ ทุกท่าจึงสูงเท่ากัน
+     ไม่ให้ตัวโป่ง/ยุบตอนสลับท่า ถ้าไม่ลงทะเบียนตรงนี้จะตกไปใช้ default 396x376
+     แล้วเรนเดอร์ผิดสเกลทันที เพราะชีตของเขาเป็น 640x512 (Skill 2 เป็น 800x640)
+  */
+  {
+    pathFragment: '/characters/erlang-shen-v6-idle-',
+    canvasWidth: 640,
+    canvasHeight: 512,
+    // Alpha scan: 370.0px visible height (คงที่ทั้ง 25 เฟรม)
+    pixelsPerCanonicalHeight: 435,
+    bottomInsetPx: 31,
+  },
+  {
+    pathFragment: '/characters/erlang-shen-attack-v1-',
+    canvasWidth: 640,
+    canvasHeight: 512,
+    // Alpha scan: 370.0px visible height (คงที่ทั้ง 18 เฟรม)
+    pixelsPerCanonicalHeight: 435,
+    bottomInsetPx: 31,
+  },
+  {
+    pathFragment: '/characters/erlang-shen-normal-attack-v2-',
+    canvasWidth: 640,
+    canvasHeight: 512,
+    // Alpha scan: 344.4px average visible height
+    pixelsPerCanonicalHeight: 405,
+    bottomInsetPx: 31,
+  },
+  {
+    pathFragment: '/characters/erlang-shen-normal-attack-v3-final-',
+    canvasWidth: 640,
+    canvasHeight: 512,
+    // Alpha scan: 354.6px average visible height
+    pixelsPerCanonicalHeight: 417,
+    bottomInsetPx: 28,
+  },
+  {
+    pathFragment: '/characters/erlang-shen-skill-1-',
+    canvasWidth: 640,
+    canvasHeight: 512,
+    // Alpha scan: 354.9px average visible height
+    pixelsPerCanonicalHeight: 417,
+    bottomInsetPx: 25,
+  },
+  {
+    // ชีตร่าย Skill 2 ใหญ่กว่าท่าอื่น (800x640) — ต้องมีรายการของตัวเอง ไม่งั้นตัวจะโป่งตอนร่าย
+    pathFragment: '/characters/erlang-shen-skill-2-cast-',
+    canvasWidth: 800,
+    canvasHeight: 640,
+    // Alpha scan: 447.7px visible height (คงที่ทั้ง 6 เฟรม)
+    pixelsPerCanonicalHeight: 526,
+    bottomInsetPx: 119,
   },
 ] as const
 

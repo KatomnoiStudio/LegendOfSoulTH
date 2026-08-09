@@ -98,6 +98,23 @@ const SEQUENCES: Record<CharacterModelKind, SpriteSequence> = {
     actionRate: 5.5,
     autoPeriod: 13.2,
   },
+  'spear-warrior': {
+    idleUrls: frames('erlang-shen-v6-idle', 25),
+    actionUrls: frames('erlang-shen-normal-attack-v2', 8),
+    /*
+       เอ้อหลางเสินไม่มีชุดหมุน 8 ทิศจริง มีแค่ท่าคีย์สะอาด 4 ท่า (ด้านข้าง → หันหน้า)
+       ที่ตัด interpolation ของ stop-turn ทิ้ง — เฟรม interpolate มีเงาซ้อน (onion-skin)
+       ติดมาด้วยจึงไม่เอามาโชว์ ผู้เรียกใช้ `turn % turnUrls.length` อยู่แล้ว 4 ท่าจึงวนได้
+       ห้ามใส่ [] เด็ดขาด — `% 0` เป็น NaN แล้วตัวละครหายทั้งตัวตอนผู้เล่นลากหมุน
+    */
+    turnUrls: Array.from({ length: 4 }, (_, index) =>
+      publicUrl(`characters/turnaround/spear-warrior-stop-turn-key-${index}.webp`),
+    ),
+    actionOrder: [0, 1, 2, 3, 4, 5, 6, 7],
+    idleRate: 8,
+    actionRate: 14,
+    autoPeriod: 12,
+  },
 }
 
 export function getSpriteSequence(kind: CharacterModelKind): SpriteSequence {

@@ -39,15 +39,24 @@ interface EntitySpriteProps {
   accent: string
 }
 
-/** สถานะของหน่วย → ชุดเฟรมที่ต้องเล่น */
-function animationForState(state: EntityState): BattleAnimationId {
+/**
+ * สถานะของหน่วย → ชุดเฟรมที่ต้องเล่น
+ *
+ * `attackAnimationId` คือ animationId ของท่าที่ runtime กำลังเล่นจริง (ดู
+ * RealtimeBattleRuntime.getPlayerAttackAnimationId) — มีเฉพาะผู้เล่น ศัตรูส่ง null
+ * มาแล้วตกไปใช้ค่าเดิม ไม่เปลี่ยนพฤติกรรมของศัตรู
+ */
+function animationForState(
+  state: EntityState,
+  attackAnimationId: BattleAnimationId | null,
+): BattleAnimationId {
   switch (state) {
     case 'walk':
       return 'walk'
     case 'attack':
-      return 'attack-1'
+      return attackAnimationId ?? 'attack-1'
     case 'skill':
-      return 'skill-1'
+      return attackAnimationId ?? 'skill-1'
     case 'hit':
       return 'hit'
     // Knockdown/GetUp (§3.8.4) — ยืมแอนิเมชัน hit/idle ไปก่อน ยังไม่มีเฟรมภาพเฉพาะ
@@ -109,7 +118,10 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
     mesh.current.renderOrder = depthOrder
     if (shadow.current) shadow.current.renderOrder = depthOrder - 1
 
-    const animationId = animationForState(entity.state)
+    const animationId = animationForState(
+      entity.state,
+      entityId === runtime.getState().player.id ? runtime.getPlayerAttackAnimationId() : null,
+    )
     const elapsedMs = runtime.getState().elapsedMs
     if (animationId !== currentAnimation.current) {
       currentAnimation.current = animationId
