@@ -27,6 +27,14 @@ export interface RealtimeBattleState {
   stage: RealtimeBattleStage
   status: 'loading' | 'intro' | 'running' | 'victory' | 'defeat' | 'exiting'
   elapsedMs: number
+  /**
+   * นาฬิกาของ objective ประจำด่าน — นับเฉพาะตอน status เป็น 'running' จึงไม่รวมฉากเปิด
+   *
+   * `elapsedMs` รวมฉากเปิด (INTRO_MS) ไว้ด้วย ถ้าเอาไปวัด objective ผู้เล่นจะถูกกินเวลาฟรี
+   * ด่านรอด 30 วิ ต้องได้เล่นจริง 30 วิ — ทั้ง StageVariationSystem (ตัดสินผล) และ
+   * stageObjectiveSnapshot (ตัวเลขบน HUD) อ่านค่าตัวนี้ตัวเดียวกัน ห้ามแยกนาฬิกา
+   */
+  stageElapsedMs: number
   player: RealtimeBattleEntity
   enemies: RealtimeBattleEntity[]
   /** หน่วย summon ที่เกิดจากเอฟเฟกต์ (§3.8.3) */
@@ -270,6 +278,7 @@ export function createRealtimeBattle(
     stage,
     status: 'intro',
     elapsedMs: 0,
+    stageElapsedMs: 0,
     player: playerEntity,
     enemies: options?.skipInitialWave ? [] : createWaveEnemies(stage, 0, enemyHpScale),
     allies: [],

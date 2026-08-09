@@ -13,6 +13,7 @@ import { RealtimeBattleRuntime } from './RealtimeBattleRuntime'
 import { calculateBattleReward } from './RewardSystem'
 import { toRealtimeBattleResult } from './BattleResultAdapter'
 import { getRealtimeStage, type RealtimeBattleStage } from './stageConfig'
+import { buildStageObjectiveSnapshot } from './stageObjectiveSnapshot'
 import { resolveStageOutcome } from './StageVariationSystem'
 
 /**
@@ -91,13 +92,13 @@ describe('resolveStageOutcome — wave', () => {
 describe('resolveStageOutcome — survival', () => {
   it('รอดจนครบเวลา = ชนะ แม้ศัตรูยังไม่ตายสักตัว', () => {
     const state = makeState({ stageType: 'survival', survival: { durationMs: 1000 } })
-    state.elapsedMs = 1000
+    state.stageElapsedMs = 1000
     expect(resolveStageOutcome(state, 16)).toBe('victory')
   })
 
   it('ยังไม่ครบเวลา = ยังไม่จบ', () => {
     const state = makeState({ stageType: 'survival', survival: { durationMs: 1000 } })
-    state.elapsedMs = 999
+    state.stageElapsedMs = 999
     expect(resolveStageOutcome(state, 16)).toBeNull()
   })
 })
@@ -126,13 +127,13 @@ describe('resolveStageOutcome — defend', () => {
 describe('resolveStageOutcome — time-attack', () => {
   it('เวลาเกินงบก่อนเคลียร์เสร็จ = แพ้', () => {
     const state = makeState({ stageType: 'time-attack', timeAttack: { timeBudgetMs: 1000 } })
-    state.elapsedMs = 1001
+    state.stageElapsedMs = 1001
     expect(resolveStageOutcome(state, 16)).toBe('defeat')
   })
 
   it('เคลียร์ศัตรูหมดภายในเวลา = ชนะ', () => {
     const state = makeState({ stageType: 'time-attack', timeAttack: { timeBudgetMs: 1000 } })
-    state.elapsedMs = 500
+    state.stageElapsedMs = 500
     killAllEnemies(state)
     expect(resolveStageOutcome(state, 16)).toBe('victory')
   })
@@ -161,14 +162,14 @@ describe('resolveStageOutcome — chase', () => {
   it('เวลาเกินงบก่อนถึงเป้าหมาย = แพ้', () => {
     const state = makeState({ stageType: 'chase', chase: params })
     state.player.position = { x: 0, y: 0 }
-    state.elapsedMs = 1001
+    state.stageElapsedMs = 1001
     expect(resolveStageOutcome(state, 16)).toBe('defeat')
   })
 
   it('ยังไม่ถึงและเวลายังไม่หมด = ยังไม่จบ', () => {
     const state = makeState({ stageType: 'chase', chase: params })
     state.player.position = { x: 0, y: 0 }
-    state.elapsedMs = 500
+    state.stageElapsedMs = 500
     expect(resolveStageOutcome(state, 16)).toBeNull()
   })
 })
@@ -211,6 +212,83 @@ describe('resolveStageOutcome — custom', () => {
     const state = makeState({ stageType: 'custom' })
     killAllEnemies(state)
     expect(resolveStageOutcome(state, 16)).toBe('victory')
+  })
+})
+
+/**
+ * ฉากเปิด (INTRO_MS = 700) ต้องไม่กินเวลา objective ของผู้เล่น และที่สำคัญกว่านั้นคือ
+ * ตัวตัดสินผล (ไฟล์นี้) กับตัวเลขบนจอ (stageObjectiveSnapshot) ต้องอ่าน "นาฬิกาเดียวกัน"
+ * ไม่งั้นนาฬิกาบน HUD จะเดินไม่ตรงกับเงื่อนไขแพ้ชนะราว 700ms
+ */
+describe('นาฬิกา objective ไม่รวมฉากเปิด และตัดสินผล/แสดงผลใช้ค่าเดียวกัน', () => {
+  it('ทั้งผลแพ้ชนะและตัวนับบนจอเดินตาม stageElapsedMs ไม่ใช่ elapsedMs', () => {
+    const state = makeState({ stageType: 'survival', survival: { durationMs: 1000 } })
+    // elapsedMs เลยงบไปแล้ว แต่เวลาเล่นจริงเพิ่ง 300ms — ต้องยังไม่ชนะ และจอต้องเหลือ 700ms
+    state.elapsedMs = 1700
+    state.stageElapsedMs = 300
+
+    expect(resolveStageOutcome(state, 16)).toBeNull()
+    expect(buildStageObjectiveSnapshot(state)).toEqual({
+      kind: 'survival',
+      current: 300,
+      target: 1000,
+      remainingMs: 700,
+    })
+
+    state.stageElapsedMs = 1000
+    expect(resolveStageOutcome(state, 16)).toBe('victory')
+    expect(buildStageObjectiveSnapshot(state).remainingMs).toBe(0)
+  })
+
+  it('ตัวนับของ chase และ time-attack ก็อ่านนาฬิกาตัวเดียวกัน', () => {
+    const chase = makeState({
+      stageType: 'chase',
+      chase: { targetPosition: { x: 500, y: 0 }, arrivalRadius: 20, timeBudgetMs: 1000 },
+    })
+    chase.elapsedMs = 1700
+    chase.stageElapsedMs = 300
+    expect(buildStageObjectiveSnapshot(chase).remainingMs).toBe(700)
+
+    const timeAttack = makeState({ stageType: 'time-attack', timeAttack: { timeBudgetMs: 1000 } })
+    timeAttack.elapsedMs = 1700
+    timeAttack.stageElapsedMs = 300
+    expect(buildStageObjectiveSnapshot(timeAttack).remainingMs).toBe(700)
+  })
+
+  it('runtime ไม่เดินนาฬิกา objective ระหว่าง intro แต่เดินทันทีที่เริ่มเล่นได้', () => {
+    const state = createRealtimeBattle('trial-03', makePlayer())
+    if (!state) throw new Error('เตรียม fixture ไม่สำเร็จ')
+    const runtime = new RealtimeBattleRuntime(state)
+
+    runtime.step(700)
+    expect(state.status).toBe('running')
+    expect(state.stageElapsedMs).toBe(0)
+
+    runtime.step(100)
+    expect(state.elapsedMs).toBe(800)
+    expect(state.stageElapsedMs).toBe(100)
+  })
+})
+
+/**
+ * ด่านที่ผู้ออกแบบเขียน param ประจำชนิดไม่ครบเคยคืน null ตลอดกาล = ต่อสู้ไม่มีวันจบ
+ * ออกได้ทาง force-quit ทางเดียว — ตอนนี้ตกไปใช้ตรรกะเคลียร์คลื่นแทน จบได้เสมอ
+ */
+describe('ด่านที่เขียน param ไม่ครบ ต้องไปถึงผลสรุปได้ ไม่ค้าง', () => {
+  it('survival ที่ไม่มี durationMs — เคลียร์ศัตรูหมดแล้วจบจริง', () => {
+    const state = makeState({ stageType: 'survival' })
+    expect(resolveStageOutcome(state, 16)).toBeNull()
+
+    killAllEnemies(state)
+    expect(resolveStageOutcome(state, 16)).toBe('victory')
+  })
+
+  it('chase/hazard ที่ไม่มี param ก็จบได้เหมือนกัน', () => {
+    for (const stageType of ['chase', 'hazard'] as const) {
+      const state = makeState({ stageType })
+      killAllEnemies(state)
+      expect(resolveStageOutcome(state, 16)).toBe('victory')
+    }
   })
 })
 

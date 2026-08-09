@@ -125,6 +125,10 @@ export class RealtimeBattleRuntime {
 
     if (state.status !== 'running') return
 
+    // นาฬิกา objective เริ่มเดินตอนผู้เล่นคุมตัวละครได้จริงเท่านั้น — ฉากเปิด (INTRO_MS)
+    // ต้องไม่กินเวลาที่ด่านให้มา (ด่านรอด 30 วิ = ได้เล่น 30 วิ ไม่ใช่ 29.3 วิ)
+    state.stageElapsedMs += deltaMs
+
     this.tickTimers(state.player, deltaMs)
     for (const enemy of state.enemies) this.tickTimers(enemy, deltaMs)
     for (const ally of state.allies) this.tickTimers(ally, deltaMs)

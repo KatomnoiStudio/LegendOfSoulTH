@@ -35,7 +35,8 @@ describe('stage objective snapshot lobby-to-runtime feedback', () => {
     const state = createRealtimeBattle('trial-03', player)
     expect(state).not.toBeNull()
     if (!state) return
-    state.elapsedMs = 30_000
+    // นาฬิกาที่ objective ใช้คือ stageElapsedMs (ไม่รวมฉากเปิด) ไม่ใช่ elapsedMs
+    state.stageElapsedMs = 30_000
 
     expect(buildStageObjectiveSnapshot(state)).toEqual({
       kind: 'survival',

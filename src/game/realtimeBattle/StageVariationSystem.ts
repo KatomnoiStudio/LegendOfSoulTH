@@ -34,11 +34,20 @@ function resolveWaveOutcome(state: RealtimeBattleState): StageOutcome {
   return 'victory'
 }
 
+/**
+ * ด่านที่ param ประจำชนิดหายไป (ผู้ออกแบบเขียนข้อมูลไม่ครบ) ต้องไม่ค้างตลอดกาล
+ *
+ * คืน null = "ยังไม่จบ" ซึ่งถ้า param ไม่มีวันโผล่มาก็แปลว่าไม่มีวันจบ ผู้เล่นออกได้ทาง
+ * force-quit ทางเดียว — ตกไปใช้ตรรกะเคลียร์คลื่นแทน (แบบเดียวกับ time-attack/custom
+ * ที่ทำอยู่แล้ว) อย่างน้อย status ก็จบได้เสมอ ไม่ค้าง
+ */
+const resolveMissingParamsOutcome = resolveWaveOutcome
+
 /** รอดให้ครบเวลา — ไม่ต้องฆ่าศัตรูให้หมด */
 function resolveSurvivalOutcome(state: RealtimeBattleState): StageOutcome {
   const params = state.stage.survival
-  if (!params) return null
-  return state.elapsedMs >= params.durationMs ? 'victory' : null
+  if (!params) return resolveMissingParamsOutcome(state)
+  return state.stageElapsedMs >= params.durationMs ? 'victory' : null
 }
 
 /** เคลียร์ทุกคลื่นเหมือน wave แต่แพ้ทันทีถ้า objectiveHp หมดก่อน */
@@ -59,7 +68,7 @@ function resolveDefendOutcome(state: RealtimeBattleState, deltaMs: number): Stag
 /** เคลียร์ทุกคลื่นเหมือน wave แต่แพ้ทันทีถ้าเวลาเกินงบก่อนเคลียร์เสร็จ */
 function resolveTimeAttackOutcome(state: RealtimeBattleState): StageOutcome {
   const params = state.stage.timeAttack
-  if (params && state.elapsedMs > params.timeBudgetMs) return 'defeat'
+  if (params && state.stageElapsedMs > params.timeBudgetMs) return 'defeat'
   return resolveWaveOutcome(state)
 }
 
@@ -73,8 +82,8 @@ const resolveMiniBossOutcome = resolveWaveOutcome
 /** ไปให้ถึงตำแหน่งเป้าหมายก่อนเวลาหมด */
 function resolveChaseOutcome(state: RealtimeBattleState): StageOutcome {
   const params = state.stage.chase
-  if (!params) return null
-  if (state.elapsedMs > params.timeBudgetMs) return 'defeat'
+  if (!params) return resolveMissingParamsOutcome(state)
+  if (state.stageElapsedMs > params.timeBudgetMs) return 'defeat'
 
   const dx = state.player.position.x - params.targetPosition.x
   const dy = state.player.position.y - params.targetPosition.y
@@ -88,7 +97,7 @@ function resolveChaseOutcome(state: RealtimeBattleState): StageOutcome {
  */
 function resolveHazardOutcome(state: RealtimeBattleState, deltaMs: number): StageOutcome {
   const params = state.stage.hazard
-  if (!params || state.hazardHp === null) return null
+  if (!params || state.hazardHp === null) return resolveMissingParamsOutcome(state)
 
   state.hazardHp = Math.max(0, state.hazardHp - (params.decayPerSecond * deltaMs) / 1000)
   if (state.hazardHp <= 0) return 'defeat'

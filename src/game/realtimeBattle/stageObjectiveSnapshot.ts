@@ -1,7 +1,13 @@
 import type { RealtimeBattleState } from './createRealtimeBattle'
 import type { BattleObjectiveSnapshot } from './types'
 
-/** Converts mutable runtime objective state into the small immutable shape consumed by React. */
+/**
+ * Converts mutable runtime objective state into the small immutable shape consumed by React.
+ *
+ * Every timer here reads `stageElapsedMs`, the same intro-exclusive clock
+ * `StageVariationSystem.resolveStageOutcome()` judges win/lose on — reading the intro-inclusive
+ * `elapsedMs` instead would put the on-screen countdown ~700ms out of step with the verdict.
+ */
 export function buildStageObjectiveSnapshot(state: RealtimeBattleState): BattleObjectiveSnapshot {
   const { stage } = state
 
@@ -10,9 +16,9 @@ export function buildStageObjectiveSnapshot(state: RealtimeBattleState): BattleO
       const target = stage.survival?.durationMs ?? 0
       return {
         kind: 'survival',
-        current: Math.min(state.elapsedMs, target),
+        current: Math.min(state.stageElapsedMs, target),
         target,
-        remainingMs: Math.max(0, target - state.elapsedMs),
+        remainingMs: Math.max(0, target - state.stageElapsedMs),
       }
     }
     case 'defend':
@@ -34,7 +40,7 @@ export function buildStageObjectiveSnapshot(state: RealtimeBattleState): BattleO
         kind: 'chase',
         current: distance,
         target: params?.arrivalRadius ?? null,
-        remainingMs: params ? Math.max(0, params.timeBudgetMs - state.elapsedMs) : null,
+        remainingMs: params ? Math.max(0, params.timeBudgetMs - state.stageElapsedMs) : null,
       }
     }
     case 'hazard':
@@ -50,7 +56,7 @@ export function buildStageObjectiveSnapshot(state: RealtimeBattleState): BattleO
         current: state.currentWaveIndex + 1,
         target: stage.waves.length,
         remainingMs: stage.timeAttack
-          ? Math.max(0, stage.timeAttack.timeBudgetMs - state.elapsedMs)
+          ? Math.max(0, stage.timeAttack.timeBudgetMs - state.stageElapsedMs)
           : null,
       }
     case 'mini-boss':
