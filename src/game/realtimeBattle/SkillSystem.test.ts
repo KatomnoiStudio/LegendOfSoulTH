@@ -198,8 +198,16 @@ describe('SkillSystem', () => {
     startSkill(unit, skill, ultimate, 0)
     expect(isCastingSkill(skill)).toBe(true)
 
-    // 1. During startup phase (at 100ms, startupMs is 220)
-    stepSkill(unit, skill, 100) // elapsed = 100ms
+    /*
+      castDelayMs:480 (2026-08-09, blueprint §3.6.12 locked value, wired into attacks.ts) makes
+      castDelay an ADDITIVE phase before startup (combatMoveSchema.ts getMovePhase). Absolute
+      phase boundaries for this move: castDelay 0-480, startup 480-700 (+220), active 700-1220
+      (+520), recovery 1220-1840 (+620). Checkpoints below land deliberately inside each real
+      phase — not just whatever elapsed happens to fall out of the old pre-castDelay numbers.
+    */
+
+    // 1. During startup phase (elapsed = 550ms, inside 480-700)
+    stepSkill(unit, skill, 550)
     unit.hitStunRemainingMs = 120
     stepSkill(unit, skill, 0) // run step with hitstun
     // Should NOT cancel because startup phase is non-interruptible
@@ -208,8 +216,8 @@ describe('SkillSystem', () => {
     // Clear hitstun for step progression
     unit.hitStunRemainingMs = 0
 
-    // 2. During active phase (advance by 200ms -> total elapsed = 300ms, which is > 220 and < 220+520)
-    stepSkill(unit, skill, 200)
+    // 2. During active phase (advance by 350ms -> total elapsed = 900ms, inside 700-1220)
+    stepSkill(unit, skill, 350)
     unit.hitStunRemainingMs = 120
     stepSkill(unit, skill, 0)
     // Should NOT cancel because active phase is non-interruptible
@@ -218,8 +226,8 @@ describe('SkillSystem', () => {
     // Clear hitstun
     unit.hitStunRemainingMs = 0
 
-    // 3. During recovery phase (advance by 500ms -> total elapsed = 800ms, which is > 220+520)
-    stepSkill(unit, skill, 500)
+    // 3. During recovery phase (advance by 400ms -> total elapsed = 1300ms, inside 1220-1840)
+    stepSkill(unit, skill, 400)
     unit.hitStunRemainingMs = 120
     stepSkill(unit, skill, 0)
     // Should cancel because recovery phase override has interruptible: true
