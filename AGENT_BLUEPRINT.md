@@ -34,7 +34,10 @@ No queue slot needed — touch only on bug/extension.
 
 - #23 Gacha System, #15 Star Ascension — **zero implementation found** (`grep gacha/pity` = 0 hits); pity-mechanic SKELETON locked (§7.1, 2026-08-08, soft/hard pity per Genshin's shape), rate/cost numbers still deferred to P9.
 - #13 Hero Collection (expansion) — **stale claim corrected 2026-08-09**: this row previously said "zero implementation," which is now wrong — `TASKS.md` row 24 shows it 100% graduated. **Roadmap-order divergence, item #12 of the blueprint-vs-code audit**: §10's LOCKED sequence puts P9 (Gacha/Star, this tier) before P10 (Hero Collection expansion) — it shipped in the reverse order. HetCreep's resolution: pause further Hero Collection expansion work, prioritize #23 Gacha and #15 Star Ascension next to restore the intended order before resuming #13.
-- #19 PvP/Ranked, #20 PvP Power Normalization, #21 Netcode/Networking — **zero implementation found** (`grep PvP/matchmaking` = 0 hits); blueprint's own §3.8.7/§8 already say "deferred to P12".
+- #20 PvP Power Normalization is implemented on its stacked PR; #21 now has a private room-code
+  prototype with JWT Edge authority, private receive-only Realtime snapshots, prediction/reconcile,
+  and reconnect/forfeit coverage. Production Supabase deployment/live two-client verification is
+  still required before P12 graduation. #19 Matchmaking/Rank/MMR remains deferred to P13.
 
 ### Tier 3 — Decorative / optional, add on later
 

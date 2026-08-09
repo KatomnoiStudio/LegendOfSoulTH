@@ -95,6 +95,7 @@ export const ERROR_CODES = {
   BATTLE_DEFERRED_ASSET_FAIL: 'โหลดเฟรมส่วนที่เหลือไม่ครบ', // SILENT — preload พื้นหลัง ไม่บล็อกการเล่น
   BATTLE_WEBGL_CONTEXT_LOST: 'การ์ดจอขาดการเชื่อมต่อระหว่างต่อสู้', // VISIBLE
   BATTLE_REWARD_FAIL: 'บันทึกรางวัลหลังต่อสู้ไม่สำเร็จ',
+  PVP_AUTHORITY_FAIL: 'การเชื่อมต่อ PvP authority ล้มเหลว',
 
   // src/main.tsx — โหลด App.tsx แบบ dynamic import ไม่สำเร็จ (เช่น env ของ Supabase หาย)
   // VISIBLE — เกิดก่อน React ขึ้นจอเลย ผู้เล่นเห็นแค่ innerHTML สำรองที่ main.tsx เขียนเอง

@@ -29,12 +29,7 @@ const NAV_ITEMS: NavItem[] = [
     accent: '#f0c35e',
   },
   { id: 'pets', label: 'สัตว์เลี้ยง', icon: <PawIcon />, accent: '#e58fb4' },
-  {
-    id: 'training',
-    label: 'ค่ายฝึก',
-    image: publicUrl('ui/navigation/training.webp'),
-    accent: '#77b9db',
-  },
+  { id: 'pvp', label: 'PvP', icon: <TeamFormationIcon />, accent: '#77b9db' },
   { id: 'team', label: 'จัดทีม', icon: <TeamFormationIcon />, accent: '#8fa9f0' },
   { id: 'items', label: 'ไอเทม', icon: <ItemBagIcon />, accent: '#e0a86b' },
   {
@@ -51,6 +46,8 @@ interface MainNavigationProps {
   onOpenHeroes: () => void
   /** เข้าหน้าเลือกด่านก่อน — LobbyBattleSession จะ mount BattleScene หลังเลือกด่าน */
   onOpenBattle: () => void
+  /** เปิด P12 private room-code 1v1; ไม่ใช่ Matchmaking/Rank ของ P13 */
+  onOpenPvP: () => void
   /** เปิดกระเป๋าไอเทม — ผูกกับปุ่ม id="items" เท่านั้น */
   onOpenItems: () => void
   /** เปิดตู้กาชาจริง — ผูกกับปุ่ม id="summon" เท่านั้น */
@@ -60,6 +57,7 @@ interface MainNavigationProps {
 export function MainNavigation({
   onOpenHeroes,
   onOpenBattle,
+  onOpenPvP,
   onOpenItems,
   onOpenSummon,
 }: MainNavigationProps) {
@@ -73,6 +71,10 @@ export function MainNavigation({
     }
     if (id === 'battle') {
       onOpenBattle()
+      return
+    }
+    if (id === 'pvp') {
+      onOpenPvP()
       return
     }
     if (id === 'items') {

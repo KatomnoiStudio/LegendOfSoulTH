@@ -54,6 +54,10 @@ In scope:
 - Gacha authority bypasses: controlling a roll from the client, changing a banner/cost after a
   request ID is committed, spending Gem twice on retry, bypassing pity, or directly writing
   `gacha_pity`, pull history, owned Heroes, or duplicate shards
+- Private PvP authority bypasses: joining a room without being one of its two participants,
+  sending input as the other player, publishing a forged authoritative snapshot/result, reading
+  another room's private Realtime topic, reviving a participant after reconnect grace, replaying an
+  older state version, or bypassing the compare-and-swap state version
 - session-token exposure: anything that puts a user's `access_token`/`refresh_token` somewhere it
   outlives the tab — a URL the browser records in history, a log, an error report, a referrer. Auth
   uses the PKCE flow (`flowType: 'pkce'`, `src/lib/supabaseClient.ts`) specifically so the callback
@@ -87,6 +91,19 @@ By design, not bugs — don't file these:
   the same request debits twice, or if a direct table write succeeds.
 - **"I can locally hide/show a World Chat author by editing my block list."** `/block` is a
   client-local viewing preference by design. Chat rows themselves remain server-authoritative.
+- **"I changed my local PvP position/HP or predicted a different result."** PvP prediction is
+  presentation-only. The JWT-protected `pvp-authority` Edge Function injects the authenticated
+  player identity, advances fixed-tick combat, and is the only caller allowed to commit state or
+  results. Postgres broadcasts those committed snapshots to a participant-only private Realtime
+  topic; authenticated clients have receive permission but no Broadcast INSERT policy. It reads
+  hosted Supabase keys from the platform's plural JSON key sets (`SUPABASE_PUBLISHABLE_KEYS` and
+  `SUPABASE_SECRET_KEYS`) with legacy project-secret fallbacks; no secret enters the browser bundle.
+  A heartbeat timeout and monotonic snapshot version gate make reconnect/prediction disposable.
+  Completed results live in a detached audit table while expired unfinished rooms are reaped.
+  Report a change only if it persists as authority state or becomes visible in a room you do not
+  belong to.
+- **Matchmaking, Rank/MMR, PvP rewards, and public PvP lobbies.** These are intentionally excluded
+  from P12 and therefore do not yet define a production trust boundary.
 - **"Passwords are hashed client-side with no real server auth."** No longer applies to the live
   app — auth is Supabase Auth (server-side), not the old local PBKDF2 layer in
   [`src/lib/password.ts`](src/lib/password.ts) (dormant, kept only as a shared validator source).
