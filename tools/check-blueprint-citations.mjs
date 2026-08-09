@@ -250,7 +250,7 @@ function main() {
   const contractFiles = fs
     .readdirSync(CONTRACTS_DIR)
     .filter((f) => /^\d+.*\.md$/.test(f))
-    .sort();
+    .toSorted();
 
   const totals = { OK: 0, 'MISSING-FILE': 0, 'PAST-EOF': 0, 'SYMBOL-MISMATCH': 0, noSymbol: 0, total: 0 };
 
