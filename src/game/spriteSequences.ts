@@ -98,6 +98,15 @@ const SEQUENCES: Record<CharacterModelKind, SpriteSequence> = {
     actionRate: 5.5,
     autoPeriod: 13.2,
   },
+  'spear-warrior': {
+    idleUrls: frames('erlang-shen-v6-idle', 25),
+    actionUrls: frames('erlang-shen-normal-attack-v2', 8),
+    turnUrls: [],
+    actionOrder: [0, 1, 2, 3, 4, 5, 6, 7],
+    idleRate: 8,
+    actionRate: 14,
+    autoPeriod: 12,
+  },
 }
 
 export function getSpriteSequence(kind: CharacterModelKind): SpriteSequence {

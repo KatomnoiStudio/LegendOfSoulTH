@@ -103,6 +103,11 @@ const MONKEY_VICTORY = Array.from({ length: 4 }, (_, index) =>
 const PIGSY_IDLE = frames('pigsy-idle', 24)
 const PIGSY_ACTION = frames('pigsy-team', 8)
 const TRIPITAKA_IDLE = frames('tripitaka-idle', 24)
+const ERLANG_IDLE = frames('erlang-shen-v6-idle', 25)
+const ERLANG_ATTACK_1 = frames('erlang-shen-attack-v1', 18)
+const ERLANG_ATTACK_2 = frames('erlang-shen-normal-attack-v2', 8)
+const ERLANG_ATTACK_3 = frames('erlang-shen-normal-attack-v3-final', 8)
+const ERLANG_SKILL_1 = frames('erlang-shen-skill-1', 16)
 
 const MONKEY_KING_SET: BattleSpriteSet = {
   idle: { frames: allDirections(MONKEY_IDLE), rate: 8, loop: true },
@@ -143,6 +148,19 @@ const PILGRIM_MONK_SET: BattleSpriteSet = {
   victory: { frames: allDirections(TRIPITAKA_IDLE), rate: 6, loop: false },
 }
 
+const SPEAR_WARRIOR_SET: BattleSpriteSet = {
+  idle: { frames: allDirections(ERLANG_IDLE), rate: 8, loop: true },
+  walk: { frames: allDirections(ERLANG_IDLE), rate: 8, loop: true },
+  'attack-1': { frames: allDirections(ERLANG_ATTACK_1), rate: 30, loop: false },
+  'attack-2': { frames: allDirections(ERLANG_ATTACK_2), rate: 14, loop: false },
+  'attack-3': { frames: allDirections(ERLANG_ATTACK_3), rate: 11, loop: false },
+  dash: { frames: allDirections(ERLANG_IDLE), rate: 12, loop: false },
+  'skill-1': { frames: allDirections(ERLANG_SKILL_1), rate: 14, loop: false },
+  hit: { frames: allDirections([ERLANG_IDLE[0]]), rate: 1, loop: false },
+  death: { frames: allDirections([ERLANG_IDLE[0]]), rate: 1, loop: false },
+  victory: { frames: allDirections(ERLANG_IDLE), rate: 8, loop: false },
+}
+
 /**
  * ใช้ Record ที่ต้องมีครบทุก kind แทนการ if แล้ว fallback เงียบ ๆ
  * เพิ่มตัวละครใหม่เมื่อไหร่ TypeScript จะฟ้องทันทีว่ายังไม่ได้ใส่ชุดเฟรมของห้องต่อสู้
@@ -154,6 +172,7 @@ const BATTLE_SPRITE_SETS: Record<CharacterModelKind, BattleSpriteSet> = {
   'celestial-archer': PILGRIM_MONK_SET,
   'nezha-warden': MONKEY_KING_SET,
   'sand-sage': PIG_WARRIOR_SET,
+  'spear-warrior': SPEAR_WARRIOR_SET,
 }
 
 export function getBattleSpriteSet(kind: CharacterModelKind): BattleSpriteSet {

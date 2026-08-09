@@ -23,19 +23,19 @@ describe('Hero Collection System (#13)', () => {
   describe('grantCharacter - Done-criterion #1 & #2 (Duplicate & Invalid Checks)', () => {
     test('มอบตัวละครสำเร็จสำหรับตัวละครที่ยังไม่ครอบครอง', async () => {
       // ซุนหงอคงมีอยู่แล้วตั้งแต่สมัคร (STARTER_CHARACTER_ID)
-      // ตือโป๊ยก่าย (pig-warrior) ยังไม่มี
-      const result = await grantCharacter(uid, 'pig-warrior')
+      // เอ้อหลางเสิน (spear-warrior) ยังไม่มี
+      const result = await grantCharacter(uid, 'spear-warrior')
       expect(result.ok).toBe(true)
       if (result.ok) {
-        expect(result.characterId).toBe('pig-warrior')
-        expect(result.player.ownedCharacters.some((c) => c.characterId === 'pig-warrior')).toBe(
+        expect(result.characterId).toBe('spear-warrior')
+        expect(result.player.ownedCharacters.some((c) => c.characterId === 'spear-warrior')).toBe(
           true,
         )
       }
 
       // ตรวจสอบจาก session จริง
       const player = await getSessionPlayer()
-      expect(player?.ownedCharacters.some((c) => c.characterId === 'pig-warrior')).toBe(true)
+      expect(player?.ownedCharacters.some((c) => c.characterId === 'spear-warrior')).toBe(true)
     })
 
     test('ปฏิเสธการมอบตัวละครที่ครอบครองอยู่แล้ว และไม่เพิ่มซ้ำ', async () => {

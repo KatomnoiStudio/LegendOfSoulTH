@@ -70,6 +70,14 @@ const WALK_KITS: Record<CharacterModelKind, WalkKit> = {
     idlePrefix: publicUrl('characters/pigsy-idle'),
     idleCount: 24,
   },
+  'spear-warrior': {
+    // Erlang currently has a side-view run sheet only, so the lobby keeps his
+    // canonical idle frame while moving instead of requesting missing 8-way files.
+    walkPrefix: null,
+    turnPrefix: publicUrl('characters/erlang-shen-v6-idle'),
+    idlePrefix: publicUrl('characters/erlang-shen-v6-idle'),
+    idleCount: 25,
+  },
 }
 
 export function getWalkKit(kind: CharacterModelKind): WalkKit {

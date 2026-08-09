@@ -1,4 +1,4 @@
-import { ROSTER } from '../../game/characters'
+import { ERLANG_SHEN_CHARACTER_ID, ROSTER } from '../../game/characters'
 
 /**
  * ตัวแปลคำสั่งลับสำหรับผู้ดูแล ซ่อนอยู่หลังช่องแชทโลกปกติ
@@ -38,6 +38,7 @@ export type ParsedCommand =
  * คำสั่งตรง ๆ ก่อน parse แทน ไม่มีทางหลุดผ่าน error path ได้อีก)
  */
 const ADMIN_ONLY_COMMAND_NAMES = new Set(['givecharacter', 'givegold', 'giveitem'])
+const ADMIN_CHARACTER_ALIASES = new Map<string, string>([['erlang', ERLANG_SHEN_CHARACTER_ID]])
 
 /**
  * หา characterId จากคำที่ผู้ใช้พิมพ์
@@ -48,6 +49,9 @@ const ADMIN_ONLY_COMMAND_NAMES = new Set(['givecharacter', 'givegold', 'giveitem
 function resolveCharacterId(input: string): string | null {
   const query = input.trim().toLowerCase()
   if (query.length === 0) return null
+
+  const alias = ADMIN_CHARACTER_ALIASES.get(query)
+  if (alias) return alias
 
   const exact = ROSTER.find((entry) => entry.id.toLowerCase() === query)
   if (exact) return exact.id
@@ -71,7 +75,7 @@ export const COMMAND_HELP = [
 
 /** ใบ้เฉพาะผู้ดูแล ต่อท้าย COMMAND_HELP ตอนเป็นผู้ดูแลเท่านั้น (ยังคงไม่ใบ้ให้ผู้เล่นทั่วไปเห็น) */
 export const ADMIN_COMMAND_HELP = [
-  '/givecharacter <ตัวละคร> — มอบตัวละครให้บัญชีนี้ เช่น /givecharacter pig',
+  '/givecharacter <ตัวละคร> — มอบตัวละครให้บัญชีนี้ เช่น /givecharacter erlang',
   '/givegold <จำนวน> — เสกทองให้บัญชีนี้',
   '/giveitem <item_id> <จำนวน> — เสกไอเทมให้บัญชีนี้',
 ]
@@ -119,7 +123,7 @@ export function parseCommand(raw: string): ParsedCommand | null {
 
   if (command === 'givecharacter') {
     if (args.length === 0) {
-      return { kind: 'error', message: 'ใช้: /givecharacter <ตัวละคร> เช่น /givecharacter pig' }
+      return { kind: 'error', message: 'ใช้: /givecharacter <ตัวละคร> เช่น /givecharacter erlang' }
     }
     const characterId = resolveCharacterId(args.join(' '))
     if (!characterId) {

@@ -153,17 +153,17 @@ describe('WorldChat', () => {
 
   test('ผู้ดูแลพิมพ์ /givecharacter ตัวละครที่รู้จัก — เรียก onGiveCharacter และแสดงผลลัพธ์เฉพาะฝั่งตัวเอง ไม่โพสต์เข้าแชท', async () => {
     const user = userEvent.setup()
-    const onGiveCharacter = vi.fn().mockResolvedValue(grantOk('pig-warrior'))
+    const onGiveCharacter = vi.fn().mockResolvedValue(grantOk('spear-warrior'))
     renderChat({ isAdmin: true, onGiveCharacter })
 
     await user.click(screen.getByRole('button', { name: 'เปิดช่องแชท' }))
-    await user.type(screen.getByPlaceholderText('พิมพ์ข้อความ...'), '/givecharacter pig-warrior')
+    await user.type(screen.getByPlaceholderText('พิมพ์ข้อความ...'), '/givecharacter erlang')
     await user.click(screen.getByRole('button', { name: 'ส่ง' }))
 
-    expect(onGiveCharacter).toHaveBeenCalledWith('pig-warrior')
-    expect(await screen.findByText('ได้รับ ตือโป๊ยก่าย แล้ว')).toBeInTheDocument()
+    expect(onGiveCharacter).toHaveBeenCalledWith('spear-warrior')
+    expect(await screen.findByText('ได้รับ เอ้อหลางเสิน แล้ว')).toBeInTheDocument()
     // คำสั่งเองต้องไม่ถูกโพสต์เข้าแชทให้คนอื่นเห็น
-    expect(screen.queryByText('/givecharacter pig-warrior')).not.toBeInTheDocument()
+    expect(screen.queryByText('/givecharacter erlang')).not.toBeInTheDocument()
   })
 
   test('ผู้ดูแลพิมพ์ /givegold — เรียก onGiveGoldAdmin ด้วยจำนวนที่ถูกต้อง', async () => {

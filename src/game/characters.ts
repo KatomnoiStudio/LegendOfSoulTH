@@ -3,7 +3,13 @@ import type { OwnedCharacter } from '../types/player'
 import type { HeroArchetype } from './heroes/heroArchetypes'
 
 export type CharacterModelKind =
-  'monkey-king' | 'pig-warrior' | 'pilgrim-monk' | 'celestial-archer' | 'nezha-warden' | 'sand-sage'
+  | 'monkey-king'
+  | 'pig-warrior'
+  | 'pilgrim-monk'
+  | 'celestial-archer'
+  | 'nezha-warden'
+  | 'sand-sage'
+  | 'spear-warrior'
 
 /** สไปรต์ idle เริ่มต้นของแต่ละตัวละคร ใช้เป็น fallback เมื่อไม่มี model.spriteUrl ให้ใช้ */
 export const MONKEY_SPRITE_URL = publicUrl('characters/monkey-v2-idle-0.webp')
@@ -13,6 +19,8 @@ export const TRIPITAKA_SPRITE_URL = publicUrl('characters/tripitaka-idle-0.webp'
 export const ARCHER_SPRITE_URL = TRIPITAKA_SPRITE_URL
 export const NEZHA_SPRITE_URL = MONKEY_SPRITE_URL
 export const SAGE_SPRITE_URL = PIGSY_SPRITE_URL
+export const ERLANG_SHEN_SPRITE_URL = publicUrl('characters/erlang-shen-v6-idle-0.webp')
+export const ERLANG_SHEN_CHARACTER_ID = 'spear-warrior'
 export type CharacterOrigin = 'Myth' | 'History' | 'Original'
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary'
 
@@ -192,6 +200,27 @@ export const ROSTER: Character[] = [
       kind: 'sand-sage',
       spriteUrl: SAGE_SPRITE_URL,
       accent: '#c9a86c',
+    },
+  },
+  {
+    id: ERLANG_SHEN_CHARACTER_ID,
+    name: 'เอ้อหลางเสิน',
+    epithet: 'เทพนักรบสามตาแห่งสวรรค์',
+    origin: 'Myth',
+    lore: 'เทพนักรบผู้ถือหอกสามคม ควบคุมสายฟ้าและบัญชาสุนัขสวรรค์เสี่ยวเทียนเพื่อปราบศัตรู',
+    role: 'เทพนักรบหอกสายฟ้า',
+    archetype: 'fighter',
+    productionBatch: null,
+    element: 'สายฟ้า',
+    rarity: 'legendary',
+    level: 1,
+    exp: 0,
+    expToNext: 500,
+    stats: { hp: 1120, atk: 88, def: 76, spd: 90 },
+    model: {
+      kind: 'spear-warrior',
+      spriteUrl: ERLANG_SHEN_SPRITE_URL,
+      accent: '#d7b35b',
     },
   },
 ]
