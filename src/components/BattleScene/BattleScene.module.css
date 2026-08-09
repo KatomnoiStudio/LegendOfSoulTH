@@ -316,8 +316,16 @@
 
 .controlsLeft {
   position: absolute;
-  left: var(--combat-joystick-x, 15%);
-  top: var(--combat-joystick-y, 79%);
+  left: clamp(
+    calc(env(safe-area-inset-left, 0px) + var(--combat-joystick-touch-radius, 81px)),
+    var(--combat-joystick-x, 15%),
+    calc(100% - env(safe-area-inset-right, 0px) - var(--combat-joystick-touch-radius, 81px))
+  );
+  top: clamp(
+    calc(env(safe-area-inset-top, 0px) + var(--combat-joystick-touch-radius, 81px)),
+    var(--combat-joystick-y, 79%),
+    calc(100% - env(safe-area-inset-bottom, 0px) - var(--combat-joystick-touch-radius, 81px))
+  );
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
@@ -367,27 +375,46 @@
   pointer-events: none;
 }
 
-/* Combat cluster — Blueprint §3.3: S1/S2/S3/ULT row above ATK. */
+/* Combat cluster — S1→S2→S3→ULT forms a thumb arc around ATK. */
 .combatCluster {
+  position: relative;
   width: var(--combat-cluster-width, 254px);
-  min-height: var(--combat-cluster-height, 162px);
-  display: grid;
-  align-content: end;
-  justify-items: end;
-  gap: var(--combat-cluster-gap, 14px);
+  height: var(--combat-cluster-height, 162px);
   pointer-events: none;
 }
 
-.combatSkillsRow {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--combat-cluster-gap, 14px);
+.combatCluster .combatBtn {
+  position: absolute;
+  transform: translate(-50%, -50%);
 }
 
-.combatAttackRow {
-  display: flex;
-  justify-content: flex-end;
+.combatCluster .combatBtnPressed {
+  transform: translate(-50%, -50%) scale(0.92);
+}
+
+.combatSlotS1 {
+  left: var(--combat-s1-x);
+  top: var(--combat-s1-y);
+}
+
+.combatSlotS2 {
+  left: var(--combat-s2-x);
+  top: var(--combat-s2-y);
+}
+
+.combatSlotS3 {
+  left: var(--combat-s3-x);
+  top: var(--combat-s3-y);
+}
+
+.combatSlotUltimate {
+  left: var(--combat-ultimate-x);
+  top: var(--combat-ultimate-y);
+}
+
+.combatSlotAttack {
+  left: var(--combat-attack-x);
+  top: var(--combat-attack-y);
 }
 
 .combatClusterBlocked {
