@@ -54,3 +54,7 @@ MEMORY.local.md
 *.sln
 *.sw?
 coverage/
+
+# Local generation/browser QA artifacts — never ship or lint.
+tmp/
+__pycache__/

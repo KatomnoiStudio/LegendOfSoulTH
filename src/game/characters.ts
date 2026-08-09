@@ -21,6 +21,7 @@ export const NEZHA_SPRITE_URL = MONKEY_SPRITE_URL
 export const SAGE_SPRITE_URL = PIGSY_SPRITE_URL
 export const ERLANG_SHEN_SPRITE_URL = publicUrl('characters/erlang-shen-v6-idle-0.webp')
 export const ERLANG_SHEN_CHARACTER_ID = 'spear-warrior'
+export const SPEAR_WARRIOR_CHARACTER_ID = ERLANG_SHEN_CHARACTER_ID
 export type CharacterOrigin = 'Myth' | 'History' | 'Original'
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary'
 

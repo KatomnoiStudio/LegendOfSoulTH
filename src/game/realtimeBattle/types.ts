@@ -127,7 +127,8 @@ export interface DamageEvent {
   createdAtMs: number
 }
 
-export type BattleEffectKind = 'hit-spark' | 'skill-spin' | 'death' | 'spawn' | 'ground-marker'
+export type BattleEffectKind =
+  'hit-spark' | 'skill-spin' | 'erlang-hound' | 'death' | 'spawn' | 'ground-marker'
 
 export interface BattleEffectEvent {
   id: string
@@ -160,6 +161,8 @@ export interface RealtimeBattleSnapshot {
 
   /** ช่องสกิลที่กำลังร่าย — null เมื่อไม่ได้ร่าย (สำหรับ UI state) */
   castingSkillSlot: SkillSlot | null
+  /** แอนิเมชันของท่าที่กำลังร่าย เพื่อให้ชั้นแสดงผลเลือก Skill 2 ได้ตรงกับ runtime */
+  playerAnimationId: 'attack-1' | 'attack-2' | 'attack-3' | 'skill-1' | 'skill-2' | null
 
   damageEvents: DamageEvent[]
   effectEvents: BattleEffectEvent[]

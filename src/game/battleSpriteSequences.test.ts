@@ -32,7 +32,7 @@ describe('selectNormalAttackAnimation', () => {
   })
 
   it('ท่าที่สามมีเฉพาะเฟรม 0 ถึง 7 โดยไม่มีเฟรมขาดหรือเกิน', () => {
-    const frames = getBattleSpriteSet('spear-warrior')['attack-3'].frames.right
+    const frames = getBattleSpriteSet('spear-warrior')['attack-3'].frames.right ?? []
 
     expect(frames).toHaveLength(8)
     expect(frames.map((url) => url.match(/-(\d+)\.webp$/)?.[1])).toEqual([
@@ -62,7 +62,7 @@ describe('selectNormalAttackAnimation', () => {
 describe('Erlang Shen Skill 1 sprites', () => {
   it('uses exactly 16 ordered fixed-grid frames with no missing or extra frame', () => {
     const skill = getBattleSpriteSet('spear-warrior')['skill-1']
-    const skillFrames = skill.frames.right
+    const skillFrames = skill.frames.right ?? []
     expect(skillFrames).toHaveLength(16)
     expect(skillFrames.map((url) => url.match(/-(\d+)\.webp$/)?.[1])).toEqual(
       Array.from({ length: 16 }, (_, index) => String(index)),
@@ -74,7 +74,7 @@ describe('Erlang Shen Skill 1 sprites', () => {
 describe('Erlang Shen Skill 2 sprites', () => {
   it('uses the six-frame casting body, then leaves recovery to return to Idle', () => {
     const skill = getBattleSpriteSet('spear-warrior')['skill-2']
-    const skillFrames = skill.frames.right
+    const skillFrames = skill.frames.right ?? []
     expect(skillFrames).toHaveLength(6)
     expect(skillFrames.map((url) => url.match(/-(\d+)\.webp$/)?.[1])).toEqual(
       Array.from({ length: 6 }, (_, index) => String(index)),

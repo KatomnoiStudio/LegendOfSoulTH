@@ -40,6 +40,7 @@ export type BattleAnimationId =
   | 'attack-3'
   | 'dash'
   | 'skill-1'
+  | 'skill-2'
   | 'hit'
   | 'death'
   | 'victory'
@@ -108,6 +109,14 @@ const ERLANG_ATTACK_1 = frames('erlang-shen-attack-v1', 18)
 const ERLANG_ATTACK_2 = frames('erlang-shen-normal-attack-v2', 8)
 const ERLANG_ATTACK_3 = frames('erlang-shen-normal-attack-v3-final', 8)
 const ERLANG_SKILL_1 = frames('erlang-shen-skill-1', 16)
+const ERLANG_SKILL_2 = frames('erlang-shen-skill-2-cast', 6)
+export const ERLANG_SKILL_1_STRIKE_FRAMES = frames('erlang-shen-skill-1-strike', 8)
+export const ERLANG_SKILL_2_AURA_FRAMES = Array.from({ length: 7 }, (_, index) =>
+  publicUrl(`characters/erlang-shen-skill-2-fx/aura-${String(index + 1).padStart(2, '0')}.webp`),
+)
+export const ERLANG_SKILL_2_HOUND_FRAMES = Array.from({ length: 6 }, (_, index) =>
+  publicUrl(`characters/erlang-shen-skill-2-fx/hound-${String(index + 1).padStart(2, '0')}.webp`),
+)
 
 const MONKEY_KING_SET: BattleSpriteSet = {
   idle: { frames: allDirections(MONKEY_IDLE), rate: 8, loop: true },
@@ -117,6 +126,7 @@ const MONKEY_KING_SET: BattleSpriteSet = {
   'attack-3': { frames: allDirections(MONKEY_ATTACK), rate: 14, loop: false },
   dash: { frames: walkFrames8('monkey-walk'), rate: 20, loop: false },
   'skill-1': { frames: allDirections(MONKEY_ACTION), rate: 16, loop: false },
+  'skill-2': { frames: allDirections(MONKEY_ACTION), rate: 16, loop: false },
   hit: { frames: allDirections([MONKEY_IDLE[0]]), rate: 1, loop: false },
   death: { frames: allDirections([MONKEY_IDLE[0]]), rate: 1, loop: false },
   victory: { frames: allDirections(MONKEY_VICTORY), rate: 5, loop: false },
@@ -130,6 +140,7 @@ const PIG_WARRIOR_SET: BattleSpriteSet = {
   'attack-3': { frames: allDirections(PIGSY_ACTION), rate: 12, loop: false },
   dash: { frames: walkFrames8('pigsy-walk'), rate: 16, loop: false },
   'skill-1': { frames: allDirections(PIGSY_ACTION), rate: 12, loop: false },
+  'skill-2': { frames: allDirections(PIGSY_ACTION), rate: 12, loop: false },
   hit: { frames: allDirections([PIGSY_IDLE[0]]), rate: 1, loop: false },
   death: { frames: allDirections([PIGSY_IDLE[0]]), rate: 1, loop: false },
   victory: { frames: allDirections(PIGSY_ACTION), rate: 6, loop: false },
@@ -143,6 +154,7 @@ const PILGRIM_MONK_SET: BattleSpriteSet = {
   'attack-3': { frames: allDirections(TRIPITAKA_IDLE), rate: 10, loop: false },
   dash: { frames: allDirections(TRIPITAKA_IDLE), rate: 16, loop: false },
   'skill-1': { frames: allDirections(TRIPITAKA_IDLE), rate: 10, loop: false },
+  'skill-2': { frames: allDirections(TRIPITAKA_IDLE), rate: 10, loop: false },
   hit: { frames: allDirections([TRIPITAKA_IDLE[0]]), rate: 1, loop: false },
   death: { frames: allDirections([TRIPITAKA_IDLE[0]]), rate: 1, loop: false },
   victory: { frames: allDirections(TRIPITAKA_IDLE), rate: 6, loop: false },
@@ -156,6 +168,7 @@ const SPEAR_WARRIOR_SET: BattleSpriteSet = {
   'attack-3': { frames: allDirections(ERLANG_ATTACK_3), rate: 11, loop: false },
   dash: { frames: allDirections(ERLANG_IDLE), rate: 12, loop: false },
   'skill-1': { frames: allDirections(ERLANG_SKILL_1), rate: 14, loop: false },
+  'skill-2': { frames: allDirections(ERLANG_SKILL_2), rate: 10, loop: false },
   hit: { frames: allDirections([ERLANG_IDLE[0]]), rate: 1, loop: false },
   death: { frames: allDirections([ERLANG_IDLE[0]]), rate: 1, loop: false },
   victory: { frames: allDirections(ERLANG_IDLE), rate: 8, loop: false },
@@ -177,6 +190,21 @@ const BATTLE_SPRITE_SETS: Record<CharacterModelKind, BattleSpriteSet> = {
 
 export function getBattleSpriteSet(kind: CharacterModelKind): BattleSpriteSet {
   return BATTLE_SPRITE_SETS[kind]
+}
+
+export function selectNormalAttackAnimation(
+  kind: CharacterModelKind,
+  random: () => number = Math.random,
+): BattleAnimationId {
+  if (kind !== 'spear-warrior') return 'attack-1'
+  const roll = random()
+  if (roll < 1 / 3) return 'attack-1'
+  if (roll < 2 / 3) return 'attack-2'
+  return 'attack-3'
+}
+
+export function selectNormalAttackPreviewAnimation(sequence: number): BattleAnimationId {
+  return (['attack-1', 'attack-2', 'attack-3'] as const)[(sequence - 1) % 3]
 }
 
 /** ย่อ 8 ทิศของ runtime ให้เหลือ 4 ทิศเมื่อไม่มีเฟรมเฉียง */
@@ -227,6 +255,7 @@ const ALL_ANIMATIONS: BattleAnimationId[] = [
   'attack-3',
   'dash',
   'skill-1',
+  'skill-2',
   'hit',
   'death',
   'victory',
@@ -249,5 +278,9 @@ export function collectCriticalTextureUrls(kinds: CharacterModelKind[]): string[
 /** ภาพที่เหลือ — โหลดเบื้องหลังหลังห้องเปิดแล้ว */
 export function collectDeferredTextureUrls(kinds: CharacterModelKind[]): string[] {
   const critical = new Set(collectCriticalTextureUrls(kinds))
-  return urlsFor(kinds, ALL_ANIMATIONS).filter((url) => !critical.has(url))
+  const urls = urlsFor(kinds, ALL_ANIMATIONS)
+  if (kinds.includes('spear-warrior')) {
+    urls.push(...ERLANG_SKILL_2_AURA_FRAMES, ...ERLANG_SKILL_2_HOUND_FRAMES)
+  }
+  return urls.filter((url) => !critical.has(url))
 }

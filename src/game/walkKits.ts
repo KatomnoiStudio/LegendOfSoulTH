@@ -89,29 +89,36 @@ const WALK_KITS: Record<CharacterModelKind, WalkKit> = {
   },
   'celestial-archer': {
     walkPrefix: null,
+    walkFrameCount: 8,
+    walkFrameStride: { walking: 24, running: 20 },
+    usesMirroredSideView: false,
     turnPrefix: publicUrl('characters/turnaround/tripitaka-turn'),
     idlePrefix: publicUrl('characters/tripitaka-idle'),
     idleCount: 24,
+    idleFrameDuration: 170,
+    idleScale: 1,
   },
   'nezha-warden': {
     walkPrefix: publicUrl('characters/walk/monkey-walk'),
+    walkFrameCount: 8,
+    walkFrameStride: { walking: 24, running: 20 },
+    usesMirroredSideView: false,
     turnPrefix: publicUrl('characters/turnaround/monkey-turn'),
     idlePrefix: publicUrl('characters/monkey-v2-idle'),
     idleCount: 24,
+    idleFrameDuration: 170,
+    idleScale: 1,
   },
   'sand-sage': {
     walkPrefix: publicUrl('characters/walk/pigsy-walk'),
+    walkFrameCount: 8,
+    walkFrameStride: { walking: 24, running: 20 },
+    usesMirroredSideView: false,
     turnPrefix: publicUrl('characters/turnaround/pigsy-turn'),
     idlePrefix: publicUrl('characters/pigsy-idle'),
     idleCount: 24,
-  },
-  'spear-warrior': {
-    // Erlang currently has a side-view run sheet only, so the lobby keeps his
-    // canonical idle frame while moving instead of requesting missing 8-way files.
-    walkPrefix: null,
-    turnPrefix: publicUrl('characters/erlang-shen-v6-idle'),
-    idlePrefix: publicUrl('characters/erlang-shen-v6-idle'),
-    idleCount: 25,
+    idleFrameDuration: 170,
+    idleScale: 1,
   },
 }
 

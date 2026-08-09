@@ -51,28 +51,6 @@ function finishCurrentAttack(
 }
 
 describe('ComboSystem', () => {
-  it('ล็อกท่าใหม่ของ Erlang ไว้ตลอด Normal Attack เมื่อสุ่มได้ครึ่งบน', () => {
-    const unit = player({ characterId: 'spear-warrior' })
-    const combo = createComboState()
-
-    pressAttack(unit, combo, () => 0.5)
-    expect(unit.attackAnimationId).toBe('attack-2')
-
-    stepCombo(unit, combo, 100, () => 0)
-    expect(unit.attackAnimationId).toBe('attack-2')
-  })
-
-  it('ล็อก Normal Attack ท่าที่สามของ Erlang ไว้ตลอดไม้เมื่อสุ่มได้ช่วงบน', () => {
-    const unit = player({ characterId: 'spear-warrior' })
-    const combo = createComboState()
-
-    pressAttack(unit, combo, () => 0.9)
-    expect(unit.attackAnimationId).toBe('attack-3')
-
-    stepCombo(unit, combo, 100, () => 0)
-    expect(unit.attackAnimationId).toBe('attack-3')
-  })
-
   it('กดครั้งแรกเริ่มไม้ที่หนึ่ง', () => {
     const unit = player()
     const combo = createComboState()

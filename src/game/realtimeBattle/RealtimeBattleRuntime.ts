@@ -312,6 +312,9 @@ export class RealtimeBattleRuntime {
 
     startSkill(state.player, this.playerSkill, definition, state.elapsedMs, lockedTargetId)
     this.pushEffectEvent('skill-spin', state.player.position, 700)
+    if (state.player.characterId === 'spear-warrior' && slot === 'skill2') {
+      this.pushEffectEvent('erlang-hound', state.player.position, 1900)
+    }
     this.publish()
   }
 
@@ -648,7 +651,10 @@ export class RealtimeBattleRuntime {
       this.damageEvents = this.damageEvents.filter((event) => event.createdAtMs >= cutoff)
     }
     if (this.effectEvents.length > 0 && this.effectEvents[0].createdAtMs < cutoff) {
-      this.effectEvents = this.effectEvents.filter((event) => event.createdAtMs >= cutoff)
+      this.effectEvents = this.effectEvents.filter(
+        (event) =>
+          this.state.elapsedMs < event.createdAtMs + Math.max(EVENT_TTL_MS, event.durationMs),
+      )
     }
   }
 
@@ -792,6 +798,7 @@ export class RealtimeBattleRuntime {
       totalWaves: state.stage.waves.length,
       objective: buildStageObjectiveSnapshot(state),
       castingSkillSlot: this.playerSkill.definition?.slot ?? null,
+      playerAnimationId: this.playerSkill.definition?.attack.animationId ?? null,
       damageEvents: this.damageEvents,
       effectEvents: this.effectEvents,
     }

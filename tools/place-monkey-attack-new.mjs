@@ -48,14 +48,14 @@ async function bbox(data, width, height) {
 async function main() {
   const files = (await readdir(SRC_DIR))
     .filter((f) => f.endsWith('.png'))
-    .sort()
+    .toSorted()
 
   const boxes = []
   for (const file of files) {
     const src = join(SRC_DIR, file)
     const { data, info } = await sharp(src).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
     const box = await bbox(data, info.width, info.height)
-    boxes.push({ file, box, width: info.width, height: info.height })
+    boxes.push({ file, box })
   }
 
   // สเกลจากความสูงตัวมัธยฐาน กันเฟรมที่ยกไม้เท้าสูงผิดปกติทำให้สเกลเพี้ยน (เหมือน pigsy pipeline)
@@ -64,7 +64,7 @@ async function main() {
   const scale = TARGET_BODY_HEIGHT / medianBody
   console.log(`ตัวละครมัธยฐาน ${medianBody}px -> สเกล ${scale.toFixed(4)}`)
 
-  for (const [index, { file, box, width, height }] of boxes.entries()) {
+  for (const [index, { file, box }] of boxes.entries()) {
     const cropW = box.maxX - box.minX + 1
     const cropH = box.maxY - box.minY + 1
     const scaledW = Math.max(1, Math.round(cropW * scale))

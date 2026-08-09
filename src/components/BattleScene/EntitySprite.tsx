@@ -40,14 +40,17 @@ interface EntitySpriteProps {
 }
 
 /** สถานะของหน่วย → ชุดเฟรมที่ต้องเล่น */
-function animationForState(state: EntityState): BattleAnimationId {
+function animationForState(
+  state: EntityState,
+  castingSkillSlot: 'skill1' | 'skill2' | 'skill3' | 'ultimate' | null,
+): BattleAnimationId {
   switch (state) {
     case 'walk':
       return 'walk'
     case 'attack':
       return 'attack-1'
     case 'skill':
-      return 'skill-1'
+      return castingSkillSlot === 'skill2' ? 'skill-2' : 'skill-1'
     case 'hit':
       return 'hit'
     // Knockdown/GetUp (§3.8.4) — ยืมแอนิเมชัน hit/idle ไปก่อน ยังไม่มีเฟรมภาพเฉพาะ
@@ -109,7 +112,10 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
     mesh.current.renderOrder = depthOrder
     if (shadow.current) shadow.current.renderOrder = depthOrder - 1
 
-    const animationId = animationForState(entity.state)
+    const animationId = animationForState(
+      entity.state,
+      entityId === runtime.getState().player.id ? runtime.getCastingSkillSlot() : null,
+    )
     const elapsedMs = runtime.getState().elapsedMs
     if (animationId !== currentAnimation.current) {
       currentAnimation.current = animationId

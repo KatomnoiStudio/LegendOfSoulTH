@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Erlang Shen — Full Action Preview</title>
+    <style>
+      :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; background: #080b12; color: #f8f5e9; }
+      main { width: min(1160px, calc(100% - 32px)); margin: 24px auto; text-align: center; }
+      h1 { margin: 0 0 8px; font-size: clamp(1.25rem, 3vw, 2rem); }
+      p { margin: 0 0 16px; color: #c7cbd5; }
+      .stage {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 11 / 6.2;
+        min-height: 430px;
+        overflow: hidden;
+        border: 1px solid #3a424f;
+        border-radius: 16px;
+        background:
+          radial-gradient(circle at 74% 52%, rgba(220, 166, 42, .10), transparent 24%),
+          linear-gradient(180deg, #17202d 0%, #0b101a 58%, #07090e 100%);
+      }
+      .floor { position: absolute; right: 0; bottom: 12%; left: 0; height: 2px; background: linear-gradient(90deg, transparent, #394457 12% 88%, transparent); }
+      .body-frame, .aura, .hounds { position: absolute; pointer-events: none; user-select: none; object-fit: contain; }
+      .body-frame { z-index: 3; bottom: 7%; left: 1%; width: min(47vw, 510px); max-width: 47%; transform-origin: top left; }
+      .body-frame.cast { transform: translate(-.936%, 10.979%) scale(1.018722467); }
+      .aura { z-index: 2; bottom: 6%; left: 2%; width: min(47vw, 512px); max-width: 47%; opacity: 0; transition: opacity 60ms linear; }
+      .hounds { z-index: 4; bottom: 14%; left: 12%; width: min(47vw, 512px); max-width: 47%; opacity: 0; --travel: 0px; transform: translateX(var(--travel)); transition: transform 110ms linear, opacity 60ms linear; }
+      .visible { opacity: 1; }
+      .target { position: absolute; right: 8%; bottom: 24%; z-index: 1; width: 112px; height: 180px; border: 2px solid #7c4e26; border-radius: 56px 56px 20px 20px; background: linear-gradient(180deg, #2c2023, #11141b); box-shadow: 0 0 0 7px rgba(224, 174, 54, .08), 0 0 48px rgba(224, 174, 54, .12); }
+      .target::before { position: absolute; bottom: -34px; left: 50%; color: #d9b671; content: 'ศัตรู'; font-weight: 700; transform: translateX(-50%); white-space: nowrap; }
+      .target.hit { border-color: #fff0b4; box-shadow: 0 0 0 8px rgba(255, 212, 83, .20), 0 0 74px 22px rgba(255, 185, 38, .55); }
+      .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 16px; }
+      button { border: 1px solid #a7792c; border-radius: 10px; padding: 10px 16px; background: #2d2111; color: #ffe7a4; font: inherit; font-weight: 700; cursor: pointer; }
+      button:hover:not(:disabled) { background: #4a3416; }
+      button[aria-pressed="true"] { border-color: #fff0b4; background: #5a4018; }
+      button:focus-visible { outline: 3px solid #fff0b4; outline-offset: 3px; }
+      #status { min-height: 1.5em; margin-top: 14px; color: #f3d48c; font-weight: 700; }
+      @media (prefers-reduced-motion: reduce) {
+        .aura, .hounds { transition: none; }
+      }
+      @media (max-width: 700px) {
+        main { width: min(100% - 18px, 1160px); margin-top: 10px; }
+        .stage { min-height: 330px; border-radius: 10px; }
+        .target { right: 3%; transform: scale(.72); transform-origin: bottom right; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Erlang Shen — Full Action Preview</h1>
+      <p>ทุกท่าใช้กรอบยืนเดียวกับ Idle; Skill 2 จะร่ายคาถา → เอฟเฟกต์ → หมา 3 ตัวพุ่งโจมตี</p>
+      <section class="stage" aria-label="พื้นที่ทดสอบแอนิเมชัน Erlang Shen">
+        <div class="floor"></div>
+        <img class="aura" id="aura" alt="เอฟเฟกต์เรียกหมาสีทองดำ">
+        <img class="body-frame" id="body" src="../erlang-shen-v6-idle-0.webp" alt="Erlang Shen ยืน Idle">
+        <img class="hounds" id="hounds" alt="หมา Erlang Shen สามตัวพุ่งโจมตี">
+        <div class="target" id="target" aria-label="ตำแหน่งศัตรู"></div>
+      </section>
+      <div class="controls" aria-label="ชุดควบคุมทดสอบแอนิเมชัน">
+        <button id="run" type="button" aria-pressed="false">Run</button>
+        <button id="normal-1" type="button" aria-pressed="false">Normal Attack 1</button>
+        <button id="normal-2" type="button" aria-pressed="false">Normal Attack 2</button>
+        <button id="normal-3" type="button" aria-pressed="false">Normal Attack 3</button>
+        <button id="skill-1" type="button" aria-pressed="false">Skill 1</button>
+        <button id="skill-2" type="button" aria-pressed="false">Skill 2</button>
+        <button id="reset" type="button">กลับ Idle</button>
+      </div>
+      <p id="status" aria-live="polite">IDLE — พร้อมทดสอบ</p>
+    </main>
+    <script>
+      const frameList = (prefix, count) => Array.from({ length: count }, (_, index) => `../${prefix}-${index}.webp`);
+      const idleFrame = '../erlang-shen-v6-idle-0.webp';
+      const sequences = {
+        run: { frames: frameList('walk/erlang-shen-v3-run-right', 25), delay: 70, label: 'Run', loop: true },
+        normal1: { frames: frameList('erlang-shen-attack-v1', 18), delay: 34, label: 'Normal Attack 1' },
+        normal2: { frames: frameList('erlang-shen-normal-attack-v2', 8), delay: 72, label: 'Normal Attack 2' },
+        normal3: { frames: frameList('erlang-shen-normal-attack-v3-final', 8), delay: 92, label: 'Normal Attack 3' },
+        skill1: { frames: frameList('erlang-shen-skill-1', 16), delay: 72, label: 'Skill 1' },
+        skill2Cast: { frames: frameList('erlang-shen-skill-2-cast', 6), delay: 100, label: 'ร่าย Skill 2', cast: true },
+      };
+      const auraFrames = Array.from({ length: 7 }, (_, index) => `aura-${String(index + 1).padStart(2, '0')}.png`);
+      const houndFrames = Array.from({ length: 6 }, (_, index) => `hound-${String(index + 1).padStart(2, '0')}.png`);
+      const body = document.querySelector('#body');
+      const aura = document.querySelector('#aura');
+      const hounds = document.querySelector('#hounds');
+      const target = document.querySelector('#target');
+      const status = document.querySelector('#status');
+      const actionButtons = [...document.querySelectorAll('[aria-pressed]')];
+      let runId = 0;
+
+      const sleep = (milliseconds, id) => new Promise(resolve => window.setTimeout(() => resolve(id === runId), milliseconds));
+
+      function clearEffects() {
+        aura.classList.remove('visible');
+        hounds.classList.remove('visible');
+        hounds.style.setProperty('--travel', '0px');
+        target.classList.remove('hit');
+      }
+
+      function setPressed(activeButton) {
+        actionButtons.forEach(button => {
+          button.setAttribute('aria-pressed', String(button === activeButton));
+        });
+      }
+
+      function showIdle() {
+        body.src = idleFrame;
+        body.classList.remove('cast');
+        body.alt = 'Erlang Shen ยืน Idle';
+      }
+
+      function idle() {
+        runId += 1;
+        clearEffects();
+        setPressed(null);
+        showIdle();
+        status.textContent = 'IDLE — พร้อมทดสอบ';
+      }
+
+      async function playFrames(sequence, activeButton, id) {
+        const delay = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : sequence.delay;
+        do {
+          for (let index = 0; index < sequence.frames.length; index += 1) {
+            body.src = sequence.frames[index];
+            body.classList.toggle('cast', Boolean(sequence.cast));
+            body.alt = `Erlang Shen ${sequence.label}`;
+            status.textContent = `${sequence.label} — เฟรม ${index + 1} / ${sequence.frames.length}`;
+            if (!(await sleep(delay, id))) return false;
+          }
+        } while (sequence.loop && id === runId);
+        return id === runId;
+      }
+
+      async function playAction(name, activeButton) {
+        const id = ++runId;
+        clearEffects();
+        setPressed(activeButton);
+        if (await playFrames(sequences[name], activeButton, id) && !sequences[name].loop) idle();
+      }
+
+      async function playSkill2(activeButton) {
+        const id = ++runId;
+        clearEffects();
+        setPressed(activeButton);
+        if (!(await playFrames(sequences.skill2Cast, activeButton, id))) return;
+        showIdle();
+        aura.classList.add('visible');
+        for (let index = 0; index < auraFrames.length; index += 1) {
+          aura.src = auraFrames[index];
+          status.textContent = `Skill 2 เอฟเฟกต์เรียกหมา — เฟรม ${index + 1} / ${auraFrames.length}`;
+          if (!(await sleep(90, id))) return;
+        }
+        aura.classList.remove('visible');
+        hounds.classList.add('visible');
+        for (let index = 0; index < houndFrames.length; index += 1) {
+          hounds.src = houndFrames[index];
+          hounds.style.setProperty('--travel', Math.min(440, index * 88) + 'px');
+          status.textContent = index < 4 ? 'หมา 3 ตัวพุ่งใส่ศัตรู' : 'หมา 3 ตัวโจมตีเป้าหมาย';
+          if (index === 4) target.classList.add('hit');
+          if (!(await sleep(110, id))) return;
+        }
+        idle();
+      }
+
+      document.querySelector('#run').addEventListener('click', event => playAction('run', event.currentTarget));
+      document.querySelector('#normal-1').addEventListener('click', event => playAction('normal1', event.currentTarget));
+      document.querySelector('#normal-2').addEventListener('click', event => playAction('normal2', event.currentTarget));
+      document.querySelector('#normal-3').addEventListener('click', event => playAction('normal3', event.currentTarget));
+      document.querySelector('#skill-1').addEventListener('click', event => playAction('skill1', event.currentTarget));
+      document.querySelector('#skill-2').addEventListener('click', event => playSkill2(event.currentTarget));
+      document.querySelector('#reset').addEventListener('click', idle);
+      idle();
+    </script>
+  </body>
+</html>
