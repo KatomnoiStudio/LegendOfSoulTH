@@ -3,7 +3,7 @@ import { playSfx } from '../../lib/audio/AudioEngine'
 import { publicUrl } from '../../lib/publicUrl'
 import { ItemBagIcon, PawIcon, TeamFormationIcon } from '../icons/GameIcons'
 import { useToast } from '../Toast/useToast'
-import { PVP_BACKEND_DEPLOYED } from '../../game/featureFlags'
+import { GACHA_PRODUCTION_CONTENT_READY, PVP_BACKEND_DEPLOYED } from '../../game/featureFlags'
 import styles from './MainNavigation.module.css'
 
 interface NavItem {
@@ -96,6 +96,10 @@ export function MainNavigation({
       return
     }
     if (id === 'summon') {
+      if (!GACHA_PRODUCTION_CONTENT_READY) {
+        comingSoon(label)
+        return
+      }
       onOpenSummon()
       return
     }

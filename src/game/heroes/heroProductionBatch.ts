@@ -137,6 +137,18 @@ export function getBatch01Hero(characterId: string): ProductionBatchHero | undef
   return PRODUCTION_BATCH_01.find((hero) => hero.characterId === characterId)
 }
 
+/**
+ * Production exposure is stricter than "implemented": every Asset Contract item, including
+ * VFX/SFX and the measured mobile playtest, must be signed off before a Hero can enter a live
+ * acquisition pool.
+ */
+export function isHeroProductionReady(characterId: string): boolean {
+  const hero = getBatch01Hero(characterId)
+  return (
+    hero !== undefined && Object.values(hero.checklist).every((status) => status === 'production')
+  )
+}
+
 export function isBatch01Hero(characterId: string): boolean {
   return BATCH_01_CHARACTER_IDS.includes(characterId)
 }

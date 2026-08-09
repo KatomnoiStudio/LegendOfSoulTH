@@ -5,7 +5,19 @@
 
 ## [Unreleased]
 
-## [0.15.2] - 2026-08-10
+## [0.15.3] - 2026-08-09
+
+### Fixed
+
+- Froze the live Standard Banner after a Production Asset Contract audit found that none of its
+  five Heroes has completed VFX/SFX plus mobile playtest sign-off, and three still use explicit
+  placeholder sprites. A shared ship gate now covers the navigation button, `?modal=summon`, and
+  the modal render itself.
+- Added an idempotent database migration that marks `standard-banner` inactive without deleting its
+  pool, pity, pull history, or already-owned Heroes. A later reviewed migration must reactivate it
+  only after every banner Hero and the Ring-0 approval gate are ready.
+
+## [0.15.2] - 2026-08-09
 
 ### Fixed
 

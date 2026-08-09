@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const TEST_USER = '22222222-2222-4222-8222-222222222222'
 const MIGRATION = '20260809073000_p9_gacha_server_authority.sql'
+const CONTENT_GATE_MIGRATION = '20260809102500_disable_unready_gacha_content.sql'
 
 interface PullRow {
   payload: {
@@ -207,5 +208,28 @@ describe('P9 Gacha server authority (isolated Postgres via PGLite)', () => {
       where oid = 'public.perform_gacha_pull(uuid,text,integer)'::regprocedure
     `)
     expect(config.rows[0]?.config).toContain('search_path=""')
+  })
+
+  it('server ปิดตู้ Production เมื่อ Asset Contract ยังไม่ผ่าน โดยไม่ลบประวัติผู้เล่น', async () => {
+    const historyBefore = await db.query<{ count: string }>(
+      `select count(*)::text as count from public.gacha_pull_history where profile_id = $1`,
+      [TEST_USER],
+    )
+
+    await applyMigration(db, CONTENT_GATE_MIGRATION)
+
+    const banner = await db.query<{ active: boolean }>(
+      `select active from public.gacha_banners where id = 'standard-banner'`,
+    )
+    expect(banner.rows[0]?.active).toBe(false)
+    await expect(pull(db, 'dddddddd-dddd-4ddd-8ddd-ddddddddddd4')).rejects.toThrow(
+      'ไม่พบตู้สุ่มที่เปิดใช้งาน',
+    )
+
+    const historyAfter = await db.query<{ count: string }>(
+      `select count(*)::text as count from public.gacha_pull_history where profile_id = $1`,
+      [TEST_USER],
+    )
+    expect(historyAfter.rows[0]?.count).toBe(historyBefore.rows[0]?.count)
   })
 })

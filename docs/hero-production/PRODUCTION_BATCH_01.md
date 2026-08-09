@@ -14,6 +14,14 @@
 
 `pilgrim-monk` (Support) remains in roster for existing accounts — **Batch 02** target.
 
+## Production exposure freeze
+
+The registry and combat kits remain available as development scaffolding, but they are not proof
+that a Hero is Production-ready. The Standard Banner stays inactive in both the client and database
+until every checklist entry for every pooled Hero is `production`, the mobile playtest is signed
+off, and Ring 0 explicitly approves exposure. Existing player ownership, pity, and pull history are
+preserved while this gate is closed.
+
 ## Deliverables per hero (checklist)
 
 Each batch hero must ship:

@@ -1,9 +1,10 @@
 # Security Policy
 
 Legend of Soul-TH is a small hobby game (React + Vite, deployed to GitHub Pages) with a real
-backend: **Supabase (Auth + Postgres + Row Level Security)**, live since 2026-08-07. All account,
-currency, character, Star/Shard, admin-status, and World Chat data lives server-side, RLS-protected;
-the client never mutates valuable state directly. Read
+backend: **Supabase (Auth + Postgres + Row Level Security)**, live since 2026-08-07. Account,
+currency, character, Star/Shard, admin-status, and World Chat records live server-side behind RLS.
+Several systems also use narrow authority RPCs, but PvE progression, battle-reward validation, and
+team ownership are not yet authoritative end-to-end and remain Production blockers. Read
 [`src/data/accountRepository.supabase.ts`](src/data/accountRepository.supabase.ts)
 and [`supabase/migrations/`](supabase/migrations/) for exactly what's enforced where before filing
 a report. The older client-only `accountRepository.ts`/`password.ts` (localStorage + local PBKDF2)
@@ -53,7 +54,8 @@ In scope:
   reusing an idempotency request for another Hero, or bypassing the 1/2/4/8/12 shard ladder
 - Gacha authority bypasses: controlling a roll from the client, changing a banner/cost after a
   request ID is committed, spending Gem twice on retry, bypassing pity, or directly writing
-  `gacha_pity`, pull history, owned Heroes, or duplicate shards
+  `gacha_pity`, pull history, owned Heroes, or duplicate shards; pulling from an inactive/content-
+  gated banner or receiving a Hero whose Production Asset Contract has not been approved
 - Private PvP authority bypasses: joining a room without being one of its two participants,
   sending input as the other player, publishing a forged authoritative snapshot/result, reading
   another room's private Realtime topic, reviving a participant after reconnect grace, replaying an
@@ -68,21 +70,12 @@ In scope:
 
 By design, not bugs — don't file these:
 
-- **"I can see/edit values in my own browser's React state or a stale localStorage cache."**
-  Expected and low-risk: the server (Supabase, RLS-enforced) is the real source of truth for
-  currency/characters/admin-status; any client-side tampering is cosmetic and gets overwritten
-  on the next server round-trip. **Do** file a report if you find a way to make a _write_ (an
-  RPC call, a direct table mutation) actually persist a value the server should have rejected —
-  that crosses a real trust boundary. (This project already fixed real cases of this shape:
-  `grant_character` didn't check admin status before 2026-08-07 — see `supabase/migrations/0004_admin_accounts.sql`'s
-  own comment for what that looked like and how it was closed. On 2026-08-08, `earn_gold`/`grant_item`
-  accepted unbounded client-supplied amounts and `profiles.gold`/`gem` had no column-write protection
-  beyond RLS (which is row-scoped, not column-scoped) — see `supabase/migrations/0009_economy_integrity_fixes.sql`.
-  Lobby battle rewards use refId-guarded RPCs and a durable pending snapshot table — see
-  `supabase/migrations/0013_reward_idempotency.sql`. Star Ascension uses an authenticated,
-  atomic, idempotent RPC and a private-write audit ledger — see
-  `supabase/migrations/20260808204905_p9_star_ascension_server_authority.sql`. Report the same
-  _class_ of bug elsewhere.)
+- **"I can see/edit values in my own browser's React state or a stale localStorage cache."** A
+  display-only change is not a vulnerability by itself. **Do** report privately if an RPC call or
+  direct table mutation persists a value the server should have rejected — that crosses the real
+  trust boundary. The repository's economy caps/idempotency migrations do not by themselves prove
+  that a battle happened, that its result is valid, or that a selected Hero is owned; those known
+  PvE authority gaps are Production blockers, not cosmetic client state.
 - **"I changed Star/Shard values in React state or called the preview calculator."** The preview
   is presentation-only. Report it only if the change persists in Supabase without a valid
   `ascend_character_star` transaction.

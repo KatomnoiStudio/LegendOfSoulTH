@@ -4,7 +4,12 @@ import { getPlayerAttackChain, HERO_ATTACK_CHAINS } from './attackChains'
 import { BATCH_01_GACHA_BANNER, isCharacterInBatch01Pool } from './gachaPool'
 import { getFinisherSpec, HERO_FINISHER_TABLE } from './finisherTable'
 import { HERO_ARCHETYPE_LABEL } from './heroArchetypes'
-import { BATCH_01_CHARACTER_IDS, PRODUCTION_BATCH_01, isBatch01Hero } from './heroProductionBatch'
+import {
+  BATCH_01_CHARACTER_IDS,
+  PRODUCTION_BATCH_01,
+  isBatch01Hero,
+  isHeroProductionReady,
+} from './heroProductionBatch'
 import { getHeroSkillKit, HERO_SKILL_KITS } from './kits'
 import { STAR_MULTIPLIERS, statsAtStar, starPowerRatio } from './starScaling'
 import { findHitTargets } from '../realtimeBattle/HitboxSystem'
@@ -55,6 +60,12 @@ describe('Production Batch 01 — pipeline registry', () => {
       expect(character?.productionBatch).toBe('batch-01')
       expect(isBatch01Hero(id)).toBe(true)
     }
+  })
+
+  it('ยังไม่มีฮีโร่ใดผ่าน Production gate จนกว่า Asset + mobile playtest ครบจริง', () => {
+    const readyHeroIds = BATCH_01_CHARACTER_IDS.filter(isHeroProductionReady)
+
+    expect(readyHeroIds).toEqual([])
   })
 
   it('archetype ใน ROSTER ไม่ซ้ำกันสำหรับ batch heroes (§4.1 anti-reskin)', () => {

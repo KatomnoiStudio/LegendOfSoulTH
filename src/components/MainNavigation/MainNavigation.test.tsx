@@ -79,14 +79,14 @@ describe('MainNavigation', () => {
     expect(onOpenItems).toHaveBeenCalledTimes(1)
   })
 
-  test('กด "อัญเชิญ" เรียก onOpenSummon แทน toast เร็ว ๆ นี้', async () => {
+  test('กด "อัญเชิญ" ไม่เปิด modal จนกว่า Asset Contract ผ่าน — ขึ้น toast แทน', async () => {
     const user = userEvent.setup()
     const { onOpenSummon } = renderNav()
 
     await user.click(screen.getByRole('button', { name: 'อัญเชิญ' }))
 
-    expect(onOpenSummon).toHaveBeenCalledTimes(1)
-    expect(screen.queryByText('อัญเชิญ — เร็ว ๆ นี้')).not.toBeInTheDocument()
+    expect(onOpenSummon).not.toHaveBeenCalled()
+    expect(await screen.findByText('อัญเชิญ — เร็ว ๆ นี้')).toBeInTheDocument()
   })
 
   /*

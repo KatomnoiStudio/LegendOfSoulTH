@@ -1,7 +1,9 @@
 import { describe, expect, test } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { PVP_BACKEND_DEPLOYED } from './featureFlags'
+import { STANDARD_BANNER } from './gacha/gachaConfig'
+import { isHeroProductionReady } from './heroes/heroProductionBatch'
+import { GACHA_PRODUCTION_CONTENT_READY, PVP_BACKEND_DEPLOYED } from './featureFlags'
 
 /*
   MEMORY.md item 176: v0.15.0 shipped the Lobby PvP button to production while its room RPCs and
@@ -40,6 +42,41 @@ describe('PVP_BACKEND_DEPLOYED gate', () => {
       expect(source).toMatch(/from '.*game\/featureFlags'/)
       // a local re-declaration is what let the first gate leak — forbid it outright
       expect(source).not.toMatch(/const PVP_BACKEND_DEPLOYED\s*=/)
+    }
+  })
+})
+
+describe('GACHA_PRODUCTION_CONTENT_READY gate', () => {
+  test('ยังปิดอยู่ตราบใดที่ตู้มีฮีโร่ซึ่ง Asset Contract ยังไม่ผ่าน Production', () => {
+    const unreadyHeroIds = STANDARD_BANNER.pool
+      .map((entry) => entry.characterId)
+      .filter((characterId) => !isHeroProductionReady(characterId))
+
+    expect(unreadyHeroIds).toEqual([
+      'monkey-king',
+      'pig-warrior',
+      'celestial-archer',
+      'nezha-warden',
+      'sand-sage',
+    ])
+    expect(GACHA_PRODUCTION_CONTENT_READY).toBe(false)
+  })
+
+  test('ทุกจุดที่เปิด summon modal ต้องผ่าน flag เดียวกัน — รวม ?modal=summon', () => {
+    const opensSummon = lobbyPage
+      .split(/\r?\n/)
+      .filter((line) => /previewModal === 'summon'|setSummonOpen\(true\)/.test(line))
+
+    expect(opensSummon.length).toBeGreaterThanOrEqual(3)
+    for (const line of opensSummon) {
+      expect(line).toContain('GACHA_PRODUCTION_CONTENT_READY')
+    }
+  })
+
+  test('ทั้ง LobbyPage และ MainNavigation อ่าน flag จาก featureFlags ไม่ประกาศเองซ้ำ', () => {
+    for (const source of [lobbyPage, mainNav]) {
+      expect(source).toMatch(/from '.*game\/featureFlags'/)
+      expect(source).not.toMatch(/const GACHA_PRODUCTION_CONTENT_READY\s*=/)
     }
   })
 })
