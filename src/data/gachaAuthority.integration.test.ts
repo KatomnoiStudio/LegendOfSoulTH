@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const TEST_USER = '22222222-2222-4222-8222-222222222222'
 const MIGRATION = '20260809073000_p9_gacha_server_authority.sql'
+const CONTENT_GATE_MIGRATION = '20260810110000_disable_unready_gacha_content.sql'
 
 interface PullRow {
   payload: {
@@ -320,5 +321,36 @@ describe('P9 Gacha server authority (isolated Postgres via PGLite)', () => {
         `expected forced pity to fire at least once across ${PITY_RUNS * PULLS_PER_RUN} total pulls, got 0`,
       ).toBeGreaterThan(0)
     }, 120_000)
+  })
+
+  // Must stay LAST in this file, and must still restore the banner itself. The whole suite shares
+  // ONE PGLite instance, and this migration deactivates `standard-banner` permanently — leaving it
+  // off makes every pull above fail with 'ไม่พบตู้สุ่มที่เปิดใช้งาน'. The restore is what keeps
+  // that a positioning preference rather than a trap for whoever appends the next test.
+  it('server ปิดตู้ Production เมื่อ Asset Contract ยังไม่ผ่าน โดยไม่ลบประวัติผู้เล่น', async () => {
+    const countHistory = async (): Promise<string | undefined> => {
+      const result = await db.query<{ count: string }>(
+        `select count(*)::text as count from public.gacha_pull_history where profile_id = $1`,
+        [TEST_USER],
+      )
+      return result.rows[0]?.count
+    }
+
+    const historyBefore = await countHistory()
+    await applyMigration(db, CONTENT_GATE_MIGRATION)
+
+    try {
+      const banner = await db.query<{ active: boolean }>(
+        `select active from public.gacha_banners where id = 'standard-banner'`,
+      )
+      expect(banner.rows[0]?.active).toBe(false)
+      await expect(pull(db, 'ffffffff-ffff-4fff-8fff-fffffffffff1')).rejects.toThrow(
+        'ไม่พบตู้สุ่มที่เปิดใช้งาน',
+      )
+      // the freeze hides the banner; it must never delete what players already earned
+      expect(await countHistory()).toBe(historyBefore)
+    } finally {
+      await db.exec(`update public.gacha_banners set active = true where id = 'standard-banner'`)
+    }
   })
 })
