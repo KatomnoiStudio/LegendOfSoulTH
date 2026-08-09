@@ -15,6 +15,30 @@
 
 **ถือ 1 เรื่อง ต่อ 1 agents · สร้าง → ผ่าน QC → ได้ไปต่อ · สร้าง → ไม่ผ่าน QC → โดนดีดกลับ**
 
+## ADDRESSING — which law commands which seat (owner ruling: "สิ่งนี้สั่งใครกันแน่")
+
+Main and every hired seat share ONE cwd; the auto-load reaches all of them — unpreventable,
+and not pretended otherwise. **A law binds a seat only if ADDRESSED to that seat.** Per-seat
+binding order: (1) the dispatch prompt → (2) the seat's own file (`.claude/agents/belt-*.md`)
+
+- registry row → (3) the law layer addressed to that seat → (4) everything else auto-loaded =
+  background context, data not command.
+
+* **Layer 1's AUTHORITIES (routing, merge, bump, dispatch) address the BELT-END SEAT — main
+  alone.** They transfer to NO other seat, however much of this file that seat has in context.
+  Layer 1's PROHIBITIONS that name every agent (e.g. "no agent applies to production") and its
+  dispatcher duties (rule 8's pin + never-delegate-sensitive-down) bind WHOEVER holds that
+  role — including a caretaker acting as Joiner.
+* **Worker-seat duties address EVERY worker seat, any ring** (Ring-0-hired caretakers/aide/QC
+  included): one topic per dispatch + per-item verdicts, contract walls, memory duties, the
+  gate law, the language rule, and never editing Ring-0 rule files (a Ring-0-hired seat passes
+  the identity test but holds a WORKER role — the prohibition rides the role, not the ring).
+* **Layer 2's intake rules (rules 1–2) address Ring-1 devs specifically.**
+* **The addressing rule allocates the BELT's layered authorities ONLY. The repo's baseline
+  laws (`AGENTS.md` rules 1–22 + `.agents/rules/**`) bind EVERY seat regardless of addressing**
+  (owner ratification 2026-08-09) — rule 22's RLS law, rule 15's CUT/DEFERRED lock, rule 21's
+  workdir lock and their siblings never demote to tier-4 context for any seat.
+
 ## Layer 1 — laws that command RING 0 (the belt end / main seat, HetCreep's machine)
 
 1. **Route, never diagnose.** A symptom is forwarded, contracts are read, at most one read-only
@@ -55,11 +79,15 @@
    review-flips at high not xhigh); haiku = never; sensitive work (auth · payments · RLS ·
    schema migration) NEVER delegates down — size is not the test.
 
-## Layer 2 — laws that command RING 1 (outside devs + their agents)
+## Layer 2 — Ring-1 intake (rules 1–2) + worker-seat duties (rules 3–6 — every worker seat, any ring)
 
-1. **PR only.** Code reaches this repo as a PR or it has not arrived — no direct pushes, no
-   informal hand-offs of code. A PR enters the belt at the MAKE station: its author is the
-   maker and its own "tested/passing" claims are claims, not results.
+1. **PR only, and submitting it IS the whole duty.** Code reaches this repo as a PR or it has
+   not arrived — no direct pushes, no informal hand-offs of code. No review-request step, no
+   waiting for approval, no author-side fix round (owner ruling 2026-08-09 — the adopt-inward
+   rule below replaced that loop). A PR enters the belt at the MAKE station: its author is the
+   maker and its own "tested/passing" claims are claims, not results. **The one prohibition
+   AFTER SUBMISSION: MERGING — even where GitHub permissions would technically allow it. Merge
+   authority is the belt end's alone; rule 18's logged break-glass is the only exception.**
 2. **A PR that fails QC is adopted INWARD** — the owning system's Ring-0-side caretaker takes
    it and fixes immediately, carrying the QC's full finding. (The caretaker knows the system
    deeper than the PR's author; an outside maker also cannot be resumed by this belt.) Pass →
@@ -73,7 +101,9 @@
    dispatch (a design-lock answer, a ratified registry ruling), never unilaterally by any seat.
 5. **Memory duties**: root `MEMORY.md` rides every submit (rules 2/3 unchanged);
    `MEMORY/NN-<system>.md` is the caretaker's own file — lazy-born at first dispatch, written
-   ONLY by its owner, read by the belt end.
+   ONLY by its owner, read by the belt end. **Lifecycle: woken → LOAD it first; return →
+   CRYSTALLIZE + COMPRESS + UPDATE everything stale; cut aggressively — git log holds all
+   history, the file holds only what the seat needs at next wake.**
 6. **Never edit Ring-0 rule files** (`AGENTS.md`, `.agents/rules/**`) — flag disagreement
    instead (rule 6 unchanged, restated inside the belt).
 

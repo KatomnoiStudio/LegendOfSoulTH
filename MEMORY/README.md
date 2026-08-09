@@ -18,8 +18,10 @@
 - **ของใครของมัน** — only the owning caretaker WRITES its file. The belt end may READ all
   (dispatch needs context); writing another seat's file is a boundary violation, same class
   as editing another system's owned code.
-- A dispatched caretaker **reads its own file at spawn, updates it in the same return** —
-  the continuous-update discipline root `MEMORY.md` already carries (rule 20's parity idea,
-  applied per seat).
+- **Lifecycle (owner ruling 2026-08-09): woken → LOAD your file first. Return → CRYSTALLIZE
+  (lessons, decisions, live state — never transcript) + COMPRESS (rewrite in place, dedupe,
+  tighten) + UPDATE everything stale. Cut aggressively — the file may shrink to near-nothing:
+  git log holds all history. The file carries only what the seat needs at its next wake;
+  memory is working knowledge, never an archive. Precondition: a return's memory file is COMMITTED before the next wake compresses it — uncommitted content has no git copy behind it.**
 - Throwaway seats (QC, probes, part-makers) get NO file — they are per-dispatch and their
   findings live in the gate record / dispatch return, not in standing memory.
