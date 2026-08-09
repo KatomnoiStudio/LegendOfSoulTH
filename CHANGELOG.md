@@ -5,6 +5,22 @@
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-08-09
+
+### Added
+
+- **P11 PvE Content Expansion — Chapter 1** (`trial-01`..`trial-10`):
+  - Distinct encounter patterns: wave, survival, defend, chase, hazard, mini-boss, time-attack, boss
+  - Per-stage `difficultyMultiplier`, `targetDurationMs` pacing metadata (normal 2–5 min, boss 5–8 min)
+  - Per-stage reward tables (`stageRewardConfig.ts`) with first-clear bonuses wired through `RewardSystem`
+  - `trial-08` upgraded to mini-boss (`demon-warlord`) with two-wave structure
+
+### Changed
+
+- Energy/stamina numerics locked for production: max 120, regen 60/hr, cost 10, boss 2× (`energySystem.ts`)
+- Gem full-refill skeleton (`refillEnergyToMaxWithGems`, 50 gems) — UI wiring still deferred
+- Boss `trial-10` difficulty multiplier tuned to 1.2
+
 ## [0.13.0] - 2026-08-09
 
 ### Added

@@ -60,6 +60,26 @@ describe('REALTIME_STAGES มีแชปเตอร์ครบ N ด่าน
     expect(chapters.some((chapter) => chapter.chapterId === 'chapter-1')).toBe(true)
   })
 
+  it('chapter-1 ใช้ stageType หลากหลายและมี mini-boss + boss ปิดท้าย (P11)', () => {
+    const ordered = getOrderedStages('chapter-1').filter((s) => s.showInAdventureSelect !== false)
+    const types = ordered.map((s) => s.stageType)
+    expect(new Set(types).size).toBeGreaterThanOrEqual(6)
+    expect(types).toContain('mini-boss')
+    expect(ordered.some((s) => s.isBoss === true)).toBe(true)
+    expect(ordered.find((s) => s.id === 'trial-08')?.stageType).toBe('mini-boss')
+  })
+
+  it('chapter-1 ทุกด่านมี difficultyMultiplier และ targetDurationMs (P11 data-driven)', () => {
+    const ordered = getOrderedStages('chapter-1').filter((s) => s.showInAdventureSelect !== false)
+    for (const stage of ordered) {
+      expect(stage.difficultyMultiplier).toBeGreaterThan(0)
+      expect(stage.targetDurationMs?.min).toBeGreaterThan(0)
+      expect(stage.targetDurationMs?.max).toBeGreaterThanOrEqual(stage.targetDurationMs!.min)
+    }
+    const boss = ordered.find((s) => s.isBoss)
+    expect(boss?.targetDurationMs?.min).toBeGreaterThanOrEqual(300_000)
+  })
+
   it('getBossTemplate คืนข้อมูลบอสจริง spirit-guardian-boss', () => {
     expect(getBossTemplate('spirit-guardian-boss')?.phases).toHaveLength(2)
   })

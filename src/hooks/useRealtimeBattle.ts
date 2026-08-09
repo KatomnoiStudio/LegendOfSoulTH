@@ -192,8 +192,11 @@ export function useRealtimeBattle({
     if (snapshot.status !== 'victory' && snapshot.status !== 'defeat') return
     if (completedRef.current) return
     completedRef.current = true
-    onCompleteRef.current(toRealtimeBattleResult(runtime.getState(), snapshot.status))
-  }, [runtime, snapshot])
+    const isFirstClear = playerRef.current.progress.flags[`trial_cleared_${stageId}`] !== true
+    onCompleteRef.current(
+      toRealtimeBattleResult(runtime.getState(), snapshot.status, { isFirstClear }),
+    )
+  }, [runtime, snapshot, stageId])
 
   const requestExit = useCallback(() => {
     runtime?.requestExit()

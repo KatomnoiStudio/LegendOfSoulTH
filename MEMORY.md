@@ -3,10 +3,7 @@
 > **Operator / Human User**: `HetCreep`
 > **Repository**: `KatomnoiStudio/LegendOfSoulTH`
 > **Default Branch**: `master`
-> **Last Updated**: 2026-08-09T18:20:00+07:00 by `Codex` — Production trust-boundary follow-up for consolidated PR #77/#78; see items 168–169.
-> **Last Updated**: 2026-08-09T02:10:00+07:00 by `Claude Code` — Hero Kit #12/DF20: CoalBoard opinion-lane (ask CB, 4 blind seats) fixed the Lv11+ EXP formula regression and the Ultimate damage-scale outlier; `ffb741c`. TASKS.md row DF20 stays 90% (Ring 0 instruction) pending playtest graduation.
-> **Last Updated (prior)**: 2026-08-09T00:25:00+07:00 by `Cursor Agent` — v0.12.5 fix: ปุ่มต่อสู้แสดงหน้าเลือกด่าน (pending-reward recovery ไม่ปิด overlay + StageSelect z-index/DOM order).
-> **Last Updated**: 2026-08-09T03:15:00+07:00 by `Cursor Agent` — P10 Production Batch 01 (5 archetypes, v0.13.0): per-hero kits/combos, 3 new roster heroes, summon/CC runtime, gacha+star skeleton; see `docs/hero-production/PRODUCTION_BATCH_01.md`.
+> **Last Updated**: 2026-08-09T11:30:00+07:00 by `Cursor Agent` — P11 Chapter 1 PvE expansion (v0.14.0): per-stage rewards, locked energy, mini-boss trial-08, difficulty/duration metadata.
 > **RULES_VERSION last synced: 26** (local `master`, this session) — bumped 17→18 (multi-dev task queue law) →19 (Agent Blueprint execution-order rule) →20 (Ring 0 traffic control law) →21 (claim protocol made Ring-0-locked) →22 (break-glass claim fallback for repo-admin devs) →23 (security doc sync law, from a `/gold-standard` AUDIT) →24 (tasks/memory parity law, HetCreep asked directly after catching TASKS.md drift twice) →25 (working-directory concurrency lock law, added after Claude/Antigravity live collision) within this same session. **Unrelated note carried forward**: an earlier version of this line read "19" citing a pending fork PR #59 (Cursor Agent, cloud) that was never found merged to `origin/master` — this session passed through 19 independently via 17→18→19→20→21→22→23→24→25, not a confirmation of that PR landing. Still worth reconciling numbering with PR #59 if/when it lands.
 
 > **2026-08-06 overhaul**: this file had grown to 65+ interleaved, verbose items (two colliding numbering
@@ -30,12 +27,13 @@
 
 ## 🎯 Current Status
 
-- **Repo**: upstream `master` @ `f6f849c` · **v0.13.0** (PR pending) · P10 Batch 01 hero pipeline this session.
-- **Version**: **0.13.0** — Production Batch 01 (5 archetypes); deploy gate requires `GAME_INFO.version` bump.
+- **Repo**: upstream `master` @ `71d92ef` + P11 branch · **v0.14.0** (P11 PR pending).
+- **Version**: **0.14.0** — P11 Chapter 1 PvE expansion (per-stage rewards, locked energy, enriched encounters).
 - **Org/Live**: `KatomnoiStudio` — https://katomnoistudio.github.io/LegendOfSoulTH/
 - **Backend**: Supabase Auth+Postgres live, wired via `useAuth.ts` (item 41/87). `accountRepository.ts` (localStorage) stays as a dormant fallback seam only.
 - **Master Blueprint v3.0**: P0–P3 DONE · §3.6/§3.7 LOCKED · mobile combat UI done (§3.3) · P4 LANDED (item 109) · P5 dungeon slice + reward pipeline LANDED (items 111-112) · P8 per-hero progression LANDED (item 119, numerics still NON-PRODUCTION) · Basic Attack Lunge Distance closed (item 124).
-- **Battle (current)**: realtime 2.5D · ต่อสู้/เริ่มผจญภัย → StageSelect → BattleScene (Ch.1 10 stages). **Hero Batch 01**: monkey-king (Fighter), pig-warrior (Heavy), celestial-archer (Ranged), nezha-warden (Control), sand-sage (Summoner) — 3 ตัวใหม่ placeholder sprites (`docs/hero-production/PRODUCTION_BATCH_01.md`). pilgrim-monk → Batch 02.
+- **Battle (current)**: realtime 2.5D · ต่อสู้/เริ่มผจญภัย → StageSelect → BattleScene (Ch.1 10 stages, P11 enriched). **Hero Batch 01**: monkey-king (Fighter), pig-warrior (Heavy), celestial-archer (Ranged), nezha-warden (Control), sand-sage (Summoner) — 3 ตัวใหม่ placeholder sprites (`docs/hero-production/PRODUCTION_BATCH_01.md`). pilgrim-monk → Batch 02.
+- **P11**: `stageRewardConfig.ts` per-stage tables + first-clear; energy locked 120/60/10/boss×2 + gem refill skeleton; `trial-08` mini-boss; all Ch.1 stages have `difficultyMultiplier` + `targetDurationMs`.
 - **P8 balance lock** (Ring 0, 2026-08-09): DF20 ownership is Codex on PR #83 · caps + playtest baseline in `progressionConfig.ts`/`rewardConfig.ts` · Lv11+ EXP uses the monotonic continuation `10n²+10n+100` · Ultimate is 4×1.1 = 4.4x ATK total · stage 1 tutorial-easy (2 waves, HP×0.7, 2500ms interval) · failure `partial` = heroExp by progress only · `nonProductionBalance` banner stays · talent/awakening UI hidden (`showTalentAwakeningUi: false`).
 - **Still open**: measured mobile playtest/TTK dataset for S2/S3/basic-finisher magnitude and the full playtest round required before dropping the NON-PRODUCTION banner. Do not infer final literals from the current test dungeon alone.
 - **Gold-standard**: current figure is item 99's **77%** (12-dim AUDIT+FILL+ADOPT). An earlier ~84% figure merged in via PR #25 is SUPERSEDED — different scoring pass/day, don't average or reconcile.

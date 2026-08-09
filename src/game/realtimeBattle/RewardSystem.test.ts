@@ -44,7 +44,7 @@ describe('calculateBattleReward', () => {
     })
   })
 
-  test('victory scales with defeated enemies and is deterministic', () => {
+  test('victory scales with stage table and is deterministic', () => {
     const state = createRealtimeBattle('trial-01', stubPlayer())
     if (!state) throw new Error('expected battle state')
     state.defeatedEnemyIds = state.enemies.map((e) => e.id)
@@ -53,13 +53,26 @@ describe('calculateBattleReward', () => {
     const a = calculateBattleReward(state, 'victory')
     const b = calculateBattleReward(state, 'victory')
     expect(a).toEqual(b)
-    // 3× shadow-soldier (22/40) + 1 wave clear (15/25)
-    expect(a.earnedGold).toBe(3 * 22 + 15)
-    expect(a.earnedExp).toBe(3 * 40 + 25)
-    expect(a.droppedItems).toEqual([
-      { itemId: 'iron-essence', quantity: 1 },
-      { itemId: 'spirit-incense', quantity: 1 },
-    ])
+    // trial-01 table: 40 gold + 15 wave + 70 exp + 25 wave
+    expect(a.earnedGold).toBe(55)
+    expect(a.earnedExp).toBe(95)
+    expect(a.droppedItems).toEqual([{ itemId: 'iron-essence', quantity: 1 }])
+  })
+
+  test('first-clear bonus applies when flagged', () => {
+    const state = createRealtimeBattle('trial-01', stubPlayer())
+    if (!state) throw new Error('expected battle state')
+    state.currentWaveIndex = 0
+
+    const repeat = calculateBattleReward(state, 'victory', { isFirstClear: false })
+    const first = calculateBattleReward(state, 'victory', { isFirstClear: true })
+    expect(first.earnedGold).toBeGreaterThan(repeat.earnedGold)
+    expect(first.droppedItems).toEqual(
+      expect.arrayContaining([
+        { itemId: 'iron-essence', quantity: 1 },
+        { itemId: 'healing-peach', quantity: 1 },
+      ]),
+    )
   })
 
   test('Done-criterion 3: calculateBattleReward does not mutate its state argument', () => {
@@ -74,12 +87,12 @@ describe('calculateBattleReward', () => {
   })
 
   test('Done-criterion 5: droppedItems ids only contain approved materials/consumables and no equipment/affixes', () => {
-    const state = createRealtimeBattle('trial-01', stubPlayer())
+    const state = createRealtimeBattle('trial-05', stubPlayer())
     if (!state) throw new Error('expected battle state')
     state.defeatedEnemyIds = state.enemies.map((e) => e.id)
     state.currentWaveIndex = 2
 
-    const reward = calculateBattleReward(state, 'victory')
+    const reward = calculateBattleReward(state, 'victory', { isFirstClear: true })
     const approvedIds = new Set(['iron-essence', 'spirit-incense', 'healing-peach'])
 
     expect(reward.droppedItems.length).toBeGreaterThan(0)

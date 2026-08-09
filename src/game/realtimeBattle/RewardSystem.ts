@@ -1,3 +1,4 @@
+import { resolveLobbyStageReward } from '../reward/stageRewardResolver'
 import type { Player } from '../../types/player'
 import type { RealtimeBattleState } from './createRealtimeBattle'
 import { getEnemyTemplate } from './stageConfig'
@@ -48,13 +49,27 @@ function rewardForTemplate(templateId: string | undefined): { gold: number; exp:
   }
 }
 
+export interface BattleRewardOptions {
+  /** True when `trial_cleared_<stageId>` is not yet set — first-clear table rows apply. */
+  isFirstClear?: boolean
+}
+
 export function calculateBattleReward(
   state: RealtimeBattleState,
   outcome: 'victory' | 'defeat',
+  options: BattleRewardOptions = {},
 ): BattleReward {
   if (outcome === 'defeat') {
     return { earnedExp: 0, earnedGold: 0, droppedItems: [] }
   }
+
+  const wavesCleared = state.currentWaveIndex + 1
+  const tableReward = resolveLobbyStageReward({
+    stageId: state.stage.id,
+    wavesCleared,
+    isFirstClear: options.isFirstClear === true,
+  })
+  if (tableReward) return tableReward
 
   let earnedGold = 0
   let earnedExp = 0
@@ -66,7 +81,6 @@ export function calculateBattleReward(
     earnedExp += part.exp
   }
 
-  const wavesCleared = state.currentWaveIndex + 1
   earnedGold += wavesCleared * WAVE_CLEAR_GOLD
   earnedExp += wavesCleared * WAVE_CLEAR_EXP
 
