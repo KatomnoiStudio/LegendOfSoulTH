@@ -4,6 +4,7 @@ import {
   ENTITY_SPRITE_HEIGHT,
   ENTITY_SPRITE_PITCH_RAD,
   resolveSpriteMeshPresentation,
+  resolveTemporaryEntityContainerLiftY,
 } from './entitySpritePresentation'
 import { DEFAULT_COMBAT_CAMERA_CONFIG } from './combatCameraConfig'
 
@@ -44,4 +45,22 @@ describe('entitySpritePresentation', () => {
 
     expect(idleFootY).toBeCloseTo(walkFootY, 8)
   })
+
+  it.each([
+    ['monkey-king', '/characters/monkey-v2-idle-0.webp', 11, 376],
+    ['pig-warrior', '/characters/pigsy-idle-0.webp', 15, 376],
+    ['pilgrim-monk', '/characters/tripitaka-idle-0.webp', 11, 376],
+  ] as const)(
+    'lifts the %s visual container so feet land on Y=0 without moving gameplay',
+    (kind, frameUrl, bottomInsetPx, canvasHeight) => {
+      const presentation = resolveSpriteMeshPresentation(kind, frameUrl)
+      const pitchCos = Math.cos(Math.abs(ENTITY_SPRITE_PITCH_RAD))
+      const localFootY =
+        ENTITY_SPRITE_HEIGHT * (bottomInsetPx / canvasHeight - 0.5) * presentation.scaleY
+      const renderedFootY =
+        resolveTemporaryEntityContainerLiftY(kind) + presentation.centerY + localFootY * pitchCos
+
+      expect(renderedFootY).toBeCloseTo(0, 8)
+    },
+  )
 })
