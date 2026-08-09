@@ -22,6 +22,7 @@ import {
   type GoldSource,
   type ItemResult,
   type ItemSource,
+  type StarAscensionResult,
   type AccountRepositorySubset,
 } from './accountRepository.shared'
 
@@ -45,6 +46,7 @@ import {
 
 export type { GoldSource, GemSource, ItemSource, AuthResult, CurrencyResult, ItemResult }
 export type { CharacterGrantResult, CurrencyTransaction, FriendCandidate, GemPackage, GoldPackage }
+export type { StarAscensionResult }
 export { GEM_PACKAGES, GOLD_PACKAGES, PASSWORD_MIN_LENGTH, validateEmail, validatePassword }
 export { mapOwnedCharacterRow } from './accountRepository.supabase.mapping'
 export type { OwnedCharacterRow } from './accountRepository.supabase.mapping'
@@ -359,21 +361,25 @@ export async function savePlayer(player: Player): Promise<boolean> {
 
   if (error) return false
 
-  const charRows = player.ownedCharacters.map((owned) => ({
-    profile_id: player.id,
-    character_id: owned.characterId,
-    level: owned.level,
-    exp: owned.exp,
-    exp_to_next: owned.expToNext,
-    obtained_at: owned.obtainedAt,
-    skill_levels: owned.skillLevels,
-    talent_state: owned.talentState ?? { unlockedNodes: [] },
-    awakening_state: owned.awakeningState ?? { tier: 0, unlockedEffects: [] },
-  }))
-  const { error: charError } = await supabase.from('owned_characters').upsert(charRows, {
-    onConflict: 'profile_id,character_id',
-  })
-  if (charError) return false
+  // อัปเดตได้เฉพาะ Hero ที่ Server grant ไว้แล้ว ห้าม upsert: การเปิด INSERT ให้ savePlayer
+  // เท่ากับเปิดช่องให้ Client สร้าง Hero ใดก็ได้ ข้าม Gacha/Star authority โดยตรง
+  const characterResults = await Promise.all(
+    player.ownedCharacters.map((owned) =>
+      supabase
+        .from('owned_characters')
+        .update({
+          level: owned.level,
+          exp: owned.exp,
+          exp_to_next: owned.expToNext,
+          skill_levels: owned.skillLevels,
+          talent_state: owned.talentState ?? { unlockedNodes: [] },
+          awakening_state: owned.awakeningState ?? { tier: 0, unlockedEffects: [] },
+        })
+        .eq('profile_id', player.id)
+        .eq('character_id', owned.characterId),
+    ),
+  )
+  if (characterResults.some((result) => result.error !== null)) return false
 
   // team_slots: upsert ทั้ง 4 ช่องทับของเดิม (ตาราง PK คือ profile_id+slot_index อยู่แล้ว)
   const slotRows = player.teamSlots.map((characterId, slot_index) => ({
@@ -607,6 +613,39 @@ export async function grantCharacter(
   const player = await loadPlayer(data.id)
   if (!player) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
   return { ok: true, player, characterId }
+}
+
+interface StarAscensionRpcRow {
+  new_star: number
+  shards_remaining: number
+  shards_spent: number
+  replayed: boolean
+}
+
+/**
+ * เลื่อนดาวผ่าน Postgres RPC เท่านั้น — `_uid` คงไว้ให้ signature เข้ากับ repository API เดิม
+ * แต่ฐานข้อมูลยืนยันเจ้าของจาก auth.uid() และใช้ requestId สำหรับ retry แบบ idempotent
+ */
+export async function ascendCharacterStar(
+  _uid: string,
+  characterId: string,
+  requestId: string,
+): Promise<StarAscensionResult> {
+  const { data, error } = await supabase.rpc('ascend_character_star', {
+    p_request_id: requestId,
+    p_character_id: characterId,
+  })
+  if (error) return { ok: false, error: error.message }
+
+  const row = (data as StarAscensionRpcRow[] | null)?.[0]
+  if (!row) return { ok: false, error: 'เลื่อนระดับดาวไม่สำเร็จ' }
+  return {
+    ok: true,
+    newStar: row.new_star,
+    shardsRemaining: row.shards_remaining,
+    shardsSpent: row.shards_spent,
+    replayed: row.replayed,
+  }
 }
 
 /**

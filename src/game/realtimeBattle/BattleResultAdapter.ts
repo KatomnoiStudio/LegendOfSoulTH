@@ -1,6 +1,6 @@
 import type { BattleResult } from '../battle/types'
 import type { RealtimeBattleState } from './createRealtimeBattle'
-import { calculateBattleReward } from './RewardSystem'
+import { calculateBattleReward, type BattleRewardOptions } from './RewardSystem'
 import type { RealtimeBattleResult } from './types'
 
 /**
@@ -12,8 +12,9 @@ import type { RealtimeBattleResult } from './types'
 export function toRealtimeBattleResult(
   state: RealtimeBattleState,
   outcome: 'victory' | 'defeat',
+  options: BattleRewardOptions = {},
 ): RealtimeBattleResult {
-  const reward = calculateBattleReward(state, outcome)
+  const reward = calculateBattleReward(state, outcome, options)
   return {
     outcome,
     stageId: state.stage.id,

@@ -9,7 +9,7 @@ import type { Player } from '../../types/player'
 import { EMPTY_PROGRESS } from '../../types/player'
 import type { RealtimeBattleEntity } from './types'
 
-function makePlayer(): Player {
+function makePlayer(star = 1): Player {
   return {
     id: 'acc-1',
     uid: '1234567890',
@@ -27,6 +27,8 @@ function makePlayer(): Player {
         expToNext: 100,
         obtainedAt: '2026-01-01T00:00:00.000Z',
         skillLevels: createDefaultSkillLevels(),
+        star,
+        shards: 0,
       },
     ],
     inventory: [],
@@ -97,6 +99,16 @@ describe('deriveHpRatio', () => {
 })
 
 describe('RealtimeBattleRuntime HP → snapshot sync', () => {
+  it('applies the locked ★6 multiplier to authoritative battle stats', () => {
+    const star1 = createRealtimeBattle('trial-01', makePlayer(1))
+    const star6 = createRealtimeBattle('trial-01', makePlayer(6))
+    if (!star1 || !star6) throw new Error('missing battle state')
+
+    expect(star6.player.maxHp).toBe(Math.floor(star1.player.maxHp * 1.3))
+    expect(star6.player.atk).toBe(Math.floor(star1.player.atk * 1.3))
+    expect(star6.player.def).toBe(Math.floor(star1.player.def * 1.3))
+  })
+
   it('enemy hit on player publishes snapshot HP for HUD', () => {
     const state = createRealtimeBattle('trial-01', makePlayer())
     if (!state) throw new Error('missing battle state')

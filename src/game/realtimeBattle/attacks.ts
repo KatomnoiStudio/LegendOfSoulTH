@@ -142,6 +142,7 @@ export const MONKEY_STAFF_THRUST: AttackDefinition = {
   arcDegrees: 0,
   depthTolerance: 92,
   knockback: 120,
+  castDelayMs: 250,
 }
 
 /** สกิล 3 — กวาดไม้กว้าง (magnitude still playtest-pending — placeholder content, P3 framework) */
@@ -159,6 +160,7 @@ export const MONKEY_STAFF_SWEEP: AttackDefinition = {
   arcDegrees: 0,
   depthTolerance: 110,
   knockback: 160,
+  castDelayMs: 320,
 }
 
 /**
@@ -196,6 +198,7 @@ export const MONKEY_GOLDEN_FURY: AttackDefinition = {
     recovery: { interruptible: true },
   },
   strikeCount: 4,
+  castDelayMs: 480,
 }
 
 /** ค่าจังหวะของสกิล (Blueprint v3 P3) — อยู่ที่เดียว ห้าม hard-code กระจายหลายไฟล์ */
