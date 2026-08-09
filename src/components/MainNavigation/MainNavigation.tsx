@@ -3,6 +3,7 @@ import { playSfx } from '../../lib/audio/AudioEngine'
 import { publicUrl } from '../../lib/publicUrl'
 import { ItemBagIcon, PawIcon, TeamFormationIcon } from '../icons/GameIcons'
 import { useToast } from '../Toast/useToast'
+import { PVP_BACKEND_DEPLOYED } from '../../game/featureFlags'
 import styles from './MainNavigation.module.css'
 
 interface NavItem {
@@ -14,14 +15,6 @@ interface NavItem {
   /** ไอคอน SVG สำรอง สำหรับเมนูที่ยังไม่มีภาพวาด */
   icon?: ReactNode
 }
-
-/**
- * PvP backend readiness — flip to `true` only when BOTH are true on the production project:
- * `20260809064000_p12_private_pvp_rooms.sql` applied, and the `pvp-authority` Edge Function
- * deployed and verified with two real clients. Until then the nav button falls through to the
- * coming-soon toast instead of opening a modal that can only fail.
- */
-const PVP_BACKEND_DEPLOYED = false
 
 const NAV_ITEMS: NavItem[] = [
   {

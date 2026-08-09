@@ -5,6 +5,17 @@
 
 ## [Unreleased]
 
+## [0.15.2] - 2026-08-10
+
+### Fixed
+
+- **The v0.15.1 PvP gate leaked.** It lived inside `MainNavigation`, but `LobbyPage` opens the same
+  modal from a second path — `?modal=pvp`, read straight off `window.location.search` and live in
+  production — so the modal could still be reached against the undeployed backend. The flag moved to
+  `src/game/featureFlags.ts` where every entry point reads it, and a test now asserts that each site
+  which can set `pvpOpen` consults it and that neither file re-declares its own copy. Found by a
+  rot-canary pass over the v0.15.1 fix itself.
+
 ## [0.15.1] - 2026-08-09
 
 ### Fixed

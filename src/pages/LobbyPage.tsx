@@ -34,6 +34,7 @@ import type {
 } from '../data/accountRepository.supabase'
 import type { RealtimeBattleResult } from '../game/realtimeBattle/types'
 import type { FriendCandidate, Player } from '../types/player'
+import { PVP_BACKEND_DEPLOYED } from '../game/featureFlags'
 import styles from './LobbyPage.module.css'
 
 /** โหลดฉาก 3D แยก chunk เพื่อให้ HUD ขึ้นก่อน (three.js มีขนาดใหญ่) */
@@ -152,7 +153,7 @@ export function LobbyPage({
   const [settingsOpen, setSettingsOpen] = useState(() => previewModal === 'settings')
   const [rosterOpen, setRosterOpen] = useState(() => previewModal === 'roster')
   const [battleOpen, setBattleOpen] = useState(() => previewModal === 'battle')
-  const [pvpOpen, setPvpOpen] = useState(() => previewModal === 'pvp')
+  const [pvpOpen, setPvpOpen] = useState(() => PVP_BACKEND_DEPLOYED && previewModal === 'pvp')
   const [addFriendOpen, setAddFriendOpen] = useState(() => previewModal === 'friend')
   const [itemsOpen, setItemsOpen] = useState(() => previewModal === 'items')
   const [summonOpen, setSummonOpen] = useState(() => previewModal === 'summon')
@@ -161,7 +162,7 @@ export function LobbyPage({
     if (previewModal) {
       setRosterOpen(previewModal === 'roster')
       setBattleOpen(previewModal === 'battle')
-      setPvpOpen(previewModal === 'pvp')
+      setPvpOpen(PVP_BACKEND_DEPLOYED && previewModal === 'pvp')
       setItemsOpen(previewModal === 'items')
       setSummonOpen(previewModal === 'summon')
       setSettingsOpen(previewModal === 'settings')
