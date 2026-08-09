@@ -9,6 +9,7 @@ import { WorldChat } from '../components/WorldChat/WorldChat'
 import { LobbyBattleSession } from '../components/LobbyBattleSession/LobbyBattleSession'
 import { CharacterRosterModal } from '../components/CharacterRoster/CharacterRosterModal'
 import { ItemsModal } from '../components/ItemsModal/ItemsModal'
+import { GachaModal } from '../components/GachaModal/GachaModal'
 import { MainNavigation } from '../components/MainNavigation/MainNavigation'
 import { ProfileModal } from '../components/ProfileModal/ProfileModal'
 import { SettingsModal, type AudioSettings } from '../components/SettingsModal/SettingsModal'
@@ -23,6 +24,7 @@ import type {
   CharacterGrantResult,
   CurrencyResult,
   GoldSource,
+  GachaPullResult,
   ItemResult,
 } from '../data/accountRepository.shared'
 import type {
@@ -59,6 +61,7 @@ interface LobbyPageProps {
   onRecordPending: (result: RealtimeBattleResult, transactionId: string) => Promise<boolean>
   onClearPending: (transactionId: string) => Promise<void>
   onGetPendingRewards: () => Promise<PendingLobbyRewardRow[]>
+  onPullGacha: (bannerId: string, pullCount: 1 | 10, requestId: string) => Promise<GachaPullResult>
   onLogout: () => Promise<void>
   /** เติมทองด้วยเงินจริง */
   onTopUpGold: (packageId: string) => Promise<CurrencyResult>
@@ -95,6 +98,7 @@ export function LobbyPage({
   onRecordPending,
   onClearPending,
   onGetPendingRewards,
+  onPullGacha,
   onLogout,
   onTopUpGold,
   onTopUpGems,
@@ -149,12 +153,14 @@ export function LobbyPage({
   const [battleOpen, setBattleOpen] = useState(() => previewModal === 'battle')
   const [addFriendOpen, setAddFriendOpen] = useState(() => previewModal === 'friend')
   const [itemsOpen, setItemsOpen] = useState(() => previewModal === 'items')
+  const [summonOpen, setSummonOpen] = useState(() => previewModal === 'summon')
 
   useEffect(() => {
     if (previewModal) {
       setRosterOpen(previewModal === 'roster')
       setBattleOpen(previewModal === 'battle')
       setItemsOpen(previewModal === 'items')
+      setSummonOpen(previewModal === 'summon')
       setSettingsOpen(previewModal === 'settings')
       setProfileOpen(previewModal === 'profile')
       setAddFriendOpen(previewModal === 'friend')
@@ -240,6 +246,7 @@ export function LobbyPage({
         onOpenHeroes={() => setRosterOpen(true)}
         onOpenBattle={() => setBattleOpen(true)}
         onOpenItems={() => setItemsOpen(true)}
+        onOpenSummon={() => setSummonOpen(true)}
       />
 
       {/*
@@ -305,6 +312,10 @@ export function LobbyPage({
       ) : null}
 
       {itemsOpen ? <ItemsModal player={player} onClose={() => setItemsOpen(false)} /> : null}
+
+      {summonOpen ? (
+        <GachaModal player={player} onPull={onPullGacha} onClose={() => setSummonOpen(false)} />
+      ) : null}
 
       {settingsOpen ? (
         <SettingsModal

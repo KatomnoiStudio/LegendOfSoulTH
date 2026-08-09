@@ -14,17 +14,19 @@ function renderNav(overrides: Partial<Parameters<typeof MainNavigation>[0]> = {}
   const onOpenHeroes = vi.fn()
   const onOpenBattle = vi.fn()
   const onOpenItems = vi.fn()
+  const onOpenSummon = vi.fn()
   render(
     <ToastProvider>
       <MainNavigation
         onOpenHeroes={onOpenHeroes}
         onOpenBattle={onOpenBattle}
         onOpenItems={onOpenItems}
+        onOpenSummon={onOpenSummon}
         {...overrides}
       />
     </ToastProvider>,
   )
-  return { onOpenHeroes, onOpenBattle, onOpenItems }
+  return { onOpenHeroes, onOpenBattle, onOpenItems, onOpenSummon }
 }
 
 describe('MainNavigation', () => {
@@ -73,6 +75,16 @@ describe('MainNavigation', () => {
     await user.click(screen.getByRole('button', { name: 'ไอเทม' }))
 
     expect(onOpenItems).toHaveBeenCalledTimes(1)
+  })
+
+  test('กด "อัญเชิญ" เรียก onOpenSummon แทน toast เร็ว ๆ นี้', async () => {
+    const user = userEvent.setup()
+    const { onOpenSummon } = renderNav()
+
+    await user.click(screen.getByRole('button', { name: 'อัญเชิญ' }))
+
+    expect(onOpenSummon).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('อัญเชิญ — เร็ว ๆ นี้')).not.toBeInTheDocument()
   })
 
   test('กดเมนูที่ยังไม่เปิด (เช่น "กิลด์") ไม่เรียก callback ไหนเลย แต่ขึ้น toast comingSoon', async () => {

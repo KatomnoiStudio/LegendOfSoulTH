@@ -5,6 +5,22 @@
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-08-09
+
+### Added
+
+- Lobby Standard Banner with five disclosed Hero playstyles, authenticated server-side RNG,
+  atomic Gem debit, hard pity, duplicate shards, and request-id replay protection
+- Active-Hero selection in the Character Roster; the selected Hero is saved to the current
+  one-Hero dungeon slot
+- Objective-specific battle HUD feedback and visible arena markers for Chapter 1 survival,
+  defend, chase, hazard, mini-boss, and time-attack stages
+
+### Fixed
+
+- Connected the lobby **Summon**, **Heroes**, and **Battle** paths to their existing game systems
+  instead of presenting summon as coming soon or every stage as a generic Wave fight
+
 ## [0.14.1] - 2026-08-09
 
 ### Fixed

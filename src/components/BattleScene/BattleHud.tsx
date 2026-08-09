@@ -19,6 +19,22 @@ export function BattleHud({
   ).length
   const primaryEnemy = selectPrimaryEnemyHpTarget(snapshot.enemies)
   const enemyHpRatio = primaryEnemy ? deriveHpRatio(primaryEnemy.hp, primaryEnemy.maxHp) : 0
+  const objectiveLabel =
+    snapshot.objective.kind === 'wave'
+      ? `Wave ${snapshot.currentWave}/${snapshot.totalWaves}`
+      : snapshot.objective.kind === 'mini-boss'
+        ? 'มินิบอส'
+        : snapshot.objective.kind === 'time-attack'
+          ? 'จับเวลา'
+          : snapshot.objective.kind === 'survival'
+            ? 'เอาชีวิตรอด'
+            : snapshot.objective.kind === 'defend'
+              ? 'ปกป้อง'
+              : snapshot.objective.kind === 'chase'
+                ? 'ไล่ล่า'
+                : snapshot.objective.kind === 'hazard'
+                  ? 'อันตราย'
+                  : 'ภารกิจพิเศษ'
 
   return (
     <div className={styles.hud}>
@@ -41,7 +57,7 @@ export function BattleHud({
         <div className={styles.stageInfo}>
           <span className={styles.stageName}>{snapshot.stageName}</span>
           <span className={styles.waveText}>
-            Wave {snapshot.currentWave}/{snapshot.totalWaves} · ศัตรู {enemiesLeft}
+            {objectiveLabel} · ศัตรู {enemiesLeft}
           </span>
         </div>
 

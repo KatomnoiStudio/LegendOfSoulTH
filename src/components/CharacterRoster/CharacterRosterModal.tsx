@@ -55,9 +55,30 @@ export function CharacterRosterModal({
   const [selectedId, setSelectedId] = useState(ownedRoster[0]?.id ?? '')
   const [rightTab, setRightTab] = useState<RightPanelTab>('details')
   const [closing, setClosing] = useState(false)
+  const [selectingForBattle, setSelectingForBattle] = useState(false)
+  const [selectionMessage, setSelectionMessage] = useState<string | null>(null)
   const closeTimer = useRef<number | undefined>(undefined)
 
   const selected = ownedRoster.find((character) => character.id === selectedId) ?? ownedRoster[0]
+  const activeHeroId = player.teamSlots.find((id): id is string => id !== null) ?? null
+  const activeHeroName =
+    ownedRoster.find((character) => character.id === activeHeroId)?.name ?? 'ยังไม่ได้เลือก'
+
+  const handleSelectForBattle = useCallback(async () => {
+    if (!selected || selectingForBattle || selected.id === activeHeroId) return
+    setSelectingForBattle(true)
+    setSelectionMessage(null)
+
+    // Blueprint §4.1: one Hero per dungeon run. Keep the legacy four-slot shape for schema
+    // compatibility, but only slot 0 is populated by the current single-Hero mode.
+    const saved = await onPlayerChange({
+      ...player,
+      teamSlots: [selected.id, null, null, null],
+    })
+
+    setSelectingForBattle(false)
+    setSelectionMessage(saved ? `เลือก ${selected.name} เป็นตัวหลักแล้ว` : 'บันทึกตัวละครไม่สำเร็จ')
+  }, [activeHeroId, onPlayerChange, player, selected, selectingForBattle])
 
   /** เล่นแอนิเมชันปิดให้จบก่อนค่อยถอด component ออก */
   const requestClose = useCallback(() => {
@@ -173,6 +194,26 @@ export function CharacterRosterModal({
                 onPlayerChange={onPlayerChange}
               />
             )}
+            <div className={styles.battleSelection}>
+              <span className={styles.activeHeroLabel}>ตัวหลักลงด่าน: {activeHeroName}</span>
+              <button
+                type="button"
+                className={styles.selectForBattleButton}
+                disabled={selectingForBattle || activeHeroId === selected.id}
+                onClick={() => void handleSelectForBattle()}
+              >
+                {activeHeroId === selected.id
+                  ? 'กำลังใช้งาน'
+                  : selectingForBattle
+                    ? 'กำลังบันทึก…'
+                    : 'เลือกเป็นตัวหลักลงด่าน'}
+              </button>
+              {selectionMessage ? (
+                <span className={styles.selectionMessage} aria-live="polite">
+                  {selectionMessage}
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>

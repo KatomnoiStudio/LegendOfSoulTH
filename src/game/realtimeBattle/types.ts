@@ -153,11 +153,24 @@ export interface RealtimeBattleSnapshot {
   currentWave: number
   totalWaves: number
 
+  /** Objective state that the battle HUD must show; without this every stage looks like Wave. */
+  objective: BattleObjectiveSnapshot
+
   /** ช่องสกิลที่กำลังร่าย — null เมื่อไม่ได้ร่าย (สำหรับ UI state) */
   castingSkillSlot: SkillSlot | null
 
   damageEvents: DamageEvent[]
   effectEvents: BattleEffectEvent[]
+}
+
+export type BattleObjectiveKind =
+  'wave' | 'survival' | 'defend' | 'chase' | 'hazard' | 'mini-boss' | 'time-attack' | 'custom'
+
+export interface BattleObjectiveSnapshot {
+  kind: BattleObjectiveKind
+  current: number | null
+  target: number | null
+  remainingMs: number | null
 }
 
 /** ผลการต่อสู้ของระบบ real-time — แปลงเป็น contract เดิมด้วย BattleResultAdapter */

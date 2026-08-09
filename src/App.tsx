@@ -45,6 +45,7 @@ export default function App() {
     upsertPendingLobbyReward,
     clearPendingLobbyReward,
     getPendingLobbyRewards,
+    pullGacha,
     exportSave,
   } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
@@ -171,6 +172,7 @@ export default function App() {
             onRecordPending={upsertPendingLobbyReward}
             onClearPending={clearPendingLobbyReward}
             onGetPendingRewards={getPendingLobbyRewards}
+            onPullGacha={pullGacha}
             onLogout={logout}
             onTopUpGold={topUpGold}
             onTopUpGems={topUpGems}

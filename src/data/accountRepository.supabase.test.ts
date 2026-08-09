@@ -164,7 +164,11 @@ describe('accountRepository.supabase RPC wrapper wiring', () => {
     rpcMock.mockReset()
     fromMock.mockReset()
     reportErrorMock.mockReset()
-    // loadPlayer() ยิง 7 ตารางพร้อมกัน (Promise.all) — ให้ทุกตารางว่างเปล่าเป็นค่าเริ่มต้น
+    supabaseMock.auth.getSession.mockReset()
+    supabaseMock.auth.getSession.mockResolvedValue({
+      data: { session: { user: { id: 'profile-1' } } },
+    })
+    // loadPlayer() ยิง 8 ตารางพร้อมกัน (Promise.all) — ให้ทุกตารางว่างเปล่าเป็นค่าเริ่มต้น
     // เว้น profiles ที่ต้องมีแถวเสมอ ไม่งั้น loadPlayer คืน null (ดู accountRepository.supabase.ts:82)
     fromMock.mockImplementation((table: string) => {
       if (table === 'profiles') {
@@ -257,6 +261,46 @@ describe('accountRepository.supabase RPC wrapper wiring', () => {
       newStar: 2,
       shardsRemaining: 0,
       shardsSpent: 1,
+      replayed: false,
+    })
+  })
+
+  test('pullGacha: ส่ง banner/count/request ID ตรง RPC และใช้ผลสุ่มจาก server เท่านั้น', async () => {
+    const { pullGacha } = await import('./accountRepository.supabase')
+    rpcMock.mockReturnValue(
+      rpcResult([
+        {
+          payload: {
+            results: [
+              {
+                characterId: 'nezha-warden',
+                rarity: 'rare',
+                isPity: false,
+                isNew: true,
+                shardsGranted: 0,
+              },
+            ],
+            cost: 100,
+            currencyUsed: 'gem',
+            newPity: 1,
+          },
+          replayed: false,
+        },
+      ]),
+    )
+
+    const result = await pullGacha('standard-banner', 1, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+
+    expect(rpcMock).toHaveBeenCalledWith('perform_gacha_pull', {
+      p_request_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      p_banner_id: 'standard-banner',
+      p_pull_count: 1,
+    })
+    expect(result).toMatchObject({
+      ok: true,
+      results: [{ characterId: 'nezha-warden' }],
+      cost: 100,
+      newPity: 1,
       replayed: false,
     })
   })
