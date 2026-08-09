@@ -38,7 +38,10 @@ function resolveWaveOutcome(state: RealtimeBattleState): StageOutcome {
 function resolveSurvivalOutcome(state: RealtimeBattleState): StageOutcome {
   const params = state.stage.survival
   if (!params) return null
-  return state.elapsedMs >= params.durationMs ? 'victory' : null
+  // Survival time starts when the player can actually control the hero. The
+  // runtime's elapsedMs also includes the opening intro and must not shorten
+  // the stage objective.
+  return state.stageElapsedMs >= params.durationMs ? 'victory' : null
 }
 
 /** เคลียร์ทุกคลื่นเหมือน wave แต่แพ้ทันทีถ้า objectiveHp หมดก่อน */
@@ -59,7 +62,7 @@ function resolveDefendOutcome(state: RealtimeBattleState, deltaMs: number): Stag
 /** เคลียร์ทุกคลื่นเหมือน wave แต่แพ้ทันทีถ้าเวลาเกินงบก่อนเคลียร์เสร็จ */
 function resolveTimeAttackOutcome(state: RealtimeBattleState): StageOutcome {
   const params = state.stage.timeAttack
-  if (params && state.elapsedMs > params.timeBudgetMs) return 'defeat'
+  if (params && state.stageElapsedMs > params.timeBudgetMs) return 'defeat'
   return resolveWaveOutcome(state)
 }
 
@@ -74,7 +77,7 @@ const resolveMiniBossOutcome = resolveWaveOutcome
 function resolveChaseOutcome(state: RealtimeBattleState): StageOutcome {
   const params = state.stage.chase
   if (!params) return null
-  if (state.elapsedMs > params.timeBudgetMs) return 'defeat'
+  if (state.stageElapsedMs > params.timeBudgetMs) return 'defeat'
 
   const dx = state.player.position.x - params.targetPosition.x
   const dy = state.player.position.y - params.targetPosition.y
