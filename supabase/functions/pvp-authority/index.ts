@@ -60,6 +60,15 @@ function logFailure(fn: string, detail: Record<string, unknown>): void {
   }
 }
 
+/** เหตุการณ์ที่คาดไว้แล้วและระบบรับมือเองได้ — ต้องเห็นใน log แต่ต้องไม่ปนกับของที่พังจริง */
+function logRetry(fn: string, detail: Record<string, unknown>): void {
+  try {
+    console.log(JSON.stringify({ fn, ...detail }))
+  } catch {
+    console.log(`{"fn":"${fn}","event":"unserializable"}`)
+  }
+}
+
 function describeError(error: unknown): unknown {
   if (error && typeof error === 'object') {
     const source = error as Record<string, unknown>
@@ -332,17 +341,29 @@ export async function handlePvPAuthorityRequest(request: Request): Promise<Respo
       constraint ชน, RLS ปฏิเสธ, deadlock, RPC หาย — ทั้งหมดถูกบีบเหลือ PVP_STATE_COMMIT_FAILED
       คำเดียวส่งกลับ client แล้วตัว error จริงหายไปโดยไม่มีใครเห็น สาเหตุพวกนี้แก้คนละทางกันหมด
       และเป็นสาเหตุที่ไม่มีทางเดาจากฝั่ง client ได้เลย ต้อง log ก่อนคืนเสมอ
+
+      แต่ version conflict ไม่ใช่ความผิดปกติ — มันคือ optimistic concurrency ทำงานถูกต้อง
+      แล้ววนไปลองใหม่ ถ้า log มันที่ระดับ error ด้วย ระดับ error จะเต็มไปด้วยเหตุการณ์ปกติ
+      จนของที่พังจริงจมหาย ซึ่งทำลายประโยชน์ของการ log ตั้งแต่แรก
     */
-    logFailure('commit_pvp_authority_state', {
-      error: 'PVP_STATE_COMMIT_FAILED',
-      roomId: room.id,
-      playerId,
-      attempt,
-      expectedVersion: room.state_version,
-      conflict: commitError.message.includes('PVP_STATE_VERSION_CONFLICT'),
-      err: describeError(commitError),
-    })
-    if (!commitError.message.includes('PVP_STATE_VERSION_CONFLICT')) {
+    const isVersionConflict = commitError.message.includes('PVP_STATE_VERSION_CONFLICT')
+    if (isVersionConflict) {
+      logRetry('commit_pvp_authority_state', {
+        event: 'PVP_STATE_VERSION_CONFLICT_RETRY',
+        roomId: room.id,
+        playerId,
+        attempt,
+        expectedVersion: room.state_version,
+      })
+    } else {
+      logFailure('commit_pvp_authority_state', {
+        error: 'PVP_STATE_COMMIT_FAILED',
+        roomId: room.id,
+        playerId,
+        attempt,
+        expectedVersion: room.state_version,
+        err: describeError(commitError),
+      })
       return json({ error: 'PVP_STATE_COMMIT_FAILED' }, 500)
     }
   }

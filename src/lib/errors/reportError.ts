@@ -107,7 +107,22 @@ export function reportError(
     เพราะฟิลด์ของ Error เป็น non-enumerable — และ error ของ Supabase จะเหลือแต่ message
     กว้าง ๆ โดยทิ้ง code/details/hint ที่บอกสาเหตุจริงไปทั้งหมด (ดู normalizeError.ts)
   */
-  const error = normalizeError(err)
+  /*
+    ตัวแปลงมี guard ของมันเองอยู่แล้ว (ดู readProperty ใน normalizeError.ts) ตรงนี้เป็นชั้นที่สอง
+
+    ไม่ได้ซ้ำซ้อนเปล่า ๆ — มันทำให้ "reportError โยนไม่ได้" เป็นคุณสมบัติเชิงโครงสร้างของฟังก์ชันนี้
+    แทนที่จะเป็นสัญญาที่ต้องไปไล่ตรวจว่าทุกจุดที่อ่านฟิลด์ในไฟล์อื่นยัง guard ครบอยู่ไหม
+    ฟังก์ชันนี้คือตาข่ายชั้นสุดท้าย ถ้ามันโยนเองก็ไม่เหลืออะไรมารับต่อแล้ว
+  */
+  let error: NormalizedError | null = null
+  let safeContext: Record<string, unknown> | undefined
+  try {
+    error = normalizeError(err)
+    safeContext = context ? scrubContext(context) : undefined
+  } catch {
+    error = { value: '[unreadable]' }
+  }
+
   const report: ErrorReport = {
     code,
     message: ERROR_CODES[code],
@@ -116,7 +131,7 @@ export function reportError(
     correlationId: createCorrelationId(),
     timestamp: new Date().toISOString(),
     error,
-    ...(context ? { context: scrubContext(context) } : {}),
+    ...(safeContext ? { context: safeContext } : {}),
   }
 
   try {

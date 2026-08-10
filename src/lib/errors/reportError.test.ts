@@ -127,6 +127,30 @@ describe('sink', () => {
     expect(report.context?.heroId).toBe('monkey-king')
   })
 
+  /*
+    ตาข่ายชั้นสุดท้ายต้องโยนเองไม่ได้ แม้ค่าที่ป้อนเข้ามาจะพยายามทำให้โยน
+
+    globalErrorHandlers ส่ง `event.error ?? event.message` และ `event.reason` เข้ามาตรง ๆ
+    ซึ่งเป็นค่าที่ไลบรารีอื่นเป็นคนสร้าง ควบคุมไม่ได้เลย ถ้า reportError โยนตรงนี้ รายงานหาย
+    และ GlobalErrorBanner ไม่มีวันขึ้น — ผู้เล่นเห็นเกมค้างโดยไม่มีรหัสอะไรให้แจ้งเลย
+  */
+  test('ค่าที่อ่านแล้วโยน ต้องไม่ทำให้ reportError ล้ม และ visible ยังต้องส่งต่อ', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const seen: string[] = []
+    const off = subscribeToVisibleErrors((code) => seen.push(code))
+
+    const hostile = {
+      get message(): string {
+        throw new Error('getter พัง')
+      },
+    }
+
+    expect(() => reportError('GLOBAL_REJECTION', 'visible', hostile)).not.toThrow()
+    // ใจความจริงของเทสต์: ตัวส่งต่อต้องยังทำงาน ไม่ใช่แค่ "ไม่โยน" แล้วเงียบไป
+    expect(seen).toEqual(['GLOBAL_REJECTION'])
+    off()
+  })
+
   test('sink ที่พังเองต้องไม่ลาก reportError ล้มไปด้วย', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     setErrorSink(() => {

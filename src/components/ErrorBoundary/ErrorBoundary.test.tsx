@@ -1,22 +1,20 @@
 import { afterEach, describe, expect, test, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ErrorBoundary, SceneCrashFallback } from './ErrorBoundary'
 
 /*
-  จอ crash ต้องแสดงรหัสจริง และปุ่มสำรองข้อมูลต้องคุยกับ backend ที่ใช้งานจริง
+  จอ crash ต้องแสดงรหัสจริง และต้องไม่สัญญาสิ่งที่ให้ไม่ได้
 
-  ปุ่มนี้เคยผูกกับ accountRepository ตัว localStorage เดิมซึ่ง readActiveSession() อ่านคีย์ที่
-  backend Supabase ไม่เคยเขียน ผลคือมันตอบ "ยังไม่ได้ล็อกอิน" ทุกครั้ง 100% บนจอเดียวที่บอก
-  ผู้เล่นให้รีบเซฟข้อมูล — เทสต์ชุดนี้ตรึงไว้ว่ามันต้องเรียก backend จริง ไม่ใช่ตัวที่ dormant
+  เดิมจอนี้มีปุ่ม "สำรองข้อมูลเป็นไฟล์" ที่ล้มเหลว 100% มาตลอด — รอบแรกเพราะต่อกับ
+  accountRepository ตัว localStorage ที่ backend ปัจจุบันไม่เคยเขียน session ให้ รอบสองเพราะ
+  `exportSave` ฝั่ง Supabase เป็น stub ที่คืน ok:false เสมอ เทสต์ชุดเดิมมองไม่เห็นทั้งสองรอบ
+  เพราะมัน `vi.mock` ทั้งโมดูลแล้วตรึงผลลัพธ์ ok:true ที่โมดูลจริงสร้างไม่ได้เลย
+
+  บทเรียนที่ตรึงไว้ตรงนี้: อย่า mock ผลลัพธ์ที่ของจริงทำไม่ได้ — เทสต์แบบนั้นยืนยันแค่ความเชื่อ
+  ของคนเขียนเทสต์ ไม่ได้ยืนยันพฤติกรรมของระบบ
 */
 
-vi.mock('../../data/accountRepository.supabase', () => ({
-  exportSave: vi.fn(),
-}))
-vi.mock('../../lib/saveFile', () => ({
-  downloadSaveJson: vi.fn(),
-}))
 
 function Bomb(): never {
   throw new Error('boom')
@@ -42,69 +40,25 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText(/BOUNDARY_RENDER_CRASH/)).toBeInTheDocument()
   })
 
-  test('กดสำรองข้อมูลสำเร็จ — ดาวน์โหลดไฟล์และแจ้งผล', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-    const { exportSave } = await import('../../data/accountRepository.supabase')
-    const { downloadSaveJson } = await import('../../lib/saveFile')
-    vi.mocked(exportSave).mockResolvedValue({ ok: true, json: '{"account":{}}' })
-
-    const user = userEvent.setup()
-    render(
-      <ErrorBoundary>
-        <Bomb />
-      </ErrorBoundary>,
-    )
-
-    await user.click(screen.getByRole('button', { name: 'สำรองข้อมูลเป็นไฟล์' }))
-
-    await waitFor(() => expect(downloadSaveJson).toHaveBeenCalledWith('{"account":{}}'))
-    expect(await screen.findByText('ดาวน์โหลดไฟล์สำรองแล้ว')).toBeInTheDocument()
-  })
-
-  test('กดสำรองข้อมูลตอนไม่มี session — แจ้งเหตุผลจริง ไม่ใช่ข้อความมั่ว', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-    vi.spyOn(console, 'debug').mockImplementation(() => {})
-    const { exportSave } = await import('../../data/accountRepository.supabase')
-    vi.mocked(exportSave).mockResolvedValue({ ok: false, error: 'ยังไม่ได้ล็อกอิน' })
-
-    const user = userEvent.setup()
-    render(
-      <ErrorBoundary>
-        <Bomb />
-      </ErrorBoundary>,
-    )
-
-    await user.click(screen.getByRole('button', { name: 'สำรองข้อมูลเป็นไฟล์' }))
-
-    expect(await screen.findByText('ยังไม่ได้ล็อกอิน')).toBeInTheDocument()
-  })
-
   /*
-    กิ่ง ok:false ต้องรายงาน ไม่ใช่แค่แสดงข้อความ
+    ห้ามมีปุ่มสำรองข้อมูลบนจอนี้ จนกว่า exportSave ฝั่ง Supabase จะทำงานได้จริง
 
-    ตอนที่ปุ่มนี้ล้มเหลว 100% มันล้มเหลว "อย่างสุภาพ" — คืน ok:false ทุกครั้งโดยไม่มีบรรทัด log
-    สักบรรทัด เทสต์นี้ตรึงเส้นทางรายงานไว้ ไม่ให้ความล้มเหลวแบบเงียบกลับมาอีก
+    ไม่ใช่การตรึงเรื่องหน้าตา — ตราบใดที่ `accountRepository.supabase.ts` ยัง hardcode ok:false
+    ปุ่มนี้กดแล้วขึ้น error ทุกครั้ง เทสต์นี้ทำให้การเอาปุ่มกลับมาโดยไม่แก้ stub ก่อน เป็นสีแดง
+    แทนที่จะเงียบ ๆ ผ่านไปเป็นรอบที่สาม
   */
-  test('กิ่ง ok:false ต้องเดินผ่าน reportError ด้วย ไม่ใช่แค่ขึ้นข้อความบนจอ', async () => {
+  test('ไม่มีปุ่มสำรองข้อมูล — exportSave ฝั่งเซิร์ฟเวอร์ยังเป็น stub ที่ล้มเหลวเสมอ', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {})
-    const { exportSave } = await import('../../data/accountRepository.supabase')
-    vi.mocked(exportSave).mockResolvedValue({ ok: false, error: 'สำรองไม่ได้' })
 
-    const user = userEvent.setup()
     render(
       <ErrorBoundary>
         <Bomb />
       </ErrorBoundary>,
     )
 
-    await user.click(screen.getByRole('button', { name: 'สำรองข้อมูลเป็นไฟล์' }))
-
-    await waitFor(() =>
-      expect(
-        debugSpy.mock.calls.some(([label]) => String(label).includes('SAVE_EXPORT_FAIL')),
-      ).toBe(true),
-    )
+    expect(screen.queryByRole('button', { name: /สำรองข้อมูล/ })).not.toBeInTheDocument()
+    // ปุ่มที่ใช้ได้จริงต้องยังอยู่ ไม่ใช่ลบจนไม่เหลือทางออกให้ผู้เล่น
+    expect(screen.getByRole('button', { name: 'โหลดใหม่' })).toBeInTheDocument()
   })
 
   test('จอ crash ต้องไม่บอกว่าข้อมูลอยู่แค่ในเบราว์เซอร์ — ย้ายมา Supabase แล้ว', () => {
@@ -116,25 +70,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     )
 
-    expect(screen.getByText(/เก็บไว้\s*บนเซิร์ฟเวอร์/)).toBeInTheDocument()
-  })
-
-  test('exportSave โยน error เอง — ไม่ทำให้ปุ่มพังหรือหน้าขาว', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-    vi.spyOn(console, 'debug').mockImplementation(() => {})
-    const { exportSave } = await import('../../data/accountRepository.supabase')
-    vi.mocked(exportSave).mockRejectedValue(new Error('localStorage พัง'))
-
-    const user = userEvent.setup()
-    render(
-      <ErrorBoundary>
-        <Bomb />
-      </ErrorBoundary>,
-    )
-
-    await user.click(screen.getByRole('button', { name: 'สำรองข้อมูลเป็นไฟล์' }))
-
-    expect(await screen.findByText('สำรองข้อมูลไม่สำเร็จ')).toBeInTheDocument()
+    expect(screen.getByText(/บันทึกไว้บนเซิร์ฟเวอร์แล้ว/)).toBeInTheDocument()
   })
 
   test('ไม่มี error — เรนเดอร์ children ตามปกติ', () => {

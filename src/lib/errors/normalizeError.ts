@@ -22,8 +22,13 @@ const REDACTED = '[redacted]'
 /** คีย์ที่ห้ามหลุดออกจากเครื่องผู้เล่นไม่ว่ากรณีใด */
 const SENSITIVE_KEY = /pass|secret|token|auth|jwt|cookie|salt|hash|credential|email|api[-_]?key/i
 
-/** อีเมลที่ปนมาในข้อความ/stack — ตัวข้อความไม่มีคีย์ให้จับ ต้องจับที่รูปแบบแทน */
-const EMAIL_IN_TEXT = /[\w.+-]+@[\w-]+\.[\w.-]+/g
+/*
+  อีเมลที่ปนมาในข้อความ/stack — ตัวข้อความไม่มีคีย์ให้จับ ต้องจับที่รูปแบบแทน
+
+  ป้ายท้ายต้องเป็นตัวอักษรอย่างน้อยสองตัว (TLD จริงเป็นแบบนั้นเสมอ) ไม่งั้นมันกิน
+  `react@19.1.0` ใน stack frame ตอน dev ไปด้วย ซึ่งทำให้ stack อ่านไม่ออกโดยไม่ได้กันอะไรเลย
+*/
+const EMAIL_IN_TEXT = /[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[a-zA-Z]{2,}/g
 
 /** ลึกกว่านี้ไม่ได้ช่วยวินิจฉัยเพิ่ม แต่ทำให้รายงานบวมและเสี่ยง cycle */
 const MAX_CAUSE_DEPTH = 5
@@ -57,9 +62,26 @@ function scrubValue(value: unknown, depth: number, seen: WeakSet<object>): unkno
 
   if (Array.isArray(value)) return value.map((item) => scrubValue(item, depth + 1, seen))
 
+  /*
+    Object.entries เรียก getter ของทุกคีย์ ตัวเดียวที่โยนทำให้ทั้งการล้างพัง
+
+    ต้องกันสองชั้น: ชั้นนอกกันตอนไล่รายชื่อคีย์ (revoked Proxy โยนตั้งแต่ ownKeys) ชั้นในกัน
+    ทีละคีย์ เพื่อให้คีย์ที่ดีตัวอื่นยังรอดมาได้ ไม่ใช่เสียทั้ง object เพราะคีย์เดียว
+  */
+  let keys: string[]
+  try {
+    keys = Object.keys(value)
+  } catch {
+    return '[unreadable]'
+  }
+
   const out: Record<string, unknown> = {}
-  for (const [key, item] of Object.entries(value)) {
-    out[key] = SENSITIVE_KEY.test(key) ? REDACTED : scrubValue(item, depth + 1, seen)
+  for (const key of keys) {
+    if (SENSITIVE_KEY.test(key)) {
+      out[key] = REDACTED
+      continue
+    }
+    out[key] = scrubValue(readProperty(value as Record<string, unknown>, key), depth + 1, seen)
   }
   return out
 }
@@ -78,8 +100,26 @@ function stringifySafely(value: object): string {
   }
 }
 
+/*
+  อ่านพร็อพเพอร์ตี้แบบที่ตัวมันเองโยนไม่ได้
+
+  การอ่าน `source[key]` เฉย ๆ ไม่ใช่การอ่านเสมอไป — มันเรียก getter ได้ และ getter นั้นโยนได้
+  ของจริงที่โยน: revoked Proxy, `Window`/`Location` ข้าม origin, object ที่ตั้งใจให้พัง
+  ตรงนี้อันตรายเป็นพิเศษเพราะ globalErrorHandlers ป้อนค่าที่ "อะไรก็ได้" เข้ามาตรง ๆ
+  (`event.error ?? event.message`, `event.reason`) ถ้า normalizeError โยน ตาข่ายรับ error
+  ชั้นสุดท้ายจะกลายเป็นตัว error เสียเอง: รายงานหาย ตัวส่งต่อ visible ไม่ทำงาน แถบไม่ขึ้น
+  ซึ่งแย่กว่าตอนยังไม่มีไฟล์นี้ (ก่อนหน้านี้ reportError ส่งค่าดิบให้ console เฉย ๆ ไม่แตะฟิลด์เลย)
+*/
+function readProperty(source: Record<string, unknown>, key: string): unknown {
+  try {
+    return source[key]
+  } catch {
+    return undefined
+  }
+}
+
 function readString(source: Record<string, unknown>, key: string): string | undefined {
-  const value = source[key]
+  const value = readProperty(source, key)
   return typeof value === 'string' ? value : undefined
 }
 
@@ -111,8 +151,9 @@ export function normalizeError(
   const hint = readString(source, 'hint')
   if (hint) out.hint = scrubText(hint)
 
-  if (source.cause !== undefined && depth < MAX_CAUSE_DEPTH) {
-    const cause = normalizeError(source.cause, depth + 1, seen)
+  const rawCause = readProperty(source, 'cause')
+  if (rawCause !== undefined && depth < MAX_CAUSE_DEPTH) {
+    const cause = normalizeError(rawCause, depth + 1, seen)
     if (cause) out.cause = cause
   }
 
