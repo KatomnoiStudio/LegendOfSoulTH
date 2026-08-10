@@ -13,7 +13,6 @@ import type { CharacterModelKind } from './characters'
  *                ยังไม่มีแถวท่าหายใจ เฟรมยืนเฉยจึงเป็นท่าหันหน้าท่าเดียวซ้ำ 24 เฟรม
  *                ถ้าได้แถวท่าหายใจมาเพิ่ม ให้แก้ส่วน idle ในสคริปต์ให้ไล่เฟรมจริงแทน
  * พระถังซัมจั๋ง  ยังไม่มีเฟรมเดิน มีแต่เฟรมหันทิศ 8 ทิศ
- * เอ้อหลางเสิน   วาดชุดวิ่งมาเฉพาะด้านขวา ยังไม่ครบ 8 ทิศ จึงยังนับว่าไม่มีเฟรมเดิน
  *
  * ตัวที่ยังไม่มีเฟรมเดินจะเลือกมาเดินได้ แต่ใช้ภาพหันทิศแทน
  * (ขาไม่ขยับ) และ UI จะบอกผู้เล่นตามตรงว่ายังไม่มีชุดเฟรมเดิน
@@ -27,62 +26,124 @@ export interface WalkKit {
    * ทุกพาธในไฟล์นี้ผ่าน publicUrl() แล้ว (ดู src/lib/publicUrl.ts) ผู้เรียกจึงต่อท้ายได้เลย
    */
   walkPrefix: string | null
+  /** จำนวนเฟรมของ 1 รอบท่าเดิน */
+  walkFrameCount: number
+  /** Optional in-place run animation, independent of the directional walk set. */
+  runPrefix: string | null
+  runFrameCount: number
+  runFrameDuration: number
+  /** ระยะที่เดินต่อหนึ่งเฟรม เพื่อให้ความเร็วรอบเดินคงที่แม้จำนวนเฟรมต่างกัน */
+  walkFrameStride: { walking: number; running: number }
+  /** ชีตมีภาพด้านขวาเพียงด้านเดียว จึงกลับภาพเมื่อเคลื่อนที่ไปทางซ้าย */
+  usesMirroredSideView: boolean
   /** พาธนำหน้าไฟล์หันทิศ 8 ทิศ (มีครบทุกตัว) */
-  turnPrefix: string
+  turnPrefix: string | null
   /** พาธนำหน้าไฟล์ยืนเฉย ๆ */
   idlePrefix: string
   idleCount: number
+  /** Milliseconds each idle frame remains visible. */
+  idleFrameDuration: number
+  idleScale: number
 }
 
 const WALK_KITS: Record<CharacterModelKind, WalkKit> = {
   'monkey-king': {
-    walkPrefix: publicUrl('characters/walk/monkey-walk'),
-    turnPrefix: publicUrl('characters/turnaround/monkey-turn'),
-    idlePrefix: publicUrl('characters/monkey-v2-idle'),
-    idleCount: 24,
+    walkPrefix: publicUrl('characters/walk/wukong-walk'),
+    walkFrameCount: 8,
+    runPrefix: publicUrl('characters/monkey-king-run-erlang-style-local/run'),
+    runFrameCount: 12,
+    runFrameDuration: 125,
+    walkFrameStride: { walking: 24, running: 20 },
+    usesMirroredSideView: false,
+    turnPrefix: publicUrl('characters/turnaround/wukong-turn'),
+    idlePrefix: publicUrl('characters/monkey-king-idle-local/idle'),
+    idleCount: 12,
+    idleFrameDuration: 300,
+    idleScale: 1,
   },
   'pig-warrior': {
     walkPrefix: publicUrl('characters/walk/pigsy-walk'),
+    walkFrameCount: 8,
+    runPrefix: null,
+    runFrameCount: 0,
+    runFrameDuration: 125,
+    walkFrameStride: { walking: 24, running: 20 },
+    usesMirroredSideView: false,
     turnPrefix: publicUrl('characters/turnaround/pigsy-turn'),
     idlePrefix: publicUrl('characters/pigsy-idle'),
     idleCount: 24,
+    idleFrameDuration: 170,
+    idleScale: 1,
   },
   'pilgrim-monk': {
     walkPrefix: null,
+    walkFrameCount: 8,
+    runPrefix: null,
+    runFrameCount: 0,
+    runFrameDuration: 125,
+    walkFrameStride: { walking: 24, running: 20 },
+    usesMirroredSideView: false,
     turnPrefix: publicUrl('characters/turnaround/tripitaka-turn'),
     idlePrefix: publicUrl('characters/tripitaka-idle'),
     idleCount: 24,
+    idleFrameDuration: 170,
+    idleScale: 1,
+  },
+  'spear-warrior': {
+    walkPrefix: publicUrl('characters/walk/erlang-shen-v3-run'),
+    walkFrameCount: 25,
+    runPrefix: null,
+    runFrameCount: 0,
+    runFrameDuration: 125,
+    walkFrameStride: { walking: 20, running: 16 },
+    usesMirroredSideView: true,
+    turnPrefix: null,
+    idlePrefix: publicUrl('characters/erlang-shen-v6-idle'),
+    idleCount: 25,
+    idleFrameDuration: 221,
+    idleScale: 1,
   },
   'celestial-archer': {
     walkPrefix: null,
+    walkFrameCount: 8,
+    runPrefix: null,
+    runFrameCount: 0,
+    runFrameDuration: 125,
+    walkFrameStride: { walking: 24, running: 20 },
+    usesMirroredSideView: false,
     turnPrefix: publicUrl('characters/turnaround/tripitaka-turn'),
     idlePrefix: publicUrl('characters/tripitaka-idle'),
     idleCount: 24,
+    idleFrameDuration: 170,
+    idleScale: 1,
   },
   'nezha-warden': {
     walkPrefix: publicUrl('characters/walk/monkey-walk'),
+    walkFrameCount: 8,
+    runPrefix: null,
+    runFrameCount: 0,
+    runFrameDuration: 125,
+    walkFrameStride: { walking: 24, running: 20 },
+    usesMirroredSideView: false,
     turnPrefix: publicUrl('characters/turnaround/monkey-turn'),
     idlePrefix: publicUrl('characters/monkey-v2-idle'),
     idleCount: 24,
+    idleFrameDuration: 170,
+    idleScale: 1,
   },
   'sand-sage': {
     walkPrefix: publicUrl('characters/walk/pigsy-walk'),
+    walkFrameCount: 8,
+    runPrefix: null,
+    runFrameCount: 0,
+    runFrameDuration: 125,
+    walkFrameStride: { walking: 24, running: 20 },
+    usesMirroredSideView: false,
     turnPrefix: publicUrl('characters/turnaround/pigsy-turn'),
     idlePrefix: publicUrl('characters/pigsy-idle'),
     idleCount: 24,
-  },
-  /*
-     เอ้อหลางเสิน — ชุดเดินที่วาดมามีแต่ด้านขวาด้านเดียว (erlang-shen-v3-run-right-*)
-     ส่วนผู้เรียกใช้ (WukongAdventure.tsx) ขอ `${walkPrefix}-${ทิศ}-${เฟรม}.webp` ครบ 8 ทิศ
-     ใส่พาธด้านขวาลงไปตรง ๆ = 7 ใน 8 ทิศยิง 404 จึงประกาศตามจริงว่ายังไม่มีชุดเดิน
-     (walkPrefix: null) เหมือนพระถังกับจือหลาง — ฉากเดินชมจันทร์จะไม่ให้เลือกตัวนี้เอง
-     และ UI บอกผู้เล่นตามตรง วาดครบ 8 ทิศเมื่อไหร่ค่อยใส่ walkPrefix แล้วใช้งานได้ทันที
-  */
-  'spear-warrior': {
-    walkPrefix: null,
-    turnPrefix: publicUrl('characters/turnaround/spear-warrior-stop-turn'),
-    idlePrefix: publicUrl('characters/erlang-shen-v6-idle'),
-    idleCount: 25,
+    idleFrameDuration: 170,
+    idleScale: 1,
   },
 }
 

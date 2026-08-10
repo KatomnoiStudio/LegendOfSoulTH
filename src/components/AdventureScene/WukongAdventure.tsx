@@ -177,6 +177,8 @@ export function WukongAdventure({
   const directionRef = useRef<Direction>('down')
   const frameRef = useRef(0)
   const distanceRef = useRef(0)
+  const runActiveRef = useRef(false)
+  const runStartedAtRef = useRef<number | null>(null)
   const lastTimeRef = useRef<number | null>(null)
   const lastCommitRef = useRef(0)
   const [view, setView] = useState({
@@ -227,11 +229,14 @@ export function WukongAdventure({
       { length: FRAME_COUNT },
       (_, frame) => `${kit.turnPrefix}-${frame}.webp`,
     )
+    const run = kit.runPrefix
+      ? Array.from({ length: kit.runFrameCount }, (_, frame) => `${kit.runPrefix}-${frame}.webp`)
+      : []
     const idle = Array.from(
       { length: kit.idleCount },
       (_, frame) => `${kit.idlePrefix}-${frame}.webp`,
     )
-    return [...walk, ...turn, ...idle]
+    return [...walk, ...run, ...turn, ...idle]
   }, [kit])
 
   useEffect(() => preload(allFrames), [allFrames])
@@ -359,15 +364,23 @@ export function WukongAdventure({
         directionRef.current = directionFromVector(inputX, inputY)
       }
 
-      if (moving) {
+      const hasInPlaceMovementAnimation = moving && kit.runPrefix !== null
+      if (hasInPlaceMovementAnimation) {
+        if (!runActiveRef.current) runStartedAtRef.current = time
+        const runStartedAt = runStartedAtRef.current ?? time
+        frameRef.current =
+          Math.floor((time - runStartedAt) / kit.runFrameDuration) % kit.runFrameCount
+      } else if (moving) {
         distanceRef.current += travelled
         const stride = running ? 28 : 34
         frameRef.current = Math.floor(distanceRef.current / stride) % FRAME_COUNT
       } else {
-        frameRef.current = Math.floor(time / 170) % FRAME_COUNT
+        runStartedAtRef.current = null
+        frameRef.current = Math.floor(time / kit.idleFrameDuration) % kit.idleCount
       }
+      runActiveRef.current = hasInPlaceMovementAnimation
 
-      // ยืนนิ่งไม่ขยับ ตำแหน่ง/เฟรมก็ไม่เปลี่ยนทุก tick (เฟรม idle ขยับแค่ทุก 170ms ไม่ใช่ 60fps) —
+      // ยืนนิ่งไม่ขยับตำแหน่ง; idle frame เปลี่ยนตาม idleFrameDuration ไม่ใช่ทุก 60fps —
       // คืน object เดิม (ไม่ใช่ตัวใหม่) เมื่อค่าไม่เปลี่ยนจริง ให้ React ข้าม re-render รอบนั้นไปเลย
       // (setState แบบ functional: ถ้าคืนค่าเดิมด้วย Object.is React จะไม่ re-render)
       // ไม่งั้นทั้ง component จะ re-render รัว ๆ ตามอัตราเฟรมเนทีฟของจอตลอดเวลาที่อยู่ Lobby แม้ผู้เล่น AFK
@@ -401,7 +414,7 @@ export function WukongAdventure({
     }
     animationId = requestAnimationFrame(animate)
     return () => cancelAnimationFrame(animationId)
-  }, [])
+  }, [kit.idleCount, kit.idleFrameDuration, kit.runFrameCount, kit.runFrameDuration, kit.runPrefix])
 
   useEffect(() => {
     if (!view.moving) return
@@ -452,14 +465,17 @@ export function WukongAdventure({
   const depthProgress = Math.min(1, Math.max(0, (view.y - DEPTH_TOP) / (DEPTH_BOTTOM - DEPTH_TOP)))
   const perspectiveScale = 0.8 + depthProgress * 0.24
   const turnUrl = `${kit.turnPrefix}-${TURN_INDEX[view.direction]}.webp`
-  const idleFrame = view.direction === 'down' ? (view.frame * 3) % kit.idleCount : null
+  const idleFrame = view.direction === 'down' ? view.frame % kit.idleCount : null
 
   // เดิน = เฟรมเดินตามทิศ, ยืนหันหน้า = เฟรม idle, ยืนหันทิศอื่น = เฟรมหันทิศ
-  const spriteUrl = view.moving
-    ? `${walkPrefix}-${view.direction}-${view.frame}.webp`
-    : idleFrame !== null
-      ? `${kit.idlePrefix}-${idleFrame}.webp`
-      : turnUrl
+  const spriteUrl =
+    view.moving && kit.runPrefix
+      ? `${kit.runPrefix}-${view.frame % kit.runFrameCount}.webp`
+      : view.moving
+        ? `${walkPrefix}-${view.direction}-${view.frame}.webp`
+        : idleFrame !== null
+          ? `${kit.idlePrefix}-${idleFrame}.webp`
+          : turnUrl
 
   const actorScreenPos = worldToScreen(view)
   const actorStyle = {
