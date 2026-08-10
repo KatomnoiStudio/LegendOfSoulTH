@@ -168,12 +168,8 @@ export function createWaveEnemies(
 
   const formationPositions = resolveEnemyFormation(
     stage,
-    valid.map((item) => ({
-      collisionRadius:
-        item.spawn.kind === 'boss'
-          ? item.spawn.template.collisionRadius
-          : item.spawn.template.collisionRadius,
-    })),
+    // บอสกับศัตรูทั่วไปใช้ค่าเดียวกันตรง ๆ — แม่แบบทั้งสองชนิดมี collisionRadius เหมือนกัน
+    valid.map((item) => ({ collisionRadius: item.spawn.template.collisionRadius })),
   )
 
   return valid.flatMap((item, index) => {

@@ -22,7 +22,7 @@ import {
   resolveTemporaryEntityContainerLiftY,
 } from '../../game/realtimeBattle/entitySpritePresentation'
 import type { RealtimeBattleRuntime } from '../../game/realtimeBattle/RealtimeBattleRuntime'
-import type { EntityState, RealtimeBattleEntity } from '../../game/realtimeBattle/types'
+import type { EntityState } from '../../game/realtimeBattle/types'
 
 /**
  * ตัวละครหนึ่งตัวในห้องต่อสู้ — ระนาบภาพ PNG ยืนบนพื้น
@@ -72,12 +72,6 @@ function animationForState(
   }
 }
 
-function findEntity(runtime: RealtimeBattleRuntime, entityId: string): RealtimeBattleEntity | null {
-  const state = runtime.getState()
-  if (entityId === state.player.id) return state.player
-  return state.enemies.find((enemy) => enemy.id === entityId) ?? null
-}
-
 export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpriteProps) {
   const group = useRef<Group>(null)
   const visualContainer = useRef<Group>(null)
@@ -99,7 +93,7 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
   const currentAnimation = useRef<BattleAnimationId>('idle')
 
   useFrame(() => {
-    const entity = findEntity(runtime, entityId)
+    const entity = runtime.getEntityById(entityId)
     if (!group.current || !visualContainer.current || !mesh.current) return
 
     if (!entity) {
@@ -108,7 +102,8 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
     }
     group.current.visible = true
 
-    const stage = runtime.getState().stage
+    const state = runtime.getState()
+    const stage = state.stage
     const world = runtimeToWorldXZ(entity.position, stage)
     group.current.position.set(world.x, 0, world.z)
 
@@ -120,9 +115,9 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
 
     const animationId = animationForState(
       entity.state,
-      entityId === runtime.getState().player.id ? runtime.getPlayerAttackAnimationId() : null,
+      entityId === state.player.id ? runtime.getPlayerAttackAnimationId() : null,
     )
-    const elapsedMs = runtime.getState().elapsedMs
+    const elapsedMs = state.elapsedMs
     if (animationId !== currentAnimation.current) {
       currentAnimation.current = animationId
       animationStartMs.current = elapsedMs

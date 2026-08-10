@@ -26,6 +26,28 @@ No substance/design claims were touched — citation accuracy only, per dispatch
 
 None found this pass. All Scope/Dependencies/Done-criteria claims verified true against current code during citation re-derivation.
 
+## 2026-08-10 — Battle hot-loop perf pass (audit wave 1, F1–F7)
+
+Branch `perf/audit-wave1-battle-loop`. Dispatch extended my seam from `EnemyAISystem.ts` into the runtime loop it runs inside. Every fix is behaviour-preserving; gameplay timing and hitboxes are untouched.
+
+**The load-bearing finding: `state.enemies` means "every enemy this battle has ever spawned", and that meaning is depended on.** The audit prescribed dropping corpses from the array with a separate tombstone list for rendering. Reading the consumers first showed that would break real behaviour in five places:
+
+- `RewardSystem.ts:78` looks rewards up by `state.enemies.find(id === defeatedId)` — corpses gone means rewards gone.
+- `stageObjectives.ts:61,178,282,352,382` all gate on `getAliveEnemies().length === 0 && getEnemies().length > 0`; the second clause exists to tell "never spawned" apart from "all dead". Empty the array on death and dungeon stages never register a clear.
+- `EnemyHealthBar.tsx:30,49` sizes its DOM pool by total-across-waves and indexes `enemies[index]` positionally — removing corpses shifts every later enemy's bar.
+- `combatSummary.ts:30` iterates the same "all spawned" meaning.
+- `RealtimeBattleRuntime.test.ts:230` asserts the array grows across waves, on purpose.
+
+So the array stayed, and the hot loops got an alive-only view instead: **one filter per tick in `step()`, threaded into `stepEnemies`/`stepAllies`/`separateEnemies` plus a single hoisted `blockers` array**. Same O(alive) win the finding asked for, no semantic break. `stepMovement` already skips `state === 'dead'` blockers, so collision results are bit-identical.
+
+**Trap this created, and closed:** `stepEnemies` no longer walks corpses, so a brain that died mid-`telegraph` never transitions to `dead` — its ground marker would hang for the rest of the battle. `getTelegraphMarkers()` now skips dead enemies. Pinned by a test; verified it fails without the guard.
+
+Other fixes: publish-once-per-tick behind a dirty flag (a 10-target AoE was doing 10 full snapshot rebuilds + 10 React notifications inside one 16.7ms tick); allocation-free nearest-K camera selection replacing filter+spread+`toSorted`+slice per frame; `getEntityById()` on the runtime backed by a Map keyed off the enemies-array reference, replacing a per-sprite `find()` per frame; `resolveSpriteMeshPresentation` memoised by `(kind, frameUrl)`, which kills the `.find` + `String.includes` scan every sprite ran every frame; `.push()` instead of `[...events, ev]` on both private event queues; and `enemyHpScale` passed on the auto-advance wave path, which had silently dropped it.
+
+**Verified against mutation, not just green tests** — each of these was re-broken and the named test failed: publish-per-target, the telegraph-corpse guard, camera tie order, entity-index invalidation, the dropped `enemyHpScale`, and corpse removal from the snapshot.
+
+Standing lesson for this seat: in this runtime, "dead" is a state an entity keeps, not a removal. Read who depends on a collection's meaning before narrowing it — the perf win was available without touching the meaning at all.
+
 ## Open notes for future dispatches on this system
 
 - Contract's own "Stay-current note" (line 47) already flags: doc needs a revision pass to describe the shipped #10/#11-aware system rather than pre-2026-08-08 baseline. This dispatch only fixed line numbers, not that structural staleness — still open.

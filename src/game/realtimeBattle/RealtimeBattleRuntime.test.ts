@@ -257,6 +257,142 @@ describe('RealtimeBattleRuntime', () => {
     expect(enemy.hp).toBeLessThan(hpBefore)
   })
 
+  /*
+     ── ชุดนี้ล็อกพฤติกรรมที่ต้อง "เหมือนเดิม" หลังรื้อ hot loop (perf audit 2026-08-10) ──
+
+     ของเดิม publish() ถูกเรียกในลูปต่อเป้าหมายที่ลงดาเมจได้ ท่ากวาดโดนหลายตัวจึงสร้าง
+     snapshot ใหม่ทั้งชุดหลายรอบใน tick เดียว ทั้งที่ผู้อ่านทุกรายเห็นแค่ค่าสุดท้ายของ tick
+  */
+  it('หนึ่ง step แจ้ง subscriber ไม่เกินหนึ่งครั้ง แม้สกิลจะโดนศัตรูหลายตัวพร้อมกัน', () => {
+    const runtime = makeRuntime()
+    runtime.step(1000)
+
+    const state = runtime.getState()
+    // กองศัตรูทุกตัวไว้ในระยะของสกิลกวาดรอบตัว = หลายเป้าในเฟรมเดียว
+    for (const enemy of state.enemies) {
+      enemy.position = { x: state.player.position.x + 40, y: state.player.position.y }
+    }
+
+    let calls = 0
+    runtime.subscribe(() => {
+      calls += 1
+    })
+
+    runtime.requestSkill('skill1')
+    let maxCallsInOneStep = 0
+    let sawMultiHitTick = false
+    for (let t = 0; t < 1200; t += 16) {
+      const before = calls
+      const damageBefore = runtime.getSnapshot().damageEvents.length
+      runtime.step(16)
+      const callsThisStep = calls - before
+      maxCallsInOneStep = Math.max(maxCallsInOneStep, callsThisStep)
+      if (runtime.getSnapshot().damageEvents.length - damageBefore > 1) sawMultiHitTick = true
+    }
+
+    // fixture ต้องเกิดเหตุการณ์ "โดนหลายตัวใน tick เดียว" จริง ไม่งั้นเทสต์นี้ไม่ได้พิสูจน์อะไร
+    expect(sawMultiHitTick).toBe(true)
+    expect(maxCallsInOneStep).toBe(1)
+    expect(state.damageDealt).toBeGreaterThan(0)
+  })
+
+  it('ดาเมจที่เกิดใน tick ยังอยู่ครบใน snapshot ตอนจบ step เดียวกัน', () => {
+    const runtime = makeRuntime()
+    runtime.step(1000)
+
+    const state = runtime.getState()
+    state.enemies[0].position = {
+      x: state.player.position.x + 40,
+      y: state.player.position.y,
+    }
+
+    runtime.requestAttack()
+    for (let t = 0; t < 400; t += 16) runtime.step(16)
+
+    const events = runtime.getSnapshot().damageEvents
+    expect(events.length).toBeGreaterThan(0)
+    expect(new Set(events.map((event) => event.id)).size).toBe(events.length)
+    expect(events.map((event) => event.createdAtMs)).toEqual(
+      events.map((event) => event.createdAtMs).toSorted((a, b) => a - b),
+    )
+  })
+
+  /*
+     ศพต้องอยู่ใน state.enemies ต่อไปหลังตาย — ชั้นวาดอ่านรายการนี้เพื่อเล่นแอนิเมชันตาย
+     แล้วค้างเป็นร่างจาง ๆ (EntitySprite: opacity 0.35 ตอน state 'dead') และ EnemyHealthBar
+     จองช่องตามดัชนีของรายการนี้ ถ้าลบศพออกกลางคัน แอนิเมชันจะหายทันทีและหลอดเลือด
+     ของตัวที่ยังไม่ตายจะเลื่อนช่อง
+  */
+  it('ศพยังอยู่ในรายการศัตรูและใน snapshot ต่อไป — แอนิเมชันตายเล่นจนจบได้', () => {
+    const state = createRealtimeBattle('trial-02', makePlayer())
+    if (!state) throw new Error('สร้างสถานะตั้งต้นไม่สำเร็จ')
+    const runtime = new RealtimeBattleRuntime(state)
+    runtime.step(1000)
+
+    const firstWave = state.enemies.map((enemy) => enemy.id)
+    const corpseId = firstWave[0]
+    const corpse = state.enemies[0]
+    corpse.state = 'dead'
+    corpse.hp = 0
+    const restingPlace = { ...corpse.position }
+
+    for (let t = 0; t < 2000; t += 16) runtime.step(16)
+
+    expect(state.enemies.map((enemy) => enemy.id)).toEqual(expect.arrayContaining([corpseId]))
+    expect(runtime.getSnapshot().enemies.map((enemy) => enemy.id)).toEqual(
+      expect.arrayContaining([corpseId]),
+    )
+    // ศพต้องไม่ถูกจำลองต่อ: ไม่เดิน ไม่ถูกดันแยก ไม่กลับมามีชีวิต
+    expect(corpse.state).toBe('dead')
+    expect(corpse.position).toEqual(restingPlace)
+    expect(runtime.getEntityById(corpseId)).toBe(corpse)
+  })
+
+  it('ศัตรูที่ตายคาเทเลกราฟต้องไม่ทิ้งเครื่องหมายพื้นค้างไว้', () => {
+    const runtime = makeRuntime()
+    runtime.step(1000)
+
+    const state = runtime.getState()
+    const enemy = state.enemies[0]
+    // ยืนติดผู้เล่นจนเข้าระยะโจมตี แล้วเดินเวลาจนกว่าจะเริ่มเงื้อท่า
+    for (let t = 0; t < 4000 && runtime.getTelegraphMarkers().length === 0; t += 16) {
+      enemy.position = { x: state.player.position.x + 20, y: state.player.position.y }
+      runtime.step(16)
+    }
+    expect(runtime.getTelegraphMarkers().map((marker) => marker.enemyId)).toContain(enemy.id)
+
+    enemy.state = 'dead'
+    enemy.hp = 0
+    runtime.step(16)
+
+    expect(runtime.getTelegraphMarkers().map((marker) => marker.enemyId)).not.toContain(enemy.id)
+  })
+
+  it('getEntityById หาตัวเดิมได้ และยังถูกต้องหลังคลื่นใหม่ถูกสร้าง', () => {
+    const state = createRealtimeBattle('trial-02', makePlayer())
+    if (!state) throw new Error('สร้างสถานะตั้งต้นไม่สำเร็จ')
+    const runtime = new RealtimeBattleRuntime(state)
+    runtime.step(1000)
+
+    for (const enemy of state.enemies) {
+      expect(runtime.getEntityById(enemy.id)).toBe(enemy)
+    }
+    expect(runtime.getEntityById(state.player.id)).toBe(state.player)
+    expect(runtime.getEntityById('ไม่มีตัวนี้')).toBeNull()
+
+    for (const enemy of state.enemies) {
+      enemy.state = 'dead'
+      enemy.hp = 0
+    }
+    runtime.step(16)
+    expect(state.currentWaveIndex).toBe(1)
+
+    // ดัชนีต้องรู้จักศัตรูคลื่นใหม่ด้วย ไม่ใช่ค้างอยู่กับชุดเดิม
+    for (const enemy of state.enemies) {
+      expect(runtime.getEntityById(enemy.id)).toBe(enemy)
+    }
+  })
+
   it('basic attack ใช้ทิศที่ผู้เล่นหันอยู่ ไม่ auto-face หาศัตรู', () => {
     const runtime = makeRuntime()
     runtime.step(1000)

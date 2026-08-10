@@ -77,6 +77,14 @@ export class RealtimeBattleRuntime {
   private damageEvents: DamageEvent[] = []
   private effectEvents: BattleEffectEvent[] = []
   private publishTimerMs = 0
+  /**
+   * มีอะไรที่ HUD ต้องเห็นเปลี่ยนไประหว่าง tick นี้แล้ว — publish ครั้งเดียวตอนจบ step()
+   *
+   * ของเดิมเรียก publish() ทุกครั้งที่ลงดาเมจได้หนึ่งเป้า ท่ากวาด 10 ตัวจึงสร้าง snapshot
+   * ใหม่ 10 ชุด (คัดลอกศัตรูทุกตัว + Vec2 ทุกตัว) แล้วปลุก React 10 รอบภายใน tick เดียว
+   * ทั้งที่ผู้อ่านทุกรายเห็นแค่ค่าสุดท้ายของ tick อยู่แล้ว
+   */
+  private publishRequested = false
   private snapshot: RealtimeBattleSnapshot
   private disposed = false
   /** เวกเตอร์เดินล่าสุดจากผู้เล่น — ป้อนเข้ามาจากชั้น React ทุกเฟรม */
@@ -88,6 +96,9 @@ export class RealtimeBattleRuntime {
    * และมันถูกคัดลอกลง snapshot ทุกครั้งที่ publish — สถานะ AI ไม่ควรไหลไปถึง React
    */
   private brains = new Map<string, EnemyBrain>()
+  /** ดัชนี id → entity ของ getEntityById — ผูกกับอาร์เรย์ชุดที่สร้างมันไว้ */
+  private entityIndex = new Map<string, RealtimeBattleEntity>()
+  private entityIndexSource: RealtimeBattleEntity[] | null = null
   /** สถานะคอมโบของผู้เล่น */
   private playerCombat: ComboState = createComboState()
   /** สถานะสกิลของผู้เล่น */
@@ -173,9 +184,19 @@ export class RealtimeBattleRuntime {
       })
     }
 
-    this.stepEnemies(deltaMs)
-    this.stepAllies(deltaMs)
-    this.separateEnemies()
+    /*
+       รายชื่อศัตรูที่ยังไม่ตาย คิดครั้งเดียวต่อ tick แล้วส่งต่อให้ทุกลูปที่เหลือใช้ร่วมกัน
+
+       state.enemies คือ "ทุกตัวที่เคยเกิดในการต่อสู้นี้" (คลื่นใหม่ถูกต่อท้าย ศพไม่ถูกลบ —
+       RewardSystem/EnemyHealthBar/เงื่อนไขจบด่านของดันเจี้ยนล้วนอ่านความหมายนี้อยู่) ลูปที่
+       ทำงานทุกเฟรมจึงต้องวนเฉพาะตัวเป็น ไม่ใช่ทั้งกอง — คิดที่นี่จุดเดียวหลังจากที่ท่าของ
+       ผู้เล่นลงดาเมจเสร็จแล้ว ผลจึงเท่ากับที่แต่ละลูปเคยกรองเองทีละที่ทุกประการ
+    */
+    const living = state.enemies.filter((enemy) => enemy.state !== 'dead' && enemy.hp > 0)
+
+    this.stepEnemies(deltaMs, living)
+    this.stepAllies(deltaMs, living)
+    this.separateEnemies(living)
     this.checkBattleEnd(deltaMs)
 
     this.pruneEvents()
@@ -183,6 +204,8 @@ export class RealtimeBattleRuntime {
     this.publishTimerMs += deltaMs
     if (this.publishTimerMs >= PUBLISH_INTERVAL_MS) {
       this.publishTimerMs = 0
+      this.publish()
+    } else if (this.publishRequested) {
       this.publish()
     }
   }
@@ -268,7 +291,7 @@ export class RealtimeBattleRuntime {
 
       this.pushDamageEvent(target, outcome.amount, outcome.critical)
       this.grantUltimateGaugeOnHit(outcome.defeated, 'basic')
-      this.publish()
+      this.publishRequested = true
     }
 
     // หมัดเข้าเป้าแล้วหยุดเวลาแวบหนึ่ง ให้รู้สึกถึงน้ำหนักของการปะทะ (§14)
@@ -371,7 +394,7 @@ export class RealtimeBattleRuntime {
 
         this.pushDamageEvent(target, outcome.amount, outcome.critical)
         this.grantUltimateGaugeOnHit(outcome.defeated, 'skill')
-        this.publish()
+        this.publishRequested = true
       }
 
       this.maybeApplySkillSideEffects(tick.attack)
@@ -402,10 +425,9 @@ export class RealtimeBattleRuntime {
     }
   }
 
-  private stepAllies(deltaMs: number): void {
+  private stepAllies(deltaMs: number, livingEnemies: RealtimeBattleEntity[]): void {
     const state = this.state
-    const livingEnemies = state.enemies.filter((enemy) => enemy.state !== 'dead' && enemy.hp > 0)
-    if (livingEnemies.length === 0) return
+    if (state.allies.length === 0 || livingEnemies.length === 0) return
 
     for (const ally of state.allies) {
       stepAllyAI(ally, livingEnemies, state.stage, deltaMs, state.elapsedMs, (target, amount) => {
@@ -426,16 +448,15 @@ export class RealtimeBattleRuntime {
     durationMs: number,
   ): void {
     this.eventCounter += 1
-    this.effectEvents = [
-      ...this.effectEvents,
-      {
-        id: `fx-${this.eventCounter}`,
-        kind,
-        position: { ...position },
-        createdAtMs: this.state.elapsedMs,
-        durationMs,
-      },
-    ]
+    // push ไม่ใช่ spread — คิวนี้เป็นของส่วนตัวของ runtime และผู้อ่านทุกรายกรอง/ตัดซ้ำด้วย id
+    // เองอยู่แล้ว การคัดลอกทั้งคิวใหม่ทุกครั้งที่ยิงเอฟเฟกต์ทำให้ระเบิดท่าเดียวเป็น O(k²)
+    this.effectEvents.push({
+      id: `fx-${this.eventCounter}`,
+      kind,
+      position: { ...position },
+      createdAtMs: this.state.elapsedMs,
+      durationMs,
+    })
   }
 
   /**
@@ -476,23 +497,20 @@ export class RealtimeBattleRuntime {
       state.damageTaken += outcome.amount
       target.position = clampToArena(target.position, target.collisionRadius, state.stage)
       this.pushDamageEvent(target, outcome.amount, outcome.critical)
-      this.publish()
+      this.publishRequested = true
     }
   }
 
   private pushDamageEvent(target: RealtimeBattleEntity, amount: number, critical: boolean): void {
     this.eventCounter += 1
-    this.damageEvents = [
-      ...this.damageEvents,
-      {
-        id: `dmg-${this.eventCounter}`,
-        targetId: target.id,
-        amount,
-        critical,
-        position: { ...target.position },
-        createdAtMs: this.state.elapsedMs,
-      },
-    ]
+    this.damageEvents.push({
+      id: `dmg-${this.eventCounter}`,
+      targetId: target.id,
+      amount,
+      critical,
+      position: { ...target.position },
+      createdAtMs: this.state.elapsedMs,
+    })
   }
 
   /** สั่งให้ผู้เล่นโจมตีในเฟรมจำลองถัดไป */
@@ -511,10 +529,13 @@ export class RealtimeBattleRuntime {
    * ศัตรูกันทางกันเองและกันผู้เล่นด้วย จึงใส่ทั้งกองเป็น blockers ยกเว้นตัวที่กำลังเดินอยู่
    * (stepMovement ข้ามตัวเองให้อยู่แล้วจาก id)
    */
-  private stepEnemies(deltaMs: number): void {
+  private stepEnemies(deltaMs: number, living: RealtimeBattleEntity[]): void {
     const state = this.state
+    // กองที่กันทางกัน สร้างครั้งเดียวต่อ tick ไม่ใช่ครั้งหนึ่งต่อศัตรูหนึ่งตัว — stepMovement
+    // ข้ามตัวเองจาก id และข้ามศพอยู่แล้ว รายชื่อตัวเป็นจึงให้ผลการชนเท่าเดิมทุกประการ
+    const blockers = [state.player, ...living]
 
-    for (const enemy of state.enemies) {
+    for (const enemy of living) {
       const brain = this.brainFor(enemy.id)
       const decision = stepEnemyAI(enemy, brain, state.player, deltaMs, state.elapsedMs)
       if (decision.telegraph) {
@@ -534,7 +555,7 @@ export class RealtimeBattleRuntime {
 
       stepMovement(enemy, decision.move, deltaMs, {
         stage: state.stage,
-        blockers: [state.player, ...state.enemies],
+        blockers,
       })
     }
   }
@@ -545,9 +566,8 @@ export class RealtimeBattleRuntime {
    * ทำแยกจากตอนเดิน เพราะศัตรูหลายตัวมุ่งหน้าจุดเดียวกัน (ตัวผู้เล่น) ทำให้ทุกตัวไปกอง
    * ทับกันเป็นตัวเดียวได้ ทั้งที่แต่ละตัวเดินถูกกฎ — สเปกข้อ 19 ห้ามอาการนี้ตรง ๆ
    */
-  private separateEnemies(): void {
+  private separateEnemies(alive: RealtimeBattleEntity[]): void {
     const state = this.state
-    const alive = state.enemies.filter((enemy) => enemy.state !== 'dead')
 
     for (let i = 0; i < alive.length; i += 1) {
       for (let j = i + 1; j < alive.length; j += 1) {
@@ -638,6 +658,9 @@ export class RealtimeBattleRuntime {
   }> {
     const markers: Array<{ enemyId: string; position: Vec2; attackId: string }> = []
     for (const enemy of this.state.enemies) {
+      // ตัวที่ตายคาเทเลกราฟไม่ได้เดินสมองต่อแล้ว (stepEnemies วนเฉพาะตัวเป็น) จึงต้องคัดที่นี่
+      // ไม่งั้นเครื่องหมายพื้นของมันจะค้างอยู่ตลอดการต่อสู้
+      if (enemy.state === 'dead' || enemy.hp <= 0) continue
       const brain = this.brains.get(enemy.id)
       if (!brain || !isEnemyTelegraphing(brain)) continue
       const attack = getEnemySelectedAttack(brain)
@@ -760,6 +783,26 @@ export class RealtimeBattleRuntime {
     return this.state
   }
 
+  /**
+   * หาหน่วยจาก id — สำหรับชั้นวาดที่ต้องหาตัวเดิมทุกเฟรม
+   *
+   * สไปรต์แต่ละตัวเคยไล่ `enemies.find()` เองทุกเฟรม รวมกันเป็น O(N²) การเทียบ id ต่อเฟรม
+   * ดัชนีนี้สร้างใหม่เฉพาะตอน "ชุด" ศัตรูเปลี่ยน (คลื่นใหม่ถูกต่อท้ายเป็นอาร์เรย์ชุดใหม่เสมอ)
+   * ไม่ใช่ตอนค่าภายในตัวศัตรูเปลี่ยน จึงไม่ต้องคอยล้างแคชตามการตี/การตาย
+   */
+  getEntityById(entityId: string): RealtimeBattleEntity | null {
+    const state = this.state
+    if (entityId === state.player.id) return state.player
+
+    if (this.entityIndexSource !== state.enemies) {
+      this.entityIndex.clear()
+      for (const enemy of state.enemies) this.entityIndex.set(enemy.id, enemy)
+      this.entityIndexSource = state.enemies
+    }
+
+    return this.entityIndex.get(entityId) ?? null
+  }
+
   /** สถานะคอมโบผู้เล่น — UI อ่านเพื่อแสดง attack/casting (ห้ามแก้ค่า) */
   getPlayerComboState(): Readonly<ComboState> {
     return this.playerCombat
@@ -797,6 +840,7 @@ export class RealtimeBattleRuntime {
   /** สร้าง snapshot ใหม่แล้วแจ้ง React — เรียกเมื่อมีอะไรที่ HUD ต้องเห็นเปลี่ยนไป */
   publish(): void {
     if (this.disposed) return
+    this.publishRequested = false
     this.snapshot = this.buildSnapshot()
     for (const listener of this.listeners) listener()
   }
@@ -835,6 +879,8 @@ export class RealtimeBattleRuntime {
     this.disposed = true
     this.listeners.clear()
     this.brains.clear()
+    this.entityIndex.clear()
+    this.entityIndexSource = null
     this.damageEvents = []
     this.effectEvents = []
   }
