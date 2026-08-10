@@ -1,2 +1,5 @@
 [functions.pvp-authority]
 verify_jwt = true
+
+# Wiring probe 2026-08-11. Touching this file is what tells the Supabase GitHub
+# integration a pull request contains Supabase changes. Reverted with the PR.
