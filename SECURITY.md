@@ -54,6 +54,13 @@ In scope:
   (self-granting currency/characters/admin status, reading another player's row, etc.)
 - World Chat identity/authority bypasses: posting as another profile, forging the server timestamp,
   bypassing the 10-message/minute throttle, or writing directly to `world_chat_messages`
+- friend-list writes reaching **another** player's row. As of 2026-08-10 the client performs
+  INSERT/UPDATE/DELETE against `public.friends`, a table it previously only read, to keep the
+  synced-snapshot read model in step. RLS caps it to `auth.uid() = profile_id`, so the blast
+  radius of the snapshot's unvalidated `friend_uid`/`name`/`level`/`title` values is the
+  reporter's own list and is cosmetic by design (`src/types/player.ts`). In scope: any way to
+  write a row whose `profile_id` is not your own, or to make one player's snapshot alter what
+  another player sees
 - Star Ascension authority bypasses: inserting an owned Hero directly, writing `star`/`shards`,
   reusing an idempotency request for another Hero, or bypassing the 1/2/4/8/12 shard ladder
 - Gacha authority bypasses: controlling a roll from the client, changing a banner/cost after a

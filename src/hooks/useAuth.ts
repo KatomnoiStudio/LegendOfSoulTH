@@ -87,7 +87,8 @@ export interface AuthState {
     result: import('../game/realtimeBattle/types').RealtimeBattleResult,
     transactionId: string,
   ) => Promise<boolean>
-  clearPendingLobbyReward: (transactionId: string) => Promise<void>
+  /** คืน false เมื่อลบแถวรางวัลค้างไม่สำเร็จ — ผู้เรียกต้องไม่ทิ้งค่านี้ (ดู accountRepository) */
+  clearPendingLobbyReward: (transactionId: string) => Promise<boolean>
   getPendingLobbyRewards: () => Promise<accounts.PendingLobbyRewardRow[]>
   /** อัญเชิญผ่าน atomic Supabase RPC — Client ไม่มีสิทธิ์ตัด Gem/RNG/เพิ่ม Hero เอง */
   pullGacha: (bannerId: string, pullCount: 1 | 10, requestId: string) => Promise<GachaPullResult>
@@ -108,19 +109,36 @@ export function useAuth(): AuthState {
     setHasGoogleLinked(providers.includes('google'))
   }, [])
 
-  // กู้ session ตอนเปิดเกม เพื่อไม่ต้องล็อกอินซ้ำทุกครั้ง
+  /*
+    กู้ session ตอนเปิดเกม เพื่อไม่ต้องล็อกอินซ้ำทุกครั้ง
+
+    .catch() ตรงนี้ห้ามหาย: 'loading' เป็นสถานะที่ไม่มี UI ไหนรับเลย (App.tsx เช็ค 'signed-in'
+    กับ 'guest' เท่านั้น) ถ้า promise นี้ reject แล้วไม่มีใครจับ status จะค้างที่ 'loading'
+    ตลอดไป ผู้เล่นเห็นหน้าไตเติลปกติทุกอย่าง กดปุ่มเริ่มเกมแล้วไม่มีอะไรเกิดขึ้น ไม่มีข้อความ
+    ไม่มีปุ่มลองใหม่ — เน็ตกระตุกครั้งเดียวตอนบูตเท่ากับเข้าเกมไม่ได้จนกว่าจะรีเฟรชเอง
+
+    ตกลงไปที่ 'guest' (= ยังไม่ล็อกอิน) เพราะเป็นสถานะที่ "ลองใหม่ได้" — ผู้เล่นกดเริ่มเกมแล้ว
+    เจอกล่องล็อกอินตามปกติ ส่วนรหัส error ขึ้นผ่าน GlobalErrorBanner ให้รู้ว่าไม่ใช่การถูกเด้งออก
+  */
   useEffect(() => {
     let cancelled = false
 
-    accounts.getSessionPlayer().then((restored) => {
-      if (cancelled) return
-      setPlayer(restored)
-      setIsAdmin(restored ? accounts.getSessionIsAdmin() : false)
-      setIsGuest(restored ? accounts.getSessionIsGuest() : false)
-      setStatus(restored ? 'signed-in' : 'guest')
-      if (restored) void refreshLinkedProviders()
-      return undefined
-    })
+    accounts
+      .getSessionPlayer()
+      .then((restored) => {
+        if (cancelled) return
+        setPlayer(restored)
+        setIsAdmin(restored ? accounts.getSessionIsAdmin() : false)
+        setIsGuest(restored ? accounts.getSessionIsGuest() : false)
+        setStatus(restored ? 'signed-in' : 'guest')
+        if (restored) void refreshLinkedProviders()
+        return undefined
+      })
+      .catch((cause: unknown) => {
+        if (cancelled) return
+        reportError('AUTH_SESSION_RESTORE_FAIL', 'visible', cause)
+        setStatus('guest')
+      })
 
     return () => {
       cancelled = true
@@ -208,6 +226,20 @@ export function useAuth(): AuthState {
 
     คืน boolean ให้ผู้เรียกตัดสินใจต่อได้ — ปุ่มเพิ่มเพื่อนเป็นรายแรกที่ต้องใช้จริง
     (ก่อนหน้านี้ตัดค่าคืนทิ้งเพราะยังไม่มีใครใช้ แล้วผู้ใช้ก็โผล่มาจริงในวันเดียวกัน)
+
+    ── การย้อนกลับตอนล้ม: ทำไมไม่ setPlayer(previous) ตรง ๆ อีกแล้ว ──────────────
+    savePlayer เขียนหลายตารางเรียงกัน (profiles → owned_characters → friends → team_slots)
+    แต่ละขั้นคอมมิตของตัวเองทันที ไม่มี transaction ครอบ การล้มที่ขั้นหลังจึงแปลว่า "บางส่วน
+    ลงจริงไปแล้ว" การย้อนหน้าจอกลับไปเป็นค่าก่อนหน้าทั้งก้อนจึงแสดงของที่บันทึกสำเร็จว่ายังไม่
+    บันทึก แล้วการเซฟครั้งถัดไปก็เอาค่าเก่านั้นเขียนทับของใหม่ที่ลงไปแล้วอีกที
+
+    อ่านค่าจริงจากเซิร์ฟเวอร์กลับมาแทน (getSessionPlayer อ่านครบทุกตารางอยู่แล้ว) — หน้าจอจึง
+    ตรงกับฐานข้อมูลเสมอไม่ว่าล้มที่ขั้นไหน อ่านไม่ได้ค่อยตกกลับไปใช้ค่าก่อนหน้าแบบเดิม
+
+    และย้อนแบบมีเงื่อนไข (setPlayer(current => ...)) ไม่ใช่เขียนทับดื้อ ๆ: `previous` มาจาก
+    closure ของ render นั้น ถ้ามีการเซฟอีกครั้งที่สำเร็จแทรกเข้ามาระหว่างรอ การย้อนแบบเดิมจะ
+    ลบผลของการเซฟที่สำเร็จนั้นทิ้ง ตัวเทียบ `current === next` ทำหน้าที่เป็น generation token:
+    ย้อนได้ต่อเมื่อบนจอยังเป็นค่าที่เรา set ไปเองเท่านั้น
   */
   const updatePlayer = useCallback(
     async (next: Player): Promise<boolean> => {
@@ -218,7 +250,15 @@ export function useAuth(): AuthState {
       if (await accounts.savePlayer(next)) return true
 
       reportError('PLAYER_SAVE_FAIL', 'visible')
-      setPlayer(previous)
+
+      let authoritative: Player | null = null
+      try {
+        authoritative = await accounts.getSessionPlayer()
+      } catch (cause: unknown) {
+        reportError('PLAYER_LOAD_FAIL', 'silent', cause)
+      }
+
+      setPlayer((current) => (current === next ? (authoritative ?? previous) : current))
       return false
     },
     [player],

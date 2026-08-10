@@ -57,7 +57,8 @@ export function LobbyBattleSession({
     payload: LobbyBattleProgressionRpcPayload,
   ) => Promise<{ ok: true; player: Player } | { ok: false; error: string }>
   onRecordPending: (result: RealtimeBattleResult, transactionId: string) => Promise<boolean>
-  onClearPending: (transactionId: string) => Promise<void>
+  /** คืน false เมื่อลบแถวรางวัลค้างไม่สำเร็จ — pipeline ใช้ค่านี้ ห้ามลดกลับเป็น Promise<void> */
+  onClearPending: (transactionId: string) => Promise<boolean>
   onGetPendingRewards: () => Promise<PendingLobbyRewardRow[]>
   onExit: () => void
 }) {

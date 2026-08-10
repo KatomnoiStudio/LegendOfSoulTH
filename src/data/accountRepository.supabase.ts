@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabaseClient'
+import { getSupabase } from '../lib/supabaseClient'
 import { reportError } from '../lib/errors/reportError'
 import { generateUid } from '../game/uid'
 import { TEAM_SIZE } from '../game/team'
@@ -70,21 +70,37 @@ interface ProfileRow {
 
 /** ประกอบ Player เต็มรูปจากตารางลูกทั้งหมด — เรียกซ้ำได้จากหลายจุด (login/register/session) */
 async function loadPlayer(profileId: string): Promise<Player | null> {
+  const supabase = getSupabase()
+  const results = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', profileId).maybeSingle(),
+    supabase.from('owned_characters').select('*').eq('profile_id', profileId),
+    supabase.from('team_slots').select('*').eq('profile_id', profileId).order('slot_index'),
+    supabase.from('inventory_items').select('*').eq('profile_id', profileId),
+    supabase.from('friends').select('*').eq('profile_id', profileId),
+    supabase.from('battle_history').select('*').eq('profile_id', profileId).order('finished_at'),
+    supabase.from('admin_accounts').select('profile_id').eq('profile_id', profileId).maybeSingle(),
+    supabase.from('gacha_pity').select('banner_id,pity_count').eq('profile_id', profileId),
+  ])
+
+  /*
+    เช็ค error ให้ครบทั้ง 8 คำขอ ไม่ใช่แค่ profiles ตัวเดียวเหมือนเดิม
+
+    supabase-js ไม่ throw — คืน { data, error } เสมอ คำขอที่ล้ม (เน็ตหลุด/RLS/timeout) จึงมี
+    data เป็น null แล้วโค้ดด้านล่างที่เขียน `?? []` ไว้ทุกบรรทัดกลืนมันเป็น "ไม่มีข้อมูล"
+    อย่างเงียบสนิท ผู้เล่นเข้าเกมมาด้วยทีมว่าง กระเป๋าว่าง เพื่อนหาย — แล้ว savePlayer
+    ครั้งถัดไป upsert ทีมว่างทับทีมจริงในฐานข้อมูล ข้อมูลหายถาวรจากคำขอที่ล้มชั่วคราวครั้งเดียว
+
+    ล้มดัง ๆ ดีกว่า: คืน null (ผู้เรียกทุกรายแสดงข้อความ "โหลดข้อมูลผู้เล่นไม่สำเร็จ" อยู่แล้ว)
+    บวก reportError tier 'visible' ที่ GlobalErrorBanner รับไปแสดงพร้อมรหัส
+  */
+  const failed = results.find((result) => result.error !== null)
+  if (failed) {
+    reportError('PLAYER_LOAD_FAIL', 'visible', failed.error)
+    return null
+  }
+
   const [profileRes, charsRes, slotsRes, itemsRes, friendsRes, historyRes, adminRes, pityRes] =
-    await Promise.all([
-      supabase.from('profiles').select('*').eq('id', profileId).maybeSingle(),
-      supabase.from('owned_characters').select('*').eq('profile_id', profileId),
-      supabase.from('team_slots').select('*').eq('profile_id', profileId).order('slot_index'),
-      supabase.from('inventory_items').select('*').eq('profile_id', profileId),
-      supabase.from('friends').select('*').eq('profile_id', profileId),
-      supabase.from('battle_history').select('*').eq('profile_id', profileId).order('finished_at'),
-      supabase
-        .from('admin_accounts')
-        .select('profile_id')
-        .eq('profile_id', profileId)
-        .maybeSingle(),
-      supabase.from('gacha_pity').select('banner_id,pity_count').eq('profile_id', profileId),
-    ])
+    results
 
   const profile = profileRes.data as ProfileRow | null
   if (!profile) return null
@@ -163,7 +179,7 @@ export async function pullGacha(
   pullCount: 1 | 10,
   requestId: string,
 ): Promise<GachaPullResult> {
-  const { data, error } = await supabase.rpc('perform_gacha_pull', {
+  const { data, error } = await getSupabase().rpc('perform_gacha_pull', {
     p_request_id: requestId,
     p_banner_id: bannerId,
     p_pull_count: pullCount,
@@ -173,7 +189,7 @@ export async function pullGacha(
   const row = (data as GachaRpcRow[] | null)?.[0]
   if (!row?.payload) return { ok: false, error: 'อัญเชิญไม่สำเร็จ ลองใหม่อีกครั้ง' }
 
-  const { data: sessionData } = await supabase.auth.getSession()
+  const { data: sessionData } = await getSupabase().auth.getSession()
   const profileId = sessionData.session?.user.id
   if (!profileId) return { ok: false, error: 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่' }
 
@@ -204,7 +220,7 @@ export async function register(
   // เผื่อชน UNIQUE ที่ trigger ฝั่ง DB — สุ่มใหม่แล้วลองอีกครั้ง (โอกาสชนจริงต่ำมาก ดู src/game/uid.ts)
   for (let attempt = 0; attempt < 3; attempt++) {
     const uid = generateUid()
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await getSupabase().auth.signUp({
       email: email.trim(),
       password,
       options: { data: { uid }, captchaToken },
@@ -236,7 +252,7 @@ export async function login(
   password: string,
   captchaToken?: string,
 ): Promise<AuthResult> {
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await getSupabase().auth.signInWithPassword({
     email: email.trim(),
     password,
     options: { captchaToken },
@@ -264,7 +280,7 @@ export async function login(
  * best-practices) — กันปั้ม guest จนข้อมูลค้าง ไม่กระทบ guest ที่ยังเล่นอยู่จริง
  */
 export async function signInAsGuest(captchaToken?: string): Promise<AuthResult> {
-  const { data, error } = await supabase.auth.signInAnonymously({ options: { captchaToken } })
+  const { data, error } = await getSupabase().auth.signInAnonymously({ options: { captchaToken } })
   if (error || !data.user)
     return { ok: false, error: 'เข้าเล่นแบบ guest ไม่สำเร็จ ลองใหม่อีกครั้ง' }
 
@@ -309,7 +325,7 @@ function appRedirectUrl(): string {
  * ตอนสำเร็จหน้าเปลี่ยนไปแล้ว ไม่มีทางกลับมา return ที่นี่ได้ทัน
  */
 export async function signInWithGoogle(): Promise<{ ok: boolean; error?: string }> {
-  const { error } = await supabase.auth.signInWithOAuth({
+  const { error } = await getSupabase().auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: appRedirectUrl() },
   })
@@ -322,7 +338,7 @@ export async function signInWithGoogle(): Promise<{ ok: boolean; error?: string 
  * ต้องล็อกอินอยู่ก่อน (getUserIdentities อ่านจาก session ปัจจุบัน) — ยังไม่ล็อกอิน = อาร์เรย์ว่าง
  */
 export async function getLinkedProviders(): Promise<string[]> {
-  const { data } = await supabase.auth.getUserIdentities()
+  const { data } = await getSupabase().auth.getUserIdentities()
   return (data?.identities ?? []).map((identity) => identity.provider)
 }
 
@@ -335,7 +351,7 @@ export async function getLinkedProviders(): Promise<string[]> {
  * เองไม่สำเร็จ
  */
 export async function linkGoogleIdentity(): Promise<{ ok: boolean; error?: string }> {
-  const { error } = await supabase.auth.linkIdentity({
+  const { error } = await getSupabase().auth.linkIdentity({
     provider: 'google',
     options: { redirectTo: appRedirectUrl() },
   })
@@ -344,7 +360,7 @@ export async function linkGoogleIdentity(): Promise<{ ok: boolean; error?: strin
 }
 
 export async function logout(): Promise<void> {
-  await supabase.auth.signOut()
+  await getSupabase().auth.signOut()
   cachedSessionEmail = null
   cachedSessionIsAdmin = false
   cachedSessionIsGuest = false
@@ -375,10 +391,33 @@ let cachedSessionIsAdmin = false
  */
 let cachedSessionIsGuest = false
 
-supabase.auth.onAuthStateChange((_event, session) => {
-  cachedSessionEmail = session?.user.email ?? null
-  cachedSessionIsGuest = session?.user.is_anonymous ?? false
-})
+let authCacheSubscription: { unsubscribe: () => void } | null = null
+
+/**
+ * เริ่มชั้นกันพลาดของ cache อีเมล/guest — เรียกครั้งเดียวตอนบูตแอป (src/main.tsx)
+ *
+ * เดิมบรรทัด `supabase.auth.onAuthStateChange(...)` วางไว้ที่ module scope ตรง ๆ จึงทำงาน
+ * ตั้งแต่ "ใครก็ตาม import ไฟล์นี้" รวมถึงเทสต์ที่แค่อยากเรียกฟังก์ชัน mapping สักตัว —
+ * เป็น side effect ที่ยกเลิกไม่ได้ (ไม่มีใครถือ subscription ไว้เลย) และเขียนตัวแปร module
+ * สามตัวโดยที่ผู้เรียกไม่รู้ตัว
+ *
+ * คืนฟังก์ชันเลิกรับ และเรียกซ้ำได้ปลอดภัย (ครั้งที่สองคืนตัวเลิกรับของครั้งแรก ไม่ subscribe ซ้อน)
+ */
+export function initAuthCache(): () => void {
+  if (!authCacheSubscription) {
+    const { data } = getSupabase().auth.onAuthStateChange((_event, session) => {
+      cachedSessionEmail = session?.user.email ?? null
+      cachedSessionIsGuest = session?.user.is_anonymous ?? false
+    })
+    authCacheSubscription = data.subscription
+  }
+
+  const subscription = authCacheSubscription
+  return () => {
+    subscription.unsubscribe()
+    if (authCacheSubscription === subscription) authCacheSubscription = null
+  }
+}
 
 /** สิทธิ์แอดมิน — sync ตาม pattern เดียวกับ getSessionEmail() ค่าล่าสุดคือครั้งที่ loadPlayer() รันสำเร็จ */
 export function getSessionIsAdmin(): boolean {
@@ -392,7 +431,7 @@ export function getSessionIsGuest(): boolean {
 
 /** ใช้ session ที่ supabase-js จัดการเองอยู่แล้ว (localStorage + refresh token) ไม่ต้องมี TTL ของเราเอง */
 export async function getSessionPlayer(): Promise<Player | null> {
-  const { data } = await supabase.auth.getSession()
+  const { data } = await getSupabase().auth.getSession()
   const userId = data.session?.user.id
   cachedSessionEmail = data.session?.user.email ?? null
   cachedSessionIsGuest = data.session?.user.is_anonymous ?? false
@@ -413,7 +452,7 @@ export function getSessionEmail(): string | null {
 export async function findPlayerByUid(uid: string): Promise<FriendCandidate | null> {
   // returns table(...) มาเป็น array เสมอผ่าน PostgREST (ไม่ใช่ object เดี่ยว) — ไม่ chain
   // .maybeSingle() เพราะ type ของ supabase-js แคบผิดตอนไม่มี generated Database type ให้ client
-  const { data, error } = await supabase.rpc('find_player_by_uid', { p_uid: uid })
+  const { data, error } = await getSupabase().rpc('find_player_by_uid', { p_uid: uid })
   // เช็ค error แยกจาก "หาไม่เจอจริง" ไว้เสมอ — เดิมไม่เช็คเลย ทำให้ RPC พัง/สิทธิ์ไม่ครบ
   // ดูเหมือน "ไม่พบผู้เล่น" เฉย ๆ บนหน้าจอ ซึ่งเป็นสาเหตุเดิมที่ฟีเจอร์นี้พังเงียบ ๆ มาก่อน
   // (ดู .agents/rules/public-profile-lookup-law.md) — SILENT เพราะ UI แสดงข้อความเดียวกัน
@@ -430,8 +469,30 @@ export async function findPlayerByUid(uid: string): Promise<FriendCandidate | nu
  * ทางเดียวที่เขียนได้คือ RPC `commit_lobby_battle_progression` (SECURITY DEFINER) ถ้าใส่กลับเข้ามา
  * Postgres จะตอบ 42501 → savePlayer คืน false → useAuth ย้อนการบันทึกทั้งก้อน (ทีม/เพื่อน/flags)
  * ไม่ใช่แค่ค่าความคืบหน้า — พังกว้างกว่าช่องโหว่ที่ปิดไปมาก
+ *
+ * ⚠️ ช่องว่างที่รู้ตัว (ยังปิดจากฝั่ง client ไม่ได้): `currency.gold` กับ `inventory`
+ * ─────────────────────────────────────────────────────────────────────────────
+ * progressionService.spendCost() (src/game/progression/progressionService.ts) หักทองและ
+ * ไอเทมของ Player ในหน่วยความจำเวลาอัปสกิล/ปลดพรสวรรค์/ปลุกพลัง แต่ savePlayer เขียนสองอย่าง
+ * นี้ไม่ได้เลย: `profiles.gold` ถูก revoke สิทธิ์ UPDATE ไปแล้ว (0009_economy_integrity_fixes)
+ * และ `inventory_items` ไม่มี write policy ให้ role `authenticated` ตั้งแต่ 0001_init.sql
+ * (มีแต่ `select`) — เขียนได้ทางเดียวคือ RPC แบบ SECURITY DEFINER
+ *
+ * ผลที่เกิดจริงตอนนี้: **ผลของการอัปเกรดถูกบันทึก (skill_levels/talent_state/awakening_state)
+ * แต่ค่าใช้จ่ายไม่ถูกบันทึก** → โหลดใหม่แล้วทองกลับมาเต็มพร้อมสกิลที่อัปแล้ว = อัปเกรดฟรีไม่จำกัด
+ * และแถบทองบนจอโกหกจนกว่าจะรีเฟรช
+ *
+ * แก้ให้ถูกต้องได้ทางเดียวคือ RPC ฝั่งเซิร์ฟเวอร์ ห้ามแก้ด้วยการเปิดสิทธิ์ UPDATE คอลัมน์ทอง
+ * (นั่นคือรื้อ #25 ทิ้ง) — ข้อเสนอที่เล็กที่สุดคือ RPC ตัวเดียวชื่อ `spend_progression_cost(
+ * p_request_id uuid, p_hero_id text, p_upgrade text, p_gold int, p_materials jsonb)` ที่
+ * (1) หักทองแบบ atomic พร้อมกันกับหักไอเทม (2) ปฏิเสธถ้ายอดไม่พอ (3) idempotent ตาม
+ * p_request_id เหมือน ascend_character_star/perform_gacha_pull ที่มีอยู่แล้ว และ (4) เขียน
+ * currency_transactions ฝั่งจ่ายออกไว้เป็นหลักฐาน ทั้งหมดนี้ต้องมากับ migration จึงอยู่นอก
+ * ขอบเขตของเลนนี้ — ผูกกับงาน #26 (skill/talent server authority)
  */
 export async function savePlayer(player: Player): Promise<boolean> {
+  const supabase = getSupabase()
+
   const { error } = await supabase
     .from('profiles')
     .update({
@@ -463,6 +524,50 @@ export async function savePlayer(player: Player): Promise<boolean> {
   )
   if (characterResults.some((result) => result.error !== null)) return false
 
+  /*
+    friends: เขียนจริงตั้งแต่ตอนนี้ — เดิม loadPlayer อ่านตารางนี้มาใส่ Player แต่ savePlayer
+    ไม่เคยเขียนกลับเลยสักบรรทัด ผลคือ AddFriendPanel ขึ้น toast "เพิ่มเป็นเพื่อนแล้ว" (เพราะ
+    savePlayer คืน true จริง ๆ) แล้วเพื่อนหายทุกครั้งที่โหลดใหม่ ตารางกับ RLS write policy
+    มีอยู่แล้วตั้งแต่ 0001_init.sql:113 — ขาดแค่ฝั่ง client เรียกใช้
+
+    upsert ก่อน แล้วค่อยลบส่วนเกิน โดยตั้งใจ: ถ้าลำดับกลับกันแล้วขั้นที่สองล้ม รายชื่อเพื่อน
+    จะหายทั้งก้อน ลำดับนี้อย่างแย่ที่สุดคือเหลือเพื่อนที่ลบไปแล้วค้างไว้ ซึ่งการเซฟครั้งหน้าเก็บกวาดต่อได้
+  */
+  const friendRows = player.friends.map((friend) => ({
+    profile_id: player.id,
+    friend_uid: friend.uid,
+    name: friend.name,
+    level: friend.level,
+    title: friend.title,
+  }))
+
+  if (friendRows.length > 0) {
+    const { error: friendError } = await supabase.from('friends').upsert(friendRows)
+    if (friendError) return false
+  }
+
+  const removeStaleFriends = supabase.from('friends').delete().eq('profile_id', player.id)
+  const { error: friendPruneError } = await (friendRows.length > 0
+    ? removeStaleFriends.not(
+        'friend_uid',
+        'in',
+        `("${friendRows.map((r) => r.friend_uid).join('","')}")`,
+      )
+    : removeStaleFriends)
+  if (friendPruneError) return false
+
+  /*
+    ทีมว่างทั้ง 4 ช่องทั้งที่มีตัวละครในบัญชี = สถานะที่ UI สร้างไม่ได้เลย (CharacterRosterModal
+    เขียน [selected.id, null, null, null] เสมอ มีหัวหน้าทีมทุกครั้ง) มาจากทางเดียวคือ Player
+    ในหน่วยความจำถูกประกอบจากข้อมูลที่โหลดไม่ครบ — ปล่อยให้ upsert ต่อคือเขียนทีมว่างทับทีมจริง
+    ในฐานข้อมูล ปฏิเสธแล้วล้มดัง ๆ ดีกว่า (ชั้นสองของการแก้ loadPlayer ด้านบน)
+  */
+  const hasEmptyTeam = player.teamSlots.every((characterId) => characterId === null)
+  if (hasEmptyTeam && player.ownedCharacters.length > 0) {
+    reportError('PLAYER_SAVE_FAIL', 'visible', new Error('refusing to save an empty team'))
+    return false
+  }
+
   // team_slots: upsert ทั้ง 4 ช่องทับของเดิม (ตาราง PK คือ profile_id+slot_index อยู่แล้ว)
   const slotRows = player.teamSlots.map((characterId, slot_index) => ({
     profile_id: player.id,
@@ -479,7 +584,7 @@ export async function earnGold(
   amount: number,
   refId?: string,
 ): Promise<CurrencyResult> {
-  const { data, error } = await supabase.rpc('earn_gold', {
+  const { data, error } = await getSupabase().rpc('earn_gold', {
     p_source: source,
     p_amount: amount,
     p_ref_id: refId ?? null,
@@ -491,7 +596,7 @@ export async function earnGold(
 }
 
 export async function redeemCoupon(_uid: string, code: string): Promise<CurrencyResult> {
-  const { data, error } = await supabase.rpc('redeem_coupon', { p_code: code })
+  const { data, error } = await getSupabase().rpc('redeem_coupon', { p_code: code })
   if (error) return { ok: false, error: error.message }
   if (!data?.profile) return { ok: false, error: 'แลกคูปองไม่สำเร็จ' }
 
@@ -527,13 +632,13 @@ export async function topUpGems(_uid: string, _packageId: string): Promise<Curre
  * อยู่ที่ profiles.lifetime_gold_earned/lifetime_gem_earned ไม่ใช่ผลรวมจากอาร์เรย์นี้
  */
 export async function getTransactions(uid: string): Promise<CurrencyTransaction[]> {
-  const { data: profile } = await supabase
+  const { data: profile } = await getSupabase()
     .from('profiles')
     .select('id')
     .eq('uid', uid)
     .maybeSingle()
   if (!profile) return []
-  const { data } = await supabase
+  const { data } = await getSupabase()
     .from('currency_transactions')
     .select('*')
     .eq('profile_id', profile.id)
@@ -583,7 +688,7 @@ export async function commitLobbyBattleProgression(
     return { ok: false, error: 'ไม่พบตัวละครขุนพลสำหรับบันทึกความคืบหน้า' }
   }
 
-  const { data, error } = await supabase.rpc('commit_lobby_battle_progression', {
+  const { data, error } = await getSupabase().rpc('commit_lobby_battle_progression', {
     p_transaction_id: payload.transactionId,
     p_name: payload.player.name,
     p_title: payload.player.title,
@@ -620,7 +725,7 @@ export async function upsertPendingLobbyReward(
   result: RealtimeBattleResult,
   transactionId: string,
 ): Promise<boolean> {
-  const { error } = await supabase.rpc('upsert_pending_lobby_reward', {
+  const { error } = await getSupabase().rpc('upsert_pending_lobby_reward', {
     p_transaction_id: transactionId,
     p_stage_id: result.stageId,
     p_stage_name: result.stageName,
@@ -634,16 +739,27 @@ export async function upsertPendingLobbyReward(
   return !error
 }
 
-export async function clearPendingLobbyReward(transactionId: string): Promise<void> {
-  await supabase.rpc('clear_pending_lobby_reward', { p_transaction_id: transactionId })
+/**
+ * ลบแถวรางวัลค้าง — คืน false เมื่อลบไม่สำเร็จ
+ *
+ * เดิมทิ้งค่า error ไปเฉย ๆ (`await` เปล่า ๆ คืน void) ซึ่งทำให้แถวที่ลบไม่ผ่านกลายเป็นแถวที่
+ * ลบไม่ได้อีกเลย: รอบหน้าที่เข้าล็อบบี้ finalizeLobbyBattleRewards เห็น flag ครบแล้วจึง
+ * early-return ตั้งแต่บรรทัดแรก ซึ่งอยู่ "เหนือ" จุดที่เรียกลบ — pipeline กู้รางวัลจึงวนทำงานใหม่
+ * ทุกครั้งที่เข้าล็อบบี้ตลอดไป (ดูฝั่ง pipeline ที่ย้ายการลบขึ้นมาก่อน early-return แล้ว)
+ */
+export async function clearPendingLobbyReward(transactionId: string): Promise<boolean> {
+  const { error } = await getSupabase().rpc('clear_pending_lobby_reward', {
+    p_transaction_id: transactionId,
+  })
+  return !error
 }
 
 export async function getPendingLobbyRewards(): Promise<PendingLobbyRewardRow[]> {
-  const { data: session } = await supabase.auth.getSession()
+  const { data: session } = await getSupabase().auth.getSession()
   const userId = session.session?.user.id
   if (!userId) return []
 
-  const { data } = await supabase
+  const { data } = await getSupabase()
     .from('pending_lobby_rewards')
     .select('*')
     .eq('profile_id', userId)
@@ -669,7 +785,7 @@ export async function grantItem(
   source: ItemSource,
   refId?: string,
 ): Promise<ItemResult> {
-  const { data, error } = await supabase.rpc('grant_item', {
+  const { data, error } = await getSupabase().rpc('grant_item', {
     p_item_id: itemId,
     p_quantity: quantity,
     p_source: source,
@@ -688,7 +804,9 @@ export async function grantCharacter(
   // ผ่าน RPC เหมือน earnGold/grantItem — owned_characters ไม่มี INSERT policy ให้ authenticated
   // ตรง ๆ โดยตั้งใจ + ฟังก์ชันเองเช็ค admin_accounts อีกชั้น (0004_admin_accounts.sql) —
   // ก่อนหน้านี้ไม่มีเช็คสิทธิ์เลย เรียก RPC ตรงผ่าน devtools ได้ตัวละครฟรีทุกตัว แก้แล้ว
-  const { data, error } = await supabase.rpc('grant_character', { p_character_id: characterId })
+  const { data, error } = await getSupabase().rpc('grant_character', {
+    p_character_id: characterId,
+  })
   if (error) {
     return {
       ok: false,
@@ -718,7 +836,7 @@ export async function ascendCharacterStar(
   characterId: string,
   requestId: string,
 ): Promise<StarAscensionResult> {
-  const { data, error } = await supabase.rpc('ascend_character_star', {
+  const { data, error } = await getSupabase().rpc('ascend_character_star', {
     p_request_id: requestId,
     p_character_id: characterId,
   })
@@ -741,7 +859,7 @@ export async function ascendCharacterStar(
  * (สำหรับ dev/testing) แต่ยังเช็คสิทธิ์ admin_accounts เหมือน grantCharacter ทุกประการ
  */
 export async function grantGoldAdmin(amount: number): Promise<CurrencyResult> {
-  const { data, error } = await supabase.rpc('grant_gold_admin', { p_amount: amount })
+  const { data, error } = await getSupabase().rpc('grant_gold_admin', { p_amount: amount })
   if (error || !data) return { ok: false, error: error?.message ?? 'บันทึกข้อมูลไม่สำเร็จ' }
   const player = await loadPlayer(data.id)
   if (!player) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
@@ -750,7 +868,7 @@ export async function grantGoldAdmin(amount: number): Promise<CurrencyResult> {
 
 /** เสกไอเทมให้บัญชีผู้ดูแลเอง — เดียวกับ grantGoldAdmin แต่สำหรับไอเทม */
 export async function grantItemAdmin(itemId: string, quantity: number): Promise<ItemResult> {
-  const { data, error } = await supabase.rpc('grant_item_admin', {
+  const { data, error } = await getSupabase().rpc('grant_item_admin', {
     p_item_id: itemId,
     p_quantity: quantity,
   })
