@@ -85,8 +85,6 @@ interface LobbyPageProps {
   onGiveGoldAdmin: (amount: number) => Promise<CurrencyResult>
   /** เสกไอเทมให้บัญชีนี้ — เรียกจากคำสั่งลับในแชท (ผู้ดูแลเท่านั้น) */
   onGiveItemAdmin: (itemId: string, quantity: number) => Promise<ItemResult>
-  /** ส่งออก save เป็นไฟล์ JSON — คืน null เมื่อสำเร็จ (ดาวน์โหลดแล้ว) คืนข้อความเมื่อผิดพลาด */
-  onExportSave: () => Promise<string | null>
   /** บัญชีนี้เชื่อมกับ Google ไว้แล้วหรือยัง — โชว์ใน SettingsModal */
   hasGoogleLinked: boolean
   /** เริ่มเชื่อมบัญชีนี้กับ Google — เปลี่ยนหน้าออกไปทันทีเมื่อสำเร็จ */
@@ -115,7 +113,6 @@ export function LobbyPage({
   onGiveCharacter,
   onGiveGoldAdmin,
   onGiveItemAdmin,
-  onExportSave,
   hasGoogleLinked,
   onLinkGoogleAccount,
   isGuest,
@@ -344,7 +341,6 @@ export function LobbyPage({
           onRedeemCoupon={onRedeemCoupon}
           ownedCharacterCount={ownedCharacters.length}
           onClose={() => setSettingsOpen(false)}
-          onExportSave={onExportSave}
           hasGoogleLinked={hasGoogleLinked}
           onLinkGoogleAccount={onLinkGoogleAccount}
           isGuest={isGuest}

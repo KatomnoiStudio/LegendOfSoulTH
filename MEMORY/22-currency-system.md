@@ -149,3 +149,52 @@ Closed the free-upgrade bug the wave-1 lane could only document. Migration
 - Constraint rewrite carried the `(currency='gem' and source='gacha' and amount<0)` branch
   forward verbatim, per this file's own standing warning, and there is now a test that inserts a
   gacha debit row to prove it survived.
+
+### QC bounce on the first #26/#35 attempt — the enumeration, not the implementation
+
+All eight security properties passed and three mutations turned red; the gate still bounced it,
+because the fix was applied to an incomplete list of writers.
+
+- **I enumerated the writers of `owned_characters` from the migration HEADERS instead of opening
+  the sibling function's argument list.** `commit_lobby_battle_progression` declares
+  `p_skill_levels/p_talent_state/p_awakening_state` (20260810130000:112-114) and writes all three
+  verbatim at :256-263 with no validation — SECURITY DEFINER, so it runs as the OWNER and
+  `revoke ... from authenticated` never touched it. Measured cost of buying every upgrade through
+  that path: **0 gold**, against a catalogued price of 2,940. The revoke closed one door in a
+  room with two. **When a fix is "take the write away", the deliverable is the list of writers,
+  and the list is built by reading signatures — a header comment is a claim, not an inventory.**
+- **A deleted check is not a moved check.** Making the server authoritative killed
+  `progressionService.unlockTalent`'s prerequisite rule, and the RPC never grew one, so
+  `mk-talent-2` was purchasable with `mk-talent-1` absent. Worse, the new file's own prose
+  asserted the check existed. When authority moves, every rule that lived in the old layer has to be
+  re-listed and re-homed one at a time; "the server enforces the rules" is not a migration plan.
+- **`jsonb_set` with `create_if_missing` still needs every EARLIER path step to exist.**
+  `jsonb_set('{}','{skill2,level}',2,true)` returns `'{}'` — measured. Gold debited, ledger rows
+  written, level unmoved, and the compare-and-swap then re-reads the OLD level so the same
+  purchase is chargeable forever. Use `||` merge on the parent object instead. Every fixture had
+  the slot present, which is why it survived a green suite.
+- **`null not in (...)` is NULL, not true.** An `if` guarding only membership never fires for a
+  null key, so the input slipped past the validate-before-rate-limit block. Name null explicitly.
+- **Chose to DROP the three parameters rather than ignore them.** An ignored parameter is a
+  signature that lies, PostgREST would answer 200 to a client still sending them, and this repo
+  had already made exactly this move twice (savePlayer, #25 and #26). Dropping needs an explicit
+  `drop function` at the old arity first — `create or replace` at a different arity keeps BOTH
+  (20260810160000 F3) and PostgREST refuses to route an overloaded name at all.
+- **Traced, and reported at its measured size:** exactly ONE await (`onRecordPending`) sits
+  between the `Player` snapshot entering `finalizeLobbyBattleRewards` and the commit RPC; the
+  other five are after it. With the parameters live that one round trip could revert a paid
+  upgrade. I had first written "roughly six awaits" — wrong, and the same class of unchecked
+  claim that caused the bounce. Measure the window before describing it.
+
+### Open, recorded not fixed (QC follow-ups 4 and 6)
+
+- **~250 lines of dead client upgrade code.** `progressionService.ts` `spendCost` (:24-46) and
+  `upgradeSkill`/`unlockTalent`/`advanceAwakening` (:113-358) have no non-test importer now that
+  `HeroProgressionPanel` routes through the RPC — `applyHeroExp`, `applyHeroExpToLeadHero` and
+  `normalizePlayerProgression` in the same file ARE still used, so this is a partial deletion, not
+  a file removal. `progressionService.test.ts` still asserts client-side gold deduction: **a green
+  suite pinning the model the server now rejects.** Left in place because the gate scoped this to
+  RECORD; it is one commit's work and should not wait long.
+- **`accountRepository.ts` (localStorage backend) has no `spendProgressionUpgrade`.** The two
+  backends hand-mirror their exports with nothing catching drift — the gap the contract already
+  flags (`AGENT_BLUEPRINT.md:85`). Harmless today: nothing imports the localStorage backend.

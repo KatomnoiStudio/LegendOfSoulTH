@@ -73,24 +73,18 @@ export const LOBBY_BATTLE_REWARD_POLICY = 'ordered-partial-commit' as const
 /**
  * Stable id for one battle outcome — ties idempotency flags and earnGold refId.
  *
- * The id is DERIVED, not minted, and that is load-bearing: the reload-resume path rebuilds a
- * `RealtimeBattleResult` from the durable `pending_lobby_rewards` row and has to arrive at the
- * exact same id, or the ledger refIds stop matching and the battle is granted twice. Anything
- * that swaps this for a freshly minted id (`crypto.randomUUID()`) MUST also thread that id
- * through the pending row and the battle result itself — a bare mint here double-grants.
+ * This function NEVER mints. It is called on every finalize attempt, so a fresh id per call would
+ * defeat the very flags that stop a double grant. The id is minted once, at battle end, by
+ * `toRealtimeBattleResult` (`src/game/realtimeBattle/BattleResultAdapter.ts`) and rides on the
+ * result object from there; the reload-resume path carries the id the durable pending row was
+ * stored under. Either way the id arrives here already decided and is used verbatim, so it can
+ * never drift from the ledger rows written under it.
  *
- * A result that already carries an id (the reload-resume path now passes the one the server
- * actually stored on the pending row) uses it verbatim — no re-derivation, so the id can never
- * drift from the ledger rows that were written under it.
- *
- * Known residual (2026-08-10 audit F7): for a FRESH battle there is nothing to carry yet, and
- * the fallback derives from `finishedAt` — the client's own wall clock. A backwards clock jump
- * that reproduces a prior `finishedAt` for the same stage makes every idempotency guard dedupe
- * a genuinely new battle at once: the player wins and receives nothing. Closing it needs the id
- * minted once at battle end (`crypto.randomUUID()`) and carried on the result from there, which
- * means `RealtimeBattleResult`/`BattleResultAdapter` under `src/game/realtimeBattle/` — outside
- * this lane. Minting one HERE instead would be worse than the bug: this function is called on
- * every finalize attempt, so a fresh id per call defeats the flag guards and double-grants.
+ * The derivation below is the legacy fallback, kept only for a result built by hand (an old
+ * pending row from before the mint, a test fixture). It is the shape 2026-08-10 audit F7 named:
+ * `finishedAt` is the client's own wall clock, and a backwards jump reproducing an earlier
+ * `finishedAt` for the same stage makes every guard dedupe a genuinely new battle — the player
+ * wins and receives nothing. No production path reaches it any more; nothing should add one.
  */
 export function lobbyBattleTransactionId(result: FinalizableBattleResult): string {
   return result.transactionId ?? `lobby:${result.stageId}:${result.finishedAt}`

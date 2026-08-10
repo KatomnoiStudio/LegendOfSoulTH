@@ -59,8 +59,6 @@ interface SettingsModalProps {
   /** จำนวนตัวละครที่ผู้เล่นครอบครองแล้ว — ให้ตรงกับตัวเลขใน CharacterRosterModal */
   ownedCharacterCount: number
   onClose: () => void
-  /** ส่งออก save เป็นไฟล์ JSON — คืน null เมื่อสำเร็จ (ดาวน์โหลดแล้ว) คืนข้อความเมื่อผิดพลาด */
-  onExportSave: () => Promise<string | null>
   /** บัญชีนี้เชื่อมกับ Google ไว้แล้วหรือยัง */
   hasGoogleLinked: boolean
   /** เริ่มเชื่อมบัญชีนี้กับ Google — เปลี่ยนหน้าออกไปทันทีเมื่อสำเร็จ */
@@ -87,7 +85,6 @@ export function SettingsModal({
   onRedeemCoupon,
   ownedCharacterCount,
   onClose,
-  onExportSave,
   hasGoogleLinked,
   onLinkGoogleAccount,
   isGuest,
@@ -160,7 +157,6 @@ export function SettingsModal({
             key="info"
             onLogout={onLogout}
             ownedCharacterCount={ownedCharacterCount}
-            onExportSave={onExportSave}
             hasGoogleLinked={hasGoogleLinked}
             onLinkGoogleAccount={onLinkGoogleAccount}
             isGuest={isGuest}
@@ -212,14 +208,12 @@ export function SettingsModal({
 function GameInfoPanel({
   onLogout,
   ownedCharacterCount,
-  onExportSave,
   hasGoogleLinked,
   onLinkGoogleAccount,
   isGuest,
 }: {
   onLogout: () => Promise<void>
   ownedCharacterCount: number
-  onExportSave: () => Promise<string | null>
   hasGoogleLinked: boolean
   onLinkGoogleAccount: () => Promise<string | null>
   isGuest: boolean
@@ -284,9 +278,8 @@ function GameInfoPanel({
         </p>
       ) : (
         <p className={styles.panelNote}>
-          บัญชีนี้ผูกกับอีเมลและเก็บบนเซิร์ฟเวอร์แล้ว ล็อกอินจากเครื่อง/เบราว์เซอร์ไหนก็ได้ ข้อมูล
-          sync ให้อัตโนมัติ — ปุ่มส่งออก save ด้านล่างมีไว้สำรองไฟล์เก็บเอง
-          ไม่ใช่วิธีย้ายเครื่องหลัก
+          บัญชีนี้ผูกกับอีเมลและเก็บบนเซิร์ฟเวอร์แล้ว ล็อกอินจากเครื่อง/เบราว์เซอร์ไหนก็ได้
+          ข้อมูล sync ให้อัตโนมัติ
         </p>
       )}
 
@@ -301,17 +294,6 @@ function GameInfoPanel({
           : linking
             ? 'กำลังเชื่อมต่อ...'
             : 'เชื่อมบัญชี Google'}
-      </button>
-
-      <button
-        type="button"
-        className={styles.exportSave}
-        onClick={async () => {
-          const error = await onExportSave()
-          if (error) showToast(error, 'error')
-        }}
-      >
-        ส่งออก save เป็นไฟล์
       </button>
 
       <button type="button" className={styles.logout} onClick={() => void onLogout()}>

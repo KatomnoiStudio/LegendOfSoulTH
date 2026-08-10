@@ -470,25 +470,18 @@ export async function findPlayerByUid(uid: string): Promise<FriendCandidate | nu
  * Postgres จะตอบ 42501 → savePlayer คืน false → useAuth ย้อนการบันทึกทั้งก้อน (ทีม/เพื่อน/flags)
  * ไม่ใช่แค่ค่าความคืบหน้า — พังกว้างกว่าช่องโหว่ที่ปิดไปมาก
  *
- * ⚠️ ช่องว่างที่รู้ตัว (ยังปิดจากฝั่ง client ไม่ได้): `currency.gold` กับ `inventory`
+ * `currency.gold` กับ `inventory` ก็ส่งจากที่นี่ไม่ได้เหมือนกัน และ **นั่นถูกแล้ว**
  * ─────────────────────────────────────────────────────────────────────────────
- * progressionService.spendCost() (src/game/progression/progressionService.ts) หักทองและ
- * ไอเทมของ Player ในหน่วยความจำเวลาอัปสกิล/ปลดพรสวรรค์/ปลุกพลัง แต่ savePlayer เขียนสองอย่าง
- * นี้ไม่ได้เลย: `profiles.gold` ถูก revoke สิทธิ์ UPDATE ไปแล้ว (0009_economy_integrity_fixes)
- * และ `inventory_items` ไม่มี write policy ให้ role `authenticated` ตั้งแต่ 0001_init.sql
+ * `profiles.gold` ถูก revoke สิทธิ์ UPDATE ตั้งแต่ 0009_economy_integrity_fixes และ
+ * `inventory_items` ไม่มี write policy ให้ role `authenticated` เลยตั้งแต่ 0001_init.sql
  * (มีแต่ `select`) — เขียนได้ทางเดียวคือ RPC แบบ SECURITY DEFINER
  *
- * ผลที่เกิดจริงตอนนี้: **ผลของการอัปเกรดถูกบันทึก (skill_levels/talent_state/awakening_state)
- * แต่ค่าใช้จ่ายไม่ถูกบันทึก** → โหลดใหม่แล้วทองกลับมาเต็มพร้อมสกิลที่อัปแล้ว = อัปเกรดฟรีไม่จำกัด
- * และแถบทองบนจอโกหกจนกว่าจะรีเฟรช
- *
- * แก้ให้ถูกต้องได้ทางเดียวคือ RPC ฝั่งเซิร์ฟเวอร์ ห้ามแก้ด้วยการเปิดสิทธิ์ UPDATE คอลัมน์ทอง
- * (นั่นคือรื้อ #25 ทิ้ง) — ข้อเสนอที่เล็กที่สุดคือ RPC ตัวเดียวชื่อ `spend_progression_cost(
- * p_request_id uuid, p_hero_id text, p_upgrade text, p_gold int, p_materials jsonb)` ที่
- * (1) หักทองแบบ atomic พร้อมกันกับหักไอเทม (2) ปฏิเสธถ้ายอดไม่พอ (3) idempotent ตาม
- * p_request_id เหมือน ascend_character_star/perform_gacha_pull ที่มีอยู่แล้ว และ (4) เขียน
- * currency_transactions ฝั่งจ่ายออกไว้เป็นหลักฐาน ทั้งหมดนี้ต้องมากับ migration จึงอยู่นอก
- * ขอบเขตของเลนนี้ — ผูกกับงาน #26 (skill/talent server authority)
+ * เดิมคอมเมนต์ตรงนี้บรรยายว่า "อัปเกรดฟรีไม่จำกัด" เป็นสภาพปัจจุบัน และเสนอให้สร้าง RPC
+ * หักเงินขึ้นมา — **ปิดไปแล้วทั้งคู่** ตั้งแต่ 20260810180000: `spend_progression_upgrade`
+ * หักทองพร้อมเขียนผลอัปเกรดใน transaction เดียว โดยอ่านราคาจาก `progression_cost_catalog`
+ * ที่ client แตะไม่ได้ ส่วน inventory ยังเป็นฝั่งรับอย่างเดียว (`grant_item`) เพราะยังไม่มี
+ * ราคาไหนใช้วัสดุ — progressionCostParity.test.ts ตรึงข้อนี้ไว้ และ planUpgrade() ปฏิเสธ
+ * คำขอที่มีวัสดุแทนที่จะเก็บแต่ทอง
  */
 export async function savePlayer(player: Player): Promise<boolean> {
   const supabase = getSupabase()
@@ -520,10 +513,18 @@ export async function savePlayer(player: Player): Promise<boolean> {
     การบันทึกทั้งก้อน (ทีม/เพื่อน/flags) ไม่ใช่แค่ค่าอัปเกรด — เหตุผลเดียวกับที่ #25 ต้องเอา
     level/exp/exp_to_next ออกจากฝั่ง profiles
 
-    ทุกทางเขียนของตารางนี้ตอนนี้เป็น SECURITY DEFINER ทั้งหมด:
-      level/exp/exp_to_next         → commit_lobby_battle_progression (20260810130000)
+    ทุกทางเขียนของตารางนี้เป็น SECURITY DEFINER ทั้งหมด:
+      level/exp/exp_to_next         → commit_lobby_battle_progression
       star/shards                   → ascend_character_star (20260808204905)
       skill/talent/awakening        → spend_progression_upgrade (20260810180000)
+
+    ⚠ ประโยคข้างบนเป็นจริง "หลัง 20260810180000 §6" เท่านั้น ไม่ใช่หลัง revoke อย่างเดียว —
+    ฉบับก่อนของคอมเมนต์นี้เขียนเหมือนว่า revoke ปิดครบแล้ว ซึ่งไม่จริง:
+    `commit_lobby_battle_progression` (20260810130000:112-114) รับ p_skill_levels/p_talent_state/
+    p_awakening_state แล้วเขียนลงตรง ๆ ที่ :256-263 โดยไม่ตรวจอะไรเลย และเป็น SECURITY DEFINER
+    (รันด้วยสิทธิ์เจ้าของ) revoke ของ client จึงไม่แตะมัน — ช่องอัปเกรดฟรียังเปิดอยู่ทั้งรอบ QC
+    §6 ของ migration นั้นตัดสามพารามิเตอร์ทิ้ง (ไม่ใช่แค่เลิกเขียน) และ commitLobbyBattleProgression
+    ด้านล่างเลิกส่งไปด้วย
   */
 
   /*
@@ -704,9 +705,18 @@ export async function commitLobbyBattleProgression(
     p_hero_level: lead.level,
     p_hero_exp: lead.exp,
     p_hero_exp_to_next: lead.expToNext,
-    p_skill_levels: lead.skillLevels,
-    p_talent_state: lead.talentState ?? { unlockedNodes: [] },
-    p_awakening_state: lead.awakeningState ?? { tier: 0, unlockedEffects: [] },
+    /*
+      ห้ามส่ง p_skill_levels/p_talent_state/p_awakening_state กลับเข้ามาอีก — พารามิเตอร์สามตัวนี้
+      ถูก "ตัดออกจาก signature" ใน 20260810180000 §6 ไม่ใช่แค่เลิกเขียน ใส่กลับ = PGRST202
+
+      เดิม RPC นี้เขียนสามคอลัมน์นั้นตรง ๆ โดยไม่ตรวจอะไรเลย ทั้งที่เป็น SECURITY DEFINER —
+      แปลว่าอัปสกิล/พรสวรรค์/ปลุกพลังครบทุกช่องได้ฟรีผ่านทางนี้ (วัดจริง: มูลค่า 2,940 ทอง
+      บัญชีใหม่มี 500) และยังมีอีกทางหนึ่ง: `finalizeLobbyBattleRewards` รับ Player เป็น argument
+      แล้วมี await คั่นก่อนเรียก RPC นี้ **หนึ่งจังหวะ** (onRecordPending — วัดแล้ว ไม่ใช่หลายจังหวะ
+      ตามที่ร่างแรกเขียนไว้; อีกห้า await อยู่หลัง commit ทั้งหมด) และ battleOpen/rosterOpen ใน
+      LobbyPage เป็น boolean แยกกัน เปิดพร้อมกันได้ ถ้าผู้เล่นอัปเกรดในจังหวะนั้น commit จะเขียน
+      สกิลระดับเก่าทับของที่เพิ่งจ่ายเงินไป — เสียทองแล้วอัปเกรดหาย เงียบสนิท ช่องแคบ แต่ไม่ใช่ปิด
+    */
     p_battle_external_id: payload.battle.externalId,
     p_opponent: payload.battle.opponent,
     p_battle_result: payload.battle.result,
@@ -940,13 +950,6 @@ export async function grantItemAdmin(itemId: string, quantity: number): Promise<
   const player = await loadPlayer(data.id)
   if (!player) return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ' }
   return { ok: true, player }
-}
-
-/** exportSave: ยังไม่มีความหมายเดิมกับ Supabase (ไม่มี localStorage ให้ย้ายออก) */
-export async function exportSave(): Promise<
-  { ok: true; json: string } | { ok: false; error: string }
-> {
-  return { ok: false, error: 'ฟีเจอร์นี้ใช้กับบัญชี Supabase ไม่ได้ — ข้อมูลอยู่บนเซิร์ฟเวอร์แล้ว' }
 }
 
 // Type-level assertion to ensure this file's exports satisfy the common repository interface subset

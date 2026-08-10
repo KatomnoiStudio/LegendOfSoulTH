@@ -190,6 +190,13 @@ export interface BattleObjectiveSnapshot {
 
 /** ผลการต่อสู้ของระบบ real-time — แปลงเป็น contract เดิมด้วย BattleResultAdapter */
 export interface RealtimeBattleResult {
+  /**
+   * รหัสรายการที่ผูกรางวัลชุดนี้ — minted once at battle end by BattleResultAdapter.
+   *
+   * Optional only because a result rebuilt from a durable pending row carries the id the row was
+   * stored under, and older rows may predate it. Every freshly finished battle has one.
+   */
+  transactionId?: string
   outcome: 'victory' | 'defeat'
   stageId: string
   stageName: string

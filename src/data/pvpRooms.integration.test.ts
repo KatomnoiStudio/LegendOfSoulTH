@@ -172,7 +172,9 @@ describe('P12 private PvP room authority migration (isolated Postgres via PGLite
     )
     const roomId = room.rows[0]!.id
     await setAuthenticatedUser(db, THIRD)
-    await db.exec(`select set_config('realtime.topic', 'pvp:${roomId}', false); set role authenticated;`)
+    await db.exec(
+      `select set_config('realtime.topic', 'pvp:${roomId}', false); set role authenticated;`,
+    )
     try {
       const hidden = await db.query(`select id from public.pvp_rooms where id = $1`, [roomId])
       expect(hidden.rows).toHaveLength(0)
@@ -263,9 +265,10 @@ describe('P12 private PvP room authority migration (isolated Postgres via PGLite
     const matchId = result.rows[0]!.match_id
     await db.query(`delete from public.profiles where id = $1`, [HOST])
     const room = await db.query(`select id from public.pvp_rooms where id = $1`, [matchId])
-    const audit = await db.query(`select match_id from public.pvp_match_results where match_id = $1`, [
-      matchId,
-    ])
+    const audit = await db.query(
+      `select match_id from public.pvp_match_results where match_id = $1`,
+      [matchId],
+    )
     expect(room.rows).toHaveLength(0)
     expect(audit.rows).toHaveLength(1)
   })
@@ -282,9 +285,10 @@ describe('P12 private PvP room authority migration (isolated Postgres via PGLite
       `select id from public.create_private_pvp_room('monkey-king')`,
     )
     const roomId = created.rows[0]!.id
-    await db.query(`update public.pvp_rooms set expires_at = now() - interval '1 second' where id = $1`, [
-      roomId,
-    ])
+    await db.query(
+      `update public.pvp_rooms set expires_at = now() - interval '1 second' where id = $1`,
+      [roomId],
+    )
 
     const reaped = await db.query<{ count: string }>(
       `select private.reap_expired_pvp_rooms()::text as count`,

@@ -453,6 +453,218 @@ describe('spend_progression_upgrade — the cost side is server-authoritative', 
     ).rejects.toThrow()
   })
 
+  /*
+    QC bounce, 2026-08-10. The first version of this file closed savePlayer's path and declared
+    the job done — enumerating the writers of owned_characters from the migration HEADERS instead
+    of opening the sibling function's argument list. commit_lobby_battle_progression declared
+    p_skill_levels/p_talent_state/p_awakening_state and wrote all three verbatim, SECURITY
+    DEFINER, so the client revoke never touched it. The gate's PROBE-A bought every upgrade in
+    the game for zero gold through the battle-commit path.
+
+    These are that probe, kept as the regression.
+  */
+  describe('PROBE-A: the battle-commit path cannot grant an upgrade', () => {
+    it('no longer accepts the three progression columns as arguments', async () => {
+      const args = await db.query<{ args: string }>(
+        `select pg_get_function_arguments(p.oid) as args
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = 'commit_lobby_battle_progression'`,
+      )
+
+      // Exactly ONE overload must exist. `create or replace` at a different arity KEEPS both
+      // (20260810160000 F3), and PostgREST refuses to route an overloaded name at all.
+      expect(args.rows).toHaveLength(1)
+      expect(args.rows[0].args).not.toMatch(/p_skill_levels|p_talent_state|p_awakening_state/)
+    })
+
+    it('leaves skills, talents and awakening exactly as they were, for free', async () => {
+      const before = await db.query<{
+        gold: number
+        skills: string
+        talents: string
+        tier: number
+      }>(
+        `select p.gold,
+                o.skill_levels::text as skills,
+                o.talent_state::text as talents,
+                (o.awakening_state ->> 'tier')::int as tier
+         from public.profiles p
+         join public.owned_characters o on o.profile_id = p.id
+         where p.id = $1 and o.character_id = 'monkey-king'`,
+        [TEST_USER],
+      )
+
+      // The 18-argument call the fixed client makes. There is no way to spell the old one.
+      await db.query(
+        `select * from public.commit_lobby_battle_progression(
+           $1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::text[],$10,$11,$12,$13,$14,$15,$16,$17,$18::timestamptz
+         )`,
+        [
+          'probe-a-tx',
+          'Tester',
+          'นักเดินทาง',
+          1,
+          10,
+          100,
+          'default',
+          '{}',
+          '{}',
+          'monkey-king',
+          12,
+          20,
+          100,
+          'battle-probe-a',
+          'ทดสอบ',
+          'win',
+          12_000,
+          '2026-08-10T09:00:00.000Z',
+        ],
+      )
+
+      const after = await db.query<{ gold: number; skills: string; talents: string; tier: number }>(
+        `select p.gold,
+                o.skill_levels::text as skills,
+                o.talent_state::text as talents,
+                (o.awakening_state ->> 'tier')::int as tier
+         from public.profiles p
+         join public.owned_characters o on o.profile_id = p.id
+         where p.id = $1 and o.character_id = 'monkey-king'`,
+        [TEST_USER],
+      )
+
+      // Gold moved for nothing, and none of the three progression columns changed.
+      expect(after.rows[0].gold).toBe(before.rows[0].gold)
+      expect(after.rows[0].skills).toBe(before.rows[0].skills)
+      expect(after.rows[0].talents).toBe(before.rows[0].talents)
+      expect(after.rows[0].tier).toBe(before.rows[0].tier)
+    })
+
+    it('still does its own job — hero level and battle history commit', async () => {
+      const hero = await db.query<{ level: number }>(
+        `select level from public.owned_characters
+         where profile_id = $1 and character_id = 'monkey-king'`,
+        [TEST_USER],
+      )
+      expect(hero.rows[0].level).toBe(12)
+
+      const history = await db.query<{ n: number }>(
+        `select count(*)::int as n from public.battle_history
+         where profile_id = $1 and external_id = 'battle-probe-a'`,
+        [TEST_USER],
+      )
+      expect(history.rows[0].n).toBe(1)
+    })
+  })
+
+  it('PROBE-C: a talent with an unmet prerequisite is refused', async () => {
+    // TALENT_NODE_FIXTURES: mk-talent-2 requires mk-talent-1. progressionService enforced that
+    // and its path is dead, so the rule has to be here or it exists nowhere. For one QC round
+    // it existed nowhere and tier 2 was purchasable outright.
+    await db.exec(
+      `update public.owned_characters
+       set talent_state = '{"unlockedNodes":[]}'::jsonb
+       where profile_id = '${TEST_USER}' and character_id = 'monkey-king'`,
+    )
+    const before = await gold()
+
+    await expect(
+      spend('aaaaaaaa-aaaa-4aaa-8aaa-00000000000a', 'monkey-king', 'talent', 'mk-talent-2', 0),
+    ).rejects.toThrow(/ต้องปลดล็อก mk-talent-1 ก่อน/)
+
+    expect(await gold()).toBe(before)
+
+    // ...and it succeeds once the prerequisite is actually held.
+    await spend('aaaaaaaa-aaaa-4aaa-8aaa-00000000000b', 'monkey-king', 'talent', 'mk-talent-1', 0)
+    const row = await spend(
+      'aaaaaaaa-aaaa-4aaa-8aaa-00000000000c',
+      'monkey-king',
+      'talent',
+      'mk-talent-2',
+      0,
+    )
+    expect(row.gold_spent).toBe(60)
+  })
+
+  it('an ABSENT skill slot is seeded, not silently skipped after charging', async () => {
+    /*
+      `jsonb_set` with create_if_missing still needs every EARLIER path step to exist, so
+      jsonb_set('{}', '{skill2,level}', 2, true) returns '{}' unchanged. With that shape the gold
+      is debited, both ledger rows are written, the level never moves — and the compare-and-swap
+      then still reads the old level, so the same purchase is chargeable again forever.
+
+      No fixture had an absent slot, which is exactly why it survived the first round.
+    */
+    await db.exec(
+      `update public.owned_characters
+       set skill_levels = '{}'::jsonb
+       where profile_id = '${TEST_USER}' and character_id = 'pig-warrior'`,
+    )
+    const before = await gold()
+
+    const row = await spend(
+      'aaaaaaaa-aaaa-4aaa-8aaa-00000000000d',
+      'pig-warrior',
+      'skill',
+      'skill1',
+      1,
+    )
+
+    expect(row.gold_spent).toBe(45)
+    expect(await gold()).toBe(before - 45)
+    // The level actually moved — this is the assertion that fails on the jsonb_set version.
+    expect(await skillLevel('pig-warrior', 'skill1')).toBe(2)
+
+    // And the charge cannot repeat, because the CAS now sees the new level.
+    await expect(
+      spend('aaaaaaaa-aaaa-4aaa-8aaa-00000000000e', 'pig-warrior', 'skill', 'skill1', 1),
+    ).rejects.toThrow(/สถานะฮีโร่เปลี่ยนไปแล้ว/)
+  })
+
+  it('preserves the rest of a slot object when raising its level', async () => {
+    await db.exec(
+      `update public.owned_characters
+       set skill_levels = '{"skill1":{"level":1,"exp":42,"expToNext":300}}'::jsonb
+       where profile_id = '${TEST_USER}' and character_id = 'pig-warrior'`,
+    )
+
+    await spend('aaaaaaaa-aaaa-4aaa-8aaa-00000000000f', 'pig-warrior', 'skill', 'skill1', 1)
+
+    const slot = await db.query<{ exp: number; to_next: number; level: number }>(
+      `select (skill_levels -> 'skill1' ->> 'exp')::int as exp,
+              (skill_levels -> 'skill1' ->> 'expToNext')::int as to_next,
+              (skill_levels -> 'skill1' ->> 'level')::int as level
+       from public.owned_characters where profile_id = $1 and character_id = 'pig-warrior'`,
+      [TEST_USER],
+    )
+    expect(slot.rows[0]).toEqual({ exp: 42, to_next: 300, level: 2 })
+  })
+
+  it('a NULL upgrade key is rejected by the pre-rate-limit validation', async () => {
+    /*
+      `null not in (...)` is NULL, not true, so an `if` guarding only the membership test never
+      fires — the call slipped past validation and was rejected later, after taking rate-limit
+      budget. Three-valued logic defeats the property silently unless null is named.
+    */
+    const source = await db.query<{ src: string }>(
+      `select p.prosrc as src from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and p.proname = 'spend_progression_upgrade'`,
+    )
+    const body = source.rows[0].src
+    expect(body.indexOf('p_upgrade_key is null')).toBeLessThan(
+      body.indexOf('check_and_log_rpc_rate_limit'),
+    )
+
+    await expect(
+      db.query('select * from public.spend_progression_upgrade($1::uuid,$2,$3,$4,$5::int)', [
+        'aaaaaaaa-aaaa-4aaa-8aaa-000000000010',
+        'monkey-king',
+        'skill',
+        null,
+        1,
+      ]),
+    ).rejects.toThrow(/คีย์การอัปเกรดไม่ถูกต้อง/)
+  })
+
   it('is re-runnable — a double paste of the whole file is safe', async () => {
     // The owner relays migrations by hand; retry-after-interruption is a real scenario.
     await applyMigration(MIGRATION)

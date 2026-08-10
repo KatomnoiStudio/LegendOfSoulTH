@@ -47,7 +47,6 @@ export default function App() {
     getPendingLobbyRewards,
     pullGacha,
     spendProgressionUpgrade,
-    exportSave,
   } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
 
@@ -183,7 +182,6 @@ export default function App() {
             onGiveCharacter={grantCharacter}
             onGiveGoldAdmin={grantGoldAdmin}
             onGiveItemAdmin={grantItemAdmin}
-            onExportSave={exportSave}
             hasGoogleLinked={hasGoogleLinked}
             onLinkGoogleAccount={linkGoogleAccount}
             isGuest={isGuest}

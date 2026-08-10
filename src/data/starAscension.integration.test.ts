@@ -9,6 +9,19 @@ const MIGRATION = '20260808204905_p9_star_ascension_server_authority.sql'
 const HARDENING = '20260810130000_security_harden_lobby_progression_rpc.sql'
 /** 2026-08-10 audit wave 1 (F1-F8) — guest-cleanup inactivity, EXECUTE sweep, item catalog. */
 const WAVE1 = '20260810160000_security_audit_hardening_wave1.sql'
+/** Reconciles cleanup_dead_unplayed_accounts with prod and closes its deletion defect. */
+const DEAD_RECONCILE = '20260810170000_security_reconcile_dead_account_cleanup.sql'
+/** #26/#35 — drops the progression-column parameters from the commit RPC (system-22 lane). */
+const COST_AUTHORITY = '20260810180000_p26_progression_cost_authority.sql'
+
+// Registered-account fixtures for the dead-account reconcile. All five are 40 days old and
+// have NEVER battled — i.e. every one of them is deleted by the body running on production.
+// What separates them is the guard each one trips.
+const REG_RECENT_SIGNIN = '33333333-3333-4333-8333-333333333301'
+const REG_PAID = '33333333-3333-4333-8333-333333333302'
+const REG_EXEMPT = '33333333-3333-4333-8333-333333333303'
+const REG_SPENDER = '33333333-3333-4333-8333-333333333304'
+const REG_DEAD = '33333333-3333-4333-8333-333333333305'
 
 // Guest-cleanup fixtures (F1). All three are 40 days old; what differs is ACTIVITY.
 const GUEST_ACTIVE = '22222222-2222-4222-8222-222222222201'
@@ -16,7 +29,7 @@ const GUEST_STALE = '22222222-2222-4222-8222-222222222202'
 const GUEST_EXEMPT = '22222222-2222-4222-8222-222222222203'
 const COMMIT_RPC =
   'public.commit_lobby_battle_progression(text,text,text,int,int,int,text,jsonb,text[],' +
-  'text,int,int,int,jsonb,jsonb,jsonb,text,text,text,int,timestamptz)'
+  'text,int,int,int,text,text,text,int,timestamptz)'
 
 interface AscensionRow {
   new_star: number
@@ -51,7 +64,7 @@ async function commitProgression(db: PGlite, commit: ProgressionCommit): Promise
   await db.query(
     `select * from public.commit_lobby_battle_progression(
       $1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::text[],$10,$11,$12,$13,
-      $14::jsonb,$15::jsonb,$16::jsonb,$17,$18,$19,$20,$21::timestamptz
+      $14,$15,$16,$17,$18::timestamptz
     )`,
     [
       commit.transactionId,
@@ -67,9 +80,6 @@ async function commitProgression(db: PGlite, commit: ProgressionCommit): Promise
       commit.heroLevel,
       20,
       commit.heroExpToNext ?? 100,
-      '{}',
-      JSON.stringify({ unlockedNodes: [] }),
-      JSON.stringify({ tier: 0, unlockedEffects: [] }),
       `battle-${commit.transactionId}`,
       'ทดสอบ',
       'win',
@@ -113,6 +123,16 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
         ('${GUEST_ACTIVE}', true, now() - interval '40 days', now() - interval '40 days'),
         ('${GUEST_STALE}', true, now() - interval '40 days', now() - interval '40 days'),
         ('${GUEST_EXEMPT}', true, now() - interval '40 days', now() - interval '40 days')
+      on conflict do nothing;
+
+      -- Registered fixtures: all 40 days old, all never-battled, so the DEPLOYED prod body
+      -- deletes all five. Only REG_DEAD should survive the reconciled predicate's guards.
+      insert into auth.users (id, is_anonymous, created_at, last_sign_in_at) values
+        ('${REG_RECENT_SIGNIN}', false, now() - interval '40 days', now() - interval '2 days'),
+        ('${REG_PAID}', false, now() - interval '40 days', now() - interval '40 days'),
+        ('${REG_EXEMPT}', false, now() - interval '40 days', now() - interval '40 days'),
+        ('${REG_SPENDER}', false, now() - interval '40 days', now() - interval '40 days'),
+        ('${REG_DEAD}', false, now() - interval '40 days', now() - interval '40 days')
       on conflict do nothing;
 
       -- 0014 seeds cleanup_exempt_profiles with three fixed dev-account uuids that FK into
@@ -183,7 +203,13 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
         ('${GUEST_EXEMPT}', '2000000003', 'GuestExempt'),
         ('e79a973f-fd52-4b84-8e6a-c53a0394db88', '2000000004', 'DevA'),
         ('d0a7b94f-5d95-4e52-8d8f-ebdd835cf695', '2000000005', 'DevB'),
-        ('9baf5833-89d4-401e-9ece-14e46a27a228', '2000000006', 'DevSmoke');
+        ('9baf5833-89d4-401e-9ece-14e46a27a228', '2000000006', 'DevSmoke'),
+        ('${REG_RECENT_SIGNIN}', '3000000001', 'RegRecentSignin'),
+        ('${REG_PAID}', '3000000002', 'RegPaid'),
+        ('${REG_EXEMPT}', '3000000003', 'RegExempt'),
+        ('${REG_SPENDER}', '3000000004', 'RegSpender'),
+        ('${REG_DEAD}', '3000000005', 'RegDead');
+
 
       -- Activity: the ACTIVE guest battled 2 days ago; the STALE and EXEMPT guests' only
       -- battle is 40 days old. All other signals (sign-in, currency) are 40 days stale.
@@ -231,9 +257,35 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
     await db.exec(`
       -- Exempt the third guest via the mechanism 0014 ships (and WAVE1's guest job honours).
       insert into public.cleanup_exempt_profiles (profile_id, reason)
-      values ('${GUEST_EXEMPT}', 'F1 test: stale but explicitly exempt')
+      values ('${GUEST_EXEMPT}', 'F1 test: stale but explicitly exempt'),
+             ('${REG_EXEMPT}', 'reconcile test: dead but explicitly exempt')
       on conflict (profile_id) do nothing;
+
+      -- Currency signals for the registered fixtures. Seeded here, after 20260810100000, whose
+      -- constraint is the one that admits source 'signup'. REG_PAID topped up long ago (never
+      -- deletable at any age); REG_SPENDER earned recently (active). EVERY registered fixture
+      -- carries the 'signup' row that migration's backfill stamps on every account — which must
+      -- NOT read as activity, or the recency guard is inert for 30 days after it lands.
+      insert into public.currency_transactions (profile_id, currency, source, amount, ref_id, created_at)
+      values
+        ('${REG_RECENT_SIGNIN}', 'gold', 'signup', 500, 'signup', now() - interval '1 day'),
+        ('${REG_PAID}', 'gold', 'signup', 500, 'signup', now() - interval '1 day'),
+        ('${REG_EXEMPT}', 'gold', 'signup', 500, 'signup', now() - interval '1 day'),
+        ('${REG_SPENDER}', 'gold', 'signup', 500, 'signup', now() - interval '1 day'),
+        ('${REG_DEAD}', 'gold', 'signup', 500, 'signup', now() - interval '1 day'),
+        ('${REG_PAID}', 'gem', 'topup', 100, 'topup-old', now() - interval '200 days'),
+        ('${REG_SPENDER}', 'gold', 'quest', 25, 'quest-recent', now() - interval '3 days');
     `)
+
+    await applyMigration(db, DEAD_RECONCILE)
+    /*
+      Task #26/#35 (system-22 lane). Applied here because it REPLACES
+      commit_lobby_battle_progression: the three progression-column parameters are dropped, so a
+      chain that stopped at WAVE1 would keep asserting a 21-argument function that production no
+      longer has. Its own properties are covered in progressionCostAuthority.integration.test.ts;
+      this file only needs the shape it changes.
+    */
+    await applyMigration(db, COST_AUTHORITY)
 
     await db.exec(`
       update public.owned_characters set shards = 5 where character_id = 'monkey-king';
@@ -441,8 +493,13 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
       // ...without over-reaching into what savePlayer still legitimately writes.
       profile_name: true,
       profile_flags: true,
-      // skill_levels stays client-writable on purpose — that is F2 / task #26, not this topic.
-      hero_skill_levels: true,
+      /*
+        Was `true` with the comment "stays client-writable on purpose — that is F2 / task #26,
+        not this topic." Task #26 landed (20260810180000): the client holds NO writable column on
+        owned_characters any more, and the commit RPC no longer takes the three progression
+        columns as parameters either. Flipping this back to true reopens the free upgrade.
+      */
+      hero_skill_levels: false,
       commit_ledger_rls: true,
       authenticated_can_commit: true,
       anon_can_commit: false,
@@ -777,6 +834,105 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
       `select count(*)::text as count from auth.users where id = '${TEST_USER}'`,
     )
     expect(tester.rows[0]?.count).toBe('1')
+  })
+
+  it('reconcile: the production predicate would have deleted every registered fixture', async () => {
+    // The body running on production, counted rather than installed — this is the blast radius
+    // the reconcile exists to shrink, measured against the same rows the next test uses.
+    const doomed = await db.query<{ count: string }>(`
+      select count(*)::text as count from auth.users u
+      where u.is_anonymous is false
+        and u.created_at < now() - interval '30 days'
+        and not exists (select 1 from public.battle_history bh where bh.profile_id = u.id)
+        and u.id in (
+          '${REG_RECENT_SIGNIN}', '${REG_PAID}', '${REG_EXEMPT}', '${REG_SPENDER}', '${REG_DEAD}'
+        )
+    `)
+    expect(doomed.rows[0]?.count).toBe('5')
+  })
+
+  it('reconcile: dead-account cleanup spares recent sign-in, payers, exempt, and spenders', async () => {
+    await db.query(`select public.cleanup_dead_unplayed_accounts()`)
+
+    const survivors = await db.query<{ id: string }>(`
+      select id::text as id from auth.users
+      where id in (
+        '${REG_RECENT_SIGNIN}', '${REG_PAID}', '${REG_EXEMPT}', '${REG_SPENDER}', '${REG_DEAD}'
+      )
+      order by id
+    `)
+    // Only the genuinely dead account goes. Each of the other four trips a different guard the
+    // deployed body never had: recent sign-in, any topup ever, the exempt table, recent spend.
+    expect(survivors.rows.map((r) => r.id)).toEqual([
+      REG_RECENT_SIGNIN,
+      REG_PAID,
+      REG_EXEMPT,
+      REG_SPENDER,
+    ])
+
+    // The deleted account cascaded; nobody else did.
+    const profiles = await db.query<{ count: string }>(
+      `select count(*)::text as count from public.profiles where id = '${REG_DEAD}'`,
+    )
+    expect(profiles.rows[0]?.count).toBe('0')
+
+    // Guests are not this job's business — the guest fixtures are untouched by it.
+    const guests = await db.query<{ count: string }>(
+      `select count(*)::text as count from auth.users where is_anonymous is true`,
+    )
+    expect(Number(guests.rows[0]?.count)).toBeGreaterThan(0)
+  })
+
+  it('reconcile: a signup ledger row alone never counts as activity', async () => {
+    // 20260810100000's backfill stamped a 'signup' row onto every pre-existing account at APPLY
+    // time. If the recency guard counted it, every account would read active for 30 days and
+    // BOTH cleanup jobs would be silently inert. REG_DEAD had exactly that row and one other
+    // signal short of nothing — and it was still collected by the test above, which is the
+    // proof. Pin the exclusion explicitly so a future edit cannot drop `source <> 'signup'`.
+    for (const fn of ['cleanup_dead_unplayed_accounts', 'cleanup_stale_guest_accounts']) {
+      const def = await db.query<{ src: string }>(
+        `select pg_get_functiondef(p.oid) as src from pg_proc p
+         join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = '${fn}'`,
+      )
+      expect({ fn, excludesSignup: def.rows[0]?.src.includes("source <> 'signup'") }).toEqual({
+        fn,
+        excludesSignup: true,
+      })
+    }
+  })
+
+  it('reconcile: both cleanup jobs carry all four guards (anti-drift)', async () => {
+    // The two jobs deliberately do NOT share a predicate helper — their core criteria differ
+    // (the guest job reaps DORMANCY, this one reaps NEVER-ENGAGED, see the migration header).
+    // What must never diverge again is the guard set, which is exactly what drifted when
+    // 0014's follow-up commits never reached production. Assert sameness where it matters
+    // instead of coupling the policies structurally.
+    const guards = [
+      'last_sign_in_at',
+      'cleanup_exempt_profiles',
+      "source = 'topup'",
+      "source <> 'signup'",
+    ]
+    for (const fn of ['cleanup_dead_unplayed_accounts', 'cleanup_stale_guest_accounts']) {
+      const def = await db.query<{ src: string }>(
+        `select pg_get_functiondef(p.oid) as src from pg_proc p
+         join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname = '${fn}'`,
+      )
+      const src = def.rows[0]?.src ?? ''
+      const missing = guards.filter((g) => !src.includes(g))
+      expect({ fn, missing }).toEqual({ fn, missing: [] })
+    }
+  })
+
+  it('reconcile: the deletion job stays revoked from every live role', async () => {
+    for (const role of ['public', 'anon', 'authenticated']) {
+      const priv = await db.query<{ ok: boolean }>(
+        `select has_function_privilege('${role}', 'public.cleanup_dead_unplayed_accounts()', 'EXECUTE') as ok`,
+      )
+      expect({ role, canCall: priv.rows[0]?.ok }).toEqual({ role, canCall: false })
+    }
   })
 
   it('rejects invalid star and shard values at the database boundary', async () => {

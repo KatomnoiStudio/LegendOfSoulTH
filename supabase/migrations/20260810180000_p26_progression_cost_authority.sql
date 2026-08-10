@@ -73,8 +73,17 @@ create table if not exists public.progression_cost_catalog (
   -- the level/tier being upgraded FROM. Talent nodes are a one-shot unlock, so 0.
   from_level int not null check (from_level >= 0),
   gold_cost int not null check (gold_cost >= 0),
+  -- Talent nodes only: the node that must already be unlocked. NULL for everything else.
+  -- progressionService.ts enforced this client-side and that path is now dead, so the rule has
+  -- to live where the authority does or it does not exist at all — which is exactly what
+  -- happened for one QC round (mk-talent-2 was purchasable with mk-talent-1 absent).
+  prerequisite_key text,
   primary key (upgrade_kind, hero_id, upgrade_key, from_level)
 );
+
+-- Re-runnable on a database that already has the pre-prerequisite shape of this table.
+alter table public.progression_cost_catalog
+  add column if not exists prerequisite_key text;
 
 -- Same zero-policy lockdown as item_catalog (20260810160000:144), rpc_rate_limit (0011) and
 -- lobby_progression_commits (20260810130000): RLS on, every grant revoked, read only from
@@ -89,38 +98,39 @@ revoke all on public.progression_cost_catalog from public, anon, authenticated;
 --   from_level below is the array index + 1.
 -- `on conflict do update` (not `do nothing`) so a re-paste after a price edit converges rather
 -- than silently keeping the old number.
-insert into public.progression_cost_catalog (upgrade_kind, hero_id, upgrade_key, from_level, gold_cost)
+insert into public.progression_cost_catalog
+  (upgrade_kind, hero_id, upgrade_key, from_level, gold_cost, prerequisite_key)
 values
   -- monkey-king skill1: [50, 80, 120, 180], maxLevel 5
-  ('skill', 'monkey-king', 'skill1', 1, 50),
-  ('skill', 'monkey-king', 'skill1', 2, 80),
-  ('skill', 'monkey-king', 'skill1', 3, 120),
-  ('skill', 'monkey-king', 'skill1', 4, 180),
+  ('skill', 'monkey-king', 'skill1', 1, 50, null),
+  ('skill', 'monkey-king', 'skill1', 2, 80, null),
+  ('skill', 'monkey-king', 'skill1', 3, 120, null),
+  ('skill', 'monkey-king', 'skill1', 4, 180, null),
   -- monkey-king skill2: [40, 70, 100, 150], maxLevel 5
-  ('skill', 'monkey-king', 'skill2', 1, 40),
-  ('skill', 'monkey-king', 'skill2', 2, 70),
-  ('skill', 'monkey-king', 'skill2', 3, 100),
-  ('skill', 'monkey-king', 'skill2', 4, 150),
+  ('skill', 'monkey-king', 'skill2', 1, 40, null),
+  ('skill', 'monkey-king', 'skill2', 2, 70, null),
+  ('skill', 'monkey-king', 'skill2', 3, 100, null),
+  ('skill', 'monkey-king', 'skill2', 4, 150, null),
   -- monkey-king skill3: [40, 70, 100, 150], maxLevel 5
-  ('skill', 'monkey-king', 'skill3', 1, 40),
-  ('skill', 'monkey-king', 'skill3', 2, 70),
-  ('skill', 'monkey-king', 'skill3', 3, 100),
-  ('skill', 'monkey-king', 'skill3', 4, 150),
+  ('skill', 'monkey-king', 'skill3', 1, 40, null),
+  ('skill', 'monkey-king', 'skill3', 2, 70, null),
+  ('skill', 'monkey-king', 'skill3', 3, 100, null),
+  ('skill', 'monkey-king', 'skill3', 4, 150, null),
   -- monkey-king ultimate: [100, 200], maxLevel 3
-  ('skill', 'monkey-king', 'ultimate', 1, 100),
-  ('skill', 'monkey-king', 'ultimate', 2, 200),
+  ('skill', 'monkey-king', 'ultimate', 1, 100, null),
+  ('skill', 'monkey-king', 'ultimate', 2, 200, null),
   -- pig-warrior skill1: [45, 90], maxLevel 3
-  ('skill', 'pig-warrior', 'skill1', 1, 45),
-  ('skill', 'pig-warrior', 'skill1', 2, 90),
+  ('skill', 'pig-warrior', 'skill1', 1, 45, null),
+  ('skill', 'pig-warrior', 'skill1', 2, 90, null),
   -- TALENT_NODE_FIXTURES
-  ('talent', 'monkey-king', 'mk-talent-1', 0, 30),
-  ('talent', 'monkey-king', 'mk-talent-2', 0, 60),
+  ('talent', 'monkey-king', 'mk-talent-1', 0, 30, null),
+  ('talent', 'monkey-king', 'mk-talent-2', 0, 60, 'mk-talent-1'),
   -- AWAKENING_TIER_FIXTURE_COSTS — priced by tier, not by hero
-  ('awakening', '', '', 0, 200),
-  ('awakening', '', '', 1, 400),
-  ('awakening', '', '', 2, 800)
+  ('awakening', '', '', 0, 200, null),
+  ('awakening', '', '', 1, 400, null),
+  ('awakening', '', '', 2, 800, null)
 on conflict (upgrade_kind, hero_id, upgrade_key, from_level)
-  do update set gold_cost = excluded.gold_cost;
+  do update set gold_cost = excluded.gold_cost, prerequisite_key = excluded.prerequisite_key;
 
 -- ════════════════════════════════════════════════════════════════════════════════════════════
 -- 2. THE SPEND LEDGER — server-owned, never pruned
@@ -229,6 +239,7 @@ declare
   v_profile_id uuid := auth.uid();
   v_existing public.progression_spend_ledger;
   v_gold_cost int;
+  v_prerequisite_key text;
   v_gold_balance int;
   v_to_level int;
   v_skill_levels jsonb;
@@ -251,6 +262,13 @@ begin
   end if;
   if p_from_level is null or p_from_level < 0 then
     raise exception 'ระดับปัจจุบันไม่ถูกต้อง';
+  end if;
+  -- `p_upgrade_key is null` FIRST and separately. `null not in (...)` evaluates to NULL, not
+  -- true, so an `if` guarding only the membership test never fires for a null key — the call
+  -- then slips past validation and consumes rate-limit budget before failing later on. Three-
+  -- valued logic defeats the validate-before-rate-limit property silently unless null is named.
+  if p_upgrade_key is null then
+    raise exception 'คีย์การอัปเกรดไม่ถูกต้อง';
   end if;
   if p_upgrade_kind = 'skill' and p_upgrade_key not in ('skill1', 'skill2', 'skill3', 'ultimate')
   then
@@ -316,8 +334,10 @@ begin
       v_current_level, p_from_level;
   end if;
 
-  -- ── the server prices it. The client never sends a number. ────────────────────────────────
-  select catalog.gold_cost into v_gold_cost
+  -- ── the server prices it, and reads the prerequisite from the same row. ───────────────────
+  -- The client never sends a number, and never sends a prerequisite either.
+  select catalog.gold_cost, catalog.prerequisite_key
+  into v_gold_cost, v_prerequisite_key
   from public.progression_cost_catalog as catalog
   where catalog.upgrade_kind = p_upgrade_kind
     and catalog.hero_id in (p_character_id, '')
@@ -329,6 +349,16 @@ begin
   if v_gold_cost is null then
     raise exception 'ไม่พบราคาของการอัปเกรดนี้ (% % ระดับ %)',
       p_upgrade_kind, p_upgrade_key, p_from_level;
+  end if;
+
+  -- Talent prerequisites. progressionService.unlockTalent enforced this and that path is dead,
+  -- so without this block the rule exists in NO layer: mk-talent-2 (which TALENT_NODE_FIXTURES
+  -- says requires mk-talent-1) was purchasable outright for one QC round. A deleted check is
+  -- not a moved check.
+  if v_prerequisite_key is not null
+    and not (coalesce(v_talent -> 'unlockedNodes', '[]'::jsonb) ? v_prerequisite_key)
+  then
+    raise exception 'ต้องปลดล็อก % ก่อน', v_prerequisite_key;
   end if;
 
   select profiles.gold into v_gold_balance from public.profiles where id = v_profile_id;
@@ -348,13 +378,25 @@ begin
   values (v_profile_id, 'gold', 'upgrade', -v_gold_cost, p_request_id::text);
 
   if p_upgrade_kind = 'skill' then
+    /*
+      Merge, do NOT jsonb_set. `create_if_missing` still requires every EARLIER step of the path
+      to exist, so `jsonb_set('{}', '{skill2,level}', 2, true)` returns '{}' UNCHANGED — measured,
+      not assumed. With that shape the gold is debited, both ledger rows are written, and the
+      level never moves; worse, the compare-and-swap then still reads the OLD level, so the same
+      purchase can be charged again indefinitely. The exact inverse of the bug this file exists
+      to close, and invisible because no fixture had an absent slot.
+
+      `||` on the parent object seeds the slot when it is missing and preserves exp/expToNext
+      when it is present, with no path-existence precondition at all.
+    */
     update public.owned_characters
-    set skill_levels = jsonb_set(
-      coalesce(skill_levels, '{}'::jsonb),
-      array[p_upgrade_key, 'level'],
-      to_jsonb(v_to_level),
-      true
-    )
+    set skill_levels =
+      coalesce(skill_levels, '{}'::jsonb)
+      || jsonb_build_object(
+        p_upgrade_key,
+        coalesce(skill_levels -> p_upgrade_key, '{}'::jsonb)
+          || jsonb_build_object('level', v_to_level)
+      )
     where profile_id = v_profile_id and character_id = p_character_id;
   elsif p_upgrade_kind = 'awakening' then
     update public.owned_characters
@@ -399,12 +441,213 @@ grant execute on function public.spend_progression_upgrade(uuid, text, text, tex
 -- `revoke update on <table>` CASCADES to that table's per-column UPDATE ACLs — so this single
 -- revoke, with NO re-grant, leaves the client no writable column on owned_characters at all.
 --
--- Every legitimate write to this table now goes through a SECURITY DEFINER function:
---   level / exp / exp_to_next   → commit_lobby_battle_progression (20260810130000)
+-- Every legitimate write to this table goes through a SECURITY DEFINER function — and the
+-- mapping below is true only AFTER §6 below, not after this revoke. An earlier revision of this
+-- file stated it here as though the revoke alone achieved it; it did not, and
+-- commit_lobby_battle_progression went on handing all three columns out for free:
+--   level / exp / exp_to_next   → commit_lobby_battle_progression (20260810130000, §6 here)
 --   star / shards               → ascend_character_star (20260808204905)
---   skill_levels / talent_state / awakening_state → spend_progression_upgrade (this file)
+--   skill_levels / talent_state / awakening_state → spend_progression_upgrade (this file, §4)
 -- SELECT is untouched — the "own characters" policy from 0001 still applies.
 --
 -- ⚠ See the CLIENT-FIRST warning in this file's header. The shipped savePlayer sends these
 -- three columns; applying this before that client deploys makes EVERY save fail with 42501.
+--
+-- ⚠ AND THE REVOKE IS ONLY HALF THE CLOSURE. It constrains the client's own writes and nothing
+-- else. `commit_lobby_battle_progression` is SECURITY DEFINER, runs as the function OWNER, and
+-- took these same three columns as parameters — §6 below is the other half. A reader who stops
+-- here will believe the upgrade path is closed when it is not; it was, for one whole QC round.
 revoke update on public.owned_characters from authenticated;
+
+-- ════════════════════════════════════════════════════════════════════════════════════════════
+-- 6. THE SIBLING WRITER — commit_lobby_battle_progression handed the same columns out for free
+-- ════════════════════════════════════════════════════════════════════════════════════════════
+-- §5 closes the DIRECT path and nothing else. `commit_lobby_battle_progression`
+-- (20260810130000:98-122) declares `p_skill_levels jsonb, p_talent_state jsonb,
+-- p_awakening_state jsonb` and writes all three verbatim at :256-263 with no validation of any
+-- kind — its bounds block at :207-241 covers level/exp only. SECURITY DEFINER means it runs as
+-- the OWNER, so a revoke aimed at `authenticated` does not constrain it, and :298-301 grants
+-- EXECUTE to `authenticated`.
+--
+-- Measured in PGlite against this very chain, not reasoned: one call after a battle sets every
+-- skill to 5, both talents unlocked and awakening tier 3, with the gold untouched. Priced
+-- through spend_progression_upgrade that state costs 2,940 gold. A new account starts with 500.
+--
+-- ── WHY THE PARAMETERS ARE DROPPED RATHER THAN IGNORED ─────────────────────────────────────
+-- Leaving them declared and simply not writing them would close the exploit too. Rejected:
+--   1. It reproduces the defect class this file was bounced for — a declaration that says one
+--      thing while the body does another. `p_skill_levels jsonb` in a signature is a promise;
+--      the next reader would have to open the body to learn it is a lie.
+--   2. PostgREST maps named arguments, so a client still sending them gets a silent 200. A
+--      client trying to write a server-owned column must get a hard error, not a shrug.
+--   3. It is the move this repo already made twice for this reason: savePlayer stopped sending
+--      level/exp for #25, and stopped sending these three for #26. The sibling gets the same
+--      treatment rather than a special case.
+--
+-- It also closes a race nobody had traced. Traced now, and stated at its measured size rather
+-- than its scariest size: `finalizeLobbyBattleRewards` takes `player` as an argument and derives
+-- `next = applyBattleExp(player, ...)` from it, and exactly ONE await sits between that snapshot
+-- and the commit — `onRecordPending`, a pending-row RPC round trip
+-- (lobbyBattleRewardPipeline.ts:139-160). The other five awaits in that function all come AFTER
+-- the commit and cannot affect it. `battleOpen` and `rosterOpen` are INDEPENDENT booleans
+-- (LobbyPage.tsx:156-157, both rendered unconditionally on their own flag), so both surfaces can
+-- be mounted at once and a paid upgrade CAN land inside that one round trip. With these
+-- parameters live, the battle commit would then write the pre-upgrade skill levels back over it:
+-- gold spent, upgrade gone, no error anywhere. One round trip is a small window, not a closed
+-- one — and dropping the parameters removes it by construction rather than by timing.
+--
+-- ⚠ DROP FIRST, and this is not bookkeeping. `create or replace function` with a DIFFERENT
+-- arity creates an OVERLOAD rather than replacing anything — the exact trap 20260810160000's F3
+-- had to clean up for `grant_item` ("Different arity = `create or replace` keeps BOTH") — and
+-- PostgREST refuses to route an overloaded name at all, which would take the whole
+-- battle-reward path down.
+--
+-- ⚠ CLIENT FIRST, same relay as §5: the shipped client sends 21 named arguments. Applying this
+-- before the client that sends 18 makes every battle commit fail with PGRST202.
+drop function if exists public.commit_lobby_battle_progression(
+  text, text, text, int, int, int, text, jsonb, text[], text, int, int, int,
+  jsonb, jsonb, jsonb, text, text, text, int, timestamptz
+);
+
+-- Body is 20260810130000's, verbatim, with EXACTLY two changes: the three parameters are gone
+-- from the signature, and the three columns are gone from the owned_characters UPDATE. Every
+-- bound, guard and ordering decision in it is that file's, and its long comments explaining the
+-- 20-level ceiling, the clamp_zero EXP asymmetry and the ownership check are NOT duplicated
+-- here on purpose — read them there, so there is one place to correct if they ever change.
+create or replace function public.commit_lobby_battle_progression(
+  p_transaction_id text,
+  p_name text,
+  p_title text,
+  p_profile_level int,
+  p_profile_exp int,
+  p_profile_exp_to_next int,
+  p_frame_id text,
+  p_flags jsonb,
+  p_defeated_npc_ids text[],
+  p_lead_character_id text,
+  p_hero_level int,
+  p_hero_exp int,
+  p_hero_exp_to_next int,
+  p_battle_external_id text,
+  p_opponent text,
+  p_battle_result text,
+  p_duration_ms int,
+  p_finished_at timestamptz
+)
+returns public.profiles
+language plpgsql
+security definer
+set search_path = public
+as $BODY$
+declare
+  v_profile_id uuid := auth.uid();
+  v_current_profile_level int;
+  v_current_hero_level int;
+  result public.profiles;
+  v_max_level_gain constant int := 20;
+  v_max_hero_level constant int := 60;
+begin
+  if v_profile_id is null then
+    raise exception 'ต้องเข้าสู่ระบบก่อนบันทึกความคืบหน้า';
+  end if;
+  if p_transaction_id is null or length(btrim(p_transaction_id)) = 0 then
+    raise exception 'รหัสรายการไม่ถูกต้อง';
+  end if;
+
+  perform public.check_and_log_rpc_rate_limit('commit_lobby_battle_progression', 20, 60);
+
+  begin
+    insert into public.lobby_progression_commits (profile_id, transaction_id)
+    values (v_profile_id, p_transaction_id);
+  exception
+    when unique_violation then
+      select * into result from public.profiles where id = v_profile_id;
+      return result;
+  end;
+
+  select level into v_current_hero_level
+  from public.owned_characters
+  where profile_id = v_profile_id and character_id = p_lead_character_id
+  for update;
+
+  if not found then
+    raise exception 'ไม่พบฮีโร่ที่ครอบครอง: %', p_lead_character_id;
+  end if;
+
+  select level into v_current_profile_level from public.profiles where id = v_profile_id;
+  if not found then
+    raise exception 'ไม่พบบัญชีผู้เล่น';
+  end if;
+
+  if p_profile_level < v_current_profile_level then
+    raise exception 'เลเวลบัญชีย้อนหลังไม่ได้ (ปัจจุบัน %, ส่งมา %)',
+      v_current_profile_level, p_profile_level;
+  end if;
+  if p_hero_level < v_current_hero_level then
+    raise exception 'เลเวลฮีโร่ย้อนหลังไม่ได้ (ปัจจุบัน %, ส่งมา %)',
+      v_current_hero_level, p_hero_level;
+  end if;
+  if p_profile_level - v_current_profile_level > v_max_level_gain then
+    raise exception 'เลเวลบัญชีเพิ่มเกินขีดจำกัดต่อครั้ง (%): % -> %',
+      v_max_level_gain, v_current_profile_level, p_profile_level;
+  end if;
+  if p_hero_level - v_current_hero_level > v_max_level_gain then
+    raise exception 'เลเวลฮีโร่เพิ่มเกินขีดจำกัดต่อครั้ง (%): % -> %',
+      v_max_level_gain, v_current_hero_level, p_hero_level;
+  end if;
+  if p_hero_level > v_max_hero_level then
+    raise exception 'เลเวลฮีโร่เกินขีดสูงสุดของเกม (%): %', v_max_hero_level, p_hero_level;
+  end if;
+  if p_profile_exp < 0 or p_profile_exp_to_next <= 0 or p_hero_exp < 0
+    or p_hero_exp_to_next < 0
+    or (p_hero_exp_to_next = 0 and p_hero_level < v_max_hero_level) then
+    raise exception 'ค่า EXP ไม่ถูกต้อง';
+  end if;
+
+  update public.profiles set
+    name = p_name,
+    title = p_title,
+    level = p_profile_level,
+    exp = p_profile_exp,
+    exp_to_next = p_profile_exp_to_next,
+    frame_id = p_frame_id,
+    flags = p_flags,
+    defeated_npc_ids = p_defeated_npc_ids
+  where id = v_profile_id;
+
+  -- skill_levels / talent_state / awakening_state are NOT written here any more. A battle does
+  -- not upgrade a skill; spend_progression_upgrade owns those three columns and charges for them.
+  update public.owned_characters set
+    level = p_hero_level,
+    exp = p_hero_exp,
+    exp_to_next = p_hero_exp_to_next
+  where profile_id = v_profile_id and character_id = p_lead_character_id;
+
+  begin
+    insert into public.battle_history (
+      profile_id, external_id, opponent, result, duration_ms, finished_at
+    )
+    values (
+      v_profile_id, p_battle_external_id, p_opponent, p_battle_result, p_duration_ms, p_finished_at
+    );
+  exception
+    when unique_violation then
+      null;
+  end;
+
+  select * into result from public.profiles where id = v_profile_id;
+  return result;
+end;
+$BODY$;
+
+-- Names `authenticated` explicitly: Supabase's bootstrap grants every new function to it
+-- DIRECTLY, so a revoke naming only public+anon leaves that grant standing (20260810160000:440).
+revoke all on function public.commit_lobby_battle_progression(
+  text, text, text, int, int, int, text, jsonb, text[], text, int, int, int,
+  text, text, text, int, timestamptz
+) from public, anon, authenticated;
+
+grant execute on function public.commit_lobby_battle_progression(
+  text, text, text, int, int, int, text, jsonb, text[], text, int, int, int,
+  text, text, text, int, timestamptz
+) to authenticated;

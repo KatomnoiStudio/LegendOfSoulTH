@@ -10,6 +10,7 @@ import {
 } from '../../game/adventure/energySystem'
 import {
   finalizeLobbyBattleRewards,
+  lobbyBattleTransactionId,
   pendingLobbyRewardToResult,
   type LobbyBattleProgressionCommit,
 } from '../../game/reward/lobbyBattleRewardPipeline'
@@ -74,6 +75,50 @@ export function LobbyBattleSession({
   /** ยังไม่เลือกด่าน = null → แสดงหน้าเลือกด่านก่อน ยังไม่ mount BattleScene */
   const [stageId, setStageId] = useState<string | null>(null)
 
+  /** แถวรางวัลค้างของรอบนี้ที่เขียนไปแล้ว (หรือกำลังเขียน) — คีย์คือรหัสรายการ */
+  const recordedRef = useRef<{ txId: string; write: Promise<boolean> } | null>(null)
+
+  /*
+    เขียนแถวรางวัลค้างครั้งเดียวต่อการต่อสู้หนึ่งครั้ง
+
+    The row now goes down at battle end (handleBattleEnd), and the pipeline asks for it again when
+    the player presses continue. Handing back the SAME in-flight promise does two things: the
+    pipeline waits for the battle-end write instead of racing it (a second write landing after the
+    pipeline's clear would resurrect the row it just removed), and a completed write is not
+    re-sent — upsert_pending_lobby_reward allows only 20 calls per 60s.
+
+    A write that FAILED is not cached: the player is offline or the RPC is down, and the pipeline
+    must be free to try again rather than inherit a permanent false. FAILED covers BOTH shapes —
+    a resolved `false` AND a rejection. onRecordPending really can reject: getSupabase() throws
+    outright when the env vars are missing (lib/supabaseClient.ts), and with the fetch retry
+    wrapper gone a deadline abort surfaces as a thrown fetch error. Caching a rejected promise
+    would hand every later retry of this battle the same rejection forever — the durable row
+    exists to stop a crash losing rewards, so letting a failed write lose them permanently
+    instead is the same bug wearing a different hat.
+  */
+  const recordPendingOnce = useCallback(
+    (result: RealtimeBattleResult, transactionId: string) => {
+      const cached = recordedRef.current
+      if (cached?.txId === transactionId) return cached.write
+
+      const write = onRecordPending(result, transactionId).then(
+        (ok) => {
+          if (!ok) recordedRef.current = null
+          return ok
+        },
+        (cause: unknown) => {
+          recordedRef.current = null
+          // Rethrown, not swallowed: the pipeline reported RPC throws before this cache existed
+          // and must keep doing so — handleComplete turns it into a visible BATTLE_REWARD_FAIL.
+          throw cause
+        },
+      )
+      recordedRef.current = { txId: transactionId, write }
+      return write
+    },
+    [onRecordPending],
+  )
+
   const buildRewardDeps = useCallback(
     () => ({
       onPlayerChange,
@@ -84,11 +129,36 @@ export function LobbyBattleSession({
         if (!result.ok) return { ok: false as const, error: result.error }
         return { ok: true as const, player: result.player }
       },
-      onRecordPending: async (result: RealtimeBattleResult, transactionId: string) =>
-        onRecordPending(result, transactionId),
+      onRecordPending: recordPendingOnce,
       onClearPending,
     }),
-    [onClearPending, onCommitProgression, onEarnGold, onGrantItem, onPlayerChange, onRecordPending],
+    [
+      onClearPending,
+      onCommitProgression,
+      onEarnGold,
+      onGrantItem,
+      onPlayerChange,
+      recordPendingOnce,
+    ],
+  )
+
+  /*
+    บันทึกผลลง DB ทันทีที่จบการต่อสู้ ไม่รอผู้เล่นกด
+
+    onComplete ยิงตอนผู้เล่นกด "ต่อไป" บนแผงผล ซึ่งอาจนานเท่าไรก็ได้ — ช่วงนั้นผลการต่อสู้
+    อยู่ใน React state ที่เดียว ปิดแท็บ/รีเฟรช/โดนระบบฆ่า = รางวัลทั้งชุดหาย ทั้งที่จ่ายพลังงาน
+    เข้าด่านไปแล้ว แถวรางวัลค้างมีไว้กันเรื่องนี้โดยตรง จึงต้องลงก่อนช่วงรอ ไม่ใช่หลัง
+
+    ล้มเหลวตรงนี้ไม่ใช่เรื่องคอขาดบาดตาย — pipeline จะลองเขียนใหม่ตอนกดต่อ (recordPendingOnce
+    ไม่แคชผลที่ล้มเหลว) และปฏิเสธการจ่ายรางวัลถ้ายังเขียนไม่ได้ตามเดิม
+  */
+  const handleBattleEnd = useCallback(
+    (result: RealtimeBattleResult) => {
+      void recordPendingOnce(result, lobbyBattleTransactionId(result)).catch((cause: unknown) => {
+        reportError('REWARD_PENDING_RECORD_FAIL', 'silent', cause)
+      })
+    },
+    [recordPendingOnce],
   )
 
   useEffect(() => {
@@ -199,6 +269,7 @@ export function LobbyBattleSession({
           player={player}
           stageId={stageId}
           onComplete={handleComplete}
+          onBattleEnd={handleBattleEnd}
           onExit={onExit}
         />
       </Suspense>

@@ -32,6 +32,8 @@ interface CatalogRow {
   key: string
   fromLevel: number
   gold: number
+  /** Talent nodes only — the node that must already be unlocked. null everywhere else. */
+  prerequisite: string | null
 }
 
 /**
@@ -49,7 +51,8 @@ function readCatalogFromMigration(): CatalogRow[] {
   expect(insertStart, 'the catalog INSERT must exist in the migration').toBeGreaterThan(-1)
   const insertBody = sql.slice(insertStart, sql.indexOf('on conflict', insertStart))
 
-  const tuple = /\('(skill|talent|awakening)',\s*'([^']*)',\s*'([^']*)',\s*(\d+),\s*(\d+)\)/g
+  const tuple =
+    /\('(skill|talent|awakening)',\s*'([^']*)',\s*'([^']*)',\s*(\d+),\s*(\d+),\s*(null|'[^']*')\)/g
   const rows: CatalogRow[] = []
   for (const match of insertBody.matchAll(tuple)) {
     rows.push({
@@ -58,6 +61,7 @@ function readCatalogFromMigration(): CatalogRow[] {
       key: match[3],
       fromLevel: Number(match[4]),
       gold: Number(match[5]),
+      prerequisite: match[6] === 'null' ? null : match[6].slice(1, -1),
     })
   }
   return rows
@@ -78,6 +82,7 @@ function expectedCatalogFromFixtures(): CatalogRow[] {
           // getSkillUpgradeCost indexes upgradeCosts[currentLevel - 1], so index 0 prices 1 -> 2.
           fromLevel: index + 1,
           gold: cost.gold ?? 0,
+          prerequisite: null,
         })
       })
     }
@@ -90,6 +95,10 @@ function expectedCatalogFromFixtures(): CatalogRow[] {
       key: node.id,
       fromLevel: 0,
       gold: node.cost?.gold ?? 0,
+      // TALENT_NODE_FIXTURES models prerequisites as a LIST; the catalog column holds ONE.
+      // A second entry would be silently unenforced, so the test below refuses that shape
+      // outright rather than quietly checking only the first.
+      prerequisite: node.prerequisites?.[0] ?? null,
     })
   }
 
@@ -101,6 +110,7 @@ function expectedCatalogFromFixtures(): CatalogRow[] {
       key: '',
       fromLevel: Number(tier) - 1,
       gold: cost.gold ?? 0,
+      prerequisite: null,
     })
   }
 
@@ -129,6 +139,19 @@ describe('progression cost catalog parity (client fixtures <-> migration seed)',
     // If a reformat breaks the tuple pattern, the parse silently returns [] and the equality
     // above would then only pass if the fixtures were empty too. Pin the magnitude.
     expect(readCatalogFromMigration().length).toBeGreaterThanOrEqual(20)
+  })
+
+  it('no talent declares more than one prerequisite — the catalog column holds exactly one', () => {
+    /*
+      `prerequisite_key` is a single text column. TALENT_NODE_FIXTURES types prerequisites as a
+      string[], so a node with two would have its second requirement silently unenforced by the
+      RPC — the same shape as the deleted-check defect this column exists to fix, one level down.
+      Growing a second prerequisite means widening the column (and the RPC's check) first.
+    */
+    const multi = TALENT_NODE_FIXTURES.filter((node) => (node.prerequisites ?? []).length > 1).map(
+      (node) => node.id,
+    )
+    expect(multi).toEqual([])
   })
 
   it('no fixture cost uses materials — the catalog and the RPC price gold only', () => {
