@@ -190,13 +190,14 @@ describe('SettingsModal', () => {
 
   /*
     ปุ่ม "ส่งออก save เป็นไฟล์" ถูกลบพร้อมข้อความที่สัญญาไว้ผิด — เหตุผลเดียวกับที่ลบ
-    ปุ่มสำรองข้อมูลบนจอ crash: exportSave ฝั่ง Supabase (src/data/accountRepository.supabase.ts)
-    เป็น stub ที่ hardcode คืน ok:false เสมอ กดแล้ว error ทุกครั้ง ไม่มีทางได้ไฟล์จริง
+    ปุ่มสำรองข้อมูลบนจอ crash: exportSave ฝั่ง Supabase (เดิมเป็น stub ที่ hardcode คืน ok:false
+    เสมอ, ลบทิ้งแล้ว 2026-08-10 พร้อมปุ่มนี้เพราะไม่มีผู้เรียกเหลืออยู่เลย — ดู
+    src/data/accountRepository.supabase.ts) กดแล้ว error ทุกครั้ง ไม่มีทางได้ไฟล์จริง
     ข้อความเดิม "ปุ่มส่งออก save ด้านล่างมีไว้สำรองไฟล์เก็บเอง" จึงเป็นสัญญาที่ให้ไม่ได้
 
-    เทสต์นี้ทำให้เอาปุ่มกลับมาโดยไม่แก้ stub ก่อน เป็นสีแดง แทนที่จะเงียบ ๆ ผ่านไป
+    เทสต์นี้ทำให้เอาปุ่มกลับมาโดยไม่มี export จริงรองรับ เป็นสีแดง แทนที่จะเงียบ ๆ ผ่านไป
   */
-  test('ไม่มีปุ่มส่งออก save — exportSave ฝั่งเซิร์ฟเวอร์ยังเป็น stub ที่ล้มเหลวเสมอ', () => {
+  test('ไม่มีปุ่มส่งออก save — ยังไม่มี export ฝั่งเซิร์ฟเวอร์ให้ปุ่มนี้เรียก', () => {
     renderModal()
 
     expect(screen.queryByRole('button', { name: /ส่งออก save/ })).not.toBeInTheDocument()

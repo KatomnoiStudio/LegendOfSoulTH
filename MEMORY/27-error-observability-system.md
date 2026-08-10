@@ -135,16 +135,66 @@ removed for promising a capability the live backend doesn't have. The `email`-in
 question above is about currently-dead code, strengthening rather than needing to soften that
 claim.
 
+## CLOSED — QC bounce: the deletion stopped one layer short (2026-08-10)
+
+Removing the `SettingsModal` button removed the top link of a chain; three things beneath it
+were left dead, two of them in comments the deletion made false. Fixed, not just recorded:
+
+- **`src/lib/errors/codes.ts`'s `SAVE_EXPORT_FAIL`** — had zero call sites repo-wide. Deleted
+  the entry and its comment (`// ... SILENT เพราะปุ่มที่กดแสดงข้อความบอกอยู่แล้ว` — pointed at a
+  button that no longer existed). Chose delete over correcting the comment: the capability is
+  fully gone now (see next point), not merely under-used, so there is nothing plausible left to
+  justify keeping a dead entry around. A future real export gets a fresh code with an accurate
+  comment when it exists.
+- **`src/lib/saveFile.ts`** — deleted outright. Zero importers (`useAuth.ts` was the last, and
+  my own earlier `+0 −13` on this branch removed it). This one I had genuinely missed — not
+  named anywhere in this file before the bounce. Its header claimed "สองที่เรียก" (two callers):
+  the crash screen (removed two sessions ago) and Settings (removed this session) — both gone,
+  the file asserted two live callers against zero.
+- **`accountRepository.supabase.ts`'s `exportSave` stub** (was lines 881-886) — deleted. Zero
+  non-test callers, and `accountRepository.shared.ts:154`'s `AccountRepositorySubset` already
+  excludes `exportSave`/`importSave` by design, so nothing outside this file depends on it
+  existing at all.
+- **Two test comments corrected**, not just the production code: `ErrorBoundary.test.tsx` and
+  `SettingsModal.test.tsx` each had a block asserting present-tense that
+  `accountRepository.supabase.ts` "ยัง hardcode ok:false" / "ยังเป็น stub" (still hardcodes /
+  still is a stub) — true when written, false the moment the stub above was deleted. Reworded
+  to state there is currently no server-side export function at all, past tense on the stub's
+  history. The lesson generalizes: a comment naming a specific mechanism ages worse than one
+  naming the outcome — "still a stub" broke the instant the stub was deleted, "no export
+  exists" would not have.
+
+**Found while sweeping, NOT fixed — flagged as pre-existing, cross-file, out of this dispatch's
+scope:** `docs/agent-blueprint/27-error-observability-system.md` (this system's OWN contract)
+still asserts `ErrorBoundary.tsx` imports `exportSave` from `src/data/accountRepository` and
+lists `SAVE_EXPORT_FAIL` as a live fed code — both stale since the crash-screen button was
+removed two sessions ago, predating this branch entirely. `docs/agent-blueprint/25-*.md` (a
+DIFFERENT system's contract — not mine to edit, contract walls apply) and
+`docs/BLUEPRINT-CHECK-HOLD.md` (an owner-level HELD design doc) carry the same stale stub
+citation. Recommend a citation-refresh pass across `docs/agent-blueprint/**` the next time any
+caretaker touches their own contract file — a mechanical checker over this class of drift was
+already proposed as task #24 (see `MEMORY.md` item 183) and would have caught this for free.
+
 ## HOLD — the crash screen cannot back up a player's data, and no code I own can fix it
 
 **Status: the backup button is REMOVED, not fixed.** Do not read the closed F1 entries in
 `MEMORY.md`/`TASKS.md` as "the backup works now" — it does not exist.
 
-`accountRepository.supabase.ts:763-768` `exportSave()` is a hardcoded stub that always returns
-`{ ok: false, error: 'ฟีเจอร์นี้ใช้กับบัญชี Supabase ไม่ได้ — ข้อมูลอยู่บนเซิร์ฟเวอร์แล้ว' }`. So the
-button failed 100% of the time both before and after I repointed it: first answering "not
-logged in" (dormant repo), then answering "this feature doesn't work" (live stub). Two
-different sentences, one identical outcome — the player never gets a file.
+**Updated 2026-08-10 (QC bounce on `fix/boot-resilience`): the stub itself is also gone now,
+not just its callers.** The paragraph below is kept as the historical record of why the button
+was removed — `accountRepository.supabase.ts:763-768` `exportSave()` **used to be** a hardcoded
+stub that always returned `{ ok: false, error: 'ฟีเจอร์นี้ใช้กับบัญชี Supabase ไม่ได้ —
+ข้อมูลอยู่บนเซิร์ฟเวอร์แล้ว' }`. Once both callers (`ErrorBoundary`, `SettingsModal`) were removed,
+the stub had zero callers left and `accountRepository.shared.ts:154` already excludes
+`exportSave`/`importSave` from the required contract, so it was deleted outright — see the new
+section below this HOLD for the full list of what else went with it (`saveFile.ts`,
+`SAVE_EXPORT_FAIL`). **Re-adding server-side export now means writing a new function, not
+un-stubbing an old one.**
+
+So the button failed 100% of the time both before and after I first repointed it: first
+answering "not logged in" (dormant repo), then answering "this feature doesn't work" (live
+stub, since deleted). Two different sentences, one identical outcome — the player never got a
+file.
 
 I removed the button rather than relabel it. A crash screen that tells a frightened player to
 press a control which always errors is worse than a screen with no control at all, and a
@@ -190,3 +240,16 @@ reject-then-degrade behavior and passes (7/7 in that file). I did not duplicate 
 test — `App.tsx` branches on `status`, and `'guest'` is exactly the state that renders an
 actionable `TitlePage` + openable `AuthModal`, confirmed by reading the render logic directly
 rather than assumed.
+
+**Recorded, not fixed (not mine — identical on master, flagged by the QC gate):**
+`useAuth.ts`'s `void refreshLinkedProviders()` at four call sites (after restore, after
+register/login, after `loginAsGuest`, after `linkGoogleAccount`) discards a promise whose callee
+awaits a live Supabase call (`accounts.getLinkedProviders()`) with no `try`/`catch`. Not
+blocking: `setStatus(...)` already ran before each of these fires, so the app is interactive
+either way, and `globalErrorHandlers.ts` catches the rejection as `GLOBAL_REJECTION` at
+`'visible'` — a generic but real, reported failure, not a silent one. The degraded consequence
+worth knowing: on a rejection, `hasGoogleLinked` stays `false`, so `SettingsModal` offers
+"เชื่อมบัญชี Google" to a player who already linked, under `GLOBAL_REJECTION`'s generic message
+instead of a code that names what actually failed. Fix, if picked up: wrap each call site (or
+`refreshLinkedProviders` itself) in a `try`/`catch` reporting a dedicated code — the same shape
+as every other `useAuth.ts` mutation already uses.
