@@ -285,3 +285,4 @@ All entries 2026-08-05/06 unless noted. Roughly chronological.
 - **188.** #25 server-owns-progression code LANDED — first full claude -p caretaker → fresh-eyes gate → merge cycle + the ... — `MEMORY/archive/176-200.md`
 - **189.** The 12-agent audit, the memory split, and five lanes that all failed their first gate — `MEMORY/archive/176-200.md`
 - **190.** Asset provenance recorded (870 assets, authorship measured) + two account-deletion cron jobs disarmed — `MEMORY/archive/176-200.md`
+- **191.** DESIGN LOCK (owner) — game values are BASE x SCALE under one rule; a PR carrying a per-case magic number is converted at intake — `MEMORY/archive/176-200.md`
