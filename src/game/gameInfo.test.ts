@@ -10,7 +10,8 @@ import { GAME_INFO } from './gameInfo'
   มันเป็นตัวสั่งปล่อยเว็บด้วย — .github/workflows/deploy.yml จะ deploy ก็ต่อเมื่อเลขนี้เปลี่ยน
   ส่วน package.json เป็นเลขของ npm package ที่เครื่องมือรอบข้างอ่าน (SBOM, release tag)
   ส่วน package-lock.json (lock.version และ lock.packages[''].version) เป็นเลขที่ npm
-  เขียนเองตอน `npm install` — ถ้าไม่ sync ด้วย `npm install --package-lock-only` มันจะค้าง
+  เขียนเองตอน `npm install` — ถ้าไม่ sync ด้วย `npm install --package-lock-only --ignore-scripts`
+  (คำสั่งเดียวกับที่ README ขั้นตอน 2 ระบุ) มันจะค้าง
   เลขเก่าเงียบ ๆ ข้ามหลายรีลีสได้ (เคยเกิดจริง — ค้างที่ 0.15.2 ข้ามสองรีลีส)
 
   ถ้าเลขพวกนี้หลุดจากกันจะได้ผลประหลาดแบบเงียบ ๆ เช่น bump แค่ package.json แล้วเว็บไม่ปล่อย
