@@ -26,6 +26,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const TEST_USER = '11111111-1111-1111-1111-111111111111'
 const MIGRATION = '20260810180000_p26_progression_cost_authority.sql'
+const DISARM_MIGRATION = '20260811000000_disarm_account_deletion_crons.sql'
 const SPEND_RPC = 'public.spend_progression_upgrade(uuid,text,text,text,int)'
 
 /** Fixtures are inserted after this file, because 0014's exempt seed FKs into profiles. */
@@ -134,9 +135,30 @@ describe('spend_progression_upgrade — the cost side is server-authoritative', 
       -- structural blindness starAscension.integration.test.ts documents.
       alter default privileges in schema public grant all on functions to anon, authenticated;
 
+      -- pg_cron is Supabase-hosted and PGlite cannot install it, but a stub that only returns 1
+      -- makes the schedule INVISIBLE, and the schedule is the thing worth watching: this chain
+      -- arms both account-deletion jobs (0006, 0014) before 20260811000000 disarms them, and
+      -- until that file existed a replay left them armed. So this stub CAPTURES — cron.job in
+      -- the shape the real one exposes, narrowed to the columns this chain writes.
       create schema if not exists cron;
-      create or replace function cron.schedule(job_name text, schedule text, command text)
-      returns bigint language sql as $$ select 1::bigint $$;
+      create table if not exists cron.job (
+        jobid bigserial primary key,
+        jobname text unique,
+        schedule text not null,
+        command text not null
+      );
+      create or replace function cron.schedule(job_name text, cron_expr text, cron_command text)
+      returns bigint language sql as $$
+        insert into cron.job (jobname, schedule, command)
+        values (job_name, cron_expr, cron_command)
+        on conflict (jobname) do update
+          set schedule = excluded.schedule, command = excluded.command
+        returning jobid
+      $$;
+      create or replace function cron.unschedule(job_id bigint)
+      returns boolean language sql as $$
+        delete from cron.job where jobid = job_id returning true
+      $$;
 
       -- Supabase ships this publication; the realtime migrations add tables to it.
       do $$ begin
@@ -679,5 +701,37 @@ describe('spend_progression_upgrade — the cost side is server-authoritative', 
       'select count(*)::int as n from public.progression_spend_ledger',
     )
     expect(ledger.rows[0].n).toBeGreaterThan(0)
+  })
+
+  /*
+    Task #91. The whole-chain replay above is the only place in this repo where "what does a
+    FRESH environment end up with" is observable, which is why this assertion lives here rather
+    than in a cron-shaped file of its own. 0006 and 0014 schedule the two account-deletion jobs
+    earlier in this very chain; production disarmed them by hand on 2026-08-10 and every
+    `cron.unschedule` written down since was a comment, so a restore, a `db reset`, or a new
+    contributor's local setup silently re-armed both. Source-text cover for future migrations is
+    in supabaseMigrations.contract.test.ts; this is the behavioural half — it fails if the disarm
+    stops running, runs in the wrong order, or ever takes a job with it that it should not.
+  */
+  it('ends the chain with both account-deletion jobs disarmed and every other cron job intact', async () => {
+    const scheduledJobs = async (): Promise<string[]> => {
+      const result = await db.query<{ jobname: string }>(
+        'select jobname from cron.job order by jobname',
+      )
+      return result.rows.map((row) => row.jobname)
+    }
+    // reap-expired-private-pvp-rooms is absent only because its migration is REALTIME_ONLY here.
+    const survivors = [
+      'archive-currency-transactions',
+      'cleanup-old-audit-log-entries',
+      'cleanup-stale-rpc-rate-limit-rows',
+    ]
+
+    expect(await scheduledJobs()).toEqual(survivors)
+
+    // `cron.unschedule('name')` raises on a job that is already gone, and the owner relays by
+    // hand — so the disarm has to be a no-op on the second paste, not an error.
+    await applyMigration(DISARM_MIGRATION)
+    expect(await scheduledJobs()).toEqual(survivors)
   })
 })

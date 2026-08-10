@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { basename, join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 interface NormalizedStatement {
@@ -16,6 +16,17 @@ interface MigrationViolation {
 
 const MIGRATIONS_DIR = join(process.cwd(), 'supabase/migrations')
 const PVP_MIGRATION = '20260809064000_p12_private_pvp_rooms.sql'
+const DISARM_MIGRATION = '20260811000000_disarm_account_deletion_crons.sql'
+// Both jobs delete auth.users rows and cascade through 11 tables; the project has PITR off and
+// no backups. They were unscheduled by hand on production on 2026-08-10, but until
+// DISARM_MIGRATION every `cron.unschedule` in this repository sat inside a `--` comment while
+// only `cron.schedule` was executable — so any replay of the chain re-armed both. Filename order
+// IS deploy order, so a schedule BEFORE the disarm is undone by it and a schedule at-or-after it
+// is a live re-arm. That, and only that, is what this gate rejects.
+const DISARMED_CRON_JOBS = ['cleanup-dead-unplayed-accounts', 'cleanup-stale-guest-accounts']
+// First argument of `cron.schedule(job_name, schedule, command)` and of pg_cron 1.4+'s
+// `cron.schedule_in_database(job_name, ...)` — the same gun by a second name.
+const CRON_SCHEDULE_CALL = /\bcron"?\s*\.\s*"?schedule(?:_in_database)?"?\s*\(\s*'((?:''|[^'])*)'/gi
 const CREATE_PREFIX = String.raw`(?:or\s+replace\s+)?(?:(?:constraint|global|local|temp|temporary|unique|unlogged)\s+)*`
 const OBJECT_TYPE = String.raw`(?:aggregate|collation|conversion|domain|foreign\s+table|function|index|materialized\s+view|operator|procedure|sequence|table|trigger|type|view)`
 const TARGET_PREFIX = String.raw`(?:concurrently\s+)?(?:if\s+(?:not\s+)?exists\s+)?(?:only\s+)?`
@@ -84,7 +95,11 @@ function maskRange(masked: string[], sql: string, start: number, end: number): v
   }
 }
 
-function maskNonDdlSql(sql: string): string {
+// `keepLiterals` blanks COMMENTS ONLY, leaving string and dollar-quoted bodies readable. String
+// syntax still has to be parsed either way — a `--` inside a literal does not start a comment —
+// so this is the same walk, minus the blanking. The cron gate needs it because the thing it
+// looks for, a jobname, lives inside the single-quoted literal the DDL gate deliberately erases.
+function maskNonDdlSql(sql: string, keepLiterals = false): string {
   const masked = sql.split('')
   let index = 0
 
@@ -97,11 +112,19 @@ function maskNonDdlSql(sql: string): string {
       end = skipBlockComment(sql, index)
     } else if (sql[index] === "'") {
       end = skipQuoted(sql, index, "'")
+      if (keepLiterals) {
+        index = end
+        continue
+      }
     } else if (sql[index] === '$') {
       const tag = dollarQuoteTagAt(sql, index)
       if (tag) {
         const close = sql.indexOf(tag, index + tag.length)
         end = close === -1 ? sql.length : close + tag.length
+        if (keepLiterals) {
+          index = end
+          continue
+        }
       }
     } else if (sql[index] === '"') {
       const quotedEnd = skipQuoted(sql, index, '"')
@@ -166,6 +189,21 @@ function findManagedRealtimeViolations(sql: string, file: string): MigrationViol
   return parseStatements(sql).flatMap(({ line, normalized, text }) =>
     MANAGED_OBJECT_DDL.some((pattern) => pattern.test(normalized))
       ? [{ file, line, statement: text }]
+      : [],
+  )
+}
+
+function findCronRearmViolations(sql: string, file: string): MigrationViolation[] {
+  const executable = maskNonDdlSql(sql, true)
+  return [...executable.matchAll(CRON_SCHEDULE_CALL)].flatMap((match) =>
+    DISARMED_CRON_JOBS.includes(match[1].replaceAll("''", "'"))
+      ? [
+          {
+            file,
+            line: countNewlines(executable.slice(0, match.index ?? 0)) + 1,
+            statement: match[0].replace(/\s+/g, ' '),
+          },
+        ]
       : [],
   )
 }
@@ -275,5 +313,96 @@ alter table realtime.messages enable row level security;`,
     )
     expect(policy).toMatch(/\(select auth\.uid\(\)\)\s*=\s*room\.host_profile_id/)
     expect(policy).toMatch(/\(select auth\.uid\(\)\)\s*=\s*room\.guest_profile_id/)
+  })
+})
+
+describe('account-deletion cron disarm contract', () => {
+  it('re-arms neither deletion job in a migration applied at or after the disarm', () => {
+    const violations = listMigrationFiles(MIGRATIONS_DIR)
+      .filter((path) => basename(path) >= DISARM_MIGRATION)
+      .flatMap((path) =>
+        findCronRearmViolations(
+          readFileSync(path, 'utf8'),
+          relative(process.cwd(), path).replaceAll('\\', '/'),
+        ),
+      )
+
+    expect(
+      violations.map(
+        ({ file, line, statement }) =>
+          `${file}:${line}: re-arms a disarmed account-deletion job: ${statement}`,
+      ),
+    ).toEqual([])
+  })
+
+  // The defect was never "nobody wrote the unschedule down" — three files say it in prose. It is
+  // that every word of that prose was commented out while only `cron.schedule` ever executed.
+  it('carries the disarm as executable SQL rather than as one more comment', () => {
+    const executable = maskNonDdlSql(
+      readFileSync(join(MIGRATIONS_DIR, DISARM_MIGRATION), 'utf8'),
+      true,
+    )
+
+    expect(executable).toMatch(/\bcron"?\s*\.\s*"?unschedule\b/)
+    for (const jobName of DISARMED_CRON_JOBS) expect(executable).toContain(`'${jobName}'`)
+  })
+
+  it.each([
+    [
+      'a plain re-arm',
+      1,
+      `select cron.schedule('cleanup-stale-guest-accounts', '0 3 * * *',
+         $$select public.cleanup_stale_guest_accounts();$$);`,
+    ],
+    [
+      'a re-arm in the exact shape of the defect — the unschedule commented out above it',
+      3,
+      `-- disarmed 2026-08-10 (MEMORY item 190 Part B):
+--   cron.unschedule('cleanup-dead-unplayed-accounts');
+select cron.schedule('cleanup-dead-unplayed-accounts', '30 3 * * *', $$select 1;$$);`,
+    ],
+    [
+      'the schedule_in_database spelling',
+      1,
+      `select cron.schedule_in_database('cleanup-stale-guest-accounts', '0 3 * * *',
+         $$select 1;$$, 'postgres');`,
+    ],
+  ])('rejects %s with file and line attribution', (_name, line, sql) => {
+    const violations = findCronRearmViolations(sql, 'gate-example.sql')
+
+    expect(violations).toHaveLength(1)
+    expect(violations[0]).toMatchObject({ file: 'gate-example.sql', line })
+  })
+
+  // None of these four deletes an account: they prune an audit table, a rate-limit table, move
+  // ledger rows to an archive, and expire abandoned PvP rooms. A gate that matched on a name
+  // pattern instead of the two literal jobnames would silently take the first two with it.
+  it.each([
+    'archive-currency-transactions',
+    'cleanup-old-audit-log-entries',
+    'cleanup-stale-rpc-rate-limit-rows',
+    'reap-expired-private-pvp-rooms',
+  ])('leaves the %s job schedulable', (jobName) => {
+    const sql = `select cron.schedule('${jobName}', '0 3 * * *', $$select 1;$$);`
+
+    expect(findCronRearmViolations(sql, 'keeper.sql')).toEqual([])
+  })
+
+  it.each([
+    [
+      'a commented-out re-arm',
+      `-- select cron.schedule('cleanup-stale-guest-accounts', '0 3 * * *', $$select 1;$$);`,
+    ],
+    [
+      'prose naming a disarmed job',
+      `/* cron.schedule('cleanup-dead-unplayed-accounts', ...) must not come back */ select 1;`,
+    ],
+    [
+      'the set-based unschedule that replaces them',
+      `select cron.unschedule(j.jobid) from cron.job j
+       where j.jobname in ('cleanup-stale-guest-accounts', 'cleanup-dead-unplayed-accounts');`,
+    ],
+  ])('allows %s', (_name, sql) => {
+    expect(findCronRearmViolations(sql, 'allowed.sql')).toEqual([])
   })
 })
