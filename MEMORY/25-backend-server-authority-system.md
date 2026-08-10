@@ -28,8 +28,30 @@ I write migration files, I never apply them.
     Note the sub-lesson recorded in that file: a _column-scoped_ revoke is a no-op against
     Supabase's default table-wide grant; the table-wide grant has to go first.
   - `team_slots.character_id` (issue #101 Finding 7, 2026-08-10) — closed by a BEFORE trigger.
+  - `profiles/owned_characters.level/exp/exp_to_next` (#25, CoalBoard scope B, 2026-08-10) —
+    closed by narrowing both allowlists (`20260810130000`), but only half the job: the real
+    hole was the SECURITY DEFINER RPC writing the same columns unbounded. **A column lock is
+    worthless while any DEFINER function writes those columns without its own bounds.** When
+    locking a column, enumerate every DEFINER writer of it in the same pass.
 
   **When a new table lands, ask that question about it before anything else.**
+
+- **Server-side bounds must permit the game's own terminal states.** `progressionConfig
+.maxLevelExpBehavior = 'clamp_zero'` means a hero at `maxHeroLevel` (60) legitimately stores
+  `exp = 0, exp_to_next = 0` (`heroExpService.ts:20-30,43-56`; `progressionMigration.ts:51,58`).
+  A blanket `exp_to_next <= 0` reject in the commit RPC would refuse that state — and because
+  one `commit_lobby_battle_progression` call carries the profile row, the hero row and
+  `battle_history` together, the whole account's lobby progression freezes, not just the hero's
+  EXP. Caught in the #25 draft before ship; pinned by a test in `starAscension.integration.test.ts`
+  (mutation-verified: restoring `<= 0` fails it). Generalization: **before adding a validity
+  bound in SQL, read the client config that produces the value and check its edge states** —
+  cap, zero, and empty are usually legal somewhere.
+- Client/server progression-curve divergence, live today and NOT mine to fix: the lobby path
+  (`applyBattleExp`, contract #14's file) has **no `maxHeroLevel` clamp at all** and its loop
+  guard is 20, while the dungeon path (`heroExpService`) clamps at 60 with a guard of 100. The
+  RPC's per-call ceiling (20) and hero cap (60) are sized to the lobby path only. Practically
+  unreachable today (~23.5M EXP to hit hero 60 on the x1.2 curve), but wiring the dungeon path
+  through this RPC, or #14 changing either guard, silently starts rejecting honest commits.
 
 - Write-order invariant the ownership trigger depends on: `owned_characters` is always written
   before `team_slots`, in both writers — `handle_new_user()` (0001_init.sql) and `savePlayer()`
@@ -73,3 +95,8 @@ _before_ applying `0001_init.sql`, so `handle_new_user()` never runs.
   a migration file has actually landed in prod, a further fix is a NEW migration, never an
   in-place edit of the applied file (prod's migration history table has already recorded the old
   hash/content).
+- `20260810130000_security_harden_lobby_progression_rpc.sql` (#25 scope B) — **written, NOT
+  applied**, owner relay owed, and **the client MUST deploy before the migration** or the column
+  lock 42501s `savePlayer`, which `useAuth.ts` treats as a whole-save rollback (team/friends/flags
+  too). New server-owned table `lobby_progression_commits`: never prune it — a deleted row makes
+  its transaction id replayable, same trap as the currency ledger.

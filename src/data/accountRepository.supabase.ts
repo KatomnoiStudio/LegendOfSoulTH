@@ -424,15 +424,19 @@ export async function findPlayerByUid(uid: string): Promise<FriendCandidate | nu
   return { uid: row.uid, name: row.name, level: row.level, title: row.title }
 }
 
+/**
+ * ห้ามส่ง level/exp/exp_to_next จากที่นี่ — คอลัมน์เหล่านั้นถูก revoke สิทธิ์ UPDATE ของ role
+ * `authenticated` ไปแล้ว (supabase/migrations/20260810130000_security_harden_lobby_progression_rpc.sql)
+ * ทางเดียวที่เขียนได้คือ RPC `commit_lobby_battle_progression` (SECURITY DEFINER) ถ้าใส่กลับเข้ามา
+ * Postgres จะตอบ 42501 → savePlayer คืน false → useAuth ย้อนการบันทึกทั้งก้อน (ทีม/เพื่อน/flags)
+ * ไม่ใช่แค่ค่าความคืบหน้า — พังกว้างกว่าช่องโหว่ที่ปิดไปมาก
+ */
 export async function savePlayer(player: Player): Promise<boolean> {
   const { error } = await supabase
     .from('profiles')
     .update({
       name: player.name,
       title: player.title,
-      level: player.level,
-      exp: player.exp,
-      exp_to_next: player.expToNext,
       frame_id: player.frameId,
       flags: player.progress.flags,
       defeated_npc_ids: player.progress.defeatedNpcIds,
@@ -443,14 +447,12 @@ export async function savePlayer(player: Player): Promise<boolean> {
 
   // อัปเดตได้เฉพาะ Hero ที่ Server grant ไว้แล้ว ห้าม upsert: การเปิด INSERT ให้ savePlayer
   // เท่ากับเปิดช่องให้ Client สร้าง Hero ใดก็ได้ ข้าม Gacha/Star authority โดยตรง
+  // level/exp/exp_to_next หายไปจาก .update() ด้วยเหตุผลเดียวกับฝั่ง profiles ข้างบน (คอลัมน์ถูกล็อก)
   const characterResults = await Promise.all(
     player.ownedCharacters.map((owned) =>
       supabase
         .from('owned_characters')
         .update({
-          level: owned.level,
-          exp: owned.exp,
-          exp_to_next: owned.expToNext,
           skill_levels: owned.skillLevels,
           talent_state: owned.talentState ?? { unlockedNodes: [] },
           awakening_state: owned.awakeningState ?? { tier: 0, unlockedEffects: [] },

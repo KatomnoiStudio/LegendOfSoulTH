@@ -49,7 +49,16 @@ export interface CombatCameraConfig {
   maxRelevantEnemies: number
 }
 
-/** v0.8.2 camera baseline before the misinterpreted +30% height change (v0.8.3). */
+/**
+ * v0.8.2 camera baseline before the misinterpreted +30% height change (v0.8.3).
+ *
+ * Only FOUR of these fields still feed `DEFAULT_COMBAT_CAMERA_CONFIG`: `pitchDeg`, `distance`,
+ * `minZoom`, `maxZoom`. The other two are read by `combatCameraFraming.test.ts` alone, which
+ * spreads this whole object over the default config to reconstruct the "before" pose —
+ * `heightOffset` (the live config hand-derives 1.264 instead) and
+ * `targetCharacterScreenHeightRatio` (the live config uses a standalone 0.24 literal, see its
+ * own comment below). Changing either of those two moves the test's baseline, not the game.
+ */
 export const COMBAT_CAMERA_V082_BASELINE = {
   pitchDeg: 18,
   distance: 5.5,

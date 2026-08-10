@@ -114,6 +114,24 @@ export async function grantDungeonRewards(
     }
   }
 
+  /*
+    ⚠ DORMANT TRAP — READ BEFORE WIRING DungeonSession UP.
+
+    These two calls mutate profiles.level/exp/exp_to_next and owned_characters.level/exp/
+    exp_to_next in memory only. Unlike the lobby path (lobbyBattleRewardPipeline.ts, which
+    commits through the `commit_lobby_battle_progression` RPC), the dungeon path has no RPC of
+    its own — whatever it produces reaches the backend through `savePlayer`, and `savePlayer`
+    no longer sends those six columns: the migration
+    `supabase/migrations/20260810130000_security_harden_lobby_progression_rpc.sql` (task #25,
+    CoalBoard scope B) revoked client UPDATE on them, so the RPC is now the ONLY writer.
+
+    Harmless today only because DungeonSession is never rendered — nothing calls this with
+    heroExp/accountExp > 0 in production. The moment it IS wired up, this EXP is written to a
+    local Player object, persisted nowhere, and silently vanishes on the next `loadPlayer`.
+    Wiring it therefore means routing dungeon progression through
+    `commit_lobby_battle_progression` (or a dungeon sibling of it) FIRST — not just rendering
+    the screen. Behaviour deliberately left unchanged here: this is a note, not a fix.
+  */
   if (heroExp > 0) {
     next = applyHeroExpToLeadHero(next, heroExp).player
   }

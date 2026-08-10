@@ -89,7 +89,13 @@ By design, not bugs — don't file these:
   gold that the ledger then recorded as a paid top-up with no payment verification anywhere in the
   path, and the signup grant was written straight to `profiles` with no matching ledger row —
   closed by `supabase/migrations/20260810100000_security_earn_gold_topup_and_signup_ledger.sql`.
-  Report the same _class_ of bug elsewhere.)
+  On 2026-08-10, `profiles`/`owned_characters` `level`/`exp`/`exp_to_next` were client-writable both
+  directly (via `savePlayer`) and through `commit_lobby_battle_progression`, which any authenticated
+  session could call with arbitrary values, a replayable client-supplied idempotency guard, and an
+  arbitrary lead `character_id` the RPC would mint at any level — closed by
+  `supabase/migrations/20260810130000_security_harden_lobby_progression_rpc.sql` (column lock +
+  server-owned idempotency ledger + rate limit + ownership check + per-call level bounds + EXECUTE
+  lock). Report the same _class_ of bug elsewhere.)
 - **"I changed Star/Shard values in React state or called the preview calculator."** The preview
   is presentation-only. Report it only if the change persists in Supabase without a valid
   `ascend_character_star` transaction.

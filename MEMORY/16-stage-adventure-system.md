@@ -77,3 +77,51 @@ all 4 correct — adopted as-is.
   consumes the flag (`isStageUnlocked`, `StageSelect.tsx`, `useRealtimeBattle.ts`). Expect to hit
   this seam again on any future gating change — the write site is not mine to move, only to cite
   correctly.
+
+## 2026-08-10 — Task #33: #104 dead-sprite regression test (QC-bounced once, then passed)
+
+Wave-scoped, NOT this system's own file territory — `useDungeonStageBattle.ts` (P5 dungeon
+orchestration) and `combatCameraConfig.ts` (presentation-only). Picked up per the belt's
+deepest-knowledge routing, not because either file is in my owned Scope. Branch
+`test/33-dungeon-dead-sprite-regression`, final `2ae8db7` (first attempt `4ce3d79` was bounced).
+
+**The bounce, and the lesson worth keeping — an unfalsifiable test is worse than no test.**
+My first version was named for the subscribe/listener mechanism but never observed it. The fake
+runtime cached ONE frozen snapshot object per runtime, so `notify()` could never change what
+`getSnapshot()` returned; the closing assertion re-checked a value the swap had already produced
+and passed whether or not the listener ever fired. QC proved it by reverting the hook and getting
+a green test — the named regression would have shipped covered-on-paper.
+
+**Why it fooled me: I verified against the wrong revert.** I flipped only the `useCallback` DEPS
+to `[orchestrator]` while keeping the `activeRuntime?.` bodies. That is a stale-closure variant
+that does not exist in this repo's history, and it fails for a different reason, so I read a
+failure as proof. The REAL pre-#104 body (confirmed via `git show c3c82aa`) was
+`orchestrator?.getRuntime()?.subscribe/getSnapshot` — reading LIVE through the orchestrator. That
+distinction is the whole bug: the live `getSnapshot` returns the NEW runtime's data on any
+re-render, so **any assertion on the post-swap snapshot is satisfied by the broken code too**.
+Only `subscribe` was actually broken — frozen on `[orchestrator]`, never re-run on a stage swap,
+leaving `useSyncExternalStore` subscribed to stage 1's DISPOSED runtime whose listener Set was
+cleared. Stage 2's per-frame `notify()` reached nobody; the battle UI froze for the whole stage.
+**Standing rule for myself: when pinning a fix, revert to the EXACT historical body from git, not
+a hand-reconstructed approximation — and make sure the assertion fails for the RIGHT reason.**
+
+**Fix:** the fake now replaces its snapshot (`{tag, tick}`) inside `notify()` the way a real store
+does (still one stable reference between notifies — `useSyncExternalStore` warns and spins
+otherwise), and the closing assertion requires the ADVANCED tick, which only arrives if runtime
+B's listener fired. Verified both directions against the exact pre-#104 bodies: reverted → FAILS
+on the tick assertion (the earlier post-swap assertion still passes, which is precisely why it was
+never a pin); restored → passes.
+
+**Part 2 (cosmetic):** `COMBAT_CAMERA_V082_BASELINE` — my first comment claimed five fields still
+feed `DEFAULT_COMBAT_CAMERA_CONFIG`; it reads FOUR (`pitchDeg`, `distance`, `minZoom`, `maxZoom`).
+`heightOffset` is a hand-derived `1.264` literal in the live config, so it is dead to it in the
+same way `targetCharacterScreenHeightRatio` is — both survive only for
+`combatCameraFraming.test.ts`'s baseline spread. Corrected; no runtime value changed. (Doc-rot in
+the very comment written to prevent doc-rot — count fields, don't eyeball them.)
+
+**Verify:** typecheck, `oxlint --deny-warnings`, 911 tests (910 baseline + 1), build — all green.
+
+**Process note:** this section had to be written TWICE. The first copy was an uncommitted edit in
+the shared working copy and was wiped by another lane's tree-mutating git action (rule 21's exact
+hazard). Caretaker `MEMORY/` edits made in the shared tree are not safe until committed — hand
+them to main in the return rather than assuming they survive.
