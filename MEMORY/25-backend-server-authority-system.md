@@ -140,3 +140,24 @@ _before_ applying `0001_init.sql`, so `handle_new_user()` never runs.
   prod (my file only revokes its EXECUTE). Both facts are now in the migration header. **Standing
   check for a parked branch: re-read what moved in prod, not just in git** — a migration written
   against a live system can be invalidated by an operator action that leaves no trace in the repo.
+- `20260810170000_security_reconcile_dead_account_cleanup.sql` — **written, NOT applied**, owner
+  relay owed, schedules nothing (`cleanup-dead-unplayed-accounts` stays unscheduled; the file
+  carries a PRE-ARM count query to run before any `cron.schedule`).
+  **The prod/repo divergence is SOLVED, from git, not guessed:** production ran the body of
+  0014's FIRST revision `1204236` (2026-08-08 23:09:29) byte-for-byte; `835dd95` added the
+  exempt/topup guards four minutes later under the message "…BEFORE FIRST APPLY". So 0014 WAS
+  relayed — at `1204236` — and its three follow-ups (`835dd95`, `db2c079`, `985d4c3`) never
+  were. **Standing lesson: "which body is authoritative" is answerable from commit timestamps
+  plus a byte comparison — a relay gap leaves a fingerprint, so read it instead of speculating.**
+  Consequence I nearly missed: `cleanup_exempt_profiles` was itself introduced by the un-relayed
+  `835dd95`, so the new file must CARRY the table + RLS + seed rows rather than assume them.
+  **A migration that fixes a function must also carry everything that function newly depends on,
+  if that dependency shipped in a commit the relay never reached.**
+- **Why the two cleanup jobs do NOT share a predicate helper** (decided, not defaulted): the
+  guest job reaps DORMANCY (`no battle in 30 days`) and this one reaps NEVER-ENGAGED (`no battle
+  EVER`) — 0014's header draws that line explicitly and cites Kakao's 3-YEAR window for dormant
+  registered accounts. Sharing the predicate would silently widen this job to every player who
+  ever stopped playing. And the drift was never caused by duplication: the guards existed in the
+  repo and never reached prod, so a shared helper would have drifted identically. The guard SET
+  is pinned across both by a test reading `pg_get_functiondef` instead — verify sameness where it
+  matters, don't couple policies that are allowed to differ.
