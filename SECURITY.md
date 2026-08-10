@@ -125,9 +125,14 @@ By design, not bugs — don't file these:
   `spend_progression_upgrade` RPC that debits and applies in one transaction with a compare-and-swap
   on true server state as the replay guard, `revoke update on public.owned_characters from
 authenticated` with no re-grant, and the removal of the three progression parameters from
-  `commit_lobby_battle_progression`'s signature. **That migration is not yet applied** — it is
-  sequenced to land after the client build that stops using the old shapes. Report the same _class_
-  of bug elsewhere.)
+  `commit_lobby_battle_progression`'s signature. **That migration is applied and verified live**:
+  the cost catalog seeded 21 rows, `spend_progression_upgrade` exists with `EXECUTE` granted to
+  `authenticated` and denied to `anon`, `owned_characters` UPDATE is revoked from `authenticated`,
+  and `commit_lobby_battle_progression` is down to a single 18-argument function. An end-to-end
+  purchase was driven against production through the real anon-key path: gold went 581 → 541
+  with one ledger row, retrying the same request id charged nothing, replaying under a fresh
+  request id was refused by the compare-and-swap, and a talent purchase without its prerequisite
+  was refused. Report the same _class_ of bug elsewhere.)
 - **"I changed Star/Shard values in React state or called the preview calculator."** The preview
   is presentation-only. Report it only if the change persists in Supabase without a valid
   `ascend_character_star` transaction.
@@ -177,10 +182,13 @@ authenticated` with no re-grant, and the removal of the three progression parame
   but read the next two sentences before relying on it. Its criterion is now **inactivity**,
   not account age: `supabase/migrations/20260810160000_security_audit_hardening_wave1.sql`
   replaced `0006_guest_cleanup.sql`'s `created_at`-only predicate, which deleted guests who
-  played every day (a real bug, caught by audit before it ever fired). **The job is currently
-  UNSCHEDULED on production** — `cron.unschedule`d 2026-08-10 as the zero-risk interim while
-  the predicate was fixed, so nothing is being auto-reaped right now. The anti-farming bound
-  is therefore a property of the rate limit alone until the job is re-armed.
+  played every day (a real bug, caught by audit before it ever fired). The job was re-armed
+  after that fix, then **deliberately unscheduled again on 2026-08-11** — this time not for a
+  predicate bug but because a CoalBoard review projected its blast radius forward and found it
+  would delete 21 of the 24 current guest accounts by 2026-09-08 and all 24 by 09-09, while only
+  1 of the 24 has ever recorded a battle. Verified against production: `cleanup-stale-guest-accounts`
+  is absent from `cron.job`. The anti-farming bound is therefore a property of the rate limit
+  alone until the job is re-armed.
 - **Account-deletion jobs, prod-vs-repo drift (RESOLVED 2026-08-10)**: production was running
   `0014_dead_account_cleanup.sql`'s **first revision** — deleting registered accounts by account
   age, guarded only by "never fought a battle". The three follow-up commits that added
@@ -191,15 +199,18 @@ authenticated` with no re-grant, and the removal of the three progression parame
   `battle_history`, recent `currency_transactions` excluding source `signup` (the 2026-08-10
   backfill stamped one onto every pre-existing account at apply time, which would otherwise read
   as "everyone was active"), plus the exemption table and a permanent `topup` exemption.
-  **The job remains UNSCHEDULED.** Re-arming is gated on a PRE-ARM count returning `0`; the
-  query is in that migration's header. Measured 2026-08-10 after the reconcile: **0 today**, but
-  14 of 17 registered accounts have neither a battle nor any non-signup currency row, so the
-  count must be re-run immediately before any re-arm rather than trusted from that day.
+  **The job remains UNSCHEDULED.** A point-in-time PRE-ARM count returning `0` is **not** a
+  sufficient re-arm condition — the query in that migration's header only reads a growing
+  eligible set, and evaluated forward against the current population it returns 0 on 2026-09-06,
+  1 on 09-07, and 12 on 09-08. Anyone arming on a `0` reading would still lose real accounts
+  within two days. A forward projection over the whole arming window is required, not a single
+  reading, and the correct criterion for that projection is unsettled — tracked as task #95.
 - **CAPTCHA (Cloudflare Turnstile)**: client-side widget shipped (`AuthModal.tsx`, `VITE_TURNSTILE_SITE_KEY`).
   Supabase's Dashboard toggle (Authentication → Settings → Attack Protection) is project-wide
   across all `signUp`/`signInWithPassword`/`signInAnonymously` calls, not scoped per method —
-  currently disabled server-side pending a live-browser verification pass; re-enable once that's
-  confirmed working end-to-end.
+  **enabled server-side** (`security_captcha_enabled: true`). Verified 2026-08-10 over HTTP
+  against the real anon key (not a live browser): login succeeded, RLS confined reads to the
+  caller's own rows, and a direct `PATCH` of the server-owned columns was refused with `42501`.
 
 ## Supply-Chain / CI
 
