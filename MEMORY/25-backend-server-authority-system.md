@@ -133,3 +133,10 @@ _before_ applying `0001_init.sql`, so `handle_new_user()` never runs.
   436-line file the owner pastes by hand and cannot re-verify, a false grounding statement is
   itself the defect. There is now a test parsing `src/game/items.ts` and asserting the catalog
   equals it exactly.
+  Rebase pass (2026-08-10, branch 15 commits behind): merged `origin/master` clean, no conflicts;
+  sentinel clean (only my 3 files). **Prod state changed under this branch while it sat parked** —
+  the owner unscheduled BOTH account-deletion cron jobs (item 190 Part B), so applying this
+  migration does not re-arm anything, and `cleanup_dead_unplayed_accounts` is still defective in
+  prod (my file only revokes its EXECUTE). Both facts are now in the migration header. **Standing
+  check for a parked branch: re-read what moved in prod, not just in git** — a migration written
+  against a live system can be invalidated by an operator action that leaves no trace in the repo.

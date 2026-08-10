@@ -19,6 +19,21 @@
 -- a deliberate property (manual relay, retry-after-interruption is a real scenario); keep it
 -- when editing.
 --
+-- ⚠ THIS FILE SCHEDULES NOTHING, AND THAT IS DELIBERATE. On 2026-08-10 the owner disarmed both
+-- account-deletion cron jobs on production as a zero-risk interim (MEMORY item 190 Part B):
+--   cron.unschedule('cleanup-stale-guest-accounts')      -- the F1 defect below
+--   cron.unschedule('cleanup-dead-unplayed-accounts')    -- a sibling the audit MISSED
+-- Applying this migration REPLACES the guest function's body; it does NOT put the job back on
+-- the schedule. Re-arming is a separate, deliberate `cron.schedule(...)` the owner runs when
+-- ready — do not add it here, and do not read "F1 fixed" as "guest cleanup is running again".
+--
+-- ⚠ AND THE SIBLING IS NOT FIXED BY THIS FILE. `cleanup_dead_unplayed_accounts` gets only an
+-- EXECUTE revoke below (F2). Its deletion predicate is untouched, and item 190 measured the
+-- PRODUCTION function missing the `cleanup_exempt_profiles` and `topup` guards that
+-- 0014_dead_account_cleanup.sql's committed text plainly has — i.e. prod and the file DISAGREE,
+-- which is its own finding (0014 relay-pending, or prod carries an older body). Whoever fixes
+-- that owns reconciling the two; it is out of this wave's scope and must not be assumed closed.
+--
 -- ── F7, DOCUMENTED AS ACCEPTED RESIDUAL (no code change, decision recorded here) ────────────
 -- 20260810130000's commit_lobby_battle_progression rejects a level rollback and bounds the
 -- per-call level gain, but a client may still resend the SAME level with a LOWER exp, or send
