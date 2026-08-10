@@ -319,7 +319,6 @@ grant execute on function public.commit_pvp_authority_state(uuid, bigint, jsonb,
   to service_role;
 
 -- Private Realtime is receive-only for players. Input never travels as a client-authored broadcast.
-alter table realtime.messages enable row level security;
 drop policy if exists "pvp participants receive authority broadcast" on realtime.messages;
 create policy "pvp participants receive authority broadcast"
   on realtime.messages

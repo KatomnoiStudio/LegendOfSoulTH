@@ -3,7 +3,13 @@
 > **Operator / Human User**: `HetCreep`
 > **Repository**: `KatomnoiStudio/LegendOfSoulTH`
 > **Default Branch**: `master`
-> **Last Updated**: 2026-08-09T20:15:00+07:00 by `Claude Code` — design-fork handoff answered and implemented: currency ledger archive built on the live Postgres backend, gacha's determinism criterion rewritten to statistical testing + dead client module deleted, PvP P12 private-room ruled scope drift not an interim phase (item 179).
+> **Last Updated**: 2026-08-10T22:20:19+07:00 by `Codex` — corrected upstream TASKS row 32's stale claim that Edge tests sit outside the release gate; see item 198.
+> **Last Updated (prior)**: 2026-08-10T22:11:10+07:00 by `Codex` — merged the two upstream commits that landed during pre-push verification, retaining their final PR #108 release guard and TASKS row 32; see item 197.
+> **Last Updated (prior)**: 2026-08-10T22:05:48+07:00 by `Codex` — closed the null-snapshot objective-owner hole found in fresh-eyes review and pinned the real DungeonSession wiring; see item 196.
+> **Last Updated (prior)**: 2026-08-10T21:56:00+07:00 by `Codex` — carried PR #108's version-neutral release instructions and lockfile parity regression guard onto v0.17.0 without downgrading metadata; see item 195.
+> **Last Updated (prior)**: 2026-08-10T21:53:00+07:00 by `Codex` — ported the Supabase Realtime managed-schema replay repair onto v0.17.0 for fork testing; see item 194.
+> **Last Updated (prior)**: 2026-08-10T21:50:00+07:00 by `Codex` — ported the stage-objective single-HUD and invalid-config regression repair onto v0.17.0 for fork testing; see item 193.
+> **Last Updated (prior)**: 2026-08-09T20:15:00+07:00 by `Claude Code` — design-fork handoff answered and implemented: currency ledger archive built on the live Postgres backend, gacha's determinism criterion rewritten to statistical testing + dead client module deleted, PvP P12 private-room ruled scope drift not an interim phase (item 179).
 > **Last Updated (prior)**: 2026-08-10T03:40:00+07:00 by `Claude Code` — full doc-vs-code fidelity audit: 63 agents, 147 stale doc claims corrected across AGENTS.md/AGENT_BLUEPRINT.md/28 system contracts/`.agents/rules/`/MASTER_BLUEPRINT/TASKS/MEMORY, README.md rewritten for its real (agent/dev) audience, 3 real design forks handed off for a human decision (item 178).
 > **Last Updated (prior)**: 2026-08-10T01:15:00+07:00 by `Claude Code` — v0.15.2: closed the PvP gate leak found by rot-canary over v0.15.1 (item 177). Gacha is live and verified; PvP stays gated until its Edge Function is deployed.
 > **Last Updated (prior)**: 2026-08-10T00:30:00+07:00 by `Claude Code` — v0.15.1: gated the PvP button behind its undeployed backend after v0.15.0 shipped it broken to live; applied and verified the gacha migration in production (item 176).
@@ -48,8 +54,8 @@
 
 ## 🎯 Current Status
 
-- **Repo**: upstream `master` @ `d45552b` · **v0.14.0** · merged this session: PR #90 (castDelayMs), #91 (memory), #95 (P12 ranked power normalization), #84 (branch hygiene). `cursor/*-b471` agent branches pruned locally after merge (item 159).
-- **Version**: **0.15.2** on live — v0.14.0 was P11 Chapter 1 PvE expansion; 0.14.1 was the OAuth redirect + PKCE fix (item 175, not item 172 as this line previously misattributed — item 172 is the Lobby/Gacha integration entry); 0.15.1 gated the undeployed PvP button and applied the gacha migration live, and 0.15.2 closed the PvP gate leak found by rot-canary (items 176-177). Deploy gate: bump BOTH `GAME_INFO.version` and `package.json` in the same PR — `gameInfo.test.ts` pins them equal and bumping only one turns CI red.
+- **Repo**: upstream `master` @ `f8f599d` · **v0.17.0** latest baseline. Upstream now includes PR #108's final release guard; the fork-test integration adds the still-open PR #107 objective repair, PR #109 Realtime replay repair, the null-snapshot ownership fix, and one truthfulness correction to row 32 without replaying stale v0.16 ledger conflicts (items 193–198).
+- **Version**: source metadata is **0.17.0** in `GAME_INFO`, `package.json`, and both root `package-lock.json` fields. Fork Pages publication is pending one atomic `master` update after the integration gates; the deploy workflow keys off this version change, so the complete state must land in one push.
 - **Org/Live**: `KatomnoiStudio` — https://katomnoistudio.github.io/LegendOfSoulTH/
 - **Backend**: Supabase Auth+Postgres live, wired via `useAuth.ts` (item 41/87). `accountRepository.ts` (localStorage) stays as a dormant fallback seam only.
 - **Master Blueprint v3.0**: P0–P3 DONE · §3.6/§3.7 LOCKED · mobile combat UI done (§3.3) · P4 LANDED (item 109) · P5 dungeon slice + reward pipeline LANDED (items 111-112) · P8 per-hero progression LANDED (item 119, numerics still NON-PRODUCTION) · Basic Attack Lunge Distance closed (item 124).
@@ -287,3 +293,9 @@ All entries 2026-08-05/06 unless noted. Roughly chronological.
 - **190.** Asset provenance recorded (870 assets, authorship measured) + two account-deletion cron jobs disarmed — `MEMORY/archive/176-200.md`
 - **191.** DESIGN LOCK (owner) — game values are BASE x SCALE under one rule; a PR carrying a per-case magic number is converted at intake — `MEMORY/archive/176-200.md`
 - **192.** v0.17.0 shipped — 10 belt lanes, 52 audit findings worked off, every lane bounced at least once on the same species: correct code with nothing pinning it — `MEMORY/archive/176-200.md`
+- **193.** Stage-objective regression repair ported onto v0.17.0 for fork testing — `MEMORY/archive/176-200.md`
+- **194.** Supabase Realtime managed-schema replay repair ported onto v0.17.0 for fork testing — `MEMORY/archive/176-200.md`
+- **195.** Release-metadata parity guard adapted to v0.17.0 for fork testing — `MEMORY/archive/176-200.md`
+- **196.** Dungeon objective fallback preserved when its stage snapshot is temporarily absent — `MEMORY/archive/176-200.md`
+- **197.** Fork integration refreshed onto upstream `f8f599d` during the pre-push gate — `MEMORY/archive/176-200.md`
+- **198.** Release-pipeline ledger corrected: Edge tests are inside `npm run ci` and the deploy gate — `MEMORY/archive/176-200.md`
