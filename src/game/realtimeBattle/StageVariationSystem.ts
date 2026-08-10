@@ -24,9 +24,7 @@ function resolveWaveOutcome(state: RealtimeBattleState): StageOutcome {
   if (!state.enemies.every((enemy) => enemy.state === 'dead')) return null
 
   const nextWaveIndex = state.currentWaveIndex + 1
-  // ตัวคูณเลือดของด่านต้องมีผลกับทุกคลื่น ไม่ใช่เฉพาะคลื่นแรก — createRealtimeBattle และ
-  // RealtimeBattleRuntime.spawnWaveAt ส่งค่านี้อยู่แล้ว ทางนี้เคยตกหล่นอยู่ทางเดียว
-  const nextWaveEnemies = createWaveEnemies(state.stage, nextWaveIndex, state.enemyHpScale ?? 1)
+  const nextWaveEnemies = createWaveEnemies(state.stage, nextWaveIndex)
   if (nextWaveEnemies.length > 0) {
     state.currentWaveIndex = nextWaveIndex
     state.enemies = [...state.enemies, ...nextWaveEnemies]

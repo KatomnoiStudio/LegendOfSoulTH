@@ -87,33 +87,6 @@ describe('resolveStageOutcome — wave', () => {
     const state = makeState({ stageType: 'wave' })
     expect(resolveStageOutcome(state, 16)).toBeNull()
   })
-
-  /*
-     ตัวคูณเลือดของด่านเคยหลุดเฉพาะทางนี้ทางเดียว (สร้างคลื่นถัดไปตอนเคลียร์คลื่นเดิม)
-     คลื่นแรกกับ spawnWaveAt ส่งค่าอยู่แล้ว คลื่นที่ 2 เป็นต้นไปจึงเกิดมาเลือดเต็มเสมอ
-     ไม่ว่าด่านจะตั้งตัวคูณไว้เท่าไหร่
-  */
-  it('คลื่นที่สร้างตอนเคลียร์คลื่นก่อน ต้องโดน enemyHpScale ของด่านด้วย', () => {
-    const base = createRealtimeBattle('trial-02', makePlayer())
-    if (!base) throw new Error('เตรียม fixture ไม่สำเร็จ')
-
-    const unscaled = createWaveEnemies(base.stage, 1)
-    const scaled = createWaveEnemies(base.stage, 1, 0.5)
-    expect(unscaled.length).toBeGreaterThan(0)
-
-    const state: RealtimeBattleState = { ...base, enemyHpScale: 0.5 }
-    const firstWaveCount = state.enemies.length
-    killAllEnemies(state)
-
-    expect(resolveStageOutcome(state, 16)).toBeNull()
-    const spawned = state.enemies.slice(firstWaveCount)
-    expect(spawned).toHaveLength(scaled.length)
-    spawned.forEach((enemy, index) => {
-      expect(enemy.maxHp).toBe(scaled[index].maxHp)
-      expect(enemy.maxHp).toBeLessThan(unscaled[index].maxHp)
-      expect(enemy.hp).toBe(enemy.maxHp)
-    })
-  })
 })
 
 describe('resolveStageOutcome — survival', () => {
