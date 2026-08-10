@@ -7,6 +7,13 @@ const TEST_USER = '11111111-1111-1111-1111-111111111111'
 const MIGRATION = '20260808204905_p9_star_ascension_server_authority.sql'
 /** Task #25 (CoalBoard scope B) — narrows p9's allowlist and hardens the progression RPC. */
 const HARDENING = '20260810130000_security_harden_lobby_progression_rpc.sql'
+/** 2026-08-10 audit wave 1 (F1-F8) — guest-cleanup inactivity, EXECUTE sweep, item catalog. */
+const WAVE1 = '20260810160000_security_audit_hardening_wave1.sql'
+
+// Guest-cleanup fixtures (F1). All three are 40 days old; what differs is ACTIVITY.
+const GUEST_ACTIVE = '22222222-2222-4222-8222-222222222201'
+const GUEST_STALE = '22222222-2222-4222-8222-222222222202'
+const GUEST_EXEMPT = '22222222-2222-4222-8222-222222222203'
 const COMMIT_RPC =
   'public.commit_lobby_battle_progression(text,text,text,int,int,int,text,jsonb,text[],' +
   'text,int,int,int,jsonb,jsonb,jsonb,text,text,text,int,timestamptz)'
@@ -29,7 +36,14 @@ interface ProgressionCommit {
 
 async function applyMigration(db: PGlite, filename: string): Promise<void> {
   const sql = readFileSync(join(process.cwd(), 'supabase/migrations', filename), 'utf8')
-  await db.exec(sql)
+  // pg_cron is a Supabase-hosted extension PGlite cannot install; cron.schedule itself is
+  // stubbed in beforeAll. Neutralize only the extension bootstrap line (0006/0007 carry it).
+  await db.exec(
+    sql.replace(
+      /create extension if not exists pg_cron with schema extensions;/g,
+      '-- pg_cron unavailable in PGlite (stubbed in test bootstrap)',
+    ),
+  )
 }
 
 /** One `commit_lobby_battle_progression` call with everything but the tested fields held fixed. */
@@ -82,8 +96,32 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
     db = new PGlite()
     await db.exec(`
       create schema if not exists auth;
-      create table if not exists auth.users (id uuid primary key);
+      -- is_anonymous / created_at / last_sign_in_at mirror GoTrue's real columns — the F1
+      -- guest-cleanup rewrite (wave 1) filters on them.
+      create table if not exists auth.users (
+        id uuid primary key,
+        is_anonymous boolean not null default false,
+        created_at timestamptz not null default now(),
+        last_sign_in_at timestamptz
+      );
       insert into auth.users (id) values ('${TEST_USER}') on conflict do nothing;
+
+      -- Guest fixtures for the F1 cleanup test: all created 40 days ago, differing only in
+      -- activity signals. Inserted BEFORE 0001 so handle_new_user never fires (the harness
+      -- creates profiles by hand).
+      insert into auth.users (id, is_anonymous, created_at, last_sign_in_at) values
+        ('${GUEST_ACTIVE}', true, now() - interval '40 days', now() - interval '40 days'),
+        ('${GUEST_STALE}', true, now() - interval '40 days', now() - interval '40 days'),
+        ('${GUEST_EXEMPT}', true, now() - interval '40 days', now() - interval '40 days')
+      on conflict do nothing;
+
+      -- 0014 seeds cleanup_exempt_profiles with three fixed dev-account uuids that FK into
+      -- profiles — those accounts must exist here or 0014 itself fails to apply.
+      insert into auth.users (id) values
+        ('e79a973f-fd52-4b84-8e6a-c53a0394db88'),
+        ('d0a7b94f-5d95-4e52-8d8f-ebdd835cf695'),
+        ('9baf5833-89d4-401e-9ece-14e46a27a228')
+      on conflict do nothing;
 
       create or replace function auth.uid() returns uuid
       language sql stable as $$ select '${TEST_USER}'::uuid $$;
@@ -98,6 +136,19 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
       exception when duplicate_object then null;
       end $$;
 
+      -- ⚠ SUPABASE-SHAPED ACL BASELINE — without this the harness is structurally blind to a
+      -- whole class of privilege bug. A Supabase project bootstrap runs
+      --   alter default privileges in schema public grant all on functions to anon, authenticated
+      -- so every function a migration creates carries a DIRECT grant to both roles, not merely
+      -- the PUBLIC default. Bare roles (the previous fixture) inherit only through PUBLIC, so
+      -- a revoke naming only public+anon LOOKED like it removed authenticated's access when in
+      -- production it does not. Reproducing the default-privilege grant makes every
+      -- has_function_privilege assertion below actually bite.
+      -- Scoped to FUNCTIONS on purpose: Supabase grants tables too, but this harness already
+      -- models the table side explicitly (see the owned_characters grant further down), and
+      -- widening it here would change assertions unrelated to the ACL class under test.
+      alter default privileges in schema public grant all on functions to anon, authenticated;
+
       -- pg_cron is a Supabase extension, not core Postgres — 0011 schedules a cleanup job.
       create schema if not exists cron;
       create or replace function cron.schedule(job_name text, schedule text, command text)
@@ -105,7 +156,13 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
     `)
 
     await applyMigration(db, '0001_init.sql')
+    // 0002/0004 define grant_character + admin_accounts — WAVE1's EXECUTE sweep names them.
+    await applyMigration(db, '0002_grant_character_rpc.sql')
+    await applyMigration(db, '0004_admin_accounts.sql')
     await applyMigration(db, '0005_skill_levels.sql')
+    // 0006/0007 define the guest/audit-log cleanup functions WAVE1 rewrites and locks.
+    await applyMigration(db, '0006_guest_cleanup.sql')
+    await applyMigration(db, '0007_audit_log_cleanup.sql')
     await applyMigration(db, '0008_progression_state.sql')
     await applyMigration(db, '0009_economy_integrity_fixes.sql')
     // 0010-0013 are prerequisites of HARDENING below: it replaces 0013's RPC and calls 0011's
@@ -118,6 +175,22 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
     await db.exec(`
       insert into public.profiles (id, uid, name)
       values ('${TEST_USER}', '1234567890', 'Tester');
+
+      -- Guest profiles + the three dev accounts 0014's exempt seed references (FK).
+      insert into public.profiles (id, uid, name) values
+        ('${GUEST_ACTIVE}', '2000000001', 'GuestActive'),
+        ('${GUEST_STALE}', '2000000002', 'GuestStale'),
+        ('${GUEST_EXEMPT}', '2000000003', 'GuestExempt'),
+        ('e79a973f-fd52-4b84-8e6a-c53a0394db88', '2000000004', 'DevA'),
+        ('d0a7b94f-5d95-4e52-8d8f-ebdd835cf695', '2000000005', 'DevB'),
+        ('9baf5833-89d4-401e-9ece-14e46a27a228', '2000000006', 'DevSmoke');
+
+      -- Activity: the ACTIVE guest battled 2 days ago; the STALE and EXEMPT guests' only
+      -- battle is 40 days old. All other signals (sign-in, currency) are 40 days stale.
+      insert into public.battle_history (profile_id, opponent, result, finished_at) values
+        ('${GUEST_ACTIVE}', 'trial-01', 'win', now() - interval '2 days'),
+        ('${GUEST_STALE}', 'trial-01', 'win', now() - interval '40 days'),
+        ('${GUEST_EXEMPT}', 'trial-01', 'win', now() - interval '40 days');
 
       insert into public.owned_characters (
         profile_id, character_id, level, exp, exp_to_next,
@@ -142,8 +215,25 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
       grant select, insert, update on public.owned_characters to authenticated;
     `)
 
+    // 0014 (dead-account cleanup + exempt table), then the rest of the chain WAVE1 builds on:
+    // gacha (F8's table), the ledger archive (lifetime columns + archive fn), and the
+    // earn_gold/signup-ledger hardening whose earn_gold body WAVE1 re-orders.
+    await applyMigration(db, '0014_dead_account_cleanup.sql')
+    // 0015 defines grant_gold_admin/grant_item_admin — also named by the EXECUTE sweep.
+    await applyMigration(db, '0015_admin_grant_and_chat_block.sql')
     await applyMigration(db, MIGRATION)
+    await applyMigration(db, '20260809073000_p9_gacha_server_authority.sql')
+    await applyMigration(db, '20260809090000_p_currency_ledger_archive.sql')
+    await applyMigration(db, '20260810100000_security_earn_gold_topup_and_signup_ledger.sql')
     await applyMigration(db, HARDENING)
+    await applyMigration(db, WAVE1)
+
+    await db.exec(`
+      -- Exempt the third guest via the mechanism 0014 ships (and WAVE1's guest job honours).
+      insert into public.cleanup_exempt_profiles (profile_id, reason)
+      values ('${GUEST_EXEMPT}', 'F1 test: stale but explicitly exempt')
+      on conflict (profile_id) do nothing;
+    `)
 
     await db.exec(`
       update public.owned_characters set shards = 5 where character_id = 'monkey-king';
@@ -483,6 +573,197 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
         heroExpToNext: 0,
       }),
     ).rejects.toThrow('ค่า EXP ไม่ถูกต้อง')
+  })
+
+  it('wave1: exactly one grant_item overload survives a full-chain replay (F3)', async () => {
+    // 0011 (3-arg) + 0013 (4-arg) both applied above = the collision exists in this very
+    // harness until WAVE1's drop runs. The production hand-fix lived in no file before this.
+    const overloads = await db.query<{ count: string }>(`
+      select count(*)::text as count
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = 'grant_item'
+    `)
+    expect(overloads.rows[0]?.count).toBe('1')
+  })
+
+  it('wave1: EXECUTE swept on all twelve SECURITY DEFINER RPCs (F2)', async () => {
+    const anonChecks = [
+      "public.cleanup_stale_guest_accounts()",
+      "public.cleanup_dead_unplayed_accounts()",
+      "public.cleanup_old_audit_log_entries()",
+      "public.archive_currency_transactions(interval)",
+      "public.earn_gold(text, int, text)",
+      "public.grant_item(text, int, text, text)",
+      "public.redeem_coupon(text)",
+      "public.grant_character(text)",
+      "public.grant_gold_admin(int)",
+      "public.grant_item_admin(text, int)",
+      "public.upsert_pending_lobby_reward(text, text, text, text, int, int, jsonb, timestamptz, int)",
+      "public.clear_pending_lobby_reward(text)",
+    ]
+    for (const sig of anonChecks) {
+      const anon = await db.query<{ ok: boolean }>(
+        `select has_function_privilege('anon', '${sig}', 'EXECUTE') as ok`,
+      )
+      expect({ sig, anon: anon.rows[0]?.ok }).toEqual({ sig, anon: false })
+    }
+
+    // The four cron-only jobs get NO grant at all — not even authenticated.
+    for (const sig of anonChecks.slice(0, 4)) {
+      const authed = await db.query<{ ok: boolean }>(
+        `select has_function_privilege('authenticated', '${sig}', 'EXECUTE') as ok`,
+      )
+      expect({ sig, authenticated: authed.rows[0]?.ok }).toEqual({ sig, authenticated: false })
+    }
+
+    // The internal rate-limit helper is callable by NOBODY but other DEFINER functions.
+    // Its ceiling is caller-supplied, so a reachable /rest/v1/rpc/... route lets any signed-in
+    // account disable its own throttle and append rate_limit rows at will. `authenticated`
+    // holds a DIRECT default-privilege grant here (see the bootstrap note), so this assertion
+    // only means anything because the fixture is Supabase-shaped.
+    for (const role of ['anon', 'authenticated']) {
+      const helper = await db.query<{ ok: boolean }>(
+        `select has_function_privilege('${role}', 'public.check_and_log_rpc_rate_limit(text, int, int)', 'EXECUTE') as ok`,
+      )
+      expect({ role, canCall: helper.rows[0]?.ok }).toEqual({ role, canCall: false })
+    }
+
+    // The client-callable eight keep working for signed-in players (spot-check the two the
+    // reward pipeline fires every battle).
+    for (const sig of ["public.earn_gold(text, int, text)", "public.grant_item(text, int, text, text)"]) {
+      const authed = await db.query<{ ok: boolean }>(
+        `select has_function_privilege('authenticated', '${sig}', 'EXECUTE') as ok`,
+      )
+      expect({ sig, authenticated: authed.rows[0]?.ok }).toEqual({ sig, authenticated: true })
+    }
+  })
+
+  it('wave1: the item catalog matches src/game/items.ts exactly (F4)', async () => {
+    // Grounding assertion, not a privilege one: a seeded id the game does not define is
+    // mintable by any player and defeats the guard's whole purpose. Parse the real ITEMS
+    // record so the two can never drift silently again.
+    const source = readFileSync(join(process.cwd(), 'src/game/items.ts'), 'utf8')
+    const itemsBlock = source.slice(source.indexOf('export const ITEMS'))
+    const declared = [...itemsBlock.matchAll(/^ {2}'([a-z0-9-]+)':/gm)]
+      .map((m) => m[1])
+      .toSorted()
+    expect(declared.length).toBeGreaterThan(0)
+
+    const seeded = await db.query<{ item_id: string }>(
+      `select item_id from public.item_catalog order by item_id`,
+    )
+    expect(seeded.rows.map((r) => r.item_id)).toEqual(declared)
+  })
+
+  it('wave1: grant_item refuses an id missing from the item catalog (F4)', async () => {
+    await expect(
+      db.query(`select public.grant_item('developer-only-sword', 1, 'drop', 'ref-f4-bad')`),
+    ).rejects.toThrow('ไม่พบไอเทมนี้')
+
+    const minted = await db.query<{ count: string }>(
+      `select count(*)::text as count from public.inventory_items
+       where item_id = 'developer-only-sword'`,
+    )
+    expect(minted.rows[0]?.count).toBe('0')
+
+    // A real catalog item still grants — the guard narrows, it does not break the pipeline.
+    await db.query(`select public.grant_item('healing-peach', 3, 'drop', 'ref-f4-good')`)
+    const granted = await db.query<{ quantity: number }>(
+      `select quantity from public.inventory_items
+       where profile_id = '${TEST_USER}' and item_id = 'healing-peach'`,
+    )
+    expect(granted.rows[0]?.quantity).toBe(3)
+  })
+
+  it('wave1: argument validation runs before the rate limiter (F5)', async () => {
+    // Saturate earn_gold's window by hand, then send an INVALID call: the old order would
+    // answer "too many calls", the new order rejects the argument without ever consulting
+    // the limiter. A VALID call at the same instant still gets throttled.
+    await db.exec(`
+      insert into public.rpc_rate_limit (profile_id, rpc_name)
+      select '${TEST_USER}', 'earn_gold' from generate_series(1, 20);
+    `)
+    await expect(db.query(`select public.earn_gold('drop', -5)`)).rejects.toThrow(
+      'จำนวนทองไม่ถูกต้อง',
+    )
+    await expect(db.query(`select public.earn_gold('drop', 10)`)).rejects.toThrow(
+      'เรียกใช้งานถี่เกินไป',
+    )
+    await db.exec(`delete from public.rpc_rate_limit where rpc_name = 'earn_gold';`)
+  })
+
+  it('wave1: pending-reward upserts are bounded and row-capped (F6)', async () => {
+    await expect(
+      db.query(
+        `select public.upsert_pending_lobby_reward(
+          'tx-f6-neg', 'trial-01', 'ด่านทดสอบ', 'victory', -1, 0, '[]'::jsonb, now()::timestamptz
+        )`,
+      ),
+    ).rejects.toThrow('ค่ารางวัลไม่ถูกต้อง')
+
+    // Fill to the cap directly (the 20/60 rate limit makes 64 RPC calls impossible in-test;
+    // in production the cap is reached across days, not one burst), then: a NEW id must be
+    // refused, an EXISTING id must still update (resume flow survives a full cache).
+    await db.exec(`
+      insert into public.pending_lobby_rewards
+        (profile_id, transaction_id, stage_id, stage_name, outcome, finished_at)
+      select '${TEST_USER}', 'tx-f6-fill-' || n, 'trial-01', 'ด่านทดสอบ', 'victory', now()
+      from generate_series(1, 64) n;
+    `)
+    await expect(
+      db.query(
+        `select public.upsert_pending_lobby_reward(
+          'tx-f6-overflow', 'trial-01', 'ด่านทดสอบ', 'victory', 0, 0, '[]'::jsonb, now()::timestamptz
+        )`,
+      ),
+    ).rejects.toThrow('รายการรางวัลค้างเต็มแล้ว')
+    await db.query(
+      `select public.upsert_pending_lobby_reward(
+        'tx-f6-fill-1', 'trial-01', 'ด่านทดสอบ', 'defeat', 5, 5, '[]'::jsonb, now()::timestamptz
+      )`,
+    )
+    const updated = await db.query<{ outcome: string }>(
+      `select outcome from public.pending_lobby_rewards
+       where profile_id = '${TEST_USER}' and transaction_id = 'tx-f6-fill-1'`,
+    )
+    expect(updated.rows[0]?.outcome).toBe('defeat')
+    await db.exec(
+      `delete from public.pending_lobby_rewards where transaction_id like 'tx-f6-%';`,
+    )
+  })
+
+  it('wave1: the schema can no longer express a gold gacha banner (F8)', async () => {
+    await expect(
+      db.exec(`
+        insert into public.gacha_banners
+          (id, name, description, currency, cost_single, cost_multi, pity_threshold, pity_rarity)
+        values ('f8-gold-banner', 'x', 'y', 'gold', 100, 900, 50, 'legendary')
+      `),
+    ).rejects.toThrow('gacha_banners_currency_check')
+  })
+
+  it('wave1: guest cleanup deletes by inactivity, never by age alone (F1)', async () => {
+    // All three guests are 40 days old — under 0006's age-only rule every one of them dies.
+    await db.query(`select public.cleanup_stale_guest_accounts()`)
+
+    const guests = await db.query<{ id: string }>(`
+      select id::text as id from auth.users
+      where id in ('${GUEST_ACTIVE}', '${GUEST_STALE}', '${GUEST_EXEMPT}')
+      order by id
+    `)
+    expect(guests.rows.map((r) => r.id)).toEqual([GUEST_ACTIVE, GUEST_EXEMPT])
+
+    // The stale guest's whole subtree cascaded with the auth.users row.
+    const orphan = await db.query<{ count: string }>(
+      `select count(*)::text as count from public.profiles where id = '${GUEST_STALE}'`,
+    )
+    expect(orphan.rows[0]?.count).toBe('0')
+
+    // Registered accounts (is_anonymous false) are NEVER this job's business.
+    const tester = await db.query<{ count: string }>(
+      `select count(*)::text as count from auth.users where id = '${TEST_USER}'`,
+    )
+    expect(tester.rows[0]?.count).toBe('1')
   })
 
   it('rejects invalid star and shard values at the database boundary', async () => {

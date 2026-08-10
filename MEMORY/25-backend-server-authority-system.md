@@ -100,3 +100,43 @@ _before_ applying `0001_init.sql`, so `handle_new_user()` never runs.
   lock 42501s `savePlayer`, which `useAuth.ts` treats as a whole-save rollback (team/friends/flags
   too). New server-owned table `lobby_progression_commits`: never prune it — a deleted row makes
   its transaction id replayable, same trap as the currency ledger.
+- `20260810160000_security_audit_hardening_wave1.sql` (audit F1-F8) — **written, NOT applied**,
+  owner relay owed, paste strictly AFTER 20260810100000 and 20260810130000. Contents: guest
+  cleanup rewritten to inactivity (F1, deadline was ~2026-09-06), EXECUTE sweep over 12 DEFINER
+  RPCs with the 4 cron jobs getting NO grant at all (F2), the grant_item 3-arg overload drop
+  finally in a FILE (F3 — the prod hand-fix from item 148 previously existed nowhere replayable),
+  server item_catalog + grant_item check (F4 — **new items now need a catalog insert migration**),
+  validate-before-rate-limit + denial `raise warning` (F5), pending-reward bounds/row-cap-64 (F6),
+  gem-only gacha banner CHECK (F8). F7 (within-level exp monotonicity) documented as accepted
+  residual in the file header — an attacker's best move is already the direct +20 level claim, the
+  guard defends against nobody's best move; real fix is scope C. Triple-paste proven safe in
+  PGlite. New lessons this pass: (1) **an apply-time backfill poisons activity heuristics** —
+  20260810100000 stamped `signup` ledger rows on every account at APPLY time, so any "recent
+  currency row = active" test must exclude `source='signup'` or every guest reads active for 30
+  days post-apply; (2) **fresh-env parity of prod hand-fixes**: any SQL ever run by hand in the
+  SQL Editor MUST land in a migration file, or CI/PGlite/db-reset silently diverges from prod —
+  the grant_item overload sat in that gap for 2 days with the integration harness actively
+  recreating it. QC bounced v1 with two more, both now fixed and mutation-pinned:
+  (3) **`revoke ... from public, anon` IS NOT ENOUGH on this project.** Supabase's bootstrap runs
+  `alter default privileges in schema public grant all on functions to anon, authenticated`, so
+  every function a migration creates carries a DIRECT grant to `authenticated` — the PUBLIC
+  revoke never touches it. Any internal helper must revoke from `authenticated` too (a DEFINER
+  caller runs as owner and needs no grant). `0011:72` still has this gap for the rate-limit
+  helper, whose ceiling is CALLER-SUPPLIED — reachable over PostgREST it disables its own
+  throttle. And the PGlite harness was **structurally blind** to the whole class: bare
+  `create role` inherits only via PUBLIC. The fixture now runs the same `alter default
+  privileges`, so `has_function_privilege` assertions actually bite (proven: stripping
+  `authenticated` from any revoke now fails a test; before, it passed).
+  (4) **Never state a grounding claim you did not recount.** v1's seed comment said "the complete
+  ITEMS record (7 ids)" and listed two ids that exist nowhere in the repo — I had trusted a
+  `grep -c "id:"` (which counts the interface field too) instead of the 5 real keys. In a
+  436-line file the owner pastes by hand and cannot re-verify, a false grounding statement is
+  itself the defect. There is now a test parsing `src/game/items.ts` and asserting the catalog
+  equals it exactly.
+  Rebase pass (2026-08-10, branch 15 commits behind): merged `origin/master` clean, no conflicts;
+  sentinel clean (only my 3 files). **Prod state changed under this branch while it sat parked** —
+  the owner unscheduled BOTH account-deletion cron jobs (item 190 Part B), so applying this
+  migration does not re-arm anything, and `cleanup_dead_unplayed_accounts` is still defective in
+  prod (my file only revokes its EXECUTE). Both facts are now in the migration header. **Standing
+  check for a parked branch: re-read what moved in prod, not just in git** — a migration written
+  against a live system can be invalidated by an operator action that leaves no trace in the repo.
