@@ -17,7 +17,7 @@ export function StageObjectiveHud({ snapshot }: { snapshot: StageRuntimeSnapshot
       : `${Math.ceil(timerElapsedMs / 1000)}s`
 
   return (
-    <div className={styles.stageObjectiveHud} aria-live="polite">
+    <section className={styles.stageObjectiveHud} aria-label="เป้าหมายด่าน" aria-live="polite">
       <div className={styles.stageObjectiveTitle}>{stageName}</div>
       <div className={styles.stageObjectiveGrid}>
         <span className={styles.stageObjectiveLabel}>{objective.label}</span>
@@ -27,6 +27,6 @@ export function StageObjectiveHud({ snapshot }: { snapshot: StageRuntimeSnapshot
         <span className={styles.stageObjectiveLabel}>เวลา</span>
         <strong className={styles.stageObjectiveValue}>{timerValue}</strong>
       </div>
-    </div>
+    </section>
   )
 }
