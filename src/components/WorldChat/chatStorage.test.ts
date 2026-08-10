@@ -13,12 +13,12 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('../../lib/supabaseClient', () => ({
-  supabase: {
+  getSupabase: () => ({
     from: mocks.from,
     rpc: mocks.rpc,
     channel: mocks.channel,
     removeChannel: mocks.removeChannel,
-  },
+  }),
 }))
 
 import { loadWorldChat, postWorldChatMessage, subscribeToWorldChat } from './chatStorage'

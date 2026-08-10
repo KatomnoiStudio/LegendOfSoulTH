@@ -20,7 +20,7 @@ export interface ChatMessage {
 
 async function getSupabase(): Promise<SupabaseClient> {
   const module = await import('../../lib/supabaseClient')
-  return module.supabase
+  return module.getSupabase()
 }
 
 function toChatMessage(row: WorldChatRow): ChatMessage {

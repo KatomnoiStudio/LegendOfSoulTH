@@ -115,7 +115,7 @@ function rewardMocks(
       payload: LobbyBattleProgressionRpcPayload,
     ) => Promise<{ ok: true; player: Player } | { ok: false; error: string }>
     onRecordPending: (result: RealtimeBattleResult, transactionId: string) => Promise<boolean>
-    onClearPending: (transactionId: string) => Promise<void>
+    onClearPending: (transactionId: string) => Promise<boolean>
     onGetPendingRewards: () => Promise<PendingLobbyRewardRow[]>
   }> = {},
 ) {

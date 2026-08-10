@@ -102,33 +102,47 @@ describe('mapOwnedCharacterRow', () => {
   Postgres project — nothing here would catch it before this).
 */
 
-const { supabaseMock, rpcMock, fromMock, reportErrorMock, signInWithOAuthMock, linkIdentityMock } =
-  vi.hoisted(() => {
-    const rpcFn = vi.fn()
-    const fromFn = vi.fn()
-    const reportErrorFn = vi.fn()
-    const signInWithOAuthFn = vi.fn()
-    const linkIdentityFn = vi.fn()
-    return {
-      rpcMock: rpcFn,
-      fromMock: fromFn,
-      reportErrorMock: reportErrorFn,
-      signInWithOAuthMock: signInWithOAuthFn,
-      linkIdentityMock: linkIdentityFn,
-      supabaseMock: {
-        rpc: rpcFn,
-        from: fromFn,
-        auth: {
-          onAuthStateChange: vi.fn(),
-          getSession: vi.fn(),
-          signInWithOAuth: signInWithOAuthFn,
-          linkIdentity: linkIdentityFn,
-        },
+const {
+  supabaseMock,
+  rpcMock,
+  fromMock,
+  reportErrorMock,
+  signInWithOAuthMock,
+  linkIdentityMock,
+  onAuthStateChangeMock,
+  unsubscribeMock,
+} = vi.hoisted(() => {
+  const rpcFn = vi.fn()
+  const fromFn = vi.fn()
+  const reportErrorFn = vi.fn()
+  const signInWithOAuthFn = vi.fn()
+  const linkIdentityFn = vi.fn()
+  const unsubscribeFn = vi.fn()
+  const onAuthStateChangeFn = vi.fn(() => ({
+    data: { subscription: { unsubscribe: unsubscribeFn } },
+  }))
+  return {
+    rpcMock: rpcFn,
+    fromMock: fromFn,
+    reportErrorMock: reportErrorFn,
+    signInWithOAuthMock: signInWithOAuthFn,
+    linkIdentityMock: linkIdentityFn,
+    onAuthStateChangeMock: onAuthStateChangeFn,
+    unsubscribeMock: unsubscribeFn,
+    supabaseMock: {
+      rpc: rpcFn,
+      from: fromFn,
+      auth: {
+        onAuthStateChange: onAuthStateChangeFn,
+        getSession: vi.fn(),
+        signInWithOAuth: signInWithOAuthFn,
+        linkIdentity: linkIdentityFn,
       },
-    }
-  })
+    },
+  }
+})
 
-vi.mock('../lib/supabaseClient', () => ({ supabase: supabaseMock }))
+vi.mock('../lib/supabaseClient', () => ({ getSupabase: () => supabaseMock }))
 vi.mock('../lib/errors/reportError', () => ({ reportError: reportErrorMock }))
 
 type QueryResult = { data: unknown; error: unknown }
@@ -385,6 +399,56 @@ describe('Scar 3: Atomic cost & bounded grant validation (PoE Freedom of Faith i
       p_amount: 99999999,
       p_ref_id: null,
     })
+  })
+})
+
+/*
+  2026-08-10 audit F9 — importing this module used to have side effects.
+
+  `supabase.auth.onAuthStateChange(...)` sat at MODULE SCOPE: it fired the moment anything
+  imported this file (including a test that only wanted a mapping helper), nobody held the
+  subscription so it could never be unsubscribed, and it wrote three module-level globals behind
+  the importer's back. It is now an explicit `initAuthCache()` called once from main.tsx.
+*/
+describe('F9: auth-cache subscription is opt-in, not an import side effect', () => {
+  test('importing the module subscribes to nothing', async () => {
+    onAuthStateChangeMock.mockClear()
+    await import('./accountRepository.supabase')
+
+    expect(onAuthStateChangeMock).not.toHaveBeenCalled()
+  })
+
+  test('initAuthCache subscribes once and hands back a working unsubscribe', async () => {
+    const { initAuthCache } = await import('./accountRepository.supabase')
+    onAuthStateChangeMock.mockClear()
+    unsubscribeMock.mockClear()
+
+    const stop = initAuthCache()
+    // Calling twice must not stack a second listener on the same client.
+    initAuthCache()
+    expect(onAuthStateChangeMock).toHaveBeenCalledTimes(1)
+
+    stop()
+    expect(unsubscribeMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('F8: clearPendingLobbyReward reports whether the row actually went away', () => {
+  test('returns false when the RPC errors — the old wrapper threw this away', async () => {
+    const { clearPendingLobbyReward } = await import('./accountRepository.supabase')
+    rpcMock.mockReturnValue(rpcResult(null, { message: 'permission denied' }))
+
+    expect(await clearPendingLobbyReward('lobby:trial-01:2026-08-08T08:00:00.000Z')).toBe(false)
+    expect(rpcMock).toHaveBeenCalledWith('clear_pending_lobby_reward', {
+      p_transaction_id: 'lobby:trial-01:2026-08-08T08:00:00.000Z',
+    })
+  })
+
+  test('returns true when the row is cleared', async () => {
+    const { clearPendingLobbyReward } = await import('./accountRepository.supabase')
+    rpcMock.mockReturnValue(rpcResult(null))
+
+    expect(await clearPendingLobbyReward('lobby:trial-01:2026-08-08T08:00:00.000Z')).toBe(true)
   })
 })
 
