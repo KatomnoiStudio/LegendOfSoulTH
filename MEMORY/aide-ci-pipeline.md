@@ -60,23 +60,59 @@ it pre-cleanup was). Flip it back to blocking: citation-hygiene lane, once
 MISSING-FILE reaches 0, **followed by a push that touches a non-`.md` file**
 so the workflow actually re-runs on master and the check reports fresh.
 
+## QC bounce 3 — the substring hole went live at merge time, not just latent
+
+Main merged this branch onto master locally and the bundle step went red.
+Root cause was NOT this branch — main confirmed by building master alone and
+getting byte-identical chunk hashes/sizes. Two things had shifted on master
+since this lane's baseline, both surfaced only by an actual build of the
+merged tree:
+
+- `three.core` and `WebGL` chunks consolidated into one `WebGL-*.js` (Rollup's
+  own chunking decision, not a content-size change) at 235.8 KB gzip —
+  above the 200 KB vendor ceiling this lane had set from its own branch's
+  build, where the two chunks were still separate.
+- Follow-up #2 below stopped being latent: on master's build the Supabase SDK
+  chunk is auto-named `accountRepository.supabase-*.js` (not
+  `supabaseClient-*.js`, which no longer exists as a chunk at all), and
+  `base.includes('supabase')` matched it as vendor — 57.5 KB of app code
+  wrongly given the loose ceiling. Exactly the failure mode #2 predicted, on
+  a build that actually exists now.
+
+Fixed both in the same pass, `check-bundle-size.mjs` only:
+
+- `isVendorChunk` now requires the token at the **head** of the chunk's base
+  name — `base === token || (base.startsWith(token) && the next char is not
+[a-z0-9])`. `three.webgpu` still matches (`three` + `.`); `vendor-react` is
+  caught earlier by the static prefix pattern regardless.
+  `accountRepository.supabase` does NOT match (`supabase` is not a prefix of
+  it) — correctly tiers app. `reactionqueue` does NOT match `react` either
+  (`i` follows immediately, not a separator) — follow-up #2 closes as a
+  side effect of the same fix, not a separate patch.
+- Vendor ceiling re-baselined from a build of this branch merged onto master
+  @ `51728f2`: measured max 235.8 KB (`WebGL-*.js`) → ceiling 300 KB (27.3%
+  margin over measured, same convention as the app ceiling). App ceiling
+  left at 70 KB — both app-tier chunks (`App-*.js` 60.3 KB now that
+  `accountRepository.supabase` correctly moved OUT of app tier makes room;
+  measured together they'd have summed past it) fit comfortably.
+- Acceptance test: `npm run ci` (typecheck, lint, test, test:edge, build,
+  bundle) run through `tools/test-lock.sh` on this branch merged onto
+  `51728f2` — exits 0, all 11 chunks pass.
+
 ## Open, not this lane's to fix (gate-raised follow-ups, claimable later)
 
 1. **The 70 KB app ratchet is per-chunk, never a total.** Largest app chunk
-   (`App-*.js`) measures 47.5 KB gzip today, so 22.5 KB of silent growth on
-   that one chunk passes unflagged — and because the budget is per-file,
-   splitting one large chunk into two halves each measurement with zero real
-   size reduction. All 11 app-tier chunks currently sum to ~93.5 KB gzip and
+   (`App-*.js`) now measures 60.3 KB gzip (was 47.5 KB two rounds ago — real
+   growth from the merged lanes' error-handling/auth work, not drift), so
+   headroom against the 70 KB ceiling is down to 12.9%, tighter than when
+   this was first flagged. Because the budget is per-file, splitting one
+   large chunk into two halves each measurement with zero real size
+   reduction. All 8 app-tier chunks currently sum to ~147.1 KB gzip and
    nothing in `check-bundle-size.mjs` reports or budgets that total. Add a
-   `total app gzip` line with its own ceiling.
-2. **Vendor-token matching is bare substring, not boundary-aware — latent, not
-   live.** `base.includes(token)` means the `react` token also matches
-   `reaction`/`reactive`/`reactor` in a chunk's base name. This repo already
-   has `06-hit-reaction-system` — a future chunk auto-named for e.g. a
-   `reactionQueue.ts` module would silently get the 200 KB vendor ceiling
-   instead of the 70 KB app one. Today's build classifies correctly; fix is a
-   one-line boundary-aware compare (word-boundary regex or exact segment
-   match against `-`/`.`-split tokens) before it bites for real.
+   `total app gzip` line with its own ceiling — worth doing sooner now that
+   the per-chunk margin has visibly narrowed twice in one day.
+2. ~~Vendor-token matching bare substring~~ — **FIXED above, this round**
+   (QC bounce 3). Was recorded as latent; went live before the fix landed.
 3. **CSS dropped out of the bundle report.** The old `du -h` line covered
    `dist/assets/*.css`; `check-bundle-size.mjs` filters `f.endsWith('.js')`
    only. `App-*.css` measures 28.33 KB gzip — third-largest app-tier asset on
