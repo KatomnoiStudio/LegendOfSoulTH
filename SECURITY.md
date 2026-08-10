@@ -95,7 +95,15 @@ By design, not bugs — don't file these:
   arbitrary lead `character_id` the RPC would mint at any level — closed by
   `supabase/migrations/20260810130000_security_harden_lobby_progression_rpc.sql` (column lock +
   server-owned idempotency ledger + rate limit + ownership check + per-call level bounds + EXECUTE
-  lock). Report the same _class_ of bug elsewhere.)
+  lock). Also on 2026-08-10, `grant_item` validated nothing about the item id it was handed, so any
+  authenticated session could mint an item that does not exist in the game or one held back for an
+  unreleased release — closed by a `public.item_catalog` existence check, an RLS-locked catalog table
+  no client role can read or write, and the removal of a duplicate 3-argument `grant_item` overload
+  whose collision reappeared on every fresh environment because the production fix had only ever been
+  hand-applied, in `supabase/migrations/20260810160000_security_audit_hardening_wave1.sql`. The same
+  migration revokes EXECUTE from `public`/`anon`/`authenticated` on the maintenance RPCs that had
+  shipped without it — including two account-deletion jobs an unauthenticated caller could otherwise
+  invoke. Report the same _class_ of bug elsewhere.)
 - **"I changed Star/Shard values in React state or called the preview calculator."** The preview
   is presentation-only. Report it only if the change persists in Supabase without a valid
   `ascend_character_star` transaction.
@@ -134,9 +142,19 @@ By design, not bugs — don't file these:
 
 - **Anonymous (guest) sign-in rate limit**: Supabase's `rate_limit_anonymous_users` config,
   confirmed at its default 30/hour (per project, not per-IP) — no code change needed, already
-  active. Combined with the 30-day stale-guest cleanup job
-  (`supabase/migrations/0006_guest_cleanup.sql`), bounds how much guest-account farming can
-  accumulate before it's auto-reaped.
+  active. A stale-guest cleanup job bounds how much guest-account farming can accumulate —
+  but read the next two sentences before relying on it. Its criterion is now **inactivity**,
+  not account age: `supabase/migrations/20260810160000_security_audit_hardening_wave1.sql`
+  replaced `0006_guest_cleanup.sql`'s `created_at`-only predicate, which deleted guests who
+  played every day (a real bug, caught by audit before it ever fired). **The job is currently
+  UNSCHEDULED on production** — `cron.unschedule`d 2026-08-10 as the zero-risk interim while
+  the predicate was fixed, so nothing is being auto-reaped right now. The anti-farming bound
+  is therefore a property of the rate limit alone until the job is re-armed.
+- **Account-deletion jobs, prod-vs-repo drift (open)**: `cleanup-dead-unplayed-accounts` is
+  also unscheduled. Its committed body (`0014_dead_account_cleanup.sql`) carries
+  `cleanup_exempt_profiles` and paid-user guards; the body measured on production did not.
+  Until that disagreement is reconciled, re-arming it would delete registered accounts without
+  honouring exemptions. Do not re-schedule it on the strength of the repo file alone.
 - **CAPTCHA (Cloudflare Turnstile)**: client-side widget shipped (`AuthModal.tsx`, `VITE_TURNSTILE_SITE_KEY`).
   Supabase's Dashboard toggle (Authentication → Settings → Attack Protection) is project-wide
   across all `signUp`/`signInWithPassword`/`signInAnonymously` calls, not scoped per method —
