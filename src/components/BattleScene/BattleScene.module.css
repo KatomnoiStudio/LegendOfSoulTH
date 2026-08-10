@@ -188,6 +188,13 @@
   max-width: 100%;
 }
 
+.waveText {
+  font-size: 0.62rem;
+  color: var(--c-text-dim);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .exitBtn {
   pointer-events: auto;
   /* เป้าแตะบนมือถือต้องไม่เล็กกว่า 44px (§12, §29) */
@@ -253,7 +260,7 @@
   }
 }
 
-/* Shared stage objective slot — compact grid, capped at 16% of the battle room */
+/* P5 stage objective overlay — compact grid, ≤~21vw on mobile landscape */
 .stageObjectiveHud {
   position: absolute;
   left: max(var(--sp-2), env(safe-area-inset-left, 0px));

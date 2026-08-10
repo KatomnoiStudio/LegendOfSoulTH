@@ -8,12 +8,9 @@ const GUEST = '22222222-2222-2222-2222-222222222222'
 const THIRD = '33333333-3333-3333-3333-333333333333'
 const MIGRATION = '20260809064000_p12_private_pvp_rooms.sql'
 
-function readMigration(filename: string): string {
-  return readFileSync(join(process.cwd(), 'supabase/migrations', filename), 'utf8')
-}
-
 async function applyMigration(db: PGlite, filename: string): Promise<void> {
-  await db.exec(readMigration(filename))
+  const sql = readFileSync(join(process.cwd(), 'supabase/migrations', filename), 'utf8')
+  await db.exec(sql)
 }
 
 async function setAuthenticatedUser(db: PGlite, userId: string): Promise<void> {
@@ -48,7 +45,6 @@ describe('P12 private PvP room authority migration (isolated Postgres via PGLite
         event text,
         private boolean default false
       );
-      alter table realtime.messages enable row level security;
       grant select, insert on realtime.messages to authenticated;
       create or replace function realtime.topic() returns text
       language sql stable as $$ select current_setting('realtime.topic', true) $$;

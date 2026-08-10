@@ -3,7 +3,7 @@ import { playSfx } from '../../lib/audio/AudioEngine'
 import { publicUrl } from '../../lib/publicUrl'
 import { ItemBagIcon, PawIcon, TeamFormationIcon } from '../icons/GameIcons'
 import { useToast } from '../Toast/useToast'
-import { GACHA_PLAYTEST_ENABLED, PVP_BACKEND_DEPLOYED } from '../../game/featureFlags'
+import { GACHA_PRODUCTION_CONTENT_READY, PVP_BACKEND_DEPLOYED } from '../../game/featureFlags'
 import styles from './MainNavigation.module.css'
 
 interface NavItem {
@@ -96,12 +96,13 @@ export function MainNavigation({
       return
     }
     /*
-      The backend is deployed and Ring 0 has explicitly opened the Standard Banner for the
-      remaining real-device playtest. The playtest gate stays centralized so every entry point
-      opens or closes together; it does not claim the pending Hero Asset Contract is complete.
+      Same shape as the PvP gate above, different reason: the Gacha backend IS deployed, but the
+      Standard Banner's Heroes have not cleared the Production Asset Contract (three still ship
+      placeholder sprites, none has VFX/SFX + mobile playtest signed off). Flip
+      GACHA_PRODUCTION_CONTENT_READY once the checklist passes and Ring 0 approves.
     */
     if (id === 'summon') {
-      if (!GACHA_PLAYTEST_ENABLED) {
+      if (!GACHA_PRODUCTION_CONTENT_READY) {
         comingSoon(label)
         return
       }
