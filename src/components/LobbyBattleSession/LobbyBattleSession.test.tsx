@@ -1,7 +1,9 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import { setErrorSink, type ErrorReport } from '../../lib/errors/reportError'
 import userEvent from '@testing-library/user-event'
 import { LobbyBattleSession } from './LobbyBattleSession'
+import { lobbyBattleTransactionId } from '../../game/reward/lobbyBattleRewardPipeline'
 import { createDefaultSkillLevels } from '../../game/realtimeBattle/SkillProgressionSystem'
 import { REALTIME_STAGES, getRealtimeStage } from '../../game/realtimeBattle/stageConfig'
 import type { Player } from '../../types/player'
@@ -11,37 +13,57 @@ import type { CurrencyResult, ItemResult } from '../../data/accountRepository.sh
 import type { LobbyBattleProgressionRpcPayload } from '../../data/accountRepository.supabase'
 import type { PendingLobbyRewardRow } from '../../data/accountRepository.supabase'
 
-vi.mock('../BattleScene/BattleScene', () => {
+vi.mock('../BattleScene/BattleScene', async () => {
+  const { useRef } = await import('react')
   return {
     BattleScene: ({
       stageId,
       onComplete,
+      onBattleEnd,
       onExit,
     }: {
       stageId: string
       onComplete: (res: RealtimeBattleResult) => void
+      onBattleEnd?: (res: RealtimeBattleResult) => void
       onExit: () => void
     }) => {
+      /*
+        ONE battle per mount, exactly as production works: the real BattleScene holds the finished
+        result in `pendingResult` state and hands the SAME object to every continue press. Minting
+        a fresh result per click would make a retry look like a different battle and quietly void
+        every idempotency assertion in this file.
+      */
+      const resultRef = useRef<RealtimeBattleResult | null>(null)
+      const victory = (): RealtimeBattleResult =>
+        (resultRef.current ??= {
+          transactionId: `lobby:${stageId}:test-${Math.random().toString(36).slice(2, 10)}`,
+          outcome: 'victory',
+          stageId,
+          stageName: 'ลานฝึกทดสอบ',
+          elapsedMs: 5000,
+          defeatedEnemyIds: ['shadow-soldier'],
+          damageDealt: 100,
+          damageTaken: 10,
+          earnedExp: 200,
+          earnedGold: 100,
+          droppedItems: [{ itemId: 'healing-peach', quantity: 1 }],
+          finishedAt: new Date().toISOString(),
+        })
+
       return (
         <div data-testid="mock-battle-scene">
           <span data-testid="battle-stage-id">{stageId}</span>
+          {/* The runtime settles and the result panel appears — the player has NOT pressed yet. */}
+          <button data-testid="btn-battle-end" onClick={() => onBattleEnd?.(victory())}>
+            Battle end
+          </button>
           <button
             data-testid="btn-win"
-            onClick={() =>
-              onComplete({
-                outcome: 'victory',
-                stageId,
-                stageName: 'ลานฝึกทดสอบ',
-                elapsedMs: 5000,
-                defeatedEnemyIds: ['shadow-soldier'],
-                damageDealt: 100,
-                damageTaken: 10,
-                earnedExp: 200,
-                earnedGold: 100,
-                droppedItems: [{ itemId: 'healing-peach', quantity: 1 }],
-                finishedAt: new Date().toISOString(),
-              })
-            }
+            onClick={() => {
+              const result = victory()
+              onBattleEnd?.(result)
+              onComplete(result)
+            }}
           >
             Win
           </button>
@@ -72,6 +94,11 @@ vi.mock('../BattleScene/BattleScene', () => {
       )
     },
   }
+})
+
+afterEach(() => {
+  // Back to the console sink — a captured sink leaking into the next file hides its reports.
+  setErrorSink(null)
 })
 
 function makePlayer(): Player {
@@ -638,5 +665,163 @@ describe('LobbyBattleSession', () => {
     winBtn.click()
     await waitFor(() => expect(onExit).toHaveBeenCalledTimes(1))
     expect(onEarnGold).toHaveBeenCalledTimes(2)
+  })
+})
+
+/*
+  2026-08-10 audit F6 — the durable pending row was written after the window it protects.
+
+  `pending_lobby_rewards` exists so that a crash between "battle won" and "rewards granted" does
+  not lose the player's rewards. But the only write was inside finalizeLobbyBattleRewards, which
+  runs when the player presses "ต่อไป" on the result panel. The span from the runtime settling to
+  that press — a human-length wait, unbounded — held the entire battle outcome in React state and
+  nowhere else. A tab closed, refreshed, OOM-killed, or backgrounded off a phone during it lost
+  the EXP, the gold, every drop, the trial_cleared flag and the battle history, with the stage
+  energy already spent on entry. The row now goes down at battle end, before the wait.
+*/
+describe('F6: the durable row covers the wait for the continue press', () => {
+  it('records the pending row at battle end — a tab that dies before the press keeps its rewards', async () => {
+    const onRecordPending = vi.fn(async () => true)
+    const onEarnGold = vi.fn()
+    const player = makePlayer()
+
+    const { unmount } = render(
+      <LobbyBattleSession
+        player={player}
+        onPlayerChange={mockOnPlayerChange(player)}
+        onEarnGold={onEarnGold}
+        onGrantItem={vi.fn(async (): Promise<ItemResult> => ({ ok: true as const, player }))}
+        {...rewardMocks({ onRecordPending })}
+        onExit={vi.fn()}
+      />,
+    )
+
+    screen.getByRole('button', { name: /ลานฝึกหน้าวิหาร/ }).click()
+    const endBtn = await screen.findByTestId('btn-battle-end')
+    endBtn.click()
+
+    // The battle is over and the result panel is up. The player never presses "ต่อไป".
+    await waitFor(() => expect(onRecordPending).toHaveBeenCalledTimes(1))
+    const [recorded, txId] = onRecordPending.mock.calls[0] as unknown as [
+      RealtimeBattleResult,
+      string,
+    ]
+    expect(recorded.earnedGold).toBe(100)
+    expect(recorded.droppedItems).toEqual([{ itemId: 'healing-peach', quantity: 1 }])
+    expect(txId).toBe(lobbyBattleTransactionId(recorded))
+
+    // The crash. Nothing was granted, and the durable row is what makes that recoverable.
+    unmount()
+    expect(onEarnGold).not.toHaveBeenCalled()
+  })
+
+  it('does not write the row twice when the player does press continue', async () => {
+    const onRecordPending = vi.fn(async () => true)
+    const onExit = vi.fn()
+    const player = makePlayer()
+
+    render(
+      <LobbyBattleSession
+        player={player}
+        onPlayerChange={mockOnPlayerChange(player)}
+        onEarnGold={vi.fn(async (): Promise<CurrencyResult> => ({
+          ok: true as const,
+          player,
+          amount: 100,
+        }))}
+        onGrantItem={vi.fn(async (): Promise<ItemResult> => ({ ok: true as const, player }))}
+        {...rewardMocks({ onRecordPending })}
+        onExit={onExit}
+      />,
+    )
+
+    screen.getByRole('button', { name: /ลานฝึกหน้าวิหาร/ }).click()
+    const winBtn = await screen.findByTestId('btn-win')
+    winBtn.click()
+
+    /*
+      Wait for the WHOLE pipeline to finish before counting.
+
+      `waitFor(() => expect(...).toHaveBeenCalledTimes(1))` returns at the first poll that passes,
+      which is the battle-end write — the pipeline's own record call happens later and the
+      assertion would already be gone. A once-only assertion that cannot observe the second call
+      is not an assertion; this repo has shipped that shape twice. onExit is the last thing a
+      successful finalize does, so counting after it is counting at the end.
+    */
+    await waitFor(() => expect(onExit).toHaveBeenCalledTimes(1))
+
+    // Battle end recorded it; the pipeline reused that same write and did not re-upsert.
+    // A second upsert is not harmful (same key) but it burns the RPC's 20-per-60s limit.
+    expect(onRecordPending).toHaveBeenCalledTimes(1)
+  })
+
+  /*
+    The rejection shape of the same rule. onRecordPending can REJECT, not merely resolve false:
+    getSupabase() throws outright on missing env (lib/supabaseClient.ts), and with the fetch retry
+    wrapper gone a deadline abort surfaces as a thrown fetch error. Caching that rejected promise
+    made every later attempt at the same battle re-await the same rejection — the durable row
+    exists so a crash cannot lose rewards, and a permanently stuck retry loses them just as dead.
+  */
+  it('a rejected write is not cached — the next press writes again and the battle completes', async () => {
+    const onExit = vi.fn()
+    const player = makePlayer()
+    const onRecordPending = vi
+      .fn<(result: RealtimeBattleResult, transactionId: string) => Promise<boolean>>()
+      .mockRejectedValueOnce(new Error('rpc deadline exceeded'))
+      .mockResolvedValue(true)
+    const onEarnGold = vi.fn(async (): Promise<CurrencyResult> => ({
+      ok: true as const,
+      player,
+      amount: 100,
+    }))
+
+    const reports: ErrorReport[] = []
+    setErrorSink((report) => reports.push(report))
+
+    render(
+      <LobbyBattleSession
+        player={player}
+        onPlayerChange={mockOnPlayerChange(player)}
+        onEarnGold={onEarnGold}
+        onGrantItem={vi.fn(async (): Promise<ItemResult> => ({ ok: true as const, player }))}
+        {...rewardMocks({ onRecordPending })}
+        onExit={onExit}
+      />,
+    )
+
+    screen.getByRole('button', { name: /ลานฝึกหน้าวิหาร/ }).click()
+    const winBtn = await screen.findByTestId('btn-win')
+
+    // First press: the durable write throws, so the pipeline refuses to grant anything.
+    winBtn.click()
+    await waitFor(() => expect(onRecordPending).toHaveBeenCalledTimes(1))
+    expect(onEarnGold).not.toHaveBeenCalled()
+    expect(onExit).not.toHaveBeenCalled()
+
+    /*
+      The rejection must reach the PLAYER, not just the cache.
+
+      recordPendingOnce nulls the cache AND rethrows, and those are two independent jobs: the
+      null keeps the retry alive, the rethrow is the only reason the player learns anything.
+      Swallow the rejection — `return false` instead of `throw cause` — and the pipeline reports
+      failure: 'progression_save', which handleComplete returns on silently because that branch
+      assumes updatePlayer already showed PLAYER_SAVE_FAIL. On this path onPlayerChange was never
+      called, so nothing showed anything: a dead "ต่อไป" button, no toast, no console line, and
+      the rewards never granted. Pin the visible tier so the swallow cannot pass as a tidy-up.
+    */
+    await waitFor(() =>
+      expect(reports.map((report) => `${report.code}:${report.tier}`)).toContain(
+        'BATTLE_REWARD_FAIL:visible',
+      ),
+    )
+
+    // Same battle, same transaction id — the player presses again on the same result panel.
+    winBtn.click()
+    await waitFor(() => expect(onExit).toHaveBeenCalledTimes(1))
+
+    // A cached rejection would have thrown again here and granted nothing, forever.
+    expect(onRecordPending).toHaveBeenCalledTimes(2)
+    expect(onRecordPending.mock.calls[1]?.[1]).toBe(onRecordPending.mock.calls[0]?.[1])
+    expect(onEarnGold).toHaveBeenCalledTimes(1)
   })
 })

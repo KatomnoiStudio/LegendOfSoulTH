@@ -17,11 +17,33 @@ interface BattleSceneProps {
   player: Player
   stageId: string
   onComplete: (result: RealtimeBattleResult) => void
+  /**
+   * การต่อสู้จบแล้ว — ยิงทันทีที่ runtime นิ่ง ก่อนผู้เล่นกดต่อ
+   *
+   * onComplete waits for a human press, so everything between the runtime settling and that
+   * press lived in React state and nowhere else. This fires at battle END so the caller can put
+   * the outcome somewhere durable first. It is a NOTIFICATION — this file still writes nothing.
+   */
+  onBattleEnd?: (result: RealtimeBattleResult) => void
   onExit: () => void
 }
 
-export function BattleScene({ player, stageId, onComplete, onExit }: BattleSceneProps) {
+export function BattleScene({
+  player,
+  stageId,
+  onComplete,
+  onBattleEnd,
+  onExit,
+}: BattleSceneProps) {
   const [pendingResult, setPendingResult] = useState<RealtimeBattleResult | null>(null)
+
+  const handleBattleEnd = useCallback(
+    (result: RealtimeBattleResult) => {
+      setPendingResult(result)
+      onBattleEnd?.(result)
+    },
+    [onBattleEnd],
+  )
 
   const {
     phase,
@@ -35,7 +57,7 @@ export function BattleScene({ player, stageId, onComplete, onExit }: BattleScene
   } = useRealtimeBattle({
     player,
     stageId,
-    onComplete: setPendingResult,
+    onComplete: handleBattleEnd,
   })
 
   // หยุดจำลองก่อนเสมอ แล้วค่อยให้ระบบเกมพาผู้เล่นกลับ — กันไม่ให้ลูปเดินต่อระหว่างเปลี่ยนฉาก

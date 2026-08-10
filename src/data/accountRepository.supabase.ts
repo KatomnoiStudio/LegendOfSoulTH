@@ -878,13 +878,6 @@ export async function grantItemAdmin(itemId: string, quantity: number): Promise<
   return { ok: true, player }
 }
 
-/** exportSave: ยังไม่มีความหมายเดิมกับ Supabase (ไม่มี localStorage ให้ย้ายออก) */
-export async function exportSave(): Promise<
-  { ok: true; json: string } | { ok: false; error: string }
-> {
-  return { ok: false, error: 'ฟีเจอร์นี้ใช้กับบัญชี Supabase ไม่ได้ — ข้อมูลอยู่บนเซิร์ฟเวอร์แล้ว' }
-}
-
 // Type-level assertion to ensure this file's exports satisfy the common repository interface subset
 export const assertion: AccountRepositorySubset = {
   register,

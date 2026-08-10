@@ -20,7 +20,6 @@ function renderModal(overrides: Partial<Parameters<typeof SettingsModal>[0]> = {
     onRedeemCoupon: vi.fn(),
     ownedCharacterCount: 3,
     onClose: vi.fn(),
-    onExportSave: vi.fn().mockResolvedValue(null),
     hasGoogleLinked: false,
     onLinkGoogleAccount: vi.fn().mockResolvedValue(null),
     isGuest: false,
@@ -187,5 +186,25 @@ describe('SettingsModal', () => {
     expect(
       screen.queryByText(/บัญชีนี้ผูกกับอีเมลและเก็บบนเซิร์ฟเวอร์แล้ว/),
     ).not.toBeInTheDocument()
+  })
+
+  /*
+    ปุ่ม "ส่งออก save เป็นไฟล์" ถูกลบพร้อมข้อความที่สัญญาไว้ผิด — เหตุผลเดียวกับที่ลบ
+    ปุ่มสำรองข้อมูลบนจอ crash: exportSave ฝั่ง Supabase (เดิมเป็น stub ที่ hardcode คืน ok:false
+    เสมอ, ลบทิ้งแล้ว 2026-08-10 พร้อมปุ่มนี้เพราะไม่มีผู้เรียกเหลืออยู่เลย — ดู
+    src/data/accountRepository.supabase.ts) กดแล้ว error ทุกครั้ง ไม่มีทางได้ไฟล์จริง
+    ข้อความเดิม "ปุ่มส่งออก save ด้านล่างมีไว้สำรองไฟล์เก็บเอง" จึงเป็นสัญญาที่ให้ไม่ได้
+
+    เทสต์นี้ทำให้เอาปุ่มกลับมาโดยไม่มี export จริงรองรับ เป็นสีแดง แทนที่จะเงียบ ๆ ผ่านไป
+  */
+  test('ไม่มีปุ่มส่งออก save — ยังไม่มี export ฝั่งเซิร์ฟเวอร์ให้ปุ่มนี้เรียก', () => {
+    renderModal()
+
+    expect(screen.queryByRole('button', { name: /ส่งออก save/ })).not.toBeInTheDocument()
+    // ข้อความที่สัญญาไว้ผิดต้องหายไปด้วย ไม่ใช่แค่ตัวปุ่ม
+    expect(screen.queryByText(/มีไว้สำรองไฟล์เก็บเอง/)).not.toBeInTheDocument()
+    // ปุ่มที่ใช้ได้จริงในหน้านี้ต้องยังอยู่ครบ
+    expect(screen.getByRole('button', { name: /เชื่อมบัญชี Google/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'ออกจากบัญชี' })).toBeInTheDocument()
   })
 })
