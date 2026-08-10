@@ -9,15 +9,18 @@
  * อะไรผิดปกติหลุดเข้ามา (เช่น lib ก้อนใหญ่ถูก bundle เข้า chunk ของแอปโดยไม่ตั้งใจ)
  * ไม่ใช่ตั้งสูงลิ่วจนไม่มีวันแดง
  *
- * วัดจริงจาก build วันที่ 2026-08-10, master @ 51728f2 (ดูวิธีวัดด้านล่าง — ต้องตั้ง env ก่อน
- * ไม่งั้นเลขหลอก):
- *   vendor สูงสุด 235.8 KB gzip (WebGL-*.js)   → เพดาน 300 KB (เผื่อ 27.3%)
- *   แอปสูงสุด     62.0 KB gzip (App-*.js)      → เพดาน  70 KB (เผื่อ 12.9% — แคบ ตัวเลขจริง
+ * วัดจริงจาก build วันที่ 2026-08-10, master @ 51728f2 — ตัวเลขทุกตัวด้านล่างคัดลอกจาก
+ * output ของ `node tools/check-bundle-size.mjs` เอง (ไม่ใช่ log ของ vite ตอน build) เพราะ
+ * สองอย่างต่างกัน: log ของ vite รายงานก่อนจัด tier/ปัดทศนิยมของสคริปต์นี้ — ครั้งก่อนคอมเมนต์
+ * นี้เอาเลขจาก log ของ vite มา ตัวเลขเลยไม่ตรงกับที่สคริปต์รายงานจริง (ดูวิธีวัดด้านล่าง —
+ * ต้องตั้ง env ก่อน ไม่งั้นเลขหลอก):
+ *   vendor สูงสุด 228.4 KB gzip (WebGL-*.js)   → เพดาน 300 KB (เผื่อ 31.3%)
+ *   แอปสูงสุด     60.3 KB gzip (App-*.js)      → เพดาน  70 KB (เผื่อ 16.1% — แคบ ตัวเลขจริง
  *                                                 ไม่ได้ปัดให้ดูดี ดู follow-up #1 ใน
  *                                                 MEMORY/aide-ci-pipeline.md ว่าทำไมยังไม่ขยับ)
- *   (accountRepository.supabase-*.js 59.5 KB นับเป็น vendor แล้ว — ดูเหตุผลที่ isVendorChunk
- *   ด้านล่าง; WebGL-*.js เดิมเคยเป็น WebGL+three.core แยก 2 chunk วันนี้ Rollup รวมเป็นก้อน
- *   เดียว ไม่ใช่โค้ดโตขึ้น — เนื้อในเหมือนเดิม แค่แบ่ง chunk ต่างไป)
+ *   (accountRepository.supabase-*.js 57.6 KB นับเป็น app แล้ว ไม่ใช่ vendor — ดูเหตุผลที่
+ *   isVendorChunk ด้านล่าง; WebGL-*.js เดิมเคยเป็น WebGL+three.core แยก 2 chunk วันนี้ Rollup
+ *   รวมเป็นก้อนเดียว ไม่ใช่โค้ดโตขึ้น — เนื้อในเหมือนเดิม แค่แบ่ง chunk ต่างไป)
  *
  * เพดานแอปเดิมคือ 300 KB ซึ่งสูงกว่าเพดาน vendor ทั้งที่คอมเมนต์บอกว่าต้องต่ำกว่า และห่างจาก
  * ค่าจริง 6 เท่า — เป็นเพดานที่ไม่มีวันบังคับอะไรได้ (ตัวเลข "~85 KB" ในคอมเมนต์เดิมก็ค้างมาจาก
@@ -31,8 +34,9 @@
  *
  * ถ้าไม่ตั้งสองค่านี้ ตัวเลขที่ได้จะ "หลอก" อย่างเงียบ ๆ: src/lib/supabaseClient.ts throw ทันที
  * เมื่อ env ว่าง Vite แทน import.meta.env ตอน build แล้ว Rollup เห็นว่าเงื่อนไข throw เป็นจริง
- * เสมอ จึง tree-shake @supabase/supabase-js ทิ้งทั้งก้อน — chunk เหลือ 3.7 KB แทนที่จะเป็น
- * 52.0 KB (ci.yml step "Prepare Supabase env for CI" ใส่ placeholder ให้เสมอ CI จึงเห็นก้อนเต็ม)
+ * เสมอ จึง tree-shake @supabase/supabase-js ทิ้งเกือบทั้งก้อน — chunk accountRepository.supabase
+ * เหลือ 5.9 KB แทนที่จะเป็น 57.6 KB (ci.yml step "Prepare Supabase env for CI" ใส่ placeholder
+ * ให้เสมอ CI จึงเห็นก้อนเต็ม — สองตัวเลขนี้ก็มาจาก output ของสคริปต์นี้เอง วัดคนละรอบ build)
  *
  *   node tools/check-bundle-size.mjs
  */

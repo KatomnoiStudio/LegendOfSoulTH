@@ -99,12 +99,41 @@ Fixed both in the same pass, `check-bundle-size.mjs` only:
   bundle) run through `tools/test-lock.sh` on this branch merged onto
   `51728f2` — exits 0, all 11 chunks pass.
 
+## QC bounce 4 — the fix's own numbers were sourced from the wrong tool
+
+Everything above (bounce 3) was behaviourally correct — gate confirmed
+`accountRepository.supabase-*.js` classifies `[app]`, the ceilings hold, the
+acceptance test passes. But the header comment's own numbers (`235.8 KB`,
+`27.3%`, `62.0 KB`, `12.9%`, and the `accountRepository.supabase ... นับเป็น
+vendor แล้ว` line) were carried over from vite's build-log output, not from
+`check-bundle-size.mjs`'s own printed numbers on that same build — and the
+"vendor" claim was left over from the _previous_ revision's text with only
+the name and figure swapped, describing the exact classification this round
+just fixed away. Finding #76 is literally "the tool contradicts itself";
+shipping the fix with a header that still says `accountRepository.supabase`
+is vendor reintroduces that inside its own remedy.
+
+Corrected using ONLY `node tools/check-bundle-size.mjs`'s own printed output
+as the source (documented as the rule in the header now, so the next
+re-baseline doesn't reach for vite's log again): vendor max **228.4 KB**
+(`WebGL-*.js`, 31.3% margin against the 300 KB ceiling), app max **60.3 KB**
+(`App-*.js`, 16.1% margin against 70 KB), `accountRepository.supabase-*.js`
+**57.6 KB, tiered `[app]`**. A third stale figure survived in the same
+paragraph — the env-unset fallback size was still `3.7 KB` / `52.0 KB`,
+both from the old `supabaseClient-*.js` chunk that no longer exists under
+that name; empirically re-measured with the tool on a build without the CI
+placeholder env vars: `accountRepository.supabase-*.js` shrinks to **5.9 KB**
+(from 57.6 KB with the env set) rather than being tree-shaken away entirely.
+
+Item 1 below is corrected to the same 16.1% figure — it had inherited the
+same vite-log 12.9% number.
+
 ## Open, not this lane's to fix (gate-raised follow-ups, claimable later)
 
 1. **The 70 KB app ratchet is per-chunk, never a total.** Largest app chunk
    (`App-*.js`) now measures 60.3 KB gzip (was 47.5 KB two rounds ago — real
    growth from the merged lanes' error-handling/auth work, not drift), so
-   headroom against the 70 KB ceiling is down to 12.9%, tighter than when
+   headroom against the 70 KB ceiling is down to 16.1%, tighter than when
    this was first flagged. Because the budget is per-file, splitting one
    large chunk into two halves each measurement with zero real size
    reduction. All 8 app-tier chunks currently sum to ~147.1 KB gzip and
