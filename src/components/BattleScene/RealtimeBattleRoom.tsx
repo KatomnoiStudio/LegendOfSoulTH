@@ -16,7 +16,7 @@ import { EnemyHealthBar } from './EnemyHealthBar'
 import { ScreenProjector, type ScreenProjection } from './ScreenProjector'
 import { BattleFullscreenPrompt, BattlePortraitOverlay } from './BattleViewportOverlays'
 import { useBattleViewport } from '../../hooks/useBattleViewport'
-import { AdventureObjectiveHud } from './AdventureObjectiveHud'
+import { BattleObjectiveLayer } from './AdventureObjectiveHud'
 import styles from './BattleScene.module.css'
 
 /**
@@ -32,7 +32,7 @@ export function RealtimeBattleRoom({
   onMove,
   onAttack,
   onSkill,
-  overlay,
+  objectiveOverlay,
 }: {
   runtime: RealtimeBattleRuntime
   snapshot: RealtimeBattleSnapshot
@@ -40,7 +40,7 @@ export function RealtimeBattleRoom({
   onMove: (input: MovementInput) => void
   onAttack: () => void
   onSkill: (slot: SkillSlot) => void
-  overlay?: ReactNode
+  objectiveOverlay?: ReactNode
 }) {
   const viewport = useBattleViewport(true)
   const [webglAvailable] = useState(() => WebGL.isWebGL2Available())
@@ -124,8 +124,7 @@ export function RealtimeBattleRoom({
       <DamageNumberLayer runtime={runtime} projection={projection} />
 
       <BattleHud snapshot={snapshot} onExit={onExit} />
-      <AdventureObjectiveHud snapshot={snapshot} />
-      {overlay}
+      <BattleObjectiveLayer snapshot={snapshot} objectiveOverlay={objectiveOverlay} />
       <BattleControls
         runtime={runtime}
         onMove={onMove}

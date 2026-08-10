@@ -34,7 +34,7 @@ import type {
 } from '../data/accountRepository.supabase'
 import type { RealtimeBattleResult } from '../game/realtimeBattle/types'
 import type { FriendCandidate, Player } from '../types/player'
-import { GACHA_PRODUCTION_CONTENT_READY, PVP_BACKEND_DEPLOYED } from '../game/featureFlags'
+import { GACHA_PLAYTEST_ENABLED, PVP_BACKEND_DEPLOYED } from '../game/featureFlags'
 import styles from './LobbyPage.module.css'
 
 /** โหลดฉาก 3D แยก chunk เพื่อให้ HUD ขึ้นก่อน (three.js มีขนาดใหญ่) */
@@ -159,7 +159,7 @@ export function LobbyPage({
   const [addFriendOpen, setAddFriendOpen] = useState(() => previewModal === 'friend')
   const [itemsOpen, setItemsOpen] = useState(() => previewModal === 'items')
   const [summonOpen, setSummonOpen] = useState(
-    () => GACHA_PRODUCTION_CONTENT_READY && previewModal === 'summon',
+    () => GACHA_PLAYTEST_ENABLED && previewModal === 'summon',
   )
 
   useEffect(() => {
@@ -168,7 +168,7 @@ export function LobbyPage({
       setBattleOpen(previewModal === 'battle')
       setPvpOpen(PVP_BACKEND_DEPLOYED && previewModal === 'pvp')
       setItemsOpen(previewModal === 'items')
-      setSummonOpen(GACHA_PRODUCTION_CONTENT_READY && previewModal === 'summon')
+      setSummonOpen(GACHA_PLAYTEST_ENABLED && previewModal === 'summon')
       setSettingsOpen(previewModal === 'settings')
       setProfileOpen(previewModal === 'profile')
       setAddFriendOpen(previewModal === 'friend')
@@ -256,7 +256,7 @@ export function LobbyPage({
         onOpenPvP={() => setPvpOpen(true)}
         onOpenItems={() => setItemsOpen(true)}
         onOpenSummon={() => {
-          if (GACHA_PRODUCTION_CONTENT_READY) setSummonOpen(true)
+          if (GACHA_PLAYTEST_ENABLED) setSummonOpen(true)
         }}
       />
 
@@ -327,7 +327,7 @@ export function LobbyPage({
 
       {itemsOpen ? <ItemsModal player={player} onClose={() => setItemsOpen(false)} /> : null}
 
-      {GACHA_PRODUCTION_CONTENT_READY && summonOpen ? (
+      {GACHA_PLAYTEST_ENABLED && summonOpen ? (
         <GachaModal player={player} onPull={onPullGacha} onClose={() => setSummonOpen(false)} />
       ) : null}
 
