@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import {
+  exportSave,
   getSessionPlayer,
   importSave,
   login,
@@ -115,6 +116,75 @@ describe('importSave', () => {
       skill3: { level: 1, exp: 0, expToNext: 200 },
       ultimate: { level: 1, exp: 0, expToNext: 200 },
     })
+  })
+})
+
+/*
+  ไฟล์ที่ผู้เล่นส่งออกคือไฟล์ที่ตั้งใจให้หลุดออกจากมือเจ้าของ
+
+  มันถูกเก็บลงคลาวด์ ส่งต่อ และแนบไปกับการแจ้งปัญหา ถ้าในนั้นมีแฮชรหัสผ่านกับ salt ครบ
+  ใครที่ได้ไฟล์ไปก็ไล่เดารหัสผ่านแบบออฟไลน์ได้เลยโดยไม่ต้องแตะเซิร์ฟเวอร์ ตรวจจับไม่ได้
+  และล็อกบัญชีไม่ได้
+*/
+describe('exportSave — ไฟล์สำรองต้องไม่พกรหัสผ่านติดไปด้วย', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  test('ไฟล์ที่ส่งออกไม่มี passwordHash/passwordSalt', async () => {
+    const registered = await register('export-safety@b.co', 'รหัสผ่านทดสอบ1')
+    expect(registered.ok).toBe(true)
+
+    const result = await exportSave()
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    // ตรวจที่ตัวอักษรในไฟล์ ไม่ใช่แค่ที่ object ที่ parse แล้ว — สิ่งที่หลุดออกไปคือไฟล์
+    expect(result.json).not.toContain('passwordHash')
+    expect(result.json).not.toContain('passwordSalt')
+
+    const parsed = JSON.parse(result.json)
+    expect(parsed.account.uid).toBeTruthy()
+    expect(parsed.account.player).toBeTruthy()
+  })
+
+  test('นำเข้าไฟล์ที่ไม่มีรหัสผ่านกลับได้ แต่ล็อกอินด้วยบัญชีนั้นไม่ได้', async () => {
+    const registered = await register('roundtrip@b.co', 'รหัสผ่านทดสอบ1')
+    expect(registered.ok).toBe(true)
+    const exported = await exportSave()
+    expect(exported.ok).toBe(true)
+    if (!exported.ok) return
+
+    localStorage.clear()
+    const imported = await importSave(exported.json)
+    expect(imported.ok).toBe(true)
+
+    // ข้อมูลกลับมาครบ แต่บัญชีไม่มีรหัสผ่าน จึงต้องล็อกอินไม่ผ่านเสมอ ไม่ใช่ไปลุ้นผลของ
+    // verifyPassword กับสตริงว่าง
+    const relogin = await login('roundtrip@b.co', 'รหัสผ่านทดสอบ1')
+    expect(relogin.ok).toBe(false)
+  })
+
+  test('ไฟล์นำเข้าเขียนทับรหัสผ่านของบัญชีที่มีอยู่ไม่ได้', async () => {
+    await register('takeover@b.co', 'รหัสผ่านของเจ้าของ1')
+
+    const forged = JSON.stringify({
+      exportVersion: 1,
+      exportedAt: new Date().toISOString(),
+      account: {
+        uid: '9999999999',
+        email: 'takeover@b.co',
+        createdAt: new Date().toISOString(),
+        passwordHash: '600000:AAAA',
+        passwordSalt: 'BBBB',
+        player: { name: 'ผู้บุกรุก', level: 1, currency: { gold: 0, gem: 0 } },
+        transactions: [],
+      },
+    })
+    expect((await importSave(forged)).ok).toBe(true)
+
+    // รหัสผ่านเดิมของเจ้าของต้องยังใช้ได้ และแฮชที่ปลอมมาต้องไม่ถูกรับเข้าไป
+    expect((await login('takeover@b.co', 'รหัสผ่านของเจ้าของ1')).ok).toBe(true)
   })
 })
 

@@ -26,6 +26,10 @@
       "rules": { "no-console": "off" }
     },
     {
+      "files": ["supabase/functions/**"],
+      "rules": { "no-console": "off" }
+    },
+    {
       "files": ["src/components/WorldChat/chatStorage.ts"],
       "rules": { "unicorn/require-post-message-target-origin": "off" }
     }

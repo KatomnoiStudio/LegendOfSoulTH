@@ -4,13 +4,14 @@ import userEvent from '@testing-library/user-event'
 import { ErrorBoundary, SceneCrashFallback } from './ErrorBoundary'
 
 /*
-  จอ crash ต้องแสดงรหัสจริง และปุ่มสำรองข้อมูลต้องทำงานจริง
+  จอ crash ต้องแสดงรหัสจริง และปุ่มสำรองข้อมูลต้องคุยกับ backend ที่ใช้งานจริง
 
-  เกมนี้เก็บทุกอย่างไว้ใน localStorage โดยไม่มี backend ให้กู้คืน ถ้าปุ่มสำรองข้อมูลพัง
-  แล้วไม่มีใครรู้ ผู้เล่นที่เจอ crash วนซ้ำจะไม่มีทางกู้ตัวละครกลับมาเลยนอกจากล้างข้อมูลทิ้ง
+  ปุ่มนี้เคยผูกกับ accountRepository ตัว localStorage เดิมซึ่ง readActiveSession() อ่านคีย์ที่
+  backend Supabase ไม่เคยเขียน ผลคือมันตอบ "ยังไม่ได้ล็อกอิน" ทุกครั้ง 100% บนจอเดียวที่บอก
+  ผู้เล่นให้รีบเซฟข้อมูล — เทสต์ชุดนี้ตรึงไว้ว่ามันต้องเรียก backend จริง ไม่ใช่ตัวที่ dormant
 */
 
-vi.mock('../../data/accountRepository', () => ({
+vi.mock('../../data/accountRepository.supabase', () => ({
   exportSave: vi.fn(),
 }))
 vi.mock('../../lib/saveFile', () => ({
@@ -43,7 +44,7 @@ describe('ErrorBoundary', () => {
 
   test('กดสำรองข้อมูลสำเร็จ — ดาวน์โหลดไฟล์และแจ้งผล', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    const { exportSave } = await import('../../data/accountRepository')
+    const { exportSave } = await import('../../data/accountRepository.supabase')
     const { downloadSaveJson } = await import('../../lib/saveFile')
     vi.mocked(exportSave).mockResolvedValue({ ok: true, json: '{"account":{}}' })
 
@@ -62,7 +63,8 @@ describe('ErrorBoundary', () => {
 
   test('กดสำรองข้อมูลตอนไม่มี session — แจ้งเหตุผลจริง ไม่ใช่ข้อความมั่ว', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    const { exportSave } = await import('../../data/accountRepository')
+    vi.spyOn(console, 'debug').mockImplementation(() => {})
+    const { exportSave } = await import('../../data/accountRepository.supabase')
     vi.mocked(exportSave).mockResolvedValue({ ok: false, error: 'ยังไม่ได้ล็อกอิน' })
 
     const user = userEvent.setup()
@@ -77,10 +79,50 @@ describe('ErrorBoundary', () => {
     expect(await screen.findByText('ยังไม่ได้ล็อกอิน')).toBeInTheDocument()
   })
 
+  /*
+    กิ่ง ok:false ต้องรายงาน ไม่ใช่แค่แสดงข้อความ
+
+    ตอนที่ปุ่มนี้ล้มเหลว 100% มันล้มเหลว "อย่างสุภาพ" — คืน ok:false ทุกครั้งโดยไม่มีบรรทัด log
+    สักบรรทัด เทสต์นี้ตรึงเส้นทางรายงานไว้ ไม่ให้ความล้มเหลวแบบเงียบกลับมาอีก
+  */
+  test('กิ่ง ok:false ต้องเดินผ่าน reportError ด้วย ไม่ใช่แค่ขึ้นข้อความบนจอ', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {})
+    const { exportSave } = await import('../../data/accountRepository.supabase')
+    vi.mocked(exportSave).mockResolvedValue({ ok: false, error: 'สำรองไม่ได้' })
+
+    const user = userEvent.setup()
+    render(
+      <ErrorBoundary>
+        <Bomb />
+      </ErrorBoundary>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'สำรองข้อมูลเป็นไฟล์' }))
+
+    await waitFor(() =>
+      expect(
+        debugSpy.mock.calls.some(([label]) => String(label).includes('SAVE_EXPORT_FAIL')),
+      ).toBe(true),
+    )
+  })
+
+  test('จอ crash ต้องไม่บอกว่าข้อมูลอยู่แค่ในเบราว์เซอร์ — ย้ายมา Supabase แล้ว', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    render(
+      <ErrorBoundary>
+        <Bomb />
+      </ErrorBoundary>,
+    )
+
+    expect(screen.getByText(/เก็บไว้\s*บนเซิร์ฟเวอร์/)).toBeInTheDocument()
+  })
+
   test('exportSave โยน error เอง — ไม่ทำให้ปุ่มพังหรือหน้าขาว', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.spyOn(console, 'debug').mockImplementation(() => {})
-    const { exportSave } = await import('../../data/accountRepository')
+    const { exportSave } = await import('../../data/accountRepository.supabase')
     vi.mocked(exportSave).mockRejectedValue(new Error('localStorage พัง'))
 
     const user = userEvent.setup()

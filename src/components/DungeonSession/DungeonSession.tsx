@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import type { CurrencyResult, GoldSource, ItemResult } from '../../data/accountRepository'
+import type { CurrencyResult, GoldSource, ItemResult } from '../../data/accountRepository.shared'
 import { appendBattleHistory } from '../../game/dialogue/actions'
 import { P5_TEST_DUNGEON } from '../../game/dungeon/dungeonConfig'
 import type { DungeonResult } from '../../game/dungeon/dungeonSchema'

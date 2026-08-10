@@ -7,6 +7,7 @@ import {
   type GoldPackage,
   type GemPackage,
 } from '../../data/accountRepository.shared'
+import { reportError } from '../../lib/errors/reportError'
 import { formatNumber } from '../../lib/format'
 import { useToast } from '../Toast/useToast'
 import styles from './CurrencyShopModal.module.css'
@@ -45,6 +46,12 @@ export function CurrencyShopModal({ currency, onBuy, onClose }: CurrencyShopModa
       showToast(`${copy.title}สำเร็จ +${formatNumber(result.amount)}`, 'currency')
       onClose()
     } else {
+      // ธุรกรรมสกุลเงินที่ล้มต้องมีร่องรอยเสมอ ไม่ใช่ toast แล้วจบ — ผู้เล่นแจ้งว่า "เติมแล้วไม่เข้า"
+      // เมื่อไหร่ ต้องมีอะไรให้เทียบว่าคำขอนั้นไปถึงและถูกปฏิเสธ หรือไม่เคยไปถึงเลย
+      reportError('CURRENCY_TOPUP_FAIL', 'silent', result.error, {
+        currency,
+        packageId: pack.id,
+      })
       showToast(result.error, 'error')
     }
   }

@@ -9,6 +9,7 @@ import { ADMIN_COMMAND_HELP, COMMAND_HELP, resolveCommandForSender } from './com
 import { loadWorldChat, postWorldChatMessage, subscribeToWorldChat } from './chatStorage'
 import type { ChatMessage } from './chatStorage'
 import { blockName, loadBlockedNames, unblockName } from './blockList'
+import { reportError } from '../../lib/errors/reportError'
 import styles from './WorldChat.module.css'
 
 /**
@@ -211,7 +212,10 @@ export function WorldChat({
     setBusy(true)
     try {
       setMessages(await postWorldChatMessage(text))
-    } catch {
+    } catch (error) {
+      // รหัสนี้มีในทะเบียนมาตั้งแต่ต้นแต่ไม่เคยถูกเรียกจากที่นี่ — การส่งแชทที่ล้ม (โดนแบน,
+      // RLS ปฏิเสธ, เน็ตหลุด) จึงแยกสาเหตุไม่ได้เลย เห็นแต่ข้อความเดียวกันหมดบนจอผู้เล่น
+      reportError('WORLD_CHAT_SEND_FAIL', 'silent', error)
       pushSystemEntry('ส่งข้อความไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', 'error')
     } finally {
       setBusy(false)

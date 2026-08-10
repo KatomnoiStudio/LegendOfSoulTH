@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, test, vi } from 'vitest'
-import { reportError, subscribeToVisibleErrors } from './reportError'
+import { GAME_INFO } from '../../game/gameInfo'
+import {
+  reportError,
+  setErrorSink,
+  subscribeToVisibleErrors,
+  type ErrorReport,
+} from './reportError'
 
 /*
   tier 'visible' ต้องไปถึงจอจริง ไม่ใช่แค่ลง console
@@ -11,6 +17,7 @@ import { reportError, subscribeToVisibleErrors } from './reportError'
 
 afterEach(() => {
   vi.restoreAllMocks()
+  setErrorSink(null)
 })
 
 describe('reportError', () => {
@@ -78,6 +85,74 @@ describe('reportError', () => {
 
     offBad()
     offGood()
+  })
+})
+
+/*
+  รูสำหรับต่อปลายทาง (sink)
+
+  โปรเจกต์นี้ยังไม่ส่ง error ออกนอกเบราว์เซอร์ และเทสต์ชุดนี้ไม่ได้พยายามเปลี่ยนคำตัดสินนั้น
+  มันตรึงแค่ว่า "ถ้าวันหนึ่งเจ้าของเลือกปลายทาง ของที่ส่งไปต้องใช้งานได้จริง" — มีเวอร์ชัน
+  มี correlation id และมี error ที่ serialize แล้วไม่กลายเป็น {}
+*/
+describe('sink', () => {
+  test('ค่าเริ่มต้นยังเป็น console เหมือนเดิม ไม่มีการส่งออกไปไหน', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    reportError('BOUNDARY_RENDER_CRASH', 'visible', new Error('พัง'))
+
+    expect(errorSpy).toHaveBeenCalledTimes(1)
+    expect(String(errorSpy.mock.calls[0]?.[0])).toContain('BOUNDARY_RENDER_CRASH')
+  })
+
+  test('sink ที่เสียบเข้ามาได้รายงานที่ serialize ได้จริง พร้อมเวอร์ชันและ correlation id', () => {
+    vi.spyOn(console, 'debug').mockImplementation(() => {})
+    const reports: ErrorReport[] = []
+    setErrorSink((report) => reports.push(report))
+
+    reportError('STORAGE_WRITE_FAIL', 'silent', new Error('โควตาเต็ม'), {
+      passwordHash: '600000:AAAA',
+      heroId: 'monkey-king',
+    })
+
+    expect(reports).toHaveLength(1)
+    const [report] = reports
+    expect(report.version).toBe(GAME_INFO.version)
+    expect(report.correlationId).toBeTruthy()
+    expect(report.error?.message).toBe('โควตาเต็ม')
+    // จุดตายเดิม: error ที่ผ่านไปถึง sink ต้องไม่กลายเป็น {}
+    expect(JSON.stringify(report.error)).not.toBe('{}')
+    // และข้อมูลอ่อนไหวใน context ต้องไม่ติดไปกับรายงาน
+    expect(report.context?.passwordHash).toBe('[redacted]')
+    expect(report.context?.heroId).toBe('monkey-king')
+  })
+
+  test('sink ที่พังเองต้องไม่ลาก reportError ล้มไปด้วย', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    setErrorSink(() => {
+      throw new Error('sink พัง')
+    })
+
+    expect(() => reportError('BOUNDARY_RENDER_CRASH', 'visible')).not.toThrow()
+  })
+})
+
+describe('ตัวส่งต่อ tier visible', () => {
+  test('ส่ง error ที่แปลงแล้วไปให้ผู้รับด้วย ไม่ใช่แค่รหัส', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const seen: unknown[] = []
+    const off = subscribeToVisibleErrors((_code, error) => seen.push(error))
+
+    reportError('PLAYER_SAVE_FAIL', 'visible', {
+      message: 'permission denied',
+      code: '42501',
+      hint: 'column allowlist',
+    })
+
+    expect(seen).toEqual([
+      { message: 'permission denied', code: '42501', hint: 'column allowlist' },
+    ])
+    off()
   })
 })
 

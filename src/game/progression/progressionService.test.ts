@@ -15,7 +15,7 @@ import { grantDungeonRewards } from '../reward/rewardGrantService'
 import { resolveRewards } from '../reward/rewardResolver'
 import { getDungeonRewardDefinition } from '../reward/rewardConfig'
 import { createPlayerEntity } from '../realtimeBattle/createRealtimeBattle'
-import type { GoldSource } from '../../data/accountRepository'
+import type { GoldSource } from '../../data/accountRepository.shared'
 
 function stubPlayer(overrides: Partial<Player> = {}): Player {
   return {
