@@ -132,7 +132,10 @@ authenticated` with no re-grant, and the removal of the three progression parame
   purchase was driven against production through the real anon-key path: gold went 581 → 541
   with one ledger row, retrying the same request id charged nothing, replaying under a fresh
   request id was refused by the compare-and-swap, and a talent purchase without its prerequisite
-  was refused. Report the same _class_ of bug elsewhere.)
+  was refused. One residue, re-measured 2026-08-11: that revoke names `authenticated` only, so
+  `anon` still holds a table-level UPDATE grant on `owned_characters`. RLS is what closes it — the
+  UPDATE policy requires `auth.uid() = profile_id`, unsatisfiable without a session — so this is
+  defence-in-depth debt, not a reachable write. Report the same _class_ of bug elsewhere.)
 - **"I changed Star/Shard values in React state or called the preview calculator."** The preview
   is presentation-only. Report it only if the change persists in Supabase without a valid
   `ascend_character_star` transaction.

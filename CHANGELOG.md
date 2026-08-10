@@ -102,16 +102,22 @@ same species: correct code with nothing pinning it there.**
   running tests; contending for CPU produced false failures a gate cannot
   distinguish from a real regression
 
-### Not yet live
+### Server state
 
-- **The progression-cost migration ships in this release but is not applied.**
-  `20260810180000` revokes UPDATE on `owned_characters` and drops the 21-argument
-  `commit_lobby_battle_progression`, both of which the currently deployed client
-  still uses. Applying it before this build reaches players turns every save into
-  a `42501` — rolling back team, friends and flags, not just progression — and
-  every battle commit into a `PGRST202`. Correct order: deploy this build, then
-  apply the migration. Until then the free-upgrade path is closed in the code and
-  open on the server
+- **The progression-cost migration was applied after this build reached
+  players, in that order on purpose.** `20260810180000` revokes UPDATE on
+  `owned_characters` and drops the 21-argument
+  `commit_lobby_battle_progression`, both of which the previously deployed
+  client still used — applying it first would have turned every save into a
+  `42501` (rolling back team, friends and flags, not just progression) and every
+  battle commit into a `PGRST202`. Verified on production 2026-08-11: the cost
+  catalog holds 21 rows and is unreachable from the client, the RPC is down to a
+  single 18-argument overload, and `authenticated` holds no UPDATE on
+  `owned_characters`. One residue: the revoke names `authenticated` only, so
+  `anon` keeps a table-level UPDATE grant. RLS closes it — the UPDATE policy
+  requires `auth.uid() = profile_id`, which no anonymous request can satisfy —
+  but the migration's own comment claiming the client is left "no writable
+  column at all" overstates what it did
 
 ### Credits
 
