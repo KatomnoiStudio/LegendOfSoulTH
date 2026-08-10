@@ -283,3 +283,4 @@ All entries 2026-08-05/06 unless noted. Roughly chronological.
 - **186.** Erlang Shen (`spear-warrior`) landed — belt inward-reimplement 2/2 complete — `MEMORY/archive/176-200.md`
 - **187.** #104 belt round-trip — a rule-violating direct merge caught, reverted, re-entered at MAKE — `MEMORY/archive/176-200.md`
 - **188.** #25 server-owns-progression code LANDED — first full claude -p caretaker → fresh-eyes gate → merge cycle + the ... — `MEMORY/archive/176-200.md`
+- **189.** The 12-agent audit, the memory split, and five lanes that all failed their first gate — `MEMORY/archive/176-200.md`

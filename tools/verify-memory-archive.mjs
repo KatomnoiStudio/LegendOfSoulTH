@@ -1,5 +1,9 @@
 /**
- * verify-memory-archive.mjs — byte-exactness gate for the MEMORY.md index/archive split.
+ * verify-memory-archive.mjs — content-exactness gate for the MEMORY.md index/archive split.
+ *
+ * "Content", not "byte": line endings are normalised before comparison (see the note at the
+ * bottom of this header for why that is the correct call here, not a loosening). The LF
+ * convention is asserted separately, and strictly, against the committed blob.
  *
  *   node tools/verify-memory-archive.mjs [--base <git-ref>]
  *
@@ -42,8 +46,18 @@ const ARCHIVE_DIR = join(REPO, 'MEMORY', 'archive')
 const INDEX_FILE = join(REPO, 'MEMORY.md')
 const LINE_CEILING = 400
 
+/**
+ * The pre-split baseline is PINNED, not `origin/master`.
+ *
+ * The split landed in 0cefbb0, so from that commit onward `origin/master:MEMORY.md` IS the
+ * index — comparing against a moving master made this tool destroy its own baseline the
+ * moment its own work merged (it reported "archive holds 0" and every item "not in
+ * origin/master"). 5531ebb is the last commit before the split; that is the only ref where
+ * the original 188 bodies still live.
+ */
+const PRE_SPLIT_BASE = '5531ebb'
 const baseFlag = process.argv.indexOf('--base')
-const BASE = baseFlag === -1 ? 'origin/master' : process.argv[baseFlag + 1]
+const BASE = baseFlag === -1 ? PRE_SPLIT_BASE : process.argv[baseFlag + 1]
 
 const failures = []
 const check = (ok, message) => {
@@ -57,13 +71,23 @@ const git = (args, encoding = 'utf8') =>
 /** Line endings are a checkout artifact here — compare content, not CR bytes. */
 const normalise = (text) => text.replace(/\r\n/g, '\n')
 
-/** CRLF count of a COMMITTED blob, read as raw bytes (never through a shell pipe). */
+/**
+ * CRLF count of a COMMITTED blob, read as raw bytes (never through a shell pipe).
+ * Returns null when the path simply is not committed yet — that is the normal case while
+ * the split is staged. Any OTHER git failure is a real problem and is reported, not
+ * swallowed: a catch-all here would let a broken git invocation masquerade as "skipped".
+ */
 function blobCrlfCount(ref, path) {
   try {
     const buf = git(['cat-file', 'blob', `${ref}:${path}`], 'buffer')
     return (buf.toString('latin1').match(/\r\n/g) ?? []).length
-  } catch {
-    return null // not committed yet — nothing to assert
+  } catch (err) {
+    const stderr = String(err?.stderr ?? '')
+    if (/exists on disk, but not in|does not exist|unknown revision|Not a valid object name/i.test(stderr)) {
+      return null // not committed yet — nothing to assert
+    }
+    failures.push(`could not read blob ${ref}:${path} — ${stderr.trim() || err?.message || err}`)
+    return null
   }
 }
 
@@ -110,14 +134,37 @@ console.log(`archive files       : ${archiveFiles.length} (${archiveFiles.join('
 console.log(`items in original   : ${originalItems.size}`)
 console.log(`items in archive    : ${archiveItems.size}`)
 
-check(
-  originalItems.size === archiveItems.size,
-  `item count drift: original ${originalItems.size} vs archive ${archiveItems.size}`,
-)
+/**
+ * Two modes, and the tool says which one it is running.
+ *
+ * HISTORICAL — the base still holds item bodies, so every one of them can be matched against
+ * the archive. This is the migration proof and it only works from a pre-split ref.
+ *
+ * ONGOING — the base is already an index (someone pointed --base at a post-split commit).
+ * The pre-split comparison is then meaningless, but the invariants that matter FOREVER still
+ * hold: every index line has a body, every body has an index line, numbering is contiguous,
+ * blobs are LF, and no body leaked back into the index. Run those and say plainly that the
+ * historical half was skipped — never report a pass as if the full check ran.
+ */
+const HISTORICAL = originalItems.size > 0
+console.log(`mode                : ${HISTORICAL ? 'HISTORICAL (base has bodies)' : 'ONGOING (base is already an index — pre-split comparison skipped)'}`)
 
-// --- 3. body comparison (eol-normalised on both sides) ---
+if (HISTORICAL) {
+  // The archive is allowed to have GROWN — items 189, 190, ... are appended after the split
+  // and cannot exist in a pre-split base. The invariant is that nothing was LOST, so this is
+  // a subset check, never an equality one. (An equality check here broke the moment the very
+  // next item was written, which is not a property a migration proof should have.)
+  check(
+    archiveItems.size >= originalItems.size,
+    `items LOST: base ${BASE} holds ${originalItems.size}, archive holds only ${archiveItems.size}`,
+  )
+  const added = archiveItems.size - originalItems.size
+  if (added > 0) console.log(`items added since   : ${added} (${originalItems.size + 1}..${archiveItems.size})`)
+}
+
+// --- 3. body comparison (eol-normalised on both sides) — HISTORICAL mode only ---
 let identical = 0
-for (const [number, body] of originalItems) {
+for (const [number, body] of HISTORICAL ? originalItems : []) {
   const archived = archiveItems.get(number)
   if (archived === undefined) {
     failures.push(`item ${number} missing from the archive`)
@@ -128,21 +175,26 @@ for (const [number, body] of originalItems) {
   } else {
     const a = Buffer.from(body, 'utf8')
     const b = Buffer.from(archived, 'utf8')
-    const at = [...a].findIndex((byte, i) => byte !== b[i])
+    // findIndex returns -1 when one side is a strict PREFIX of the other (nothing differs
+    // within the shorter one) — reporting "-1" and slicing around it would point the reader
+    // at the wrong place in the exact situation the tool exists to diagnose. The real
+    // divergence is then the first byte past the shorter body.
+    const firstDiff = [...a].findIndex((byte, i) => byte !== b[i])
+    const at = firstDiff === -1 ? Math.min(a.length, b.length) : firstDiff
+    const reason = firstDiff === -1 ? ' — one body is a prefix of the other (truncated)' : ''
     failures.push(
-      `item ${number} body differs at byte ${at} (${a.length}B original vs ${b.length}B archived)\n` +
+      `item ${number} body differs at byte ${at}${reason} (${a.length}B original vs ${b.length}B archived)\n` +
         `    original: ${JSON.stringify(body.slice(Math.max(0, at - 40), at + 40))}\n` +
         `    archived: ${JSON.stringify(archived.slice(Math.max(0, at - 40), at + 40))}`,
     )
   }
 }
-for (const number of archiveItems.keys()) {
-  if (!originalItems.has(number)) failures.push(`item ${number} is in the archive but not in ${BASE}`)
+if (HISTORICAL) {
+  console.log(`bodies identical    : ${identical}/${originalItems.size} (vs ${BASE})`)
 }
-console.log(`bodies identical    : ${identical}/${originalItems.size}`)
 
-// --- 4. no gaps in the numbering ---
-const numbers = [...originalItems.keys()].toSorted((x, y) => x - y)
+// --- 4. no gaps in the numbering (the archive is the authority once the split has landed) ---
+const numbers = [...archiveItems.keys()].toSorted((x, y) => x - y)
 const gaps = numbers.filter((n, i) => n !== i + 1)
 check(gaps.length === 0, `item numbering is not 1..N contiguous (first offender: ${gaps[0]})`)
 
@@ -156,8 +208,8 @@ for (const line of indexLines) {
 }
 console.log(`index lines         : ${indexed.size}`)
 check(
-  indexed.size === originalItems.size,
-  `index covers ${indexed.size} items, archive holds ${originalItems.size}`,
+  indexed.size === archiveItems.size,
+  `index covers ${indexed.size} items, archive holds ${archiveItems.size}`,
 )
 for (const [number, file] of indexed) {
   check(
@@ -196,4 +248,10 @@ if (failures.length > 0) {
   for (const f of failures) console.error(`  - ${f}`)
   process.exit(1)
 }
-console.log('\nPASS — every item body survived the split intact.')
+console.log(
+  HISTORICAL
+    ? `\nPASS — all ${identical} item bodies are identical to ${BASE}, and the index matches the archive.`
+    : `\nPASS (ONGOING checks only) — the index matches the archive, numbering is contiguous, blobs are LF.` +
+        `\n       The pre-split body comparison did NOT run: ${BASE} is already an index.` +
+        `\n       For the migration proof, run without --base (pinned to ${PRE_SPLIT_BASE}).`,
+)
