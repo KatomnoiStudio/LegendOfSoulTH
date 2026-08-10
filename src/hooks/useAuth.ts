@@ -10,7 +10,6 @@ import type {
   GachaPullResult,
 } from '../data/accountRepository.supabase'
 import { reportError } from '../lib/errors/reportError'
-import { downloadSaveJson } from '../lib/saveFile'
 import type { Player } from '../types/player'
 
 /**
@@ -92,8 +91,6 @@ export interface AuthState {
   getPendingLobbyRewards: () => Promise<accounts.PendingLobbyRewardRow[]>
   /** อัญเชิญผ่าน atomic Supabase RPC — Client ไม่มีสิทธิ์ตัด Gem/RNG/เพิ่ม Hero เอง */
   pullGacha: (bannerId: string, pullCount: 1 | 10, requestId: string) => Promise<GachaPullResult>
-  /** ส่งออก save เป็นไฟล์ JSON ไว้สำรอง/ย้ายเครื่อง — คืน null เมื่อสำเร็จ (ไฟล์ถูกดาวน์โหลดแล้ว) */
-  exportSave: () => Promise<string | null>
 }
 
 export function useAuth(): AuthState {
@@ -385,15 +382,6 @@ export function useAuth(): AuthState {
     [player],
   )
 
-  const exportSave = useCallback(async () => {
-    const result = await accounts.exportSave()
-    if (!result.ok) return result.error
-
-    // ดาวน์โหลดเป็นไฟล์ .json — ไม่มี backend ให้ส่งไปเก็บ ผู้เล่นต้องเก็บไฟล์เอง
-    downloadSaveJson(result.json)
-    return null
-  }, [])
-
   return {
     status,
     player,
@@ -421,6 +409,5 @@ export function useAuth(): AuthState {
     clearPendingLobbyReward,
     getPendingLobbyRewards,
     pullGacha,
-    exportSave,
   }
 }

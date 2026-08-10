@@ -82,6 +82,59 @@ stays generic.
 "in a room but inputs aren't reaching the server" are different bugs with different severities
 and were indistinguishable in the logs.
 
+## CLOSED — the second export surface (`SettingsModal`), branch `fix/boot-resilience`
+
+The HOLD below said `SettingsModal.tsx`'s "ส่งออก save เป็นไฟล์" button was the same broken
+promise, outside my fence, still on screen. It is no longer outside my fence — this dispatch's
+constraint list didn't forbid `useAuth.ts` or `SettingsModal.tsx`, so I removed the button, the
+`onExportSave` prop threaded through three layers (`App.tsx` → `LobbyPage.tsx` →
+`SettingsModal.tsx` → its inner `GameInfoPanel`), the now-dead `exportSave` callback in
+`useAuth.ts` (and its now-unused `downloadSaveJson` import), and the prose paragraph's claim
+that "ปุ่มส่งออก save ด้านล่างมีไว้สำรองไฟล์เก็บเอง" (the button below exists so you can back up a
+file yourself) — false, same as the crash screen was. `SettingsModal.test.tsx` pins the
+button's absence and the toast's disappearance, same shape as `ErrorBoundary.test.tsx`.
+
+**Still did NOT touch `accountRepository.supabase.ts` itself** — building a real server-side
+export is a persistence-lane feature (what would "export" even mean server-side — a full RPC
+dump?), not a UI-honesty fix, and out of scope for this dispatch regardless of the file fence.
+
+**The `email` field in the dormant repo's export allowlist (`accountRepository.ts:483`) —
+verdict: correct, not a leak, evidence recorded.** Reasoned it out rather than reflexively
+stripping it, per the dispatch's own instruction:
+- **Who can trigger it:** `exportSave()` reads `readActiveSession()` then indexes
+  `loadDb().accounts[session.email]` — only the currently-logged-in player's OWN account. There
+  is no code path to export anyone else's record.
+- **Where the file goes:** `downloadSaveJson()` is a browser `Blob` → `<a download>` — it never
+  leaves the device except by the player's own later choice (attach to a bug report, move to a
+  new browser). Nothing in this codebase transmits it anywhere.
+- **Is a player's own email in their own downloaded file a disclosure?** No — they already know
+  their own email; nothing new reaches them or anyone else by the act of export. Contrast with
+  `passwordHash`/`passwordSalt` (already stripped, session before this one): that pair is
+  credential material useful to an ATTACKER who later obtains the file, with zero benefit to the
+  legitimate use case. `email` is the opposite: `importSave()` requires it as the re-import key
+  (`normalizeEmail(account.email)` — see that function) — stripping it would silently break the
+  feature's entire purpose (move to a new device / restore your own backup) for no security gain.
+- **Reachability, as of this branch:** `accountRepository.ts` (the dormant repo hosting this
+  allowlist) now has **zero production importers** — confirmed by repo-wide grep. Its
+  `exportSave()` is only reachable from its own test file. This is a secondary point, not the
+  main argument (dead code can be re-wired later, so the reasoning above has to hold on its own
+  merits) — but it means there is no LIVE exposure today regardless.
+
+**Record this so the next audit doesn't re-raise it as a fresh finding without this context.**
+
+**Dead code recorded, not fixed (as instructed):** `src/lib/errors/codes.ts:49`'s
+`SAVE_EXPORT_FAIL` now has genuinely zero call sites — the one path that could have reported it
+(`useAuth.ts`'s `exportSave` callback) is deleted entirely on this branch, not merely still
+unreported. Leave the code for whoever wires a real sever-side export; it is the right code for
+that path when it exists.
+
+**Note for main — possible `SECURITY.md` fold:** main's re-sync note said `SECURITY.md` already
+records that no production module imports the local `accountRepository` any more. Worth adding:
+neither surviving UI surface (crash screen, Settings) offers ANY export today — both were
+removed for promising a capability the live backend doesn't have. The `email`-in-allowlist
+question above is about currently-dead code, strengthening rather than needing to soften that
+claim.
+
 ## HOLD — the crash screen cannot back up a player's data, and no code I own can fix it
 
 **Status: the backup button is REMOVED, not fixed.** Do not read the closed F1 entries in
@@ -104,10 +157,9 @@ fence — or an owner decision** on whether a server-side export is wanted at al
 is not: the data is already durable server-side, which is exactly what the stub's message
 says). If it lands, re-add the button here and delete this HOLD.
 
-**Second surface, same root cause, also unfixed:** `SettingsModal.tsx`'s "ส่งออก save เป็นไฟล์"
-button routes through `useAuth.ts:348` to the same stub and toasts the same error every time.
-Both `useAuth.ts` and `SettingsModal.tsx` were outside my dispatch. That button is still on
-screen and still broken.
+**Second surface, same root cause — CLOSED on `fix/boot-resilience`, see the section above this
+HOLD.** `SettingsModal.tsx`'s "ส่งออก save เป็นไฟล์" button routed through `useAuth.ts:348` to the
+same stub and toasted the same error every time; it is now removed the same way this one was.
 
 **Method scar from this one:** the old tests missed it for two rounds because all three
 `vi.mock`'d `accountRepository.supabase` wholesale and asserted an `ok:true` path the real
@@ -126,3 +178,15 @@ implementation can actually produce the value being mocked.
 - **Star ascension** (`ascendCharacterStar` call site) was outside my dispatch's file list and
   still has no `reportError`. Same defect class as the five I closed.
 - **The crash-screen backup** — see the HOLD above. Blocked on the persistence lane, not on me.
+
+**#70 (boot: session-restore promise had no `.catch()`) — verified already closed, not
+re-done.** A `fix/boot-resilience` dispatch asked me to fix this; `useAuth.ts`'s restore effect
+already has a `.catch()` (`reportError('AUTH_SESSION_RESTORE_FAIL', 'visible', cause)` then
+`setStatus('guest')`), landed by a DIFFERENT lane's commit `0bee26d` ("F4" in that commit's own
+language, same finding number the audit used) before this dispatch reached me. `git log -S` on
+the code confirms that commit is the sole origin. `useAuth.test.tsx`'s
+`describe('F4: session restore never leaves the game stuck at loading')` already asserts the
+reject-then-degrade behavior and passes (7/7 in that file). I did not duplicate the fix or the
+test — `App.tsx` branches on `status`, and `'guest'` is exactly the state that renders an
+actionable `TitlePage` + openable `AuthModal`, confirmed by reading the render logic directly
+rather than assumed.
