@@ -9,13 +9,25 @@
  * อะไรผิดปกติหลุดเข้ามา (เช่น lib ก้อนใหญ่ถูก bundle เข้า chunk ของแอปโดยไม่ตั้งใจ)
  * ไม่ใช่ตั้งสูงลิ่วจนไม่มีวันแดง
  *
- * วัดจริงจาก build วันที่ 2026-08-10 (`npm run build` แล้วรันสคริปต์นี้):
- *   vendor สูงสุด 154.0 KB gzip (three.webgpu-*.js) → เพดาน 200 KB (เผื่อ ~30%)
- *   แอปสูงสุด     47.4 KB gzip (App-*.js)           → เพดาน  70 KB (เผื่อ ~48%)
+ * วัดจริงจาก build วันที่ 2026-08-10 (ดูวิธีวัดด้านล่าง — ต้องตั้ง env ก่อน ไม่งั้นเลขหลอก):
+ *   vendor สูงสุด 154.0 KB gzip (three.webgpu-*.js)   → เพดาน 200 KB (เผื่อ 29.9%)
+ *   แอปสูงสุด     47.4 KB gzip (App-*.js)             → เพดาน  70 KB (เผื่อ 47.7%)
+ *   (supabaseClient-*.js 52.0 KB นับเป็น vendor แล้ว — ดูเหตุผลที่ isVendorChunk ด้านล่าง)
  *
  * เพดานแอปเดิมคือ 300 KB ซึ่งสูงกว่าเพดาน vendor ทั้งที่คอมเมนต์บอกว่าต้องต่ำกว่า และห่างจาก
  * ค่าจริง 6 เท่า — เป็นเพดานที่ไม่มีวันบังคับอะไรได้ (ตัวเลข "~85 KB" ในคอมเมนต์เดิมก็ค้างมาจาก
  * build เก่าเช่นกัน) ขยับเพดานเมื่อการโตนั้นตั้งใจ และแก้ตัวเลขที่วัดได้ในคอมเมนต์นี้พร้อมกัน
+ *
+ * วิธีวัดใหม่ให้ตรงกับ CI — ต้องมี VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY ตอน build:
+ *
+ *   VITE_SUPABASE_URL=https://ci-placeholder.supabase.co \
+ *   VITE_SUPABASE_ANON_KEY=ci-build-placeholder-anon-key \
+ *   npm run build && node tools/check-bundle-size.mjs
+ *
+ * ถ้าไม่ตั้งสองค่านี้ ตัวเลขที่ได้จะ "หลอก" อย่างเงียบ ๆ: src/lib/supabaseClient.ts throw ทันที
+ * เมื่อ env ว่าง Vite แทน import.meta.env ตอน build แล้ว Rollup เห็นว่าเงื่อนไข throw เป็นจริง
+ * เสมอ จึง tree-shake @supabase/supabase-js ทิ้งทั้งก้อน — chunk เหลือ 3.7 KB แทนที่จะเป็น
+ * 52.0 KB (ci.yml step "Prepare Supabase env for CI" ใส่ placeholder ให้เสมอ CI จึงเห็นก้อนเต็ม)
  *
  *   node tools/check-bundle-size.mjs
  */
@@ -27,11 +39,49 @@ import { gzipSync } from 'node:zlib'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const ASSETS_DIR = join(ROOT, 'dist', 'assets')
 
-// ponytail: regex ทายจากชื่อไฟล์ที่ Vite/Rollup ตั้งให้ chunk ของ three.js กับ react
-// (ดู manualChunks ใน vite.config.ts + การแยก chunk ภายในของแพ็กเกจ three)
-// ไม่ตรงกับ chunk ใหม่ที่ตั้งชื่อไม่เข้าแพทเทิร์นนี้ → แก้ regex ตอนนั้น
-const VENDOR_PATTERN = /^(vendor-|three\.|WebGL-)/
+// chunk ที่ manualChunks ใน vite.config.ts ตั้งชื่อเอง (`vendor-*`) กับ chunk ภายในของ three
+// ที่ Rollup แตกออกมาเองโดยชื่อไม่มีคำว่า three (`WebGL-*` = WebGLRenderer ของ three)
+const STATIC_VENDOR_PATTERN = /^(vendor-|WebGL-)/
+// token ที่ generic เกินกว่าจะบอกได้ว่า chunk เป็นของ lib — `app`, `client`, `core` ฯลฯ โผล่ใน
+// ชื่อโมดูลของเราเองพอ ๆ กับในชื่อ dependency
+const GENERIC_TOKENS = new Set(['app', 'client', 'core', 'dom', 'lib', 'node', 'web'])
 const BUDGETS_KB_GZIP = { vendor: 200, app: 70 }
+
+// manualChunks ใน vite.config.ts (บรรทัด 71-74) ดึงออกมาเป็น chunk แยกแค่ react เท่านั้น
+// lib ที่เหลือ Rollup จึงตั้งชื่อ chunk ตาม "โมดูลของแอปที่เป็นคนลากมัน entry เข้ามา" —
+// @supabase/supabase-js ทั้งก้อน (52.0 KB gzip) เลยไปโผล่ในชื่อ `supabaseClient-*.js` ซึ่งเป็น
+// ชื่อไฟล์ src/lib/supabaseClient.ts ของเราเอง ทั้งที่เนื้อในเป็น GoTrueClient/RealtimeClient/
+// phoenix ล้วน ๆ ระบุชื่อ `supabaseClient` ตรง ๆ แก้ได้แค่เคสนี้เคสเดียว เคสถัดไป (เช่นวันที่มี
+// คนเพิ่ม dependency แล้ว Rollup ตั้งชื่อ chunk ตามไฟล์ wrapper ของเรา) จะหลุดแบบเดิมเป๊ะ
+// จึง DERIVE รายการ token จาก dependencies ใน package.json — เพิ่ม dependency ใหม่แล้ว
+// รายการนี้โตตามเองโดยไม่ต้องกลับมาแก้ไฟล์นี้
+//
+// ทิศทางที่ยอมพลาด: ถ้าโมดูลของแอปบังเอิญมีชื่อชนกับ token (เช่นตั้งชื่อไฟล์ว่า
+// threeDPreview.ts) จะถูกจัดเป็น vendor แล้วได้เพดานที่หลวมกว่า — ยอมทางนี้เพราะพลาดอีกทาง
+// (lib จริงหลุดไปกินเพดานแอป) คือบั๊กที่เพิ่งเจอ และมันทำให้เพดานแอปกลายเป็นตัวเลขที่ไม่มี
+// ความหมาย ถ้าเกิดเคสนั้นให้เปลี่ยนชื่อไฟล์หรือใส่ chunk นั้นเข้า manualChunks ตรง ๆ
+function vendorTokensFromDependencies(pkg) {
+  return [
+    ...new Set(
+      Object.keys(pkg.dependencies ?? {})
+        .flatMap((dep) => dep.replace(/^@/, '').split(/[/\-.]/))
+        .map((token) => token.toLowerCase())
+        .filter((token) => token.length >= 3 && !GENERIC_TOKENS.has(token)),
+    ),
+  ]
+}
+
+// ตัด hash ที่ Vite ต่อท้าย (`App-Dd3br6FU.js` → `app`) ก่อนเทียบ token — ไม่งั้น hash สุ่ม
+// ที่บังเอิญมีตัวอักษรเรียงเป็น token จะจัด chunk ผิดชั้นแบบสุ่มไปตาม build
+function chunkBaseName(file) {
+  return file.replace(/-[A-Za-z0-9_-]{8,}\.js$/, '').toLowerCase()
+}
+
+function isVendorChunk(file, vendorTokens) {
+  if (STATIC_VENDOR_PATTERN.test(file)) return true
+  const base = chunkBaseName(file)
+  return vendorTokens.some((token) => base.includes(token))
+}
 
 async function main() {
   let files
@@ -43,12 +93,15 @@ async function main() {
     return
   }
 
+  const pkg = JSON.parse(await readFile(join(ROOT, 'package.json'), 'utf8'))
+  const vendorTokens = vendorTokensFromDependencies(pkg)
+
   const overBudget = []
   const rows = []
   for (const file of files) {
     const buf = await readFile(join(ASSETS_DIR, file))
     const gzipKB = gzipSync(buf).length / 1024
-    const tier = VENDOR_PATTERN.test(file) ? 'vendor' : 'app'
+    const tier = isVendorChunk(file, vendorTokens) ? 'vendor' : 'app'
     const budget = BUDGETS_KB_GZIP[tier]
     rows.push({ file, tier, gzipKB, budget })
     if (gzipKB > budget) overBudget.push({ file, tier, gzipKB, budget })
