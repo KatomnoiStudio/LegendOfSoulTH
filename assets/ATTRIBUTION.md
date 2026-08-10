@@ -5,13 +5,21 @@
 > This file is a **draft prepared for HetCreep's review**. Nothing in it is a legal
 > conclusion, a legal opinion, or legal advice — the author is not a lawyer.
 >
-> It is still a draft for three specific reasons, not as boilerplate caution:
-> reference/source images were used and **their original sources are not recorded**;
-> `public/favicon.svg` has **unknown** provenance; and the record **covers 177 of 870
-> tracked assets** — the other 693 predate it and have no confirmed origin.
+> It is still a draft for four specific reasons, not as boilerplate caution:
+> reference/source images were used and **their original sources are not recorded**; an
+> **Adobe editing step sits in the production chain and nobody has established whether it
+> used generative features**; `public/favicon.svg` has **unknown** provenance; and the
+> record **covers 177 of 870 tracked assets** — the other 693 predate it and have no
+> confirmed origin.
 >
 > Owner answers folded in 2026-08-10 (HetCreep, recorded with Codex) · Agent: Claude Code
 > (credits & legal ship-text seat)
+>
+> **Revision note, same day:** an earlier version of this file stated that no manual editing
+> occurred after generation. **That was wrong** — see [Post-generation editing](#post-generation-editing).
+> The Claude account line was also corrected from one Pro plan to three accounts. Both were
+> corrected by the owner. A wrong provenance record is worse than an incomplete one, so the
+> error is recorded here rather than quietly overwritten.
 
 ---
 
@@ -60,6 +68,12 @@ consumed by nothing — it left `public/` in commit `16f764b` so 88 MB of unused
 files stopped being deployed to every visitor. The sheet-cutting scripts
 (`tools/cut-pigsy-*.mjs`) read `assets/archive/` and write `assets/raw/`.
 
+Files reach `assets/raw/` by **two different routes**, which matters when tracing any one
+file: the 164 under `characters/walk/` and `characters/turnaround/` were **written by the
+cut scripts** from sheets in `assets/archive/`, never passing through any image editor; the
+other 191 were **placed directly**, and it is those that the owner's editing pass applies
+to. Which specific files went through that pass is not recorded (KNOWN UNKNOWN #8).
+
 ---
 
 ## How the art was made
@@ -68,10 +82,9 @@ files stopped being deployed to every visitor. The sheet-cutting scripts
 generated images were then cut into animation frames, background-keyed, de-numbered,
 mirrored, and colour-corrected in-repo by the scripts under `tools/`.
 
-**Those `tools/` steps are automated processing, not artwork.** The owner reports no
-manual drawing, retouching, or compositing after generation. Frame extraction and
-background cleanup are mechanical passes — this matches what the code itself shows, and it
-means there is no human-authored art pass anywhere in the pipeline to point at.
+There are **three distinct handling layers** between the generator and the shipped file,
+and they are not interchangeable — see [Post-generation editing](#post-generation-editing)
+before treating any of them as the others.
 
 ### Tools and services used
 
@@ -85,10 +98,34 @@ A **mix**, varying by asset — not a single generator:
 Because it is a mix, **different assets may sit under different providers' terms.** There
 is no single set of terms covering the art.
 
+### Post-generation editing
+
+Three layers sit between the generator and the shipped file. They are different things and
+this record keeps them apart:
+
+1. **Generation** — AI output from the tools above.
+2. **An editing pass by the owner, human-directed and tool-assisted.** HetCreep personally
+   trimmed and adjusted the generated images so they would fit the code — sizing, framing,
+   fitting the sprite and asset slots — working through Claude Code with an agent driving an
+   **Adobe tool**. This is neither "used exactly as generated" nor "an artist redrew it": a
+   person made the decisions and a tool executed them, on images that already existed.
+3. **Automated repository processing** — the scripts under `tools/` (frame extraction from
+   sheets, background keying, de-numbering, mirroring, WebP conversion). Mechanical passes,
+   verifiable in the code, involving no human decision per image.
+
+**No manual drawing, retouching, or compositing is reported** — layer 2 is fitting work, not
+artwork. Recording it accurately matters in both directions: it is more human involvement
+than "no manual editing" (which an earlier version of this file wrongly stated), and less
+than an authored art pass.
+
+**Which Adobe product or tool was used is not recorded**, and whether that step was purely
+mechanical or used generative features is **not established** — see KNOWN UNKNOWN #2, which
+is why this correction is not merely a bookkeeping fix.
+
 ### Accounts and plans
 
 - **OpenAI / ChatGPT** — two **Plus**-plan accounts (paid tier).
-- **Claude** — **Pro** plan (paid tier), where Claude was used.
+- **Claude** — **three accounts**, on the **Pro**, **Max5**, and **Max20** tiers (all paid).
 
 Account identifiers and email addresses are **deliberately held privately by the owner and
 are intentionally not stored in this public-facing record.** That is correct and should
@@ -236,13 +273,14 @@ Every open question, restated rather than dropped. An unanswered question is a f
 | # | Unknown | Why it stays open |
 | --- | --- | --- |
 | 1 | **Original source of every reference image** | Owner: *"not currently recorded."* No prompts, seeds, or logs survive to reconstruct it. Blocks any clean claim that the art is free of third-party input |
-| 2 | **What each provider's terms actually permit** — commercial use, output ownership, whether a right survives cancelling a paid plan, disclosure duties | Tools and paid tiers are now known; the terms are not, and the ones in force at generation time are not recorded. Deliberately not answered here |
-| 3 | **Provenance of 693 of 870 tracked assets** | Predate this record. Wukong, Pigsy, Tripitaka, walk/turnaround, UI, background, all of `assets/archive/` |
-| 4 | **`public/favicon.svg`** | Believed a URL/site icon; unverified. Ships to every visitor |
-| 5 | **Whether AI output is protectable, and who owns it** | Jurisdiction-dependent and unsettled; with no manual art pass anywhere in the pipeline, the human-authorship argument rests entirely on the automated `tools/` steps |
-| 6 | **Visual similarity to existing commercial character designs** | Never checked, for any character |
-| 7 | **Per-asset tool mapping** — which of the four tools produced which files | The tool set is known as a set; the mapping is not, so per-provider terms cannot be applied per asset |
-| 8 | **Licence for the 5 unfilled sound slots** | Not yet sourced |
+| 2 | **Whether the Adobe editing step was mechanical or generative** — and **which Adobe product/tool** it was | If it was purely mechanical (crop, resize, background removal, masking, format conversion) it adds nothing to the rights chain. If it used generative features (Generative Fill, Generative Expand, anything Firefly-backed) then there is a **third generator in the chain**, with its own separate terms and its own unrecorded inputs — which would **compound** unknown #1 rather than sit beside it. Nobody has established which. The product name is unrecorded too, so the terms cannot even be looked up yet |
+| 3 | **What each provider's terms actually permit** — commercial use, output ownership, whether a right survives cancelling a paid plan, disclosure duties | Tools and paid tiers are now known; the terms are not, and the ones in force at generation time are not recorded. If unknown #2 resolves to "generative", Adobe's terms join this list. Deliberately not answered here |
+| 4 | **Provenance of 693 of 870 tracked assets** | Predate this record. Wukong, Pigsy, Tripitaka, walk/turnaround, UI, background, all of `assets/archive/` |
+| 5 | **`public/favicon.svg`** | Believed a URL/site icon; unverified. Ships to every visitor |
+| 6 | **Whether AI output is protectable, and who owns it** | Jurisdiction-dependent and unsettled. The human-involvement facts are now: no drawing or retouching, but a human-directed fitting pass by the owner (sizing/framing/slot-fitting) on top of the automated `tools/` steps. Whether that clears any given jurisdiction's authorship bar is a question, not a claim |
+| 7 | **Visual similarity to existing commercial character designs** | Never checked, for any character |
+| 8 | **Per-asset tool mapping** — which generator produced which files, and which files went through the Adobe pass | Both are known as facts about the pipeline, not as per-file records, so per-provider terms cannot be applied per asset |
+| 9 | **Licence for the 5 unfilled sound slots** | Not yet sourced |
 
 ---
 
@@ -263,12 +301,18 @@ Added by this seat:
 4. **Record provenance for the incoming Sun Wukong set in the same commit as the files** —
    the replacement set is the first chance to get an asset set right from the start rather
    than reconstructing it later.
-5. **Retrieve and archive each provider's applicable terms** (OpenAI, Google, Anthropic,
-   GitHub) rather than relying on recollection — see unknown #2.
-6. **Resolve or replace `public/favicon.svg`.** Replacing it is cheaper than verifying it.
-7. **Keep account identifiers out of this repository permanently**, including out of any
+5. **Establish what the Adobe step actually did, and name the product** — mechanical or
+   generative (unknown #2). This is the cheapest open question here: it is one answer from
+   the person who ran it, and it decides whether the rights chain has two generators or
+   three. Answer it before the provider-terms work below, because it determines whose terms
+   are even on the list.
+6. **Retrieve and archive each provider's applicable terms** (OpenAI, Google, Anthropic,
+   GitHub — plus Adobe if #5 resolves to generative) rather than relying on recollection —
+   see unknown #3.
+7. **Resolve or replace `public/favicon.svg`.** Replacing it is cheaper than verifying it.
+8. **Keep account identifiers out of this repository permanently**, including out of any
    future revision of this file.
-8. Any commit that adds, replaces, or removes a tracked asset updates this file in the same
+9. Any commit that adds, replaces, or removes a tracked asset updates this file in the same
    commit — the same discipline `MEMORY.md` and `TASKS.md` already carry. A new asset with
    no row here is the finding, not an oversight to fix later.
 
@@ -286,18 +330,22 @@ every item below stops being housekeeping.**
    need to advise on exposure given that the project cannot demonstrate what its art was
    derived from, and on what a defensible remediation looks like (re-generation from
    text-only inputs with logging, a similarity review, or accepting the risk in writing).
-2. **Provider terms across four tools and two paid tiers (unknown #2).** Which terms bind,
+2. **The Adobe step (unknown #2).** Answer the mechanical-vs-generative question *before*
+   the lawyer is engaged — it is free to answer internally and it changes what they are
+   being asked. If generative, it adds a third generator with its own terms and its own
+   unrecorded inputs, on top of question 1 rather than beside it.
+3. **Provider terms across the tool mix and the paid tiers (unknown #3).** Which terms bind,
    whether commercial use is permitted under each, and whether anything survives a plan
    lapsing. Retrieve the terms first; do not rely on this file for them.
-3. **Ownership and copyrightability of the output (unknown #5).** With no manual art pass,
-   whether the automated `tools/` processing supplies the human authorship some
-   jurisdictions require. Practical consequence if not: the project may still *use* the art
-   but may be unable to stop others copying it.
-4. **Scope (unknown #3).** Whether 693 undocumented assets can ship commercially on an
+4. **Ownership and copyrightability of the output (unknown #6).** Whether the owner's
+   human-directed fitting pass plus the automated `tools/` processing supplies the human
+   authorship some jurisdictions require. Practical consequence if not: the project may
+   still *use* the art but may be unable to stop others copying it.
+5. **Scope (unknown #4).** Whether 693 undocumented assets can ship commercially on an
    assumption, or whether they need the same review — or replacement — that the Wukong set
    is already getting.
-5. **Disclosure obligations.** Storefront and jurisdictional AI-content labelling rules
+6. **Disclosure obligations.** Storefront and jurisdictional AI-content labelling rules
    vary per platform. GitHub Pages today; a storefront changes the answer.
-6. **Player-facing credits.** Once the above settle, reflect this file's contents in the
+7. **Player-facing credits.** Once the above settle, reflect this file's contents in the
    game's credits screen — at minimum the Kenney CC0 acknowledgement plus any required AI
    disclosure.
