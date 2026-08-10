@@ -11,6 +11,8 @@ const HARDENING = '20260810130000_security_harden_lobby_progression_rpc.sql'
 const WAVE1 = '20260810160000_security_audit_hardening_wave1.sql'
 /** Reconciles cleanup_dead_unplayed_accounts with prod and closes its deletion defect. */
 const DEAD_RECONCILE = '20260810170000_security_reconcile_dead_account_cleanup.sql'
+/** #26/#35 — drops the progression-column parameters from the commit RPC (system-22 lane). */
+const COST_AUTHORITY = '20260810180000_p26_progression_cost_authority.sql'
 
 // Registered-account fixtures for the dead-account reconcile. All five are 40 days old and
 // have NEVER battled — i.e. every one of them is deleted by the body running on production.
@@ -27,7 +29,7 @@ const GUEST_STALE = '22222222-2222-4222-8222-222222222202'
 const GUEST_EXEMPT = '22222222-2222-4222-8222-222222222203'
 const COMMIT_RPC =
   'public.commit_lobby_battle_progression(text,text,text,int,int,int,text,jsonb,text[],' +
-  'text,int,int,int,jsonb,jsonb,jsonb,text,text,text,int,timestamptz)'
+  'text,int,int,int,text,text,text,int,timestamptz)'
 
 interface AscensionRow {
   new_star: number
@@ -62,7 +64,7 @@ async function commitProgression(db: PGlite, commit: ProgressionCommit): Promise
   await db.query(
     `select * from public.commit_lobby_battle_progression(
       $1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::text[],$10,$11,$12,$13,
-      $14::jsonb,$15::jsonb,$16::jsonb,$17,$18,$19,$20,$21::timestamptz
+      $14,$15,$16,$17,$18::timestamptz
     )`,
     [
       commit.transactionId,
@@ -78,9 +80,6 @@ async function commitProgression(db: PGlite, commit: ProgressionCommit): Promise
       commit.heroLevel,
       20,
       commit.heroExpToNext ?? 100,
-      '{}',
-      JSON.stringify({ unlockedNodes: [] }),
-      JSON.stringify({ tier: 0, unlockedEffects: [] }),
       `battle-${commit.transactionId}`,
       'ทดสอบ',
       'win',
@@ -279,6 +278,14 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
     `)
 
     await applyMigration(db, DEAD_RECONCILE)
+    /*
+      Task #26/#35 (system-22 lane). Applied here because it REPLACES
+      commit_lobby_battle_progression: the three progression-column parameters are dropped, so a
+      chain that stopped at WAVE1 would keep asserting a 21-argument function that production no
+      longer has. Its own properties are covered in progressionCostAuthority.integration.test.ts;
+      this file only needs the shape it changes.
+    */
+    await applyMigration(db, COST_AUTHORITY)
 
     await db.exec(`
       update public.owned_characters set shards = 5 where character_id = 'monkey-king';
@@ -340,7 +347,23 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
     })
   })
 
-  it('client save path updates existing Heroes and never upserts/grants a roster row', () => {
+  it('client save path never touches the roster table at all', () => {
+    /*
+      ⚠ STRENGTHENED 2026-08-10 by task #26/#35 (system-22 lane), not weakened.
+
+      This used to assert savePlayer UPDATEs owned_characters and never upserts it — the point
+      being that a client must not be able to create a roster row and skip Gacha/Star authority.
+      That intent is now enforced one level down: migration 20260810180000 does a bare
+      `revoke update on public.owned_characters from authenticated` with NO re-grant, because
+      skill_levels/talent_state/awakening_state were the last client-writable columns and they
+      were the "effect" half of the free-upgrade bug (the cost half could never be written).
+
+      So savePlayer no longer writes this table in any way, and the assertion follows: absence
+      of the write is a stronger guarantee than a well-behaved write. Reintroducing ANY
+      owned_characters write here would earn a 42501 that fails the whole save.
+      Column privileges are asserted directly in
+      src/data/progressionCostAuthority.integration.test.ts.
+    */
     const source = readFileSync(
       join(process.cwd(), 'src/data/accountRepository.supabase.ts'),
       'utf8',
@@ -350,9 +373,7 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
       source.indexOf('export async function earnGold'),
     )
 
-    expect(saveBlock).toContain("from('owned_characters')")
-    expect(saveBlock).toContain('.update({')
-    expect(saveBlock).not.toContain("from('owned_characters').upsert")
+    expect(saveBlock).not.toContain("from('owned_characters')")
   })
 
   it('ascends atomically, preserves unrelated progression, and replays one request once', async () => {
@@ -472,8 +493,13 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
       // ...without over-reaching into what savePlayer still legitimately writes.
       profile_name: true,
       profile_flags: true,
-      // skill_levels stays client-writable on purpose — that is F2 / task #26, not this topic.
-      hero_skill_levels: true,
+      /*
+        Was `true` with the comment "stays client-writable on purpose — that is F2 / task #26,
+        not this topic." Task #26 landed (20260810180000): the client holds NO writable column on
+        owned_characters any more, and the commit RPC no longer takes the three progression
+        columns as parameters either. Flipping this back to true reopens the free upgrade.
+      */
+      hero_skill_levels: false,
       commit_ledger_rls: true,
       authenticated_can_commit: true,
       anon_can_commit: false,
@@ -633,18 +659,18 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
 
   it('wave1: EXECUTE swept on all twelve SECURITY DEFINER RPCs (F2)', async () => {
     const anonChecks = [
-      "public.cleanup_stale_guest_accounts()",
-      "public.cleanup_dead_unplayed_accounts()",
-      "public.cleanup_old_audit_log_entries()",
-      "public.archive_currency_transactions(interval)",
-      "public.earn_gold(text, int, text)",
-      "public.grant_item(text, int, text, text)",
-      "public.redeem_coupon(text)",
-      "public.grant_character(text)",
-      "public.grant_gold_admin(int)",
-      "public.grant_item_admin(text, int)",
-      "public.upsert_pending_lobby_reward(text, text, text, text, int, int, jsonb, timestamptz, int)",
-      "public.clear_pending_lobby_reward(text)",
+      'public.cleanup_stale_guest_accounts()',
+      'public.cleanup_dead_unplayed_accounts()',
+      'public.cleanup_old_audit_log_entries()',
+      'public.archive_currency_transactions(interval)',
+      'public.earn_gold(text, int, text)',
+      'public.grant_item(text, int, text, text)',
+      'public.redeem_coupon(text)',
+      'public.grant_character(text)',
+      'public.grant_gold_admin(int)',
+      'public.grant_item_admin(text, int)',
+      'public.upsert_pending_lobby_reward(text, text, text, text, int, int, jsonb, timestamptz, int)',
+      'public.clear_pending_lobby_reward(text)',
     ]
     for (const sig of anonChecks) {
       const anon = await db.query<{ ok: boolean }>(
@@ -675,7 +701,10 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
 
     // The client-callable eight keep working for signed-in players (spot-check the two the
     // reward pipeline fires every battle).
-    for (const sig of ["public.earn_gold(text, int, text)", "public.grant_item(text, int, text, text)"]) {
+    for (const sig of [
+      'public.earn_gold(text, int, text)',
+      'public.grant_item(text, int, text, text)',
+    ]) {
       const authed = await db.query<{ ok: boolean }>(
         `select has_function_privilege('authenticated', '${sig}', 'EXECUTE') as ok`,
       )
@@ -689,9 +718,7 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
     // record so the two can never drift silently again.
     const source = readFileSync(join(process.cwd(), 'src/game/items.ts'), 'utf8')
     const itemsBlock = source.slice(source.indexOf('export const ITEMS'))
-    const declared = [...itemsBlock.matchAll(/^ {2}'([a-z0-9-]+)':/gm)]
-      .map((m) => m[1])
-      .toSorted()
+    const declared = [...itemsBlock.matchAll(/^ {2}'([a-z0-9-]+)':/gm)].map((m) => m[1]).toSorted()
     expect(declared.length).toBeGreaterThan(0)
 
     const seeded = await db.query<{ item_id: string }>(
@@ -772,9 +799,7 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
        where profile_id = '${TEST_USER}' and transaction_id = 'tx-f6-fill-1'`,
     )
     expect(updated.rows[0]?.outcome).toBe('defeat')
-    await db.exec(
-      `delete from public.pending_lobby_rewards where transaction_id like 'tx-f6-%';`,
-    )
+    await db.exec(`delete from public.pending_lobby_rewards where transaction_id like 'tx-f6-%';`)
   })
 
   it('wave1: the schema can no longer express a gold gacha banner (F8)', async () => {

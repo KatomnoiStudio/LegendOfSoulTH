@@ -113,3 +113,88 @@ network error — verified to fail when the retry is re-injected.
 library already does at that layer.** "Add a retry" looked like pure hardening and was a latency
 and double-write regression. The idempotent-ledger argument I used to justify it was true and
 irrelevant — it covers `earn_gold`/`grant_item`, not the profile writes the wrapper also touched.
+
+## 2026-08-10 — #26/#35: the cost side of an upgrade becomes server-authoritative
+
+Closed the free-upgrade bug the wave-1 lane could only document. Migration
+`20260810180000_p26_progression_cost_authority.sql` + client wiring.
+
+- **The prices did not exist on the server at all.** They live in TypeScript fixtures
+  (`SKILL_PROGRESSION_FIXTURES`, `TALENT_NODE_FIXTURES`, `AWAKENING_TIER_FIXTURE_COSTS`), which
+  Postgres cannot read — so "server computes the cost" first required _bringing the cost across_
+  into `progression_cost_catalog`, the same move `20260810160000` made for `item_catalog`. That
+  is now a **two-place edit**: a price changed in the fixtures without a companion migration row
+  fails `src/data/progressionCostParity.test.ts`, which re-parses the seed out of the migration
+  rather than keeping a third copy of the numbers.
+- **The RPC alone would have fixed NOTHING.** `savePlayer` could still PATCH `skill_levels`
+  directly, so the upgrade stayed free for anyone who skipped it. The load-bearing line is
+  `revoke update on public.owned_characters from authenticated` with no re-grant — the client
+  now holds zero writable columns on that table, and `savePlayer` stopped sending the three it
+  used to. `20260810130000:49-50` had already reserved this exact change for this task.
+- **Idempotency cannot be keyed on the refId, because the CLIENT mints it.** A second uuid is
+  free. The real guard is a **compare-and-swap**: the caller states the level it believes the
+  hero is at, the server reads the true level from `owned_characters`, mismatch = rejection.
+  After a successful upgrade the true level has moved, so the same purchase under a fresh uuid
+  is refused. `progression_spend_ledger` only decides whether a _duplicate_ call is answered
+  with the old result or with an error.
+- **A row-count assertion cannot pin the validate-before-rate-limit ordering.** Measured, not
+  assumed: moving the `check_and_log_rpc_rate_limit` call above the validation block left every
+  behavioural assertion green, because a raise aborts the transaction and takes the log row with
+  it either way — exactly what `20260810160000`'s own F5a note says. The ordering is pinned on
+  `pg_proc.prosrc` instead, with the reason written next to it. **A property whose only
+  observable is statement order has to be asserted on the source, or it is not asserted.**
+- `lifetime_gold_earned` is untouched by a spend: it is lifetime EARNED, and the
+  `20260810100000` backfill derives it from credit rows only. Decrementing it would corrupt the
+  one reconciliation column this system has.
+- Constraint rewrite carried the `(currency='gem' and source='gacha' and amount<0)` branch
+  forward verbatim, per this file's own standing warning, and there is now a test that inserts a
+  gacha debit row to prove it survived.
+
+### QC bounce on the first #26/#35 attempt — the enumeration, not the implementation
+
+All eight security properties passed and three mutations turned red; the gate still bounced it,
+because the fix was applied to an incomplete list of writers.
+
+- **I enumerated the writers of `owned_characters` from the migration HEADERS instead of opening
+  the sibling function's argument list.** `commit_lobby_battle_progression` declares
+  `p_skill_levels/p_talent_state/p_awakening_state` (20260810130000:112-114) and writes all three
+  verbatim at :256-263 with no validation — SECURITY DEFINER, so it runs as the OWNER and
+  `revoke ... from authenticated` never touched it. Measured cost of buying every upgrade through
+  that path: **0 gold**, against a catalogued price of 2,940. The revoke closed one door in a
+  room with two. **When a fix is "take the write away", the deliverable is the list of writers,
+  and the list is built by reading signatures — a header comment is a claim, not an inventory.**
+- **A deleted check is not a moved check.** Making the server authoritative killed
+  `progressionService.unlockTalent`'s prerequisite rule, and the RPC never grew one, so
+  `mk-talent-2` was purchasable with `mk-talent-1` absent. Worse, the new file's own prose
+  asserted the check existed. When authority moves, every rule that lived in the old layer has to be
+  re-listed and re-homed one at a time; "the server enforces the rules" is not a migration plan.
+- **`jsonb_set` with `create_if_missing` still needs every EARLIER path step to exist.**
+  `jsonb_set('{}','{skill2,level}',2,true)` returns `'{}'` — measured. Gold debited, ledger rows
+  written, level unmoved, and the compare-and-swap then re-reads the OLD level so the same
+  purchase is chargeable forever. Use `||` merge on the parent object instead. Every fixture had
+  the slot present, which is why it survived a green suite.
+- **`null not in (...)` is NULL, not true.** An `if` guarding only membership never fires for a
+  null key, so the input slipped past the validate-before-rate-limit block. Name null explicitly.
+- **Chose to DROP the three parameters rather than ignore them.** An ignored parameter is a
+  signature that lies, PostgREST would answer 200 to a client still sending them, and this repo
+  had already made exactly this move twice (savePlayer, #25 and #26). Dropping needs an explicit
+  `drop function` at the old arity first — `create or replace` at a different arity keeps BOTH
+  (20260810160000 F3) and PostgREST refuses to route an overloaded name at all.
+- **Traced, and reported at its measured size:** exactly ONE await (`onRecordPending`) sits
+  between the `Player` snapshot entering `finalizeLobbyBattleRewards` and the commit RPC; the
+  other five are after it. With the parameters live that one round trip could revert a paid
+  upgrade. I had first written "roughly six awaits" — wrong, and the same class of unchecked
+  claim that caused the bounce. Measure the window before describing it.
+
+### Open, recorded not fixed (QC follow-ups 4 and 6)
+
+- **~250 lines of dead client upgrade code.** `progressionService.ts` `spendCost` (:24-46) and
+  `upgradeSkill`/`unlockTalent`/`advanceAwakening` (:113-358) have no non-test importer now that
+  `HeroProgressionPanel` routes through the RPC — `applyHeroExp`, `applyHeroExpToLeadHero` and
+  `normalizePlayerProgression` in the same file ARE still used, so this is a partial deletion, not
+  a file removal. `progressionService.test.ts` still asserts client-side gold deduction: **a green
+  suite pinning the model the server now rejects.** Left in place because the gate scoped this to
+  RECORD; it is one commit's work and should not wait long.
+- **`accountRepository.ts` (localStorage backend) has no `spendProgressionUpgrade`.** The two
+  backends hand-mirror their exports with nothing catching drift — the gap the contract already
+  flags (`AGENT_BLUEPRINT.md:85`). Harmless today: nothing imports the localStorage backend.

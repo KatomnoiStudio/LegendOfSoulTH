@@ -91,6 +91,13 @@ export interface AuthState {
   getPendingLobbyRewards: () => Promise<accounts.PendingLobbyRewardRow[]>
   /** อัญเชิญผ่าน atomic Supabase RPC — Client ไม่มีสิทธิ์ตัด Gem/RNG/เพิ่ม Hero เอง */
   pullGacha: (bannerId: string, pullCount: 1 | 10, requestId: string) => Promise<GachaPullResult>
+  /**
+   * อัปเกรดสกิล/พรสวรรค์/ปลุกพลัง — หักทองและเขียนผลใน transaction เดียวฝั่งเซิร์ฟเวอร์
+   * (task #26/#35) Client ไม่มีสิทธิ์เขียน owned_characters หรือ profiles.gold เองอีกแล้ว
+   */
+  spendProgressionUpgrade: (
+    request: accounts.ProgressionUpgradeRequest,
+  ) => Promise<accounts.ProgressionUpgradeResult>
 }
 
 export function useAuth(): AuthState {
@@ -382,6 +389,16 @@ export function useAuth(): AuthState {
     [player],
   )
 
+  const spendProgressionUpgrade = useCallback(
+    async (request: accounts.ProgressionUpgradeRequest) => {
+      if (!player) return { ok: false, error: 'ยังไม่ได้ล็อกอิน' } as const
+      const result = await accounts.spendProgressionUpgrade(request)
+      if (result.ok) setPlayer(result.player)
+      return result
+    },
+    [player],
+  )
+
   return {
     status,
     player,
@@ -409,5 +426,6 @@ export function useAuth(): AuthState {
     clearPendingLobbyReward,
     getPendingLobbyRewards,
     pullGacha,
+    spendProgressionUpgrade,
   }
 }

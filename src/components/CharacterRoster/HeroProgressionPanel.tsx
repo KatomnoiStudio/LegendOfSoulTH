@@ -3,12 +3,10 @@ import type { Player } from '../../types/player'
 import type { SkillSlotId } from '../../game/progression/progressionSchema'
 import { progressionConfig } from '../../game/progression/progressionConfig'
 import { buildHeroProgressionViewModel } from '../../game/progression/progressionViewModel'
-import {
-  advanceAwakening,
-  unlockTalent,
-  upgradeSkill,
-} from '../../game/progression/progressionService'
+import { planUpgrade, type UpgradeTarget } from '../../game/progression/progressionUpgradeRequest'
+import type { ProgressionUpgradeRequest } from '../../data/accountRepository.supabase'
 import { reportError } from '../../lib/errors/reportError'
+import type { ErrorCode } from '../../lib/errors/codes'
 import { clampRatio, formatNumber } from '../../lib/format'
 import { useToast } from '../Toast/useToast'
 import styles from './HeroProgressionPanel.module.css'
@@ -16,14 +14,17 @@ import styles from './HeroProgressionPanel.module.css'
 interface HeroProgressionPanelProps {
   player: Player
   heroId: string
-  onPlayerChange: (next: Player) => Promise<boolean>
+  /**
+   * ยิง RPC `spend_progression_upgrade` — หักทองและเขียนผลพร้อมกันฝั่งเซิร์ฟเวอร์
+   *
+   * เดิมพร็อพนี้เป็น `onPlayerChange` แล้วไฟล์นี้คำนวณผลอัปเกรดเองในหน่วยความจำ ก่อนส่งไป
+   * savePlayer — ซึ่งเขียน "ผล" ลงได้แต่เขียน "ค่าใช้จ่าย" ไม่ได้ (ทองถูก column-lock) จึงกลาย
+   * เป็นอัปเกรดฟรีไม่จำกัด (task #26/#35) ตอนนี้ทั้งสองฝั่งอยู่ใน transaction เดียวของเซิร์ฟเวอร์
+   */
+  onUpgrade: (request: ProgressionUpgradeRequest) => Promise<{ ok: boolean; error?: string }>
 }
 
-export function HeroProgressionPanel({
-  player,
-  heroId,
-  onPlayerChange,
-}: HeroProgressionPanelProps) {
+export function HeroProgressionPanel({ player, heroId, onUpgrade }: HeroProgressionPanelProps) {
   const { showToast } = useToast()
   const viewModel = useMemo(() => buildHeroProgressionViewModel(player, heroId), [player, heroId])
 
@@ -37,44 +38,55 @@ export function HeroProgressionPanel({
     ผลคือการอัปสกิล/พรสวรรค์/ปลุกพลังที่ถูกปฏิเสธ — ซึ่งกินทรัพยากรของผู้เล่นจริง — มองไม่เห็น
     จากฝั่งเราเลยแม้แต่ครั้งเดียว ทั้งกรณีกติกาปฏิเสธและกรณีบันทึกไม่ลง
   */
-  async function persist(next: Player, message: string) {
-    const ok = await onPlayerChange(next)
-    if (ok) {
-      showToast(message)
+  /**
+   * ประกอบคำขอ → ยิง RPC → แจ้งผล
+   *
+   * ราคาไม่เดินทางไปกับคำขอ เซิร์ฟเวอร์อ่านจากตารางของตัวเอง และเป็นคนตัดสินว่าอัปได้ไหม
+   * ที่นี่ปฏิเสธล่วงหน้าได้เฉพาะกรณีที่ประกอบคำขอไม่ขึ้นจริง ๆ (ไม่มีตารางอัปเกรด, ถึง MAX,
+   * ราคามีวัสดุซึ่งยังไม่รองรับ) — ประหยัดหนึ่ง round trip เท่านั้น ไม่ใช่ชั้นความปลอดภัย
+   */
+  async function runUpgrade(target: UpgradeTarget, code: ErrorCode, successMessage: string) {
+    const plan = planUpgrade(player, heroId, target)
+    if (!plan.ok) {
+      reportError(code, 'silent', plan.error, { heroId })
+      showToast(plan.error)
       return
     }
-    reportError('HERO_PROGRESSION_SAVE_FAIL', 'silent', undefined, { heroId })
-    showToast('บันทึกไม่สำเร็จ')
-  }
 
-  async function handleSkillUpgrade(slot: SkillSlotId) {
-    const { player: next, result } = upgradeSkill(player, heroId, slot)
-    if (!result.success) {
-      reportError('HERO_SKILL_UPGRADE_REJECTED', 'silent', result.error, { heroId, slot })
+    const result = await onUpgrade({
+      requestId: crypto.randomUUID(),
+      characterId: plan.characterId,
+      kind: plan.kind,
+      upgradeKey: plan.upgradeKey,
+      fromLevel: plan.fromLevel,
+    })
+
+    if (!result.ok) {
+      reportError(code, 'silent', result.error, { heroId })
       showToast(result.error ?? 'อัปเกรดไม่สำเร็จ')
       return
     }
-    await persist(next, `${viewModel?.heroName} — ${slot} Lv.${result.newLevel}`)
+    showToast(successMessage)
+  }
+
+  async function handleSkillUpgrade(slot: SkillSlotId) {
+    await runUpgrade(
+      { kind: 'skill', slot },
+      'HERO_SKILL_UPGRADE_REJECTED',
+      `${viewModel?.heroName} — ${slot} อัปเกรดแล้ว`,
+    )
   }
 
   async function handleTalentUnlock(nodeId: string) {
-    const { player: next, result } = unlockTalent(player, heroId, nodeId)
-    if (!result.success) {
-      reportError('HERO_TALENT_UNLOCK_REJECTED', 'silent', result.error, { heroId, nodeId })
-      showToast(result.error ?? 'ปลดล็อกไม่สำเร็จ')
-      return
-    }
-    await persist(next, 'ปลดล็อกพรสวรรค์แล้ว')
+    await runUpgrade(
+      { kind: 'talent', nodeId },
+      'HERO_TALENT_UNLOCK_REJECTED',
+      'ปลดล็อกพรสวรรค์แล้ว',
+    )
   }
 
   async function handleAwakening() {
-    const { player: next, result } = advanceAwakening(player, heroId)
-    if (!result.success) {
-      reportError('HERO_AWAKENING_REJECTED', 'silent', result.error, { heroId })
-      showToast(result.error ?? 'ปลุกพลังไม่สำเร็จ')
-      return
-    }
-    await persist(next, `ปลุกพลัง Tier ${result.newTier}`)
+    await runUpgrade({ kind: 'awakening' }, 'HERO_AWAKENING_REJECTED', 'ปลุกพลังสำเร็จ')
   }
 
   return (
