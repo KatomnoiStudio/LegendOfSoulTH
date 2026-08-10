@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, test, vi } from 'vitest'
-import { reportError, subscribeToVisibleErrors } from './reportError'
+import { GAME_INFO } from '../../game/gameInfo'
+import {
+  reportError,
+  setErrorSink,
+  subscribeToVisibleErrors,
+  type ErrorReport,
+} from './reportError'
 
 /*
   tier 'visible' ต้องไปถึงจอจริง ไม่ใช่แค่ลง console
@@ -11,6 +17,7 @@ import { reportError, subscribeToVisibleErrors } from './reportError'
 
 afterEach(() => {
   vi.restoreAllMocks()
+  setErrorSink(null)
 })
 
 describe('reportError', () => {
@@ -78,6 +85,98 @@ describe('reportError', () => {
 
     offBad()
     offGood()
+  })
+})
+
+/*
+  รูสำหรับต่อปลายทาง (sink)
+
+  โปรเจกต์นี้ยังไม่ส่ง error ออกนอกเบราว์เซอร์ และเทสต์ชุดนี้ไม่ได้พยายามเปลี่ยนคำตัดสินนั้น
+  มันตรึงแค่ว่า "ถ้าวันหนึ่งเจ้าของเลือกปลายทาง ของที่ส่งไปต้องใช้งานได้จริง" — มีเวอร์ชัน
+  มี correlation id และมี error ที่ serialize แล้วไม่กลายเป็น {}
+*/
+describe('sink', () => {
+  test('ค่าเริ่มต้นยังเป็น console เหมือนเดิม ไม่มีการส่งออกไปไหน', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    reportError('BOUNDARY_RENDER_CRASH', 'visible', new Error('พัง'))
+
+    expect(errorSpy).toHaveBeenCalledTimes(1)
+    expect(String(errorSpy.mock.calls[0]?.[0])).toContain('BOUNDARY_RENDER_CRASH')
+  })
+
+  test('sink ที่เสียบเข้ามาได้รายงานที่ serialize ได้จริง พร้อมเวอร์ชันและ correlation id', () => {
+    vi.spyOn(console, 'debug').mockImplementation(() => {})
+    const reports: ErrorReport[] = []
+    setErrorSink((report) => reports.push(report))
+
+    reportError('STORAGE_WRITE_FAIL', 'silent', new Error('โควตาเต็ม'), {
+      passwordHash: '600000:AAAA',
+      heroId: 'monkey-king',
+    })
+
+    expect(reports).toHaveLength(1)
+    const [report] = reports
+    expect(report.version).toBe(GAME_INFO.version)
+    expect(report.correlationId).toBeTruthy()
+    expect(report.error?.message).toBe('โควตาเต็ม')
+    // จุดตายเดิม: error ที่ผ่านไปถึง sink ต้องไม่กลายเป็น {}
+    expect(JSON.stringify(report.error)).not.toBe('{}')
+    // และข้อมูลอ่อนไหวใน context ต้องไม่ติดไปกับรายงาน
+    expect(report.context?.passwordHash).toBe('[redacted]')
+    expect(report.context?.heroId).toBe('monkey-king')
+  })
+
+  /*
+    ตาข่ายชั้นสุดท้ายต้องโยนเองไม่ได้ แม้ค่าที่ป้อนเข้ามาจะพยายามทำให้โยน
+
+    globalErrorHandlers ส่ง `event.error ?? event.message` และ `event.reason` เข้ามาตรง ๆ
+    ซึ่งเป็นค่าที่ไลบรารีอื่นเป็นคนสร้าง ควบคุมไม่ได้เลย ถ้า reportError โยนตรงนี้ รายงานหาย
+    และ GlobalErrorBanner ไม่มีวันขึ้น — ผู้เล่นเห็นเกมค้างโดยไม่มีรหัสอะไรให้แจ้งเลย
+  */
+  test('ค่าที่อ่านแล้วโยน ต้องไม่ทำให้ reportError ล้ม และ visible ยังต้องส่งต่อ', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const seen: string[] = []
+    const off = subscribeToVisibleErrors((code) => seen.push(code))
+
+    const hostile = {
+      get message(): string {
+        throw new Error('getter พัง')
+      },
+    }
+
+    expect(() => reportError('GLOBAL_REJECTION', 'visible', hostile)).not.toThrow()
+    // ใจความจริงของเทสต์: ตัวส่งต่อต้องยังทำงาน ไม่ใช่แค่ "ไม่โยน" แล้วเงียบไป
+    expect(seen).toEqual(['GLOBAL_REJECTION'])
+    off()
+  })
+
+  test('sink ที่พังเองต้องไม่ลาก reportError ล้มไปด้วย', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    setErrorSink(() => {
+      throw new Error('sink พัง')
+    })
+
+    expect(() => reportError('BOUNDARY_RENDER_CRASH', 'visible')).not.toThrow()
+  })
+})
+
+describe('ตัวส่งต่อ tier visible', () => {
+  test('ส่ง error ที่แปลงแล้วไปให้ผู้รับด้วย ไม่ใช่แค่รหัส', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const seen: unknown[] = []
+    const off = subscribeToVisibleErrors((_code, error) => seen.push(error))
+
+    reportError('PLAYER_SAVE_FAIL', 'visible', {
+      message: 'permission denied',
+      code: '42501',
+      hint: 'column allowlist',
+    })
+
+    expect(seen).toEqual([
+      { message: 'permission denied', code: '42501', hint: 'column allowlist' },
+    ])
+    off()
   })
 })
 

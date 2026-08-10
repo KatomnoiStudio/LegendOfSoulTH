@@ -14,6 +14,7 @@ import {
   computeEnemyGroupFocus,
   computeLookTarget,
   smoothToward,
+  type CameraEnemySample,
 } from '../../game/realtimeBattle/combatCameraFraming'
 import { runtimeToWorldXZ } from '../../game/realtimeBattle/battleCoordinates'
 import { WORLD_SCALE } from '../../game/realtimeBattle/stageConfig'
@@ -36,6 +37,15 @@ export function BattleCamera({
   const { camera, size } = useThree()
   const stage = runtime.getState().stage
   const zoomRef = useRef(1)
+  /*
+     Reused sample buffer — this fills once per rendered frame.
+
+     Rebuilding it with `enemies.map()` allocated one sample plus one world
+     vector per enemy every frame, for corpses too: `state.enemies` keeps every
+     enemy the battle has ever spawned, and only the framing math downstream
+     dropped the dead ones. Fill living enemies only, into slots that persist.
+  */
+  const samplesRef = useRef<CameraEnemySample[]>([])
 
   const worldWidth = stage.width * WORLD_SCALE
   const worldDepth = stage.height * WORLD_SCALE
@@ -51,14 +61,27 @@ export function BattleCamera({
     const state = runtime.getState()
     const playerWorld = runtimeToWorldXZ(state.player.position, stage)
 
-    const enemySamples = state.enemies.map((enemy) => ({
-      world: runtimeToWorldXZ(enemy.position, stage),
-      hp: enemy.hp,
-      entityType: enemy.entityType,
-    }))
+    const enemySamples = samplesRef.current
+    let sampleCount = 0
+    let hasBoss = false
+    for (const enemy of state.enemies) {
+      if (enemy.hp <= 0) continue
+
+      const world = runtimeToWorldXZ(enemy.position, stage)
+      const slot = enemySamples[sampleCount]
+      if (slot) {
+        slot.world = world
+        slot.hp = enemy.hp
+        slot.entityType = enemy.entityType
+      } else {
+        enemySamples.push({ world, hp: enemy.hp, entityType: enemy.entityType })
+      }
+      sampleCount += 1
+      if (enemy.entityType === 'boss') hasBoss = true
+    }
+    enemySamples.length = sampleCount
 
     const enemyFocus = computeEnemyGroupFocus(playerWorld, enemySamples, config)
-    const hasBoss = enemySamples.some((enemy) => enemy.hp > 0 && enemy.entityType === 'boss')
 
     const lookRaw = computeLookTarget(playerWorld, enemyFocus, config)
     const combatSpan = enemyFocus

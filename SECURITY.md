@@ -8,7 +8,12 @@ the client never mutates valuable state directly. Read
 and [`supabase/migrations/`](supabase/migrations/) for exactly what's enforced where before filing
 a report. The older client-only `accountRepository.ts`/`password.ts` (localStorage + local PBKDF2)
 is **dormant, kept only for the shared validators it re-exports** — `useAuth.ts` no longer imports
-its own login/register/session logic. Still-real limitations are documented in **Out of Scope** below.
+its own login/register/session logic, and as of 2026-08-10 **no production module imports it at
+all**; the local PBKDF2 path is out of the shipped bundle entirely. Its save-export builds an
+allow-listed object (`uid`, `email`, `createdAt`, `player`, `transactions`) rather than deleting
+fields from a copy, so `passwordHash`/`passwordSalt` cannot leave the machine and a future
+sensitive field cannot leak by default. Still-real limitations are documented in **Out of Scope**
+below.
 
 ## Reporting a Vulnerability
 
@@ -49,6 +54,13 @@ In scope:
   (self-granting currency/characters/admin status, reading another player's row, etc.)
 - World Chat identity/authority bypasses: posting as another profile, forging the server timestamp,
   bypassing the 10-message/minute throttle, or writing directly to `world_chat_messages`
+- friend-list writes reaching **another** player's row. As of 2026-08-10 the client performs
+  INSERT/UPDATE/DELETE against `public.friends`, a table it previously only read, to keep the
+  synced-snapshot read model in step. RLS caps it to `auth.uid() = profile_id`, so the blast
+  radius of the snapshot's unvalidated `friend_uid`/`name`/`level`/`title` values is the
+  reporter's own list and is cosmetic by design (`src/types/player.ts`). In scope: any way to
+  write a row whose `profile_id` is not your own, or to make one player's snapshot alter what
+  another player sees
 - Star Ascension authority bypasses: inserting an owned Hero directly, writing `star`/`shards`,
   reusing an idempotency request for another Hero, or bypassing the 1/2/4/8/12 shard ladder
 - Gacha authority bypasses: controlling a roll from the client, changing a banner/cost after a
@@ -137,6 +149,13 @@ By design, not bugs — don't file these:
   without such a gateway.
 - Vulnerabilities in a dependency that this project doesn't actually reach at runtime
   (see `npm audit` in CI first — if it's already flagged/tracked there, no need to duplicate).
+- **"The error banner shows me an internal error message."** By design as of 2026-08-10 — the
+  banner renders `code — message — hint` and marks it copyable precisely so a player can paste it
+  into a bug report. Errors are reported to a console-only sink; nothing is transmitted off the
+  device. **Do** report it if you find a shipped error path whose message embeds a token, key, or
+  another player's data: the scrub redacts email addresses and known-sensitive object _keys_, not
+  token-shaped text inside a free-form message string, so a library that puts a bearer token in
+  `event.reason.message` would surface it on the one screen that invites copying.
 
 ## Auth Abuse Protection
 

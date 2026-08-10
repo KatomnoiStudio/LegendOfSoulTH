@@ -1,5 +1,5 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
-import { supabase } from '../../lib/supabaseClient'
+import { getSupabase } from '../../lib/supabaseClient'
 import type { PlayerInputState } from '../realtimeBattle/playerInput'
 import { authorityErrorMessage } from './pvpAuthorityError'
 import type { PvPAuthorityState, PvPRoomSummary, RealtimePvPResult } from './pvpTypes'
@@ -43,7 +43,9 @@ function firstRoom(data: unknown, fallbackMessage: string): PvPRoomSummary {
 }
 
 export async function createPrivatePvPRoom(heroId: string): Promise<PvPRoomSummary> {
-  const { data, error } = await supabase.rpc('create_private_pvp_room', { p_hero_id: heroId })
+  const { data, error } = await getSupabase().rpc('create_private_pvp_room', {
+    p_hero_id: heroId,
+  })
   if (error) throw new Error(error.message)
   return firstRoom(data, 'สร้างห้อง PvP ไม่สำเร็จ')
 }
@@ -52,7 +54,7 @@ export async function joinPrivatePvPRoom(
   roomCode: string,
   heroId: string,
 ): Promise<PvPRoomSummary> {
-  const { data, error } = await supabase.rpc('join_private_pvp_room', {
+  const { data, error } = await getSupabase().rpc('join_private_pvp_room', {
     p_room_code: roomCode.trim().toUpperCase(),
     p_hero_id: heroId,
   })
@@ -61,7 +63,7 @@ export async function joinPrivatePvPRoom(
 }
 
 export async function loadPrivatePvPRoom(roomId: string): Promise<PvPRoomSummary> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('pvp_rooms')
     .select('*')
     .eq('id', roomId)
@@ -77,7 +79,7 @@ export async function invokePvPAuthority(
     | { action: 'disconnect' }
     | { action: 'reconnect' },
 ): Promise<AuthorityResponse> {
-  const { data, error } = await supabase.functions.invoke<AuthorityResponse>('pvp-authority', {
+  const { data, error } = await getSupabase().functions.invoke<AuthorityResponse>('pvp-authority', {
     body: { roomId, ...command },
   })
   if (error) throw new Error(await authorityErrorMessage(error))
@@ -90,6 +92,7 @@ export function subscribeToPrivatePvPRoom(
   onState: (response: AuthorityResponse) => void,
   onConnectionChange: (connected: boolean) => void,
 ): () => void {
+  const supabase = getSupabase()
   const channel: RealtimeChannel = supabase.channel(`pvp:${roomId}`, {
     config: { private: true },
   })

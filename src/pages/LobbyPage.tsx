@@ -61,7 +61,7 @@ interface LobbyPageProps {
     payload: LobbyBattleProgressionRpcPayload,
   ) => Promise<{ ok: true; player: Player } | { ok: false; error: string }>
   onRecordPending: (result: RealtimeBattleResult, transactionId: string) => Promise<boolean>
-  onClearPending: (transactionId: string) => Promise<void>
+  onClearPending: (transactionId: string) => Promise<boolean>
   onGetPendingRewards: () => Promise<PendingLobbyRewardRow[]>
   onPullGacha: (bannerId: string, pullCount: 1 | 10, requestId: string) => Promise<GachaPullResult>
   onLogout: () => Promise<void>

@@ -221,6 +221,16 @@ function resolveSheetCalibration(frameUrl: string): SpriteSheetCalibration {
 }
 
 /**
+ * Cache keyed by the exact (kind, frameUrl) pair this is a pure function of.
+ *
+ * Every sprite resolves its presentation once per rendered frame, and the
+ * lookup above is a linear scan doing a substring test per calibration entry.
+ * The set of frame URLs a battle can show is fixed by the shipped sprite
+ * sheets, so the cache is bounded by the art, not by battle length.
+ */
+const presentationCache = new Map<string, SpriteMeshPresentation>()
+
+/**
  * Resolve per-frame mesh scale and center without touching battle coordinates.
  * Family calibration prevents Idle→Walk size jumps while retaining natural
  * pose-to-pose variation; aspect correction prevents 396×376 idle art being
@@ -230,6 +240,10 @@ export function resolveSpriteMeshPresentation(
   kind: CharacterModelKind,
   frameUrl: string,
 ): SpriteMeshPresentation {
+  const cacheKey = `${kind}|${frameUrl}`
+  const cached = presentationCache.get(cacheKey)
+  if (cached) return cached
+
   const sheet = resolveSheetCalibration(frameUrl)
   const scaleY = sheet.canvasHeight / sheet.pixelsPerCanonicalHeight
   const sourceAspect = sheet.canvasWidth / sheet.canvasHeight
@@ -240,7 +254,9 @@ export function resolveSpriteMeshPresentation(
     resolveSpriteGroundOffsetY(kind) -
     visibleBottomLocalY * scaleY * Math.cos(Math.abs(ENTITY_SPRITE_PITCH_RAD))
 
-  return { scaleX, scaleY, centerY }
+  const presentation: SpriteMeshPresentation = { scaleX, scaleY, centerY }
+  presentationCache.set(cacheKey, presentation)
+  return presentation
 }
 
 /**

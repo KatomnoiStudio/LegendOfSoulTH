@@ -428,6 +428,10 @@ export async function login(email: string, password: string): Promise<AuthResult
   const failure: AuthResult = { ok: false, error: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' }
   if (!account) return failure
 
+  // บัญชีที่มาจากไฟล์นำเข้าซึ่งไม่มีรหัสผ่านติดมา (ดู importSave) ต้องล็อกอินไม่ได้เลย
+  // ไม่ใช่ปล่อยให้ไปลุ้นผลของ verifyPassword กับแฮช/salt ที่เป็นสตริงว่าง
+  if (!account.passwordHash || !account.passwordSalt) return failure
+
   const matched = await verifyPassword(password, account.passwordSalt, account.passwordHash)
   if (!matched) return failure
 
@@ -466,10 +470,23 @@ export async function getSessionPlayer(): Promise<Player | null> {
 
 const SAVE_EXPORT_VERSION = 1
 
+/*
+  บัญชีในไฟล์ที่ส่งออก — ไม่มี passwordHash/passwordSalt โดยตั้งใจ
+
+  ไฟล์นี้ถูกออกแบบมาให้ผู้เล่นเก็บไว้เอง ส่งข้ามเครื่อง แนบไปกับการแจ้งปัญหา หรือฝากไว้ในคลาวด์
+  ทุกทางนั้นคือการเอาไฟล์ออกจากมือเจ้าของ ถ้าในไฟล์มีแฮชรหัสผ่านกับ salt ครบ ผู้ที่ได้ไฟล์ไป
+  เอาไปไล่เดารหัสผ่านแบบออฟไลน์ได้ทันทีโดยไม่ต้องแตะเซิร์ฟเวอร์ ไม่มีทางตรวจจับและไม่มีทางล็อก
+  บัญชี — ราคาของการใส่มันลงไปสูงกว่าประโยชน์ที่ได้มาก
+
+  ยังเก็บ email ไว้เพราะมันคือคีย์ของบัญชีในฐานข้อมูลนี้ (ตัดออกแล้วนำเข้ากลับไม่ได้เลย) และมัน
+  เป็นอีเมลของเจ้าของไฟล์เอง ไม่ใช่ของคนอื่น
+*/
+type ExportedAccount = Omit<StoredAccount, 'passwordHash' | 'passwordSalt'>
+
 interface SaveExport {
   exportVersion: typeof SAVE_EXPORT_VERSION
   exportedAt: string
-  account: StoredAccount
+  account: ExportedAccount
 }
 
 /**
@@ -485,10 +502,13 @@ export async function exportSave(): Promise<
   const account = loadDb().accounts[session.email]
   if (!account) return { ok: false, error: 'ไม่พบบัญชี' }
 
+  // เลือกฟิลด์ที่ส่งออกทีละตัว ไม่ใช่ลบฟิลด์ที่ไม่เอาออกจากสำเนา — ฟิลด์อ่อนไหวที่ถูกเพิ่มเข้า
+  // StoredAccount วันหลังจะไม่หลุดออกไปเองโดยไม่มีใครสังเกต
+  const { uid, email, createdAt, player, transactions } = account
   const payload: SaveExport = {
     exportVersion: SAVE_EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
-    account,
+    account: { uid, email, createdAt, player, transactions },
   }
   return { ok: true, json: JSON.stringify(payload, null, 2) }
 }
@@ -508,7 +528,8 @@ export async function importSave(json: string): Promise<AuthResult> {
     parsed?.exportVersion !== SAVE_EXPORT_VERSION ||
     !account?.uid ||
     !account?.email ||
-    !account?.passwordHash ||
+    // เดิมบังคับว่าต้องมี passwordHash ในไฟล์ — บังคับไม่ได้อีกแล้วเพราะไฟล์ที่ส่งออกจากรุ่นนี้
+    // จงใจไม่มีมัน (ดู ExportedAccount) ความครบถ้วนของไฟล์ยังถูกตรวจด้วย uid/email/player
     // ต้องเช็ค player ด้วย ไม่ใช่แค่ฟิลด์บัญชี: ด้านล่างเขียน account ลง localStorage และตั้ง
     // session ให้เรียบร้อยก่อน แล้วค่อยเรียก normalizePlayer() ซึ่งจะ throw ถ้า player หายไป
     // ผลคือไฟล์ที่ไม่มี player ทำให้เกมเปิดไม่ได้ถาวร (getSessionPlayer เจอ throw เดิมทุกครั้ง
@@ -520,7 +541,23 @@ export async function importSave(json: string): Promise<AuthResult> {
 
   const db = loadDb()
   const key = normalizeEmail(account.email)
-  db.accounts[key] = account
+
+  /*
+    รหัสผ่านมาจากบัญชีที่มีอยู่ในเครื่องก่อนเสมอ ไม่ใช่จากไฟล์
+
+    ไฟล์นำเข้าคือข้อมูลที่ใครก็แก้ได้ ถ้าปล่อยให้มันเขียนทับ passwordHash ของบัญชีที่มีอยู่
+    คนที่หยิบเครื่องไปชั่วครู่ก็นำเข้าไฟล์ที่ใส่แฮชของรหัสผ่านตัวเองเข้าไป แล้วยึดบัญชีได้ทันที
+    ลำดับนี้ปิดทางนั้น: บัญชีเดิมมีรหัสอยู่แล้ว → ใช้ของเดิม, ไม่มี → รับของจากไฟล์เก่าที่ยังมี
+    (ไฟล์รุ่นก่อนหน้ายังพกแฮชมาด้วย ต้องกู้คืนข้ามเครื่องได้อยู่), ไม่มีทั้งคู่ → เว้นว่างไว้
+    ซึ่ง login() ปฏิเสธเสมอ
+  */
+  const existing = db.accounts[key]
+  const fromFile = account as Partial<Pick<StoredAccount, 'passwordHash' | 'passwordSalt'>>
+  db.accounts[key] = {
+    ...account,
+    passwordHash: existing?.passwordHash ?? fromFile.passwordHash ?? '',
+    passwordSalt: existing?.passwordSalt ?? fromFile.passwordSalt ?? '',
+  }
   if (!saveDb(db)) {
     return { ok: false, error: 'บันทึกข้อมูลไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม' }
   }

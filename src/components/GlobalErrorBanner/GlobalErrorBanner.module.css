@@ -23,12 +23,17 @@
 }
 
 @keyframes slide-in {
-  from { opacity: 0; transform: translateY(-14px); }
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
 }
 
 /* เคารพการตั้งค่าลดการเคลื่อนไหว ทั้งของ OS และของในเกมเอง (ดู src/lib/a11ySettings.ts) */
 @media (prefers-reduced-motion: reduce) {
-  .banner { animation: none; }
+  .banner {
+    animation: none;
+  }
 }
 
 :global(html[data-reduce-motion='true']) .banner {
@@ -55,6 +60,21 @@
   font-family: ui-monospace, monospace;
   font-size: 0.72rem;
   color: var(--c-text-dim);
+  user-select: all;
+  overflow-wrap: anywhere;
+}
+
+/*
+  บรรทัดสาเหตุจาก error จริง — รองจากรหัส ไม่ใช่แทนที่
+
+  รหัสยังเป็นตัวหลักที่ผู้เล่นต้องแปะในรายงานปัญหา บรรทัดนี้เป็นของแถมที่ทำให้แยกสาเหตุ
+  ได้โดยไม่ต้องถามกลับ จึงจงใจตัวเล็กกว่าและจำกัดความสูงไม่ให้ดันแถบจนบังหน้าจอ
+*/
+.detail {
+  font-family: ui-monospace, monospace;
+  font-size: 0.68rem;
+  color: var(--c-text-dim);
+  opacity: 0.85;
   user-select: all;
   overflow-wrap: anywhere;
 }

@@ -1,4 +1,4 @@
-import type { CurrencyResult, GoldSource, ItemResult } from '../../data/accountRepository'
+import type { CurrencyResult, GoldSource, ItemResult } from '../../data/accountRepository.shared'
 import type { Player } from '../../types/player'
 import { applyAccountExp } from '../realtimeBattle/RewardSystem'
 import { applyHeroExpToLeadHero } from '../progression/progressionService'

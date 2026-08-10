@@ -10,6 +10,7 @@ import {
   lobbyBattleItemRefId,
   lobbyBattleProgressionFlagKey,
   lobbyBattleTransactionId,
+  pendingLobbyRewardToResult,
 } from './lobbyBattleRewardPipeline'
 import { rewardTransactionFlagKey } from './resultFinalizer'
 
@@ -75,7 +76,7 @@ function baseDeps(overrides: Partial<Parameters<typeof finalizeLobbyBattleReward
     onGrantItem: vi.fn(async () => ({ ok: true as const, player: makePlayer() })),
     onCommitProgression: mockCommit(),
     onRecordPending: vi.fn(async () => true),
-    onClearPending: vi.fn(),
+    onClearPending: vi.fn(async () => true),
     ...overrides,
   }
 }
@@ -293,5 +294,106 @@ describe('finalizeLobbyBattleRewards', () => {
 
     expect(out.ok).toBe(true)
     expect(order.indexOf('prog')).toBeLessThan(order.indexOf('gold'))
+  })
+})
+
+/*
+  2026-08-10 audit F8 — the permanently uncleanable pending row.
+
+  `clearPendingLobbyReward` used to throw its RPC error away (a bare `await`, returning void), so
+  a failed clear left the durable row behind. On the next lobby entry the flags were all set, the
+  pipeline took the `alreadyComplete` early return at the TOP of the function — above the clear at
+  the bottom — and the row survived untouched again. Result: the recovery pipeline re-ran on every
+  single lobby entry forever, with no path that could ever remove the row.
+*/
+describe('F8: pending row is cleared on the alreadyComplete path', () => {
+  const result = victoryResult()
+  const txId = lobbyBattleTransactionId(result)
+
+  it('clears the durable row when every step was already committed', async () => {
+    const player = makePlayer()
+    player.progress.flags[rewardTransactionFlagKey(txId)] = true
+    const onClearPending = vi.fn(async () => true)
+
+    const out = await finalizeLobbyBattleRewards(result, player, { ...baseDeps({ onClearPending }) })
+
+    expect(out.alreadyComplete).toBe(true)
+    // Old code returned here without ever reaching a clear — the row could never be removed.
+    expect(onClearPending).toHaveBeenCalledWith(txId)
+  })
+
+  it('still grants nothing while clearing — the clear is cleanup, not a re-run', async () => {
+    const player = makePlayer()
+    player.progress.flags[rewardTransactionFlagKey(txId)] = true
+    const onEarnGold = vi.fn()
+    const onCommitProgression = vi.fn()
+
+    await finalizeLobbyBattleRewards(result, player, {
+      ...baseDeps({ onEarnGold, onCommitProgression }),
+    })
+
+    expect(onEarnGold).not.toHaveBeenCalled()
+    expect(onCommitProgression).not.toHaveBeenCalled()
+  })
+})
+
+/*
+  2026-08-10 audit F7 (partial) — the resume path no longer re-derives the transaction id.
+
+  Every ledger row for a battle is keyed on the id the pending row was stored under. Rebuilding
+  that id from `stageId + finishedAt` on resume works only for as long as the derivation never
+  changes; carrying the stored id makes the resume immune to that entirely. The residual (a
+  client clock jump can still collide two DIFFERENT battles onto one derived id) needs the id
+  minted at battle end in `src/game/realtimeBattle/` and is NOT closed here.
+*/
+describe('F7: transaction id carried through the reload-resume path', () => {
+  it('pendingLobbyRewardToResult carries the stored id', () => {
+    const restored = pendingLobbyRewardToResult({
+      transactionId: 'lobby:trial-01:server-minted-id',
+      stageId: 'trial-01',
+      stageName: 'ทดสอบ',
+      outcome: 'victory',
+      earnedExp: 65,
+      earnedGold: 81,
+      droppedItems: [],
+      finishedAt: '2026-08-08T08:00:00.000Z',
+      durationMs: 12_000,
+    })
+
+    expect(restored.transactionId).toBe('lobby:trial-01:server-minted-id')
+    // ...and that id, not a re-derivation, is what the pipeline keys everything on.
+    expect(lobbyBattleTransactionId(restored)).toBe('lobby:trial-01:server-minted-id')
+  })
+
+  it('a fresh battle result with no carried id still derives the same id as before', () => {
+    expect(lobbyBattleTransactionId(victoryResult())).toBe(
+      'lobby:trial-01:2026-08-08T08:00:00.000Z',
+    )
+  })
+
+  it('resumes against flags written under the stored id — not a recomputed one', async () => {
+    const storedId = 'lobby:trial-01:2026-08-08T08:00:00.000Z'
+    const player = makePlayer()
+    player.progress.flags[rewardTransactionFlagKey(storedId)] = true
+
+    // A row whose stored id disagrees with what stageId+finishedAt would derive today.
+    const restored = pendingLobbyRewardToResult({
+      transactionId: storedId,
+      stageId: 'trial-01',
+      stageName: 'ทดสอบ',
+      outcome: 'victory',
+      earnedExp: 65,
+      earnedGold: 81,
+      droppedItems: [],
+      finishedAt: '2026-08-09T09:99:99.999Z',
+      durationMs: 12_000,
+    })
+
+    const onEarnGold = vi.fn()
+    const out = await finalizeLobbyBattleRewards(restored, player, { ...baseDeps({ onEarnGold }) })
+
+    // Re-deriving would miss the flag and hand out the whole reward a second time.
+    expect(out.alreadyComplete).toBe(true)
+    expect(onEarnGold).not.toHaveBeenCalled()
   })
 })

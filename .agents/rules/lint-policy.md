@@ -66,6 +66,28 @@ anywhere — see `.agents/rules/ecc/web/observability.md` for the standing decis
 external telemetry. Scoped to the one file so a stray `console.log` anywhere else in the
 app still gets caught.
 
+### `no-console` — off for `supabase/functions/**` only
+
+Added 2026-08-10 with the Edge Function's structured logging (audit wave 1, finding F6).
+
+`supabase/functions/pvp-authority/index.ts` runs on Deno inside Supabase's Edge Runtime,
+not in the browser. It cannot import `src/lib/errors/reportError` — that module's whole
+job is to route a _client_ failure to a _client_ surface (the console the player's
+devtools shows, the visible-error relay that renders a banner). On the server there is no
+player and no banner; the one channel that exists is the function's own log stream, and
+`console.error` is exactly how Supabase's log explorer ingests it.
+
+Before this override the file had zero log statements in 238 lines — every failure path
+(a commit rejected by a constraint/RLS/deadlock, a malformed key JSON booting into a 500)
+returned a short error code to the client and vanished. `no-console` was, in this one
+directory, a rule enforcing silence on the only place that could speak.
+
+Scoped to `supabase/functions/**`, not widened to a Deno file glob: everything under
+`src/` still routes through the error registry, and a stray `console.log` there still
+fails the build. Logs there are structured single-line JSON via the file's own
+`logFailure()` helper and never carry a key, token, or player secret — only ids and the
+error's own `code`/`details`/`hint`.
+
 ### `unicorn/require-post-message-target-origin` — off for `src/components/WorldChat/chatStorage.ts` only
 
 Fired on `channel.postMessage('new-message')`. `BroadcastChannel.postMessage()` takes

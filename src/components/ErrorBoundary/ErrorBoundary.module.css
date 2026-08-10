@@ -48,26 +48,7 @@
   justify-content: center;
 }
 
-/* ปุ่มรอง — สำรองข้อมูลเป็นทางเลือกก่อนโหลดใหม่ ไม่ใช่การกระทำหลัก จึงไม่เด่นเท่า .reload */
-.backup {
-  padding: var(--sp-2) var(--sp-4);
-  border: 1px solid var(--c-border-arcane);
-  border-radius: 0.5rem;
-  background: transparent;
-  color: var(--c-text-dim);
-  cursor: pointer;
-}
-
-.backup:hover {
-  background: var(--c-arcane-deep);
-  color: var(--c-text);
-}
-
-.backupMessage {
-  margin: var(--sp-3) 0 0 0;
-  color: var(--c-text-dim);
-  font-size: 0.875rem;
-}
+/* .backup/.backupMessage ถูกลบพร้อมปุ่มสำรองข้อมูล 2026-08-10 — ดูเหตุผลใน ErrorBoundary.tsx */
 
 /* จอ crash ระดับฉาก (LobbyScene/BattleScene) — เติมเต็มแค่กล่องของฉากที่พัง
    ไม่ใช่ position:fixed เต็มจอแบบ .screen เพื่อให้ TopBar/nav รอบข้างยังใช้งานได้ */

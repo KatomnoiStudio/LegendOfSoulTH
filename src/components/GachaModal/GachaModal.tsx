@@ -3,6 +3,7 @@ import type { GachaPullResult } from '../../data/accountRepository.shared'
 import { getCharacter, RARITY_LABEL } from '../../game/characters'
 import { STANDARD_BANNER } from '../../game/gacha/gachaConfig'
 import { useModalA11y } from '../../hooks/useModalA11y'
+import { reportError } from '../../lib/errors/reportError'
 import type { Player } from '../../types/player'
 import styles from './GachaModal.module.css'
 
@@ -41,13 +42,17 @@ export function GachaModal({ player, onPull, onClose }: GachaModalProps) {
     try {
       const result = await onPull(STANDARD_BANNER.id, count, request.id)
       if (!result.ok) {
+        // เซิร์ฟเวอร์ปฏิเสธ (ทรัพยากรไม่พอ, แบนเนอร์ปิด, requestId ซ้ำ) — ผู้เล่นเห็นข้อความแล้ว
+        // แต่ถ้าไม่รายงานด้วย ฝั่งเราจะไม่รู้เลยว่ามีคนกดอัญเชิญแล้วโดนปฏิเสธรัว ๆ อยู่หรือเปล่า
+        reportError('GACHA_PULL_REJECTED', 'silent', result.error, { pullCount: count })
         setError(result.error)
         return
       }
 
       pendingRequest.current = null
       setLastResult(result)
-    } catch {
+    } catch (cause) {
+      reportError('GACHA_PULL_FAIL', 'silent', cause, { pullCount: count })
       setError('เชื่อมต่อระบบอัญเชิญไม่สำเร็จ กรุณาลองอีกครั้ง')
     } finally {
       setBusy(false)

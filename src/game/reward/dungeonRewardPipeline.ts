@@ -1,4 +1,4 @@
-import type { CurrencyResult, GoldSource, ItemResult } from '../../data/accountRepository'
+import type { CurrencyResult, GoldSource, ItemResult } from '../../data/accountRepository.shared'
 import type { DungeonDefinition } from '../dungeon/dungeonSchema'
 import type { DungeonResult } from '../dungeon/dungeonSchema'
 import type { Player } from '../../types/player'

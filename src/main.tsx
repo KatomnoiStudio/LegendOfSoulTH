@@ -29,7 +29,17 @@ const root = createRoot(rootElement)
   ของมัน) กลายเป็น promise reject แทนที่จะพังสคริปต์ตรง ๆ — จับได้ด้วย .catch() ปกติ
 */
 import('./App.tsx')
-  .then(({ default: App }) => {
+  .then(async ({ default: App }) => {
+    /*
+      ชั้นกันพลาดของ cache อีเมล/guest — เดิมเป็น side effect ที่ module scope ของ
+      accountRepository.supabase.ts จึงทำงานทันทีที่ "ใครก็ตาม" import ไฟล์นั้น (รวมถึงเทสต์)
+      และยกเลิกไม่ได้ ย้ายมาเรียกที่นี่จุดเดียว — อยู่ใน .then() โดยตั้งใจ เพื่อให้ error
+      (เช่น env ของ Supabase หาย) กลายเป็น promise reject ที่ .catch ด้านล่างจับได้
+      เหมือนกรณีโหลด App ไม่สำเร็จ ไม่ใช่สคริปต์พังเงียบ ๆ ก่อน React ขึ้นจอ
+    */
+    const { initAuthCache } = await import('./data/accountRepository.supabase.ts')
+    initAuthCache()
+
     root.render(
       <StrictMode>
         <ErrorBoundary>
