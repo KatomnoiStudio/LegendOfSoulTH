@@ -1,0 +1,9 @@
+title = "Legend of Soul TH secret-scanning policy"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Supabase publishable browser key already shipped by upstream; low privilege and intentionally public"
+targetRules = ["generic-api-key"]
+regexes = ['''^sb_publishable_7HSMOB88bsrjsM9htRLFmQ_q5MQdaXh$''']

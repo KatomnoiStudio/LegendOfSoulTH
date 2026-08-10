@@ -301,3 +301,4 @@ All entries 2026-08-05/06 unless noted. Roughly chronological.
 - **198.** Release-pipeline ledger corrected: Edge tests are inside `npm run ci` and the deploy gate — `MEMORY/archive/176-200.md`
 - **199.** Fork Pages bootstrap repaired with a public Supabase client fallback — `MEMORY/archive/176-200.md`
 - **200.** Secret scan taught the public Supabase publishable-key boundary — `MEMORY/archive/176-200.md`
+- **201.** Historical Gitleaks scan uses an exact-key allowlist, not an inline-only marker — `MEMORY/archive/201-225.md`
