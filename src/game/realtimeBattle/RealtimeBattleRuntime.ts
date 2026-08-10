@@ -808,9 +808,6 @@ export class RealtimeBattleRuntime {
       stageName: state.stage.name,
       status: state.status,
       elapsedMs: state.elapsedMs,
-      stageElapsedMs: state.stageElapsedMs,
-      objectiveHp: state.objectiveHp,
-      hazardHp: state.hazardHp,
       player: {
         ...state.player,
         position: { ...state.player.position },

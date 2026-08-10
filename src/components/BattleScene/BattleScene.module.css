@@ -264,22 +264,22 @@
 .stageObjectiveHud {
   position: absolute;
   left: max(var(--sp-2), env(safe-area-inset-left, 0px));
-  top: clamp(70px, 16vh, 104px);
+  top: clamp(76px, 18vh, 120px);
   z-index: 4;
-  width: clamp(7.5rem, 14vw, 9rem);
-  max-width: 16%;
-  padding: calc(var(--sp-2) * 0.55) calc(var(--sp-2) * 0.65);
-  border-radius: calc(var(--r-md) * 0.7);
+  width: clamp(9rem, 18vw, 11rem);
+  max-width: 20%;
+  padding: calc(var(--sp-2) * 0.72) calc(var(--sp-2) * 0.85);
+  border-radius: calc(var(--r-md) * 0.82);
   background: rgb(6 7 13 / 78%);
   border: 1px solid var(--c-border);
   color: var(--c-text);
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   pointer-events: none;
 }
 
 .stageObjectiveTitle {
   font-weight: 700;
-  font-size: 0.7rem;
+  font-size: 0.82rem;
   color: var(--c-gold);
   margin-bottom: calc(var(--sp-1) * 0.75);
   line-height: 1.2;
@@ -288,8 +288,8 @@
 .stageObjectiveGrid {
   display: grid;
   grid-template-columns: auto 1fr;
-  column-gap: var(--sp-1);
-  row-gap: calc(var(--sp-1) * 0.4);
+  column-gap: var(--sp-2);
+  row-gap: calc(var(--sp-1) * 0.55);
   align-items: baseline;
 }
 

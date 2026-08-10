@@ -1,7 +1,5 @@
 import { deriveHpRatio, selectPrimaryEnemyHpTarget } from '../../game/realtimeBattle/battleVitals'
-import { getRealtimeStage } from '../../game/realtimeBattle/stageConfig'
 import type { RealtimeBattleSnapshot } from '../../game/realtimeBattle/types'
-import { formatDurationMs } from '../../lib/format'
 import styles from './BattleScene.module.css'
 
 /**
@@ -21,27 +19,6 @@ export function BattleHud({
   ).length
   const primaryEnemy = selectPrimaryEnemyHpTarget(snapshot.enemies)
   const enemyHpRatio = primaryEnemy ? deriveHpRatio(primaryEnemy.hp, primaryEnemy.maxHp) : 0
-  const stage = getRealtimeStage(snapshot.stageId)
-  const survivalDurationMs = stage?.survival?.durationMs ?? 0
-  const isSurvival = stage?.stageType === 'survival' && survivalDurationMs > 0
-  const survivalRemainingMs = Math.max(0, survivalDurationMs - snapshot.stageElapsedMs)
-  const objectiveText = (() => {
-    if (stage?.stageType === 'defend' && snapshot.objectiveHp !== null) {
-      return `ปกป้องศาลเจ้า ${Math.ceil(Math.max(0, snapshot.objectiveHp))}`
-    }
-    if (stage?.stageType === 'hazard' && snapshot.hazardHp !== null) {
-      return `อันตราย ${Math.ceil(Math.max(0, snapshot.hazardHp))}`
-    }
-    if (stage?.stageType === 'chase' && stage.chase) {
-      const remaining = Math.max(0, stage.chase.timeBudgetMs - snapshot.stageElapsedMs)
-      return `ไล่ล่า เหลือเวลา ${formatDurationMs(remaining)}`
-    }
-    if (stage?.stageType === 'time-attack' && stage.timeAttack) {
-      const remaining = Math.max(0, stage.timeAttack.timeBudgetMs - snapshot.stageElapsedMs)
-      return `จับเวลา เหลือ ${formatDurationMs(remaining)}`
-    }
-    return null
-  })()
   const objectiveLabel =
     snapshot.objective.kind === 'wave'
       ? `Wave ${snapshot.currentWave}/${snapshot.totalWaves}`
@@ -79,19 +56,9 @@ export function BattleHud({
 
         <div className={styles.stageInfo}>
           <span className={styles.stageName}>{snapshot.stageName}</span>
-          {isSurvival ? (
-            <span className={styles.waveText}>
-              เอาชีวิตรอด {formatDurationMs(survivalRemainingMs)} · ศัตรู {enemiesLeft}
-            </span>
-          ) : objectiveText ? (
-            <span className={styles.waveText}>
-              {objectiveText} · ศัตรู {enemiesLeft}
-            </span>
-          ) : (
-            <span className={styles.waveText}>
-              {objectiveLabel} · ศัตรู {enemiesLeft}
-            </span>
-          )}
+          <span className={styles.waveText}>
+            {objectiveLabel} · ศัตรู {enemiesLeft}
+          </span>
         </div>
 
         <div className={styles.enemyVitals}>

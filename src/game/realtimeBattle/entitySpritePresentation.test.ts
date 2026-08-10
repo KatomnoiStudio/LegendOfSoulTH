@@ -71,6 +71,7 @@ describe('entitySpritePresentation', () => {
     expect(idle.scaleX / idle.scaleY).toBeCloseTo(640 / 512 / ENTITY_SPRITE_ASPECT, 8)
     expect(cast.scaleX / cast.scaleY).toBeCloseTo(800 / 640 / ENTITY_SPRITE_ASPECT, 8)
   })
+
   it.each([
     ['monkey-king', '/characters/monkey-v2-idle-0.webp', 11, 376],
     ['pig-warrior', '/characters/pigsy-idle-0.webp', 15, 376],
