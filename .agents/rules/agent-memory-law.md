@@ -3,7 +3,8 @@
 > **Target Workspace**: `LegendOfSoulTH` (LegendofSoulTH)  
 > **Operator / Human User Identity**: `HetCreep`  
 > **Scope**: Binding for ALL AI agents, subagents, and automated assistants operating on this codebase.  
-> **Last material change**: 2026-08-07 — §4 added (always push `MEMORY.md` with every submit). `RULES_VERSION` bump in `AGENTS.md`.
+> **Last material change**: 2026-08-10 — §1/§2 describe the file's new index-plus-archive shape (`MEMORY.md` = index, bodies verbatim under `MEMORY/archive/`). Shape only: every obligation in this file is unchanged and still absolute.  
+> **Prior material change**: 2026-08-07 — §4 added (always push `MEMORY.md` with every submit). `RULES_VERSION` bump in `AGENTS.md`.
 
 ---
 
@@ -12,10 +13,29 @@
 ### 1. Mandatory Memory Inspection (`MEMORY.md`)
 
 - Before executing any task, exploring code, or making design decisions, **EVERY AGENT MUST READ** `MEMORY.md` at the project root to load the latest project history, decisions, and system state.
+- **Shape of the file (2026-08-10)**: `MEMORY.md` is an **index** — its header block, then one line per numbered item, `` - **NNN.** <title> — `MEMORY/archive/NNN-MMM.md` ``. The item **bodies** live verbatim under `MEMORY/archive/`, split into blocks of 25 items (`MEMORY/archive/README.md`). This changed the artifact, not the duty: the mandate above stands exactly as written — read `MEMORY.md` first, every session, all of it.
+- The index is the entry point, not the whole record. **When an index line bears on your task, open the `MEMORY/archive/` file it names and read that item in full.** Opening an archive file is expected, not optional; skipping a relevant one is the same failure as skipping `MEMORY.md` was before the split.
+
+#### 1a. WHICH memory file is yours (owner ruling, 2026-08-10)
+
+Two different things now live under `MEMORY/`. They are split by **audience**, not by who happens to write them:
+
+| file                                                  | scope                             | binds                                                                                             |
+| ----------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **root `MEMORY.md`** (+ its `MEMORY/archive/` bodies) | **every machine, every dev**      | everyone — reading it is rule 1, above, and is absolute                                           |
+| **`MEMORY/<system>.md`**                              | **this machine, the belt system** | the belt's own seats (the caretaker/aide roster in `docs/AGENT_REGISTRY.md`) — mandatory for them |
+
+What that means in practice:
+
+- **A belt seat discharges its memory duty in its own `MEMORY/<system>.md`.** That is complete — a seat does not also have to append to root `MEMORY.md`, and should not: one seat owns one file, so parallel dispatches cannot collide in the shared record.
+- **The belt end (main) composes the root index entry** on the seats' behalf at merge, and keeps root `MEMORY.md` as its own memory file. Root has to work for a dev who has no belt at all, which is exactly why it cannot be a belt artifact.
+- **Rule 1 is untouched by this.** Every agent still reads root `MEMORY.md` first, every session. This says where you WRITE, never whether you READ.
+- This resolved a real contradiction: dispatches were telling seats "do not touch root `MEMORY.md`" while §2 below (and `AGENTS.md` rules 2/3a) told every seat to maintain it. A seat that obeyed the law looked like it broke a rule, and with several lanes running at once every lane appending to one file guaranteed conflicts in the record whose whole job is to be reliable. Note that `SECURITY.md` (rule 19) and `TASKS.md` (rule 20) are NOT covered by this split — those still ride along in the same commit as the change that triggers them.
 
 ### 2. Continuous Memory Updates & Synthesis
 
 - Agents must continuously update and crystallize work state into `MEMORY.md` at the project root (`MEMORY.md`).
+- **Where the writing goes**: a new item's **body** is appended to the newest `MEMORY/archive/NNN-MMM.md` block (a new block starts every 25 items) and its **index line** goes into `MEMORY.md`, in the same commit. Existing bodies are never rewritten to "tidy" them — `tools/verify-memory-archive.mjs` asserts they stay byte-identical to the pre-split file, and `MEMORY/archive/` sits in `.prettierignore` so no formatter can silently reflow them. Header/status edits at the top of `MEMORY.md` are unaffected and still go there directly.
 - **CRITICAL**: Use relative file paths (`MEMORY.md`, `.agents/rules/...`) only. Do NOT hardcode machine-specific local absolute file paths so the repository remains portable for all contributors.
 - Updates must summarize:
   - **Past Context & History**: High-level timeline of major milestones achieved.
@@ -55,7 +75,7 @@
 
 ## 🔄 Protocol Checklist for Agents
 
-1. **On Session Start**: Read `MEMORY.md` to establish context.
+1. **On Session Start**: Read `MEMORY.md` to establish context, then open the `MEMORY/archive/` file behind every index line that bears on your task.
 2. **During Task Execution**: Keep track of architecture changes, configs, and setup steps.
-3. **On Task Completion**: Synthesize learnings and update `MEMORY.md` with timestamp and identity stamps before declaring completion.
-4. **On Submit (commit / push / PR)**: Confirm `MEMORY.md` is included in the same delivery — not left unstaged, uncommitted, or only on a local/fork branch that never reaches the target remote.
+3. **On Task Completion**: Synthesize learnings and update `MEMORY.md` with timestamp and identity stamps before declaring completion — the new item's body into the newest `MEMORY/archive/` block, its index line into `MEMORY.md`.
+4. **On Submit (commit / push / PR)**: Confirm `MEMORY.md` **and the `MEMORY/archive/` file you appended to** are included in the same delivery — not left unstaged, uncommitted, or only on a local/fork branch that never reaches the target remote.
