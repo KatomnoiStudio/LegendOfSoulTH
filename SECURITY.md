@@ -19,7 +19,7 @@ currency, or data) while testing.
 
 Use GitHub private vulnerability reporting — it goes straight to the maintainer, not a public issue:
 
-- https://github.com/KatomnoiStudio/LegendOfSoulTH/security/advisories/new
+- [Report a vulnerability](https://github.com/KatomnoiStudio/LegendOfSoulTH/security/advisories/new)
 
 **Do not** open a public GitHub issue for a security report.
 
