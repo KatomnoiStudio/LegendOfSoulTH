@@ -1,6 +1,3 @@
-import { STANDARD_BANNER } from './gacha/gachaConfig'
-import { isHeroProductionReady } from './heroes/heroProductionBatch'
-
 /**
  * Ship gates for features whose code is merged but whose backend is not deployed yet.
  *
@@ -30,17 +27,13 @@ export const PVP_BACKEND_DEPLOYED = false
 export const ENERGY_GATING_ENABLED = false
 
 /**
- * Explicit Ring-0 approval is one half of the Gacha ship gate. Keep this false until the complete
- * banner has passed the Production Asset Contract and a real-device playtest. The computed half
- * below prevents an approval toggle from exposing a banner whose checklist later regresses.
+ * Standard Banner playtest gate. Ring 0 explicitly approved opening the existing server-authority
+ * Gacha flow on the fork on 2026-08-10 so the remaining real-device playtest can happen. This is
+ * deliberately named as a playtest gate: the five Heroes' Production Asset Contract is still
+ * pending, so enabling the flow must not be misread as an asset-readiness sign-off.
  *
- * The production database banner must also be deactivated separately
- * (`20260810110000_disable_unready_gacha_content.sql`); this client flag is defense in depth,
- * not the authority boundary.
+ * The database banner is reactivated separately by
+ * `20260810230000_enable_standard_gacha_playtest.sql`; the client flag is defense in depth, not
+ * the authority boundary.
  */
-const HAS_RING0_GACHA_CONTENT_APPROVAL = false
-
-export const GACHA_PRODUCTION_CONTENT_READY =
-  HAS_RING0_GACHA_CONTENT_APPROVAL &&
-  STANDARD_BANNER.pool.length > 0 &&
-  STANDARD_BANNER.pool.every((entry) => isHeroProductionReady(entry.characterId))
+export const GACHA_PLAYTEST_ENABLED = true

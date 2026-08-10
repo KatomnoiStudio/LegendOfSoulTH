@@ -1,9 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { STANDARD_BANNER } from './gacha/gachaConfig'
-import { isHeroProductionReady } from './heroes/heroProductionBatch'
-import { GACHA_PRODUCTION_CONTENT_READY, PVP_BACKEND_DEPLOYED } from './featureFlags'
+import { GACHA_PLAYTEST_ENABLED, PVP_BACKEND_DEPLOYED } from './featureFlags'
 
 /*
   MEMORY.md item 176: v0.15.0 shipped the Lobby PvP button to production while its room RPCs and
@@ -56,20 +54,9 @@ const OPENS_SUMMON = /previewModal === 'summon'|setSummonOpen\(true\)|summonOpen
   one copy, and these tests pin the property (every summon-opening site consults it, including
   the render guard) rather than whichever code path a future edit happens to remember.
 */
-describe('GACHA_PRODUCTION_CONTENT_READY gate', () => {
-  test('ยังปิดอยู่ตราบใดที่ตู้มีฮีโร่ซึ่ง Asset Contract ยังไม่ผ่าน Production', () => {
-    const unreadyHeroIds = STANDARD_BANNER.pool
-      .map((entry) => entry.characterId)
-      .filter((characterId) => !isHeroProductionReady(characterId))
-
-    expect(unreadyHeroIds).toEqual([
-      'monkey-king',
-      'pig-warrior',
-      'celestial-archer',
-      'nezha-warden',
-      'sand-sage',
-    ])
-    expect(GACHA_PRODUCTION_CONTENT_READY).toBe(false)
+describe('GACHA_PLAYTEST_ENABLED gate', () => {
+  test('Ring 0 เปิดตู้ Standard เพื่อทดสอบบนอุปกรณ์จริงแล้ว', () => {
+    expect(GACHA_PLAYTEST_ENABLED).toBe(true)
   })
 
   test('ทุกจุดที่เปิด summon modal ต้องผ่าน flag เดียวกัน — รวม ?modal=summon และ render guard', () => {
@@ -80,19 +67,19 @@ describe('GACHA_PRODUCTION_CONTENT_READY gate', () => {
     // would still leave the modal reachable through any state path added later
     expect(opensSummon.length).toBeGreaterThanOrEqual(4)
     for (const line of opensSummon) {
-      expect(line).toContain('GACHA_PRODUCTION_CONTENT_READY')
+      expect(line).toContain('GACHA_PLAYTEST_ENABLED')
     }
   })
 
   test('ทั้ง LobbyPage และ MainNavigation อ่าน flag จาก featureFlags ไม่ประกาศเองซ้ำ', () => {
     for (const source of [lobbyPage, mainNav]) {
       // positive first — an absence-only check passes even if the gate is deleted outright
-      expect(source).toContain('GACHA_PRODUCTION_CONTENT_READY')
+      expect(source).toContain('GACHA_PLAYTEST_ENABLED')
       expect(source).toMatch(/from '.*game\/featureFlags'/)
-      expect(source).not.toMatch(/const GACHA_PRODUCTION_CONTENT_READY\s*=/)
+      expect(source).not.toMatch(/const GACHA_PLAYTEST_ENABLED\s*=/)
     }
     // ...and `toContain` alone is still satisfied by the import line, so pin MainNavigation's
     // actual guard: the negated form only ever appears in a real branch, never in an import
-    expect(mainNav).toMatch(/!GACHA_PRODUCTION_CONTENT_READY/)
+    expect(mainNav).toMatch(/!GACHA_PLAYTEST_ENABLED/)
   })
 })

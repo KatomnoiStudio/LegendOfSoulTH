@@ -79,20 +79,14 @@ describe('MainNavigation', () => {
     expect(onOpenItems).toHaveBeenCalledTimes(1)
   })
 
-  /*
-    The Gacha backend is deployed, but the Standard Banner's Heroes have not cleared the
-    Production Asset Contract, so the button falls through to the coming-soon toast behind
-    `GACHA_PRODUCTION_CONTENT_READY`. This test pins the gate; when the checklist passes and the
-    flag flips, restore the original expectation that `onOpenSummon` fires.
-  */
-  test('กด "อัญเชิญ" ไม่เปิด modal จนกว่า Asset Contract ผ่าน — ขึ้น toast แทน', async () => {
+  test('กด "อัญเชิญ" เปิดระบบกาชาที่ Ring 0 อนุมัติให้ทดสอบ', async () => {
     const user = userEvent.setup()
     const { onOpenSummon } = renderNav()
 
     await user.click(screen.getByRole('button', { name: 'อัญเชิญ' }))
 
-    expect(onOpenSummon).not.toHaveBeenCalled()
-    expect(await screen.findByText('อัญเชิญ — เร็ว ๆ นี้')).toBeInTheDocument()
+    expect(onOpenSummon).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('อัญเชิญ — เร็ว ๆ นี้')).not.toBeInTheDocument()
   })
 
   /*

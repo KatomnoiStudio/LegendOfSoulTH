@@ -3,7 +3,8 @@
 > **Operator / Human User**: `HetCreep`
 > **Repository**: `KatomnoiStudio/LegendOfSoulTH`
 > **Default Branch**: `master`
-> **Last Updated**: 2026-08-10T22:20:19+07:00 by `Codex` — corrected upstream TASKS row 32's stale claim that Edge tests sit outside the release gate; see item 198.
+> **Last Updated**: 2026-08-10T23:30:00+07:00 by `Codex` — opened the fork's Standard Banner flow for Ring-0 real-device playtest and added the guarded backend reactivation migration; see item 202.
+> **Last Updated (prior)**: 2026-08-10T22:20:19+07:00 by `Codex` — corrected upstream TASKS row 32's stale claim that Edge tests sit outside the release gate; see item 198.
 > **Last Updated (prior)**: 2026-08-10T22:11:10+07:00 by `Codex` — merged the two upstream commits that landed during pre-push verification, retaining their final PR #108 release guard and TASKS row 32; see item 197.
 > **Last Updated (prior)**: 2026-08-10T22:05:48+07:00 by `Codex` — closed the null-snapshot objective-owner hole found in fresh-eyes review and pinned the real DungeonSession wiring; see item 196.
 > **Last Updated (prior)**: 2026-08-10T21:56:00+07:00 by `Codex` — carried PR #108's version-neutral release instructions and lockfile parity regression guard onto v0.17.0 without downgrading metadata; see item 195.
@@ -302,3 +303,4 @@ All entries 2026-08-05/06 unless noted. Roughly chronological.
 - **199.** Fork Pages bootstrap repaired with a public Supabase client fallback — `MEMORY/archive/176-200.md`
 - **200.** Secret scan taught the public Supabase publishable-key boundary — `MEMORY/archive/176-200.md`
 - **201.** Historical Gitleaks scan uses an exact-key allowlist, not an inline-only marker — `MEMORY/archive/201-225.md`
+- **202.** Ring 0 opened the fork Gacha flow for live-device playtest; guarded banner reactivation added — `MEMORY/archive/201-225.md`
