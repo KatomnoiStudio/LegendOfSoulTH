@@ -1,4 +1,12 @@
 import { createWaveEnemies, type RealtimeBattleState } from './createRealtimeBattle'
+import {
+  isValidChaseParams,
+  isValidDefendParams,
+  isValidHazardParams,
+  isValidObjectiveValue,
+  isValidSurvivalParams,
+  isValidTimeAttackParams,
+} from './stageObjectiveConfig'
 
 /**
  * ตัดสินผลแพ้ชนะของด่านแยกตาม stageType (§17 Stage Variation System, §5.2)
@@ -46,7 +54,7 @@ const resolveMissingParamsOutcome = resolveWaveOutcome
 /** รอดให้ครบเวลา — ไม่ต้องฆ่าศัตรูให้หมด */
 function resolveSurvivalOutcome(state: RealtimeBattleState): StageOutcome {
   const params = state.stage.survival
-  if (!params) return resolveMissingParamsOutcome(state)
+  if (!isValidSurvivalParams(params)) return resolveMissingParamsOutcome(state)
   // Survival time starts when the player can actually control the hero. The
   // runtime's elapsedMs also includes the opening intro and must not shorten
   // the stage objective.
@@ -63,15 +71,19 @@ function tickDefendObjective(state: RealtimeBattleState, deltaMs: number): void 
 
 /** เคลียร์ทุกคลื่นเหมือน wave แต่แพ้ทันทีถ้า objectiveHp หมดก่อน */
 function resolveDefendOutcome(state: RealtimeBattleState, deltaMs: number): StageOutcome {
+  if (!isValidDefendParams(state.stage.defend) || !isValidObjectiveValue(state.objectiveHp)) {
+    return resolveMissingParamsOutcome(state)
+  }
   tickDefendObjective(state, deltaMs)
-  if (state.objectiveHp !== null && state.objectiveHp <= 0) return 'defeat'
+  if (state.objectiveHp <= 0) return 'defeat'
   return resolveWaveOutcome(state)
 }
 
 /** เคลียร์ทุกคลื่นเหมือน wave แต่แพ้ทันทีถ้าเวลาเกินงบก่อนเคลียร์เสร็จ */
 function resolveTimeAttackOutcome(state: RealtimeBattleState): StageOutcome {
   const params = state.stage.timeAttack
-  if (params && state.stageElapsedMs > params.timeBudgetMs) return 'defeat'
+  if (!isValidTimeAttackParams(params)) return resolveMissingParamsOutcome(state)
+  if (state.stageElapsedMs > params.timeBudgetMs) return 'defeat'
   return resolveWaveOutcome(state)
 }
 
@@ -85,7 +97,7 @@ const resolveMiniBossOutcome = resolveWaveOutcome
 /** ไปให้ถึงตำแหน่งเป้าหมายก่อนเวลาหมด */
 function resolveChaseOutcome(state: RealtimeBattleState): StageOutcome {
   const params = state.stage.chase
-  if (!params) return resolveMissingParamsOutcome(state)
+  if (!isValidChaseParams(params)) return resolveMissingParamsOutcome(state)
   if (state.stageElapsedMs > params.timeBudgetMs) return 'defeat'
 
   const dx = state.player.position.x - params.targetPosition.x
@@ -100,7 +112,9 @@ function resolveChaseOutcome(state: RealtimeBattleState): StageOutcome {
  */
 function resolveHazardOutcome(state: RealtimeBattleState, deltaMs: number): StageOutcome {
   const params = state.stage.hazard
-  if (!params || state.hazardHp === null) return resolveMissingParamsOutcome(state)
+  if (!isValidHazardParams(params) || !isValidObjectiveValue(state.hazardHp)) {
+    return resolveMissingParamsOutcome(state)
+  }
 
   state.hazardHp = Math.max(0, state.hazardHp - (params.decayPerSecond * deltaMs) / 1000)
   if (state.hazardHp <= 0) return 'defeat'
@@ -134,5 +148,7 @@ export function resolveStageOutcome(state: RealtimeBattleState, deltaMs: number)
       return resolveHazardOutcome(state, deltaMs)
     case 'custom':
       return resolveCustomOutcome(state)
+    default:
+      return resolveMissingParamsOutcome(state)
   }
 }

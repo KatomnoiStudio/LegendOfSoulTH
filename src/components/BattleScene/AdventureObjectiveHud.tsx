@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type {
   BattleObjectiveSnapshot,
   RealtimeBattleSnapshot,
@@ -63,7 +64,7 @@ export function AdventureObjectiveHud({ snapshot }: { snapshot: RealtimeBattleSn
   const objective = describeBattleObjective(snapshot.objective, enemiesLeft)
 
   return (
-    <div className={styles.stageObjectiveHud} aria-live="polite">
+    <section className={styles.stageObjectiveHud} aria-label="เป้าหมายด่าน" aria-live="polite">
       <div className={styles.stageObjectiveTitle}>{objective.label}</div>
       <div className={styles.stageObjectiveGrid}>
         <span className={styles.stageObjectiveLabel}>เป้าหมาย</span>
@@ -77,6 +78,22 @@ export function AdventureObjectiveHud({ snapshot }: { snapshot: RealtimeBattleSn
           </>
         ) : null}
       </div>
-    </div>
+    </section>
   )
+}
+
+/**
+ * Objective HUD ownership boundary for every realtime battle room.
+ *
+ * Adventure uses the snapshot-driven default. Dungeon can replace it with its own stage-runtime
+ * objective, but both can never mount together and overlap pixel-for-pixel.
+ */
+export function BattleObjectiveLayer({
+  snapshot,
+  objectiveOverlay,
+}: {
+  snapshot: RealtimeBattleSnapshot
+  objectiveOverlay?: ReactNode
+}) {
+  return objectiveOverlay ?? <AdventureObjectiveHud snapshot={snapshot} />
 }

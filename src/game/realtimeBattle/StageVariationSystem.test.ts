@@ -13,6 +13,13 @@ import { RealtimeBattleRuntime } from './RealtimeBattleRuntime'
 import { calculateBattleReward } from './RewardSystem'
 import { toRealtimeBattleResult } from './BattleResultAdapter'
 import { getAdventureChapters, getRealtimeStage, type RealtimeBattleStage } from './stageConfig'
+import {
+  isValidChaseParams,
+  isValidDefendParams,
+  isValidHazardParams,
+  isValidSurvivalParams,
+  isValidTimeAttackParams,
+} from './stageObjectiveConfig'
 import { buildStageObjectiveSnapshot } from './stageObjectiveSnapshot'
 import { resolveStageOutcome } from './StageVariationSystem'
 
@@ -274,6 +281,12 @@ describe('Adventure chapter 1 stage catalog/runtime contract', () => {
     expect(chase?.chase?.arrivalRadius).toBeGreaterThan(0)
     expect(chase?.chase?.timeBudgetMs).toBeGreaterThan(0)
     expect(timeAttack?.timeAttack?.timeBudgetMs).toBeGreaterThan(0)
+
+    expect(isValidSurvivalParams(survival?.survival)).toBe(true)
+    expect(isValidDefendParams(defend?.defend)).toBe(true)
+    expect(isValidHazardParams(hazard?.hazard)).toBe(true)
+    expect(isValidChaseParams(chase?.chase)).toBe(true)
+    expect(isValidTimeAttackParams(timeAttack?.timeAttack)).toBe(true)
   })
 })
 
@@ -351,6 +364,108 @@ describe('ด่านที่เขียน param ไม่ครบ ต้�
       killAllEnemies(state)
       expect(resolveStageOutcome(state, 16)).toBe('victory')
     }
+  })
+
+  it('defend/time-attack ที่ไม่มี param และ hazard ที่ state หาย ก็จบได้เหมือน wave', () => {
+    for (const stageType of ['defend', 'time-attack'] as const) {
+      const state = makeState({ stageType })
+      killAllEnemies(state)
+      expect(resolveStageOutcome(state, 16)).toBe('victory')
+      expect(buildStageObjectiveSnapshot(state).kind).toBe('wave')
+    }
+
+    const hazard = makeState({
+      stageType: 'hazard',
+      hazard: { hazardHp: 100, decayPerSecond: 10 },
+    })
+    hazard.hazardHp = null
+    killAllEnemies(hazard)
+    expect(resolveStageOutcome(hazard, 16)).toBe('victory')
+    expect(buildStageObjectiveSnapshot(hazard).kind).toBe('wave')
+  })
+
+  it.each([
+    {
+      label: 'survival duration เป็น NaN',
+      stage: { stageType: 'survival', survival: { durationMs: Number.NaN } },
+    },
+    {
+      label: 'survival duration เป็น Infinity',
+      stage: { stageType: 'survival', survival: { durationMs: Number.POSITIVE_INFINITY } },
+    },
+    {
+      label: 'survival duration เป็นศูนย์',
+      stage: { stageType: 'survival', survival: { durationMs: 0 } },
+    },
+    {
+      label: 'defend position ไม่ finite',
+      stage: {
+        stageType: 'defend',
+        defend: { objectiveHp: 100, position: { x: Number.NaN, y: 0 } },
+      },
+      objectiveHp: 100,
+    },
+    {
+      label: 'time-attack budget ติดลบ',
+      stage: { stageType: 'time-attack', timeAttack: { timeBudgetMs: -1 } },
+    },
+    {
+      label: 'chase target ไม่ finite',
+      stage: {
+        stageType: 'chase',
+        chase: {
+          targetPosition: { x: Number.NaN, y: 0 },
+          arrivalRadius: 20,
+          timeBudgetMs: 1000,
+        },
+      },
+    },
+    {
+      label: 'chase radius เป็นศูนย์',
+      stage: {
+        stageType: 'chase',
+        chase: { targetPosition: { x: 500, y: 0 }, arrivalRadius: 0, timeBudgetMs: 1000 },
+      },
+    },
+    {
+      label: 'chase budget เป็น Infinity',
+      stage: {
+        stageType: 'chase',
+        chase: {
+          targetPosition: { x: 500, y: 0 },
+          arrivalRadius: 20,
+          timeBudgetMs: Number.POSITIVE_INFINITY,
+        },
+      },
+    },
+    {
+      label: 'hazard decay ติดลบ',
+      stage: { stageType: 'hazard', hazard: { hazardHp: 100, decayPerSecond: -1 } },
+      hazardHp: 100,
+    },
+  ])('$label ต้อง fallback เป็น wave และไม่ปล่อย NaN/Infinity ไป HUD', (fixture) => {
+    const state = makeState(fixture.stage as Partial<RealtimeBattleStage>)
+    if ('objectiveHp' in fixture) state.objectiveHp = fixture.objectiveHp ?? null
+    if ('hazardHp' in fixture) state.hazardHp = fixture.hazardHp ?? null
+    killAllEnemies(state)
+
+    expect(resolveStageOutcome(state, 16)).toBe('victory')
+    const objective = buildStageObjectiveSnapshot(state)
+    expect(objective.kind).toBe('wave')
+    expect(
+      [objective.current, objective.target, objective.remainingMs].every(
+        (value) => value === null || Number.isFinite(value),
+      ),
+    ).toBe(true)
+  })
+
+  it('stageType ที่ไม่รู้จักจากข้อมูล runtime ก็ fallback เป็น wave แทนการค้าง', () => {
+    const state = makeState()
+    ;(state.stage as { stageType: string }).stageType = 'unknown-stage-type'
+    killAllEnemies(state)
+
+    expect(resolveStageOutcome(state, 16)).toBe('victory')
+    expect(buildStageObjectiveSnapshot(state).kind).toBe('wave')
   })
 })
 
