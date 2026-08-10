@@ -32,9 +32,9 @@
 >   from the empty log and published as fact. It is withdrawn.
 > - **The "unresolved discrepancy" framing that replaced it is also withdrawn.** The empty log
 >   was never in tension with the owner's account: `git` shows the generation was done by
->   `kaoshock123` on a different machine, and HetCreep's fitting pass (`16f764b`, 2026-08-06)
->   predates the earliest retained transcript (2026-08-08). The search looked at the wrong
->   machine and the wrong window. The log evidence is **downgraded**, not deleted — see
+>   `kaoshock123` on a different machine, and most of HetCreep's fitting work predates the
+>   earliest retained transcript (2026-08-08). The search looked at the wrong machine and
+>   largely the wrong window. The log evidence is **downgraded**, not deleted — see
 >   [The Adobe step](#the-adobe-step-and-why-the-transcript-search-proves-nothing-about-it-2026-08-10).
 >   **Three revisions in a row read that empty log as though it meant something. It did not.**
 > - **The generator is now named.** The questionnaire's author is `kaoshock123`, owner-confirmed
@@ -58,6 +58,16 @@
 >   sentence before saying this file does not characterise Adobe's policy. It is now stated as
 >   the **assumption** that pillar (b) depends on, with the consequence spelled out if it is
 >   wrong.
+> - **A second per-commit split of the 693 was published and is now deleted**, after the first
+>   (the 164/191 one) was already retracted. Its `203` double-counted 64 files the `446`
+>   bucket also covered and omitted `5aae711`'s 128 entirely, and its `446` was a subtraction
+>   remainder rather than a count — contradicting this file's own figure for the same commit.
+>   **No third attempt.** A per-commit apportionment is now explicitly declined, and the
+>   reason is recorded in place of the numbers.
+> - **An earlier version said the retained transcript window "no longer contains the fitting
+>   pass."** Not true: `ff67fb1` (2026-08-08, 96 images re-cropped) sits inside it. Two of
+>   HetCreep's four asset-touching commits were also missing from the contributor entry
+>   entirely. Both corrected; all four are now named with the layer each belongs to.
 
 ---
 
@@ -144,7 +154,7 @@ is a table so a new contributor is a new row, not a rewrite.
 | Contributor | Role | What they did | Tools used | Period |
 | --- | --- | --- | --- | --- |
 | **`kaoshock123`** (`kaoshock123@gmail.com`) | Art author — generation | **The author of 849 of the 870 tracked assets** (all 693 non-Erlang plus 156 of the 169 Erlang files), on their own machine. The only exceptions are the 8 Kenney CC0 sound effects and the 13 `erlang-shen-skill-2-fx` frames. Owner-confirmed as **the person who answered the provenance questionnaire this document is built on**. On `master`: `62c0000` (2026-08-05, 345 asset files, "Initial commit"), `5aaba87` (193 images), `5aae711` (128), plus several smaller `feat(pigsy)` commits. Not merged, on the PR #102 branch (all 2026-08-09): `90fe738`, `91bf28b`, `e1fd040` (1,416 images), `fa9c86e` | Codex, Google Flow, GitHub workflows + `2DGenerateSpriteSheet`, ChatGPT | 2026-08-05 → 2026-08-09 |
-| **`HetCreep`** (`zxc59217412@gmail.com`) | Owner — pipeline and fitting | Directed a mechanical fitting pass (trim/size to fit the code) and built the WebP pipeline: `16f764b` (2026-08-06) converted and relocated the art, `3730322` (2026-08-10) landed the Erlang Shen set. **No image authorship** — the bytes in both commits are inherited, not created (measured below) | Per the owner: an Adobe account connected to **Claude Code**, agents carrying out the work; plus `sharp` via `tools/` | 2026-08-05 → 2026-08-10 |
+| **`HetCreep`** (`zxc59217412@gmail.com`) | Owner — pipeline and fitting. **Not an art author** | **Four commits touch asset bytes**, two adding paths and two rewriting them: `16f764b` (2026-08-06, 520 images added — the `sharp` WebP conversion plus `git mv`, of which 194 are the shipped WebP) and `3730322` (2026-08-10, 193 added — the Erlang Shen set) are **layer 3**, automated processing; `64a67fd` (2026-08-07, 6 images modified, "cap oversized character sprite art") and `ff67fb1` (2026-08-08, **96 images modified**, "re-crop character sprites") are **layer 2**, the mechanical fitting pass — they are the last writer of those files' current bytes. **No image authorship in any of the four**: adding a converted or relocated copy is not authorship, and re-cropping an existing image is fitting, not drawing | Per the owner: an Adobe account connected to **Claude Code**, agents carrying out the work; plus `sharp` via `tools/` | 2026-08-05 → 2026-08-10 |
 | **`nustanakritwithai`** (`nustanakritwithai@gmail.com`) | Contributor — asset relocation and re-encoding. **Not an art author** | **Committed** 20 image files, **authored none of them**: `c58c3c2` renamed 10 `.png` with identical blob SHAs, and `062dcda` re-encoded those same 10 images to `.webp`. Every one traces byte-for-byte to `kaoshock123`'s root `62c0000` (measured below). Their contribution is restoring battle sprite and background assets after a cherry-pick, which is real work on this repository — it is simply not authorship | Not recorded | 2026-08-06 |
 
 Automated repository scripts (`tools/`) are not contributors — they are build tooling, and
@@ -169,15 +179,34 @@ is not traced further here.
 identical paths**, with zero same-path-different-blob cases. The later root re-added content
 that already existed; it did not create it.
 
-**Author split of the 693 undocumented assets** — every file attributed to the commit that
-introduced its path, then traced through the mechanical steps to the commit that introduced
-its *bytes*. **Nothing is unresolved.**
+**Author of the 693 undocumented assets** — every file traced from the commit that introduced
+its path, through the mechanical steps (`git mv`, `sharp` WebP conversion, re-crop), to the
+commit that introduced its *bytes*.
 
-| Content author | Files | How they arrive |
-| --- | --- | --- |
-| `kaoshock123` | **693** | **203** introduced directly by their own commits (193 in `5aaba87`, the rest in smaller `feat(pigsy)` commits); **446** introduced by `HetCreep`'s `16f764b`, a mechanical `sharp` WebP conversion plus `git mv` of files whose `public/**.png` predecessors trace back to the byte-identical roots; **24** turnaround frames introduced by `3730322`, all 24 byte-identical to `e1fd040`; **20** introduced by `nustanakritwithai`'s two commits, which are the same mechanical steps again (below) |
-| Anyone else | **0** | — |
-| Unresolved | **0** | — |
+| Content author | Files |
+| --- | --- |
+| `kaoshock123` | **693** |
+| Anyone else | **0** |
+| Unresolved | **0** |
+
+**A per-commit apportionment is deliberately NOT attempted.** There is no single defensible
+way to divide the 693 among the commits that touched them, because the three reasonable
+measures disagree — for `16f764b` alone: **510** by earliest path-add, **366** by last
+writer, **194** by rename-detected add. Each is a real measurement of a different question,
+and picking one and calling it "the split" would be inventing precision the evidence does not
+support. **This file has already published two such splits and retracted both** (see the
+revision notes); it will not publish a third.
+
+**The disagreement does not touch the authorship conclusion.** Every one of those routes
+lands on the same author for every file — which is the whole finding, and it is stronger
+stated this way than under any single apportionment. Nothing is unresolved.
+
+If one illustrative figure is wanted, here is the **earliest path-add** distribution
+specifically — *not* a statement about authorship, and not interchangeable with the other two
+measures:
+
+`16f764b` 510 · `5aae711` 128 · `3730322` 24 · `c58c3c2` 10 · `062dcda` 10 · `edf0e1a` 4 ·
+`740f502` 2 · `d94afe3`, `d3a3fa3`, `cfe3775`, `8df744f`, `5aaba87` 1 each — **= 693**.
 
 **Correction, 2026-08-10 — the 20 previously credited to `nustanakritwithai` are
 `kaoshock123`'s bytes.** An earlier revision of this table applied the byte-tracing rule to
@@ -194,8 +223,8 @@ its *bytes*. **Nothing is unresolved.**
   At its parent, each file's same-basename `.png` predecessor already existed in
   `assets/archive/` carrying the root blob SHA (checked: `monkey-attack-new-12.png` =
   `37321818…`, `monkey-pose-0-alpha.png` = `1a6f5cbf…`, both matching `62c0000` exactly).
-  This is the identical mechanical WebP step already credited back to `kaoshock123` for
-  `16f764b`'s 446.
+  This is the identical mechanical WebP step that `16f764b` performs, and it is credited back
+  to `kaoshock123` for the same reason.
 
 The two commits are the same ten images in two formats. **`nustanakritwithai` authored zero
 images.** They committed image files — relocating and re-encoding art that already existed —
@@ -232,8 +261,9 @@ this record keeps them apart:
    and asset slots — with the Adobe account connected and **agents doing the work**;
    HetCreep states they *"did not press anything"*. This is neither "used exactly as
    generated" nor "an artist redrew it": pixel-level fitting of images that already existed,
-   directed by the owner but executed by tooling. **No log of this pass survives** (it
-   predates the retained transcripts), so it rests on the owner's account — see below.
+   directed by the owner but executed by tooling. Its commits are `64a67fd` (2026-08-07) and
+   `ff67fb1` (2026-08-08). **No log survives for the earlier one**; the later one falls inside
+   the retained transcript window — see below.
 3. **Automated repository processing** — the scripts under `tools/` (frame extraction from
    sheets, background keying, de-numbering, mirroring, WebP conversion). Mechanical passes,
    verifiable in the code, involving no human decision per image.
@@ -258,13 +288,25 @@ account. It was neither.
    different person working on a different machine
    ([contributors](#who-has-touched-the-assets)). No Adobe call by them could ever appear in
    HetCreep's local transcripts, whatever they did.
-2. **The fitting pass predates the retained transcripts.** It is commit **`16f764b`,
-   2026-08-06** ("perf(assets): WebP image pipeline, archive…", 194 image files). Local
-   transcripts for this project begin **2026-08-08** — the relevant window expired two days
-   before the earliest surviving log.
+2. **Most of the fitting work predates the retained transcripts — but not all of it.** Local
+   transcripts for this project begin **2026-08-08**. `16f764b` (2026-08-06, the WebP
+   conversion and relocation) and `64a67fd` (2026-08-07, 6 images re-capped) both fall before
+   that. **`ff67fb1` does not**: dated **2026-08-08 07:56 +0700**, it re-cropped **96 image
+   files** — a fitting pass of exactly the kind described above, sitting **inside** the
+   searched window.
 
-So the search covered a machine that never ran the generation and a window that no longer
-contains the fitting pass. It was looking in the wrong place at the wrong time.
+So the search covered a machine that never ran the generation, and a window that misses most
+of the fitting work but not all of it.
+
+**An earlier revision said the window "no longer contains the fitting pass", flatly. That was
+wrong** — the same over-reach this section exists to correct, made while correcting it.
+
+**What the one in-window pass buys, and what it does not.** No Adobe call appears anywhere in
+the transcripts, including across `ff67fb1`'s date. For **that** 96-file re-crop specifically,
+that is a real if narrow corroboration: an agent-mediated generative Adobe operation during it
+would have left a trace, and none is there. It says nothing about `16f764b` or `64a67fd`,
+nothing about the generation, and nothing about any work done outside Claude Code — where an
+untraced route remains untraced.
 
 **What the search does prove, stated at exactly that width and no wider.** The **"Adobe for
 creativity"** Connector in the Claude app (a toggle in the Connectors menu linking the user's
@@ -502,13 +544,13 @@ visible.
 | # | Unknown | Why it stays open |
 | --- | --- | --- |
 | 1 | **Original source of every reference image** | Owner: *"not currently recorded."* No prompts or seeds survive to reconstruct it, and the retained Claude Code transcripts do not reach the generation step. **The load-bearing unknown**, and the reason this file stays a DRAFT — it blocks any clean claim that the art is free of third-party input |
-| 2 | **Which Adobe product was used in the fitting pass, and through what channel** | Open. The owner reports an agent-carried-out Adobe pass; no log of it survives, because it predates the retained transcripts (`16f764b`, 2026-08-06 vs transcripts from 2026-08-08). The earlier "unresolved discrepancy" framing is **withdrawn** — the empty transcript search covered the wrong machine and the wrong window, and was never in tension with the owner's account. See [The Adobe step](#the-adobe-step-and-why-the-transcript-search-proves-nothing-about-it-2026-08-10) |
+| 2 | **Which Adobe product was used in the fitting pass, and through what channel** | Open. The owner reports an agent-carried-out Adobe pass. Most of the fitting work predates the retained transcripts (`16f764b` 2026-08-06, `64a67fd` 2026-08-07, vs transcripts from 2026-08-08), though `ff67fb1`'s 96-file re-crop falls inside the window and shows no Adobe call. The earlier "unresolved discrepancy" framing is **withdrawn** — the empty transcript search covered the wrong machine and the wrong window, and was never in tension with the owner's account. See [The Adobe step](#the-adobe-step-and-why-the-transcript-search-proves-nothing-about-it-2026-08-10) |
 | 3 | **What each provider's terms actually permit** — commercial use, output ownership, whether a right survives cancelling a paid plan, disclosure duties | Tools and paid tiers are now known; the terms are not, and the ones in force at generation time are not recorded. **Adobe stays on this list** — the owner reports an Adobe pass (unknown #2), and Adobe's credit-metering policy is unverified, so its terms cannot be assumed irrelevant. Deliberately not answered here |
 | 4 | **Generation details behind 693 of 870 tracked assets** | **Narrowed 2026-08-10.** The *author* is no longer unknown: all **693** measure to `kaoshock123` (0 unresolved, no other author). What is missing is the generation detail — tools, reference inputs, terms — for sets `kaoshock123` explicitly declined to vouch for. Wukong, Pigsy, Tripitaka, walk/turnaround, UI, background, all of `assets/archive/` |
 | 5 | **`public/favicon.svg`** | Believed a URL/site icon; unverified. Ships to every visitor |
 | 6 | **Whether AI output is protectable, and who owns it** | Jurisdiction-dependent and unsettled — and the human-involvement picture got *weaker*, not stronger, on 2026-08-10: the owner states **nothing was done by hand**; the fitting pass was directed by them but carried out by agents. So every step between generator and shipped file is now machine-executed, with human involvement at the direction level only. Whether that clears any given jurisdiction's authorship bar is a question, not a claim |
 | 7 | **Visual similarity to existing commercial character designs** | Never checked, for any character |
-| 8 | **Per-asset tool mapping** — which of `kaoshock123`'s generators produced which files, and which files went through the fitting pass | Author is now resolved per file (measured above); the *tool* is not. The tool set is known as a set, so per-provider terms still cannot be applied per asset |
+| 8 | **Per-asset tool mapping** — which of `kaoshock123`'s generators produced which files, and which files went through the fitting pass | Author is resolved for all 693 non-Erlang assets and for 156 of the 169 Erlang files; the 13 `erlang-shen-skill-2-fx` frames are **not** traced (see above). The *tool* is resolved for none of them. The tool set is known as a set, so per-provider terms still cannot be applied per asset |
 | 9 | **Licence for the 5 unfilled sound slots** | Not yet sourced |
 
 ---
