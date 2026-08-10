@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
+import * as fs from 'fs'
+import * as path from 'path'
 import { MONKEY_SPINNING_STAFF, PLAYER_ATTACK_CHAIN } from './attacks'
 import { createRealtimeBattle, createWaveEnemies } from './createRealtimeBattle'
 import { RealtimeBattleRuntime } from './RealtimeBattleRuntime'
 import { getRealtimeStage } from './stageConfig'
 import { createDefaultSkillLevels } from './SkillProgressionSystem'
+import type { RealtimeBattleEntity } from './types'
 import type { Player } from '../../types/player'
 import { EMPTY_PROGRESS } from '../../types/player'
 
@@ -294,6 +297,106 @@ describe('RealtimeBattleRuntime', () => {
     expect(sawMultiHitTick).toBe(true)
     expect(maxCallsInOneStep).toBe(1)
     expect(state.damageDealt).toBeGreaterThan(0)
+  })
+
+  /*
+     stepPlayerAttack (คอมโบพื้นฐาน) มี publishRequested = true ของตัวเองแยกจาก stepPlayerSkill
+     ด้านบน — คนละจุดในไฟล์ คนละลูป ต้องพิสูจน์แยกกัน เทสต์สกิลด้านบนไม่แตะจุดนี้เลย
+     (สกิลตัดคอมโบทิ้งตั้งแต่เริ่มร่าย ไม่มีทาง stepPlayerAttack ทำงานพร้อมกัน)
+  */
+  it('หนึ่ง step แจ้ง subscriber ไม่เกินหนึ่งครั้ง แม้คอมโบพื้นฐานจะโดนศัตรูหลายตัวพร้อมกัน', () => {
+    const runtime = makeRuntime()
+    runtime.step(1000)
+
+    const state = runtime.getState()
+    // ระยะคอมโบไม้แรกของหงอคง (attackChains.ts): range 120, depthTolerance 95
+    for (const enemy of state.enemies) {
+      enemy.position = { x: state.player.position.x + 60, y: state.player.position.y }
+    }
+
+    let calls = 0
+    runtime.subscribe(() => {
+      calls += 1
+    })
+
+    runtime.requestAttack()
+    let maxCallsInOneStep = 0
+    let sawMultiHitTick = false
+    for (let t = 0; t < 600; t += 16) {
+      const before = calls
+      const damageBefore = runtime.getSnapshot().damageEvents.length
+      runtime.step(16)
+      const callsThisStep = calls - before
+      maxCallsInOneStep = Math.max(maxCallsInOneStep, callsThisStep)
+      if (runtime.getSnapshot().damageEvents.length - damageBefore > 1) sawMultiHitTick = true
+    }
+
+    expect(sawMultiHitTick).toBe(true)
+    expect(maxCallsInOneStep).toBe(1)
+    expect(state.damageDealt).toBeGreaterThan(0)
+  })
+
+  /*
+     resolveEnemyAttack (ศัตรูตีผู้เล่น) มี publishRequested = true ของตัวเองอีกจุดหนึ่ง — สอง
+     เทสต์บนไม่แตะจุดนี้เลย (ทั้งคู่เป็นฝั่งผู้เล่นตี ไม่ใช่ฝั่งศัตรูตี)
+
+     พิสูจน์ทาง "นับจำนวนครั้ง publish ต่อ step" แบบสองเทสต์บนใช้ไม่ได้กับจุดนี้ — พิสูจน์แล้ว
+     ด้วยการวัดจริง (สองตัวยืนคนละฝั่งผู้เล่น ระยะเท่ากันเป๊ะ ไม่มี RNG เกี่ยว เดิน state machine
+     ตรงกันทุกติ๊ก): แม้ทั้งคู่เข้าช่วง active window พร้อมกัน ก็ยังลงดาเมจได้แค่ตัวเดียวต่อติ๊ก
+     เสมอ เพราะ combatReaction.ts:64 ให้ i-frame ผู้เล่น 120ms ทันทีที่โดนตี ตัวที่สองในลูปเดียวกัน
+     จึงโดน invulnerableUntilMs กันไว้เสมอ — resolveEnemyAttack ก็รับเป้าหมายแค่ [state.player]
+     (ตัวเดียวตายตัว) แปลว่า for-loop ต่อเป้าหมายในนี้ไม่มีทางวนเกินหนึ่งรอบได้เลยไม่ว่ากรณีใด
+     การนับจำนวนแจ้ง subscriber จึงแยกแยะ this.publish() ทันทีกับ this.publishRequested = true
+     ไม่ออกที่จุดนี้จุดเดียว — ต้องตรวจตรงซอร์สแทน
+  */
+  it('resolveEnemyAttack ต้อง publish ผ่านคิว publishRequested เท่านั้น ห้ามเรียก publish() ตรง ๆ ในลูป', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, 'RealtimeBattleRuntime.ts'), 'utf8')
+    const methodStart = source.indexOf('private resolveEnemyAttack(')
+    expect(methodStart).toBeGreaterThan(-1)
+    const methodEnd = source.indexOf('\n  private pushDamageEvent(', methodStart)
+    expect(methodEnd).toBeGreaterThan(methodStart)
+
+    const body = source.slice(methodStart, methodEnd)
+    expect(body).toContain('this.publishRequested = true')
+    expect(body).not.toContain('this.publish()')
+  })
+
+  /*
+     QC (2026-08-10, MEMORY item 189): `living` คิดครั้งเดียวตอนต้น tick ก่อน stepAllies —
+     ถ้า summon ตีศัตรูตายกลาง stepAllies ศพตัวนั้นยังค้างอยู่ใน living เดิม (คนละเรื่องกับ
+     .state ที่เพิ่งเปลี่ยน — อ้างถึง object เดียวกัน) แล้วถูกส่งต่อเข้า separateEnemies
+     ทำให้ศพไปเบียดตำแหน่งศัตรูที่ยังไม่ตายออกไปไกลผิดที่ผิดทาง วัดได้จริงกว่า 100 หน่วยต่อติ๊ก
+  */
+  it('ally ฆ่าศัตรูกลางติ๊ก ต้องไม่ทำให้ศพไปเบียดตำแหน่งศัตรูที่ยังไม่ตาย', () => {
+    const state = createRealtimeBattle('trial-01', makePlayer())
+    if (!state) throw new Error('สร้างสถานะตั้งต้นไม่สำเร็จ')
+    const runtime = new RealtimeBattleRuntime(state)
+    runtime.step(1000) // brain ยังไม่ขยับเลยสักติ๊ก — ปลอดภัยที่จะจัดตำแหน่งใหม่ตรงนี้
+
+    // ย้ายผู้เล่นออกไปไกลสุดขอบ ให้ศัตรูทุกตัวอยู่นอก detectRange (1600) จะได้ไม่ไล่ตามเอง
+    state.player.position = { x: 1, y: 1 }
+
+    const [victim, bystander] = state.enemies
+    victim.position = { x: 1700, y: 1000 }
+    victim.hp = 1 // สูตรดาเมจมีพื้นขั้นต่ำ 1 เสมอ (ดูคอมเมนต์ stageConfig.ts) — โดนตีครั้งเดียวตายแน่
+    bystander.position = { ...victim.position } // ซ้อนสนิท (distance=0) ให้ทิศทางการดันคงที่
+    const bystanderStart = { ...bystander.position }
+
+    const ally: RealtimeBattleEntity = {
+      ...victim,
+      id: 'ally-probe',
+      entityType: 'ally',
+      hp: 100,
+      maxHp: 100,
+      attackCooldownRemainingMs: 0,
+      position: { x: victim.position.x - 50, y: victim.position.y },
+    }
+    state.allies = [ally]
+
+    runtime.step(16)
+
+    expect(victim.state).toBe('dead')
+    expect(bystander.position).toEqual(bystanderStart)
   })
 
   it('ดาเมจที่เกิดใน tick ยังอยู่ครบใน snapshot ตอนจบ step เดียวกัน', () => {

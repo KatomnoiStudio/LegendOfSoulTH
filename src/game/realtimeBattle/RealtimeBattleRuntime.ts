@@ -196,7 +196,14 @@ export class RealtimeBattleRuntime {
 
     this.stepEnemies(deltaMs, living)
     this.stepAllies(deltaMs, living)
-    this.separateEnemies(living)
+    /*
+       stepAllies เพิ่งฆ่าศัตรูเพิ่มได้ (summon ตีโดนจนเลือดหมด) — `living` ด้านบนคำนวณไว้
+       ก่อนหน้านั้น จึงอาจมีศพติดค้างอยู่ในนั้นโดยอ้างถึง object เดิม (แค่ .state เปลี่ยน)
+       ถ้าส่ง living เดิมเข้า separateEnemies ศพตัวนั้นจะยังถูกดันแยกอยู่ และไปเบียดตำแหน่ง
+       ศัตรูที่ยังมีชีวิตออกไปไกลผิดที่ผิดทาง — คิดใหม่หลัง stepAllies เสมอ (ราคาถูกกว่า
+       ความเสี่ยงที่ศพผีจะไปดันตัวเป็นมาก)
+    */
+    this.separateEnemies(state.enemies.filter((enemy) => enemy.state !== 'dead' && enemy.hp > 0))
     this.checkBattleEnd(deltaMs)
 
     this.pruneEvents()
