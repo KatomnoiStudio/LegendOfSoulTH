@@ -3,3 +3,7 @@ coverage
 public
 assets
 node_modules
+
+# MEMORY.md item bodies are stored verbatim — prettier re-pads ordered-list markers
+# (`100. ` -> `100.  `), which breaks tools/verify-memory-archive.mjs byte-exactness.
+MEMORY/archive
