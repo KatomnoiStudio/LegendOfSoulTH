@@ -169,11 +169,20 @@ By design, not bugs — don't file these:
   UNSCHEDULED on production** — `cron.unschedule`d 2026-08-10 as the zero-risk interim while
   the predicate was fixed, so nothing is being auto-reaped right now. The anti-farming bound
   is therefore a property of the rate limit alone until the job is re-armed.
-- **Account-deletion jobs, prod-vs-repo drift (open)**: `cleanup-dead-unplayed-accounts` is
-  also unscheduled. Its committed body (`0014_dead_account_cleanup.sql`) carries
-  `cleanup_exempt_profiles` and paid-user guards; the body measured on production did not.
-  Until that disagreement is reconciled, re-arming it would delete registered accounts without
-  honouring exemptions. Do not re-schedule it on the strength of the repo file alone.
+- **Account-deletion jobs, prod-vs-repo drift (RESOLVED 2026-08-10)**: production was running
+  `0014_dead_account_cleanup.sql`'s **first revision** — deleting registered accounts by account
+  age, guarded only by "never fought a battle". The three follow-up commits that added
+  `cleanup_exempt_profiles` and the paid-user guard were written four minutes later and never
+  relayed, so the repo held the intent and production held the stale body.
+  `supabase/migrations/20260810170000_security_reconcile_dead_account_cleanup.sql` reconciles
+  them: the criterion is now **inactivity**, not age — `last_sign_in_at`, recent
+  `battle_history`, recent `currency_transactions` excluding source `signup` (the 2026-08-10
+  backfill stamped one onto every pre-existing account at apply time, which would otherwise read
+  as "everyone was active"), plus the exemption table and a permanent `topup` exemption.
+  **The job remains UNSCHEDULED.** Re-arming is gated on a PRE-ARM count returning `0`; the
+  query is in that migration's header. Measured 2026-08-10 after the reconcile: **0 today**, but
+  14 of 17 registered accounts have neither a battle nor any non-signup currency row, so the
+  count must be re-run immediately before any re-arm rather than trusted from that day.
 - **CAPTCHA (Cloudflare Turnstile)**: client-side widget shipped (`AuthModal.tsx`, `VITE_TURNSTILE_SITE_KEY`).
   Supabase's Dashboard toggle (Authentication → Settings → Attack Protection) is project-wide
   across all `signUp`/`signInWithPassword`/`signInAnonymously` calls, not scoped per method —
