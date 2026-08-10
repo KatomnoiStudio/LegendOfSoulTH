@@ -41,6 +41,48 @@ interface OwnedCharacterRow {
 
 type RequestBody = PvPAuthorityCommand & { roomId: string }
 
+/**
+ * บันทึก failure ลง log stream ของ Edge Function — จุดเดียวที่รู้เรื่องนี้ได้จากฝั่งเซิร์ฟเวอร์
+ *
+ * ก่อนหน้านี้ทั้งไฟล์ไม่มี log สักบรรทัด ทุกทางที่ล้ม (commit ชน constraint/RLS/deadlock,
+ * คีย์ใน env พัง, room หาย) คืน error code สั้น ๆ ให้ client แล้วหายไป — log stream ว่างเปล่า
+ * ไม่ว่าจะพังหนักแค่ไหน ฝั่งเราจึงไม่มีทางรู้เลยว่าห้อง PvP กำลังพังอยู่จนกว่าจะมีคนบ่น
+ *
+ * เขียนเป็น JSON บรรทัดเดียวเพราะ Supabase log explorer ค้นและกรองแบบ structured ได้
+ * (ต่างจากข้อความปนกันที่ต้อง grep เอาเอง) ตั้งใจไม่ log ตัว state/input — มันใหญ่มากและ
+ * ไม่ได้ช่วยวินิจฉัยเพิ่มจาก error ที่แนบมาแล้ว
+ */
+function logFailure(fn: string, detail: Record<string, unknown>): void {
+  try {
+    console.error(JSON.stringify({ fn, ...detail }))
+  } catch {
+    console.error(`{"fn":"${fn}","err":"unserializable"}`)
+  }
+}
+
+/** เหตุการณ์ที่คาดไว้แล้วและระบบรับมือเองได้ — ต้องเห็นใน log แต่ต้องไม่ปนกับของที่พังจริง */
+function logRetry(fn: string, detail: Record<string, unknown>): void {
+  try {
+    console.log(JSON.stringify({ fn, ...detail }))
+  } catch {
+    console.log(`{"fn":"${fn}","event":"unserializable"}`)
+  }
+}
+
+function describeError(error: unknown): unknown {
+  if (error && typeof error === 'object') {
+    const source = error as Record<string, unknown>
+    return {
+      name: source.name,
+      message: source.message,
+      code: source.code,
+      details: source.details,
+      hint: source.hint,
+    }
+  }
+  return String(error)
+}
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -48,13 +90,19 @@ function json(body: unknown, status = 200): Response {
   })
 }
 
-function readDefaultKeySet(name: 'SUPABASE_PUBLISHABLE_KEYS' | 'SUPABASE_SECRET_KEYS'): string | null {
+function readDefaultKeySet(
+  name: 'SUPABASE_PUBLISHABLE_KEYS' | 'SUPABASE_SECRET_KEYS',
+): string | null {
   const raw = Deno.env.get(name)
   if (!raw) return null
   try {
     const keys = JSON.parse(raw) as Record<string, unknown>
     return typeof keys.default === 'string' ? keys.default : null
-  } catch {
+  } catch (error) {
+    // env ที่ตั้งไว้แต่ parse ไม่ออก ต่างจาก env ที่ไม่ได้ตั้งเลยโดยสิ้นเชิง — ทั้งคู่คืน null
+    // เหมือนกันแล้วไปโผล่เป็น SERVER_CONFIG_MISSING 500 ใบเดียวกัน ถ้าไม่ log ตรงนี้
+    // คนที่มาไล่จะเห็นแค่ "ไม่ได้ตั้งค่า" ทั้งที่ตั้งไว้แล้วแต่ JSON เสีย
+    logFailure('readDefaultKeySet', { keySet: name, err: describeError(error) })
     return null
   }
 }
@@ -129,6 +177,13 @@ export async function handlePvPAuthorityRequest(request: Request): Promise<Respo
   const secretKey =
     readDefaultKeySet('SUPABASE_SECRET_KEYS') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   if (!supabaseUrl || !publishableKey || !secretKey) {
+    logFailure('handlePvPAuthorityRequest', {
+      error: 'SERVER_CONFIG_MISSING',
+      // ค่าคีย์ห้ามลง log เด็ดขาด — บอกแค่ว่าตัวไหนหายพอวินิจฉัยแล้ว
+      hasSupabaseUrl: Boolean(supabaseUrl),
+      hasPublishableKey: Boolean(publishableKey),
+      hasSecretKey: Boolean(secretKey),
+    })
     return json({ error: 'SERVER_CONFIG_MISSING' }, 500)
   }
 
@@ -137,15 +192,29 @@ export async function handlePvPAuthorityRequest(request: Request): Promise<Respo
   })
   const { data: userData, error: userError } = await authClient.auth.getUser(jwt)
   const playerId = userData.user?.id
-  if (userError || !playerId) return json({ error: 'AUTH_INVALID' }, 401)
+  if (userError || !playerId) {
+    logFailure('handlePvPAuthorityRequest', {
+      error: 'AUTH_INVALID',
+      err: userError ? describeError(userError) : 'no user in token',
+    })
+    return json({ error: 'AUTH_INVALID' }, 401)
+  }
 
   let rawBody: unknown
   try {
     rawBody = await request.json()
-  } catch {
+  } catch (error) {
+    logFailure('handlePvPAuthorityRequest', {
+      error: 'INVALID_JSON',
+      playerId,
+      err: describeError(error),
+    })
     return json({ error: 'INVALID_JSON' }, 400)
   }
-  if (!isRequestBody(rawBody)) return json({ error: 'INVALID_COMMAND' }, 400)
+  if (!isRequestBody(rawBody)) {
+    logFailure('handlePvPAuthorityRequest', { error: 'INVALID_COMMAND', playerId })
+    return json({ error: 'INVALID_COMMAND' }, 400)
+  }
 
   const service = createClient(supabaseUrl, secretKey, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -158,8 +227,21 @@ export async function handlePvPAuthorityRequest(request: Request): Promise<Respo
       .eq('id', rawBody.roomId)
       .maybeSingle()
     const room = roomData as RoomRow | null
-    if (roomError || !room) return json({ error: 'ROOM_NOT_FOUND' }, 404)
+    if (roomError || !room) {
+      logFailure('handlePvPAuthorityRequest', {
+        error: 'ROOM_NOT_FOUND',
+        roomId: rawBody.roomId,
+        playerId,
+        err: roomError ? describeError(roomError) : 'no row',
+      })
+      return json({ error: 'ROOM_NOT_FOUND' }, 404)
+    }
     if (playerId !== room.host_profile_id && playerId !== room.guest_profile_id) {
+      logFailure('handlePvPAuthorityRequest', {
+        error: 'PVP_NOT_A_PARTICIPANT',
+        roomId: room.id,
+        playerId,
+      })
       return json({ error: 'PVP_NOT_A_PARTICIPANT' }, 403)
     }
     if (!room.guest_profile_id || !room.guest_hero_id) {
@@ -191,10 +273,29 @@ export async function handlePvPAuthorityRequest(request: Request): Promise<Respo
       ])
       const hostHero = hostHeroResult.data as OwnedCharacterRow | null
       const guestHero = guestHeroResult.data as OwnedCharacterRow | null
-      if (!hostHero || !guestHero) return json({ error: 'OWNED_HERO_NOT_FOUND' }, 409)
+      if (!hostHero || !guestHero) {
+        logFailure('handlePvPAuthorityRequest', {
+          error: 'OWNED_HERO_NOT_FOUND',
+          roomId: room.id,
+          playerId,
+          missingHost: !hostHero,
+          missingGuest: !guestHero,
+          err: describeError(hostHeroResult.error ?? guestHeroResult.error),
+        })
+        return json({ error: 'OWNED_HERO_NOT_FOUND' }, 409)
+      }
       const hostEntity = createRankedPlayerEntity(minimalPlayer(room.host_profile_id, hostHero))
       const guestEntity = createRankedPlayerEntity(minimalPlayer(room.guest_profile_id, guestHero))
-      if (!hostEntity || !guestEntity) return json({ error: 'PVP_ENTITY_INIT_FAILED' }, 500)
+      if (!hostEntity || !guestEntity) {
+        logFailure('handlePvPAuthorityRequest', {
+          error: 'PVP_ENTITY_INIT_FAILED',
+          roomId: room.id,
+          playerId,
+          hostHeroId: room.host_hero_id,
+          guestHeroId: room.guest_hero_id,
+        })
+        return json({ error: 'PVP_ENTITY_INIT_FAILED' }, 500)
+      }
       source = createPvPAuthorityState(
         room.id,
         { playerId: room.host_profile_id, entity: hostEntity },
@@ -208,6 +309,13 @@ export async function handlePvPAuthorityRequest(request: Request): Promise<Respo
     try {
       next = runPvPAuthorityCommand(source, playerId, rawBody, Date.now())
     } catch (error) {
+      logFailure('runPvPAuthorityCommand', {
+        error: 'PVP_COMMAND_FAILED',
+        roomId: room.id,
+        playerId,
+        action: rawBody.action,
+        err: describeError(error),
+      })
       return json({ error: error instanceof Error ? error.message : 'PVP_COMMAND_FAILED' }, 400)
     }
     const result = toRealtimePvPResult(next)
@@ -227,11 +335,44 @@ export async function handlePvPAuthorityRequest(request: Request): Promise<Respo
     if (!commitError) {
       return json({ stateVersion: committedVersion, authoritativeState: next, result })
     }
-    if (!commitError.message.includes('PVP_STATE_VERSION_CONFLICT')) {
+    /*
+      commitError ถูกทิ้งทั้งก้อนตรงนี้มาตลอด
+
+      constraint ชน, RLS ปฏิเสธ, deadlock, RPC หาย — ทั้งหมดถูกบีบเหลือ PVP_STATE_COMMIT_FAILED
+      คำเดียวส่งกลับ client แล้วตัว error จริงหายไปโดยไม่มีใครเห็น สาเหตุพวกนี้แก้คนละทางกันหมด
+      และเป็นสาเหตุที่ไม่มีทางเดาจากฝั่ง client ได้เลย ต้อง log ก่อนคืนเสมอ
+
+      แต่ version conflict ไม่ใช่ความผิดปกติ — มันคือ optimistic concurrency ทำงานถูกต้อง
+      แล้ววนไปลองใหม่ ถ้า log มันที่ระดับ error ด้วย ระดับ error จะเต็มไปด้วยเหตุการณ์ปกติ
+      จนของที่พังจริงจมหาย ซึ่งทำลายประโยชน์ของการ log ตั้งแต่แรก
+    */
+    const isVersionConflict = commitError.message.includes('PVP_STATE_VERSION_CONFLICT')
+    if (isVersionConflict) {
+      logRetry('commit_pvp_authority_state', {
+        event: 'PVP_STATE_VERSION_CONFLICT_RETRY',
+        roomId: room.id,
+        playerId,
+        attempt,
+        expectedVersion: room.state_version,
+      })
+    } else {
+      logFailure('commit_pvp_authority_state', {
+        error: 'PVP_STATE_COMMIT_FAILED',
+        roomId: room.id,
+        playerId,
+        attempt,
+        expectedVersion: room.state_version,
+        err: describeError(commitError),
+      })
       return json({ error: 'PVP_STATE_COMMIT_FAILED' }, 500)
     }
   }
 
+  logFailure('handlePvPAuthorityRequest', {
+    error: 'PVP_STATE_BUSY',
+    roomId: rawBody.roomId,
+    playerId,
+  })
   return json({ error: 'PVP_STATE_BUSY' }, 409)
 }
 

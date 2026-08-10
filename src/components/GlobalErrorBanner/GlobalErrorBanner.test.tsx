@@ -51,6 +51,29 @@ describe('GlobalErrorBanner', () => {
     vi.restoreAllMocks()
   })
 
+  /*
+    ตัวรับเคยรับแค่ (code) ทั้งที่ตัวส่งต่อส่ง (code, error) มาตลอด
+
+    สาเหตุจริงทั้งก้อนจึงถูกทิ้งเงียบ ๆ ที่ชั้นสุดท้ายก่อนถึงตาผู้เล่น ทั้งที่เดินทางมาถึงแล้ว
+    — code/details/hint ของ Supabase คือสิ่งที่แยก "RLS ปฏิเสธ" ออกจาก "เน็ตหลุด"
+  */
+  test('แสดงสาเหตุจาก error ที่แนบมาด้วย ไม่ใช่ทิ้งไปเหลือแต่รหัส', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    render(<GlobalErrorBanner />)
+
+    act(() => {
+      reportError('PLAYER_SAVE_FAIL', 'visible', {
+        message: 'permission denied for table profiles',
+        code: '42501',
+      })
+    })
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(screen.getByText(/42501 — permission denied for table profiles/)).toBeInTheDocument()
+
+    vi.restoreAllMocks()
+  })
+
   test('กดปิดแล้วแถบหาย', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const user = userEvent.setup()

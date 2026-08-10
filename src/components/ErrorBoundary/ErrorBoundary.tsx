@@ -1,8 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { ErrorCodeTag } from '../ErrorCodeTag/ErrorCodeTag'
-import { exportSave } from '../../data/accountRepository'
 import { reportError } from '../../lib/errors/reportError'
-import { downloadSaveJson } from '../../lib/saveFile'
 import styles from './ErrorBoundary.module.css'
 
 interface ErrorBoundaryProps {
@@ -13,8 +11,6 @@ interface ErrorBoundaryProps {
 
 interface ErrorBoundaryState {
   error: Error | null
-  /** ผลของการกดปุ่มสำรองข้อมูล — null คือยังไม่ได้กด */
-  backupMessage: string | null
 }
 
 /**
@@ -22,41 +18,28 @@ interface ErrorBoundaryState {
  *
  * ไม่จับ error ที่เกิดนอก React render cycle (R3F useFrame,
  * async callback) — ตัวนั้นดักด้วย window 'error'/'unhandledrejection' แยกใน main.tsx
+ *
+ * ── ทำไมจอนี้ไม่มีปุ่ม "สำรองข้อมูลเป็นไฟล์" แล้ว (2026-08-10) ────────────────
+ * เคยมี และมันล้มเหลว 100% ตลอดอายุการใช้งาน รอบแรกเพราะต่อไว้กับ accountRepository ตัว
+ * localStorage เดิมที่ backend ปัจจุบันไม่เคยเขียน session ให้ (ตอบ "ยังไม่ได้ล็อกอิน" ทุกครั้ง)
+ * พอย้ายมาต่อกับ backend จริงก็ยังล้มเหลว 100% อยู่ดี เพราะ `exportSave` ฝั่ง Supabase เป็น
+ * stub ที่ hardcode คืน ok:false เสมอ ("ฟีเจอร์นี้ใช้กับบัญชี Supabase ไม่ได้")
+ *
+ * ปุ่มที่กดแล้วขึ้น error ทุกครั้งบนจอที่ผู้เล่นกำลังตกใจอยู่ แย่กว่าไม่มีปุ่มเลย — มันสัญญาสิ่งที่
+ * ให้ไม่ได้ในจังหวะที่ผู้เล่นเชื่อมันที่สุด จอนี้จึงบอกความจริงแทน: ความคืบหน้าอยู่บนเซิร์ฟเวอร์แล้ว
+ *
+ * จะเอาปุ่มกลับมาได้ก็ต่อเมื่อ `accountRepository.supabase.ts` มี export จริง (ไม่ใช่ stub) —
+ * ไฟล์นั้นเป็นของ persistence lane ดูรายละเอียด HOLD ใน MEMORY/27-error-observability-system.md
  */
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { error: null, backupMessage: null }
+  state: ErrorBoundaryState = { error: null }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { error, backupMessage: null }
+    return { error }
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     reportError('BOUNDARY_RENDER_CRASH', 'visible', error, { componentStack: info.componentStack })
-  }
-
-  /*
-    ให้ผู้เล่นเซฟข้อมูลออกมาก่อนโหลดหน้าใหม่
-
-    เกมนี้เก็บทุกอย่างไว้ใน localStorage ของเบราว์เซอร์ ไม่มี backend ให้กู้คืน ถ้าหน้าจอ
-    พังแล้วมีแต่ปุ่ม "โหลดใหม่" ผู้เล่นที่เจอปัญหาเรื้อรัง (เช่นข้อมูลในเครื่องเสียจนพังซ้ำทุกครั้ง)
-    เหลือทางเดียวคือล้างข้อมูลทิ้งทั้งหมด ปุ่มนี้ทำให้เก็บไฟล์ไว้ก่อนได้ แล้วค่อยนำเข้ากลับทีหลัง
-
-    เรียก accountRepository ตรง ๆ ไม่ผ่าน useAuth เพราะ class component ใช้ hook ไม่ได้
-    และ ณ จุดนี้ tree ข้างในพังไปแล้ว จะพึ่ง context อะไรก็ไม่ได้อยู่ดี
-  */
-  handleBackup = async () => {
-    try {
-      const result = await exportSave()
-      if (!result.ok) {
-        this.setState({ backupMessage: result.error })
-        return
-      }
-      downloadSaveJson(result.json)
-      this.setState({ backupMessage: 'ดาวน์โหลดไฟล์สำรองแล้ว' })
-    } catch (error) {
-      reportError('SAVE_EXPORT_FAIL', 'silent', error)
-      this.setState({ backupMessage: 'สำรองข้อมูลไม่สำเร็จ' })
-    }
   }
 
   render() {
@@ -68,23 +51,16 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <div className={styles.panel}>
             <h1 className={styles.title}>เกิดข้อผิดพลาด</h1>
             <p className={styles.message}>
-              เกมพบปัญหาที่ไม่คาดคิด ลองโหลดหน้าใหม่อีกครั้ง หากพังซ้ำทุกครั้ง
-              ให้กดสำรองข้อมูลเก็บไฟล์ไว้ก่อน แล้วแจ้งปัญหาพร้อมรหัสด้านล่าง
+              เกมพบปัญหาที่ไม่คาดคิด ความคืบหน้าของคุณถูกบันทึกไว้บนเซิร์ฟเวอร์แล้ว
+              ไม่ได้อยู่แค่ในเบราว์เซอร์นี้ กดโหลดใหม่เพื่อเล่นต่อได้เลย
+              หากพังซ้ำทุกครั้ง ให้แจ้งปัญหาพร้อมรหัสด้านล่าง
             </p>
             <ErrorCodeTag code="BOUNDARY_RENDER_CRASH" />
             <div className={styles.actions}>
               <button className={styles.reload} onClick={() => window.location.reload()}>
                 โหลดใหม่
               </button>
-              <button className={styles.backup} onClick={() => void this.handleBackup()}>
-                สำรองข้อมูลเป็นไฟล์
-              </button>
             </div>
-            {this.state.backupMessage ? (
-              <p className={styles.backupMessage} role="status">
-                {this.state.backupMessage}
-              </p>
-            ) : null}
           </div>
         </div>
       )

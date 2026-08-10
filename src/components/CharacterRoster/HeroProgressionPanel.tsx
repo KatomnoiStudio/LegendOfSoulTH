@@ -8,6 +8,7 @@ import {
   unlockTalent,
   upgradeSkill,
 } from '../../game/progression/progressionService'
+import { reportError } from '../../lib/errors/reportError'
 import { clampRatio, formatNumber } from '../../lib/format'
 import { useToast } from '../Toast/useToast'
 import styles from './HeroProgressionPanel.module.css'
@@ -30,15 +31,26 @@ export function HeroProgressionPanel({
 
   const expRatio = clampRatio(viewModel.currentExp, viewModel.expToNext)
 
+  /*
+    ทุกทางที่พังในไฟล์นี้เคยลงเอยที่ toast อย่างเดียว
+
+    ผลคือการอัปสกิล/พรสวรรค์/ปลุกพลังที่ถูกปฏิเสธ — ซึ่งกินทรัพยากรของผู้เล่นจริง — มองไม่เห็น
+    จากฝั่งเราเลยแม้แต่ครั้งเดียว ทั้งกรณีกติกาปฏิเสธและกรณีบันทึกไม่ลง
+  */
   async function persist(next: Player, message: string) {
     const ok = await onPlayerChange(next)
-    if (ok) showToast(message)
-    else showToast('บันทึกไม่สำเร็จ')
+    if (ok) {
+      showToast(message)
+      return
+    }
+    reportError('HERO_PROGRESSION_SAVE_FAIL', 'silent', undefined, { heroId })
+    showToast('บันทึกไม่สำเร็จ')
   }
 
   async function handleSkillUpgrade(slot: SkillSlotId) {
     const { player: next, result } = upgradeSkill(player, heroId, slot)
     if (!result.success) {
+      reportError('HERO_SKILL_UPGRADE_REJECTED', 'silent', result.error, { heroId, slot })
       showToast(result.error ?? 'อัปเกรดไม่สำเร็จ')
       return
     }
@@ -48,6 +60,7 @@ export function HeroProgressionPanel({
   async function handleTalentUnlock(nodeId: string) {
     const { player: next, result } = unlockTalent(player, heroId, nodeId)
     if (!result.success) {
+      reportError('HERO_TALENT_UNLOCK_REJECTED', 'silent', result.error, { heroId, nodeId })
       showToast(result.error ?? 'ปลดล็อกไม่สำเร็จ')
       return
     }
@@ -57,6 +70,7 @@ export function HeroProgressionPanel({
   async function handleAwakening() {
     const { player: next, result } = advanceAwakening(player, heroId)
     if (!result.success) {
+      reportError('HERO_AWAKENING_REJECTED', 'silent', result.error, { heroId })
       showToast(result.error ?? 'ปลุกพลังไม่สำเร็จ')
       return
     }
