@@ -7,9 +7,10 @@
 >
 > It is still a draft for four specific reasons, not as boilerplate caution:
 > reference/source images were used and **their original sources are not recorded**; the
-> **Adobe desktop product used in the editing pass is unnamed** and that pass left no log of
-> any kind; `public/favicon.svg` has **unknown** provenance; and the record **covers 177 of
-> 870 tracked assets** — the other 693 predate it and have no confirmed origin.
+> owner's account of an **Adobe editing pass and the machine record of it do not reconcile**,
+> and this file does not resolve that; `public/favicon.svg` has **unknown** provenance; and
+> the record **covers 177 of 870 tracked assets** — the other 693 predate it and have no
+> confirmed origin.
 >
 > Owner answers folded in 2026-08-10 (HetCreep, recorded with Codex) · Agent: Claude Code
 > (credits & legal ship-text seat)
@@ -23,9 +24,15 @@
 > - An earlier version declared the Adobe question **resolved** on the strength of an empty
 >   MCP invocation log. **That reasoning was circular** — the same file also recorded that the
 >   pass was done by hand in the desktop application, which emits no Connector telemetry
->   either way. The conclusion (mechanical) stands, but it is re-grounded on owner testimony
->   plus an unchanged generative-credit balance, and **the unknown is reopened** for the
->   desktop product's name. Caught by a QC gate before merge.
+>   either way. Caught by a QC gate before merge; the unknown was reopened.
+> - **Retracted: the by-hand desktop claim itself.** The correction above still said the pass
+>   was performed by hand in an Adobe desktop application. **The owner has stated the
+>   opposite** — the account was connected and *agents* did the work, in Claude Code on this
+>   machine, with nothing pressed by hand. That claim was never the owner's; it was inferred
+>   from the empty log and published as fact. It is withdrawn, and because the owner's account
+>   and the machine record now **contradict each other**, the file records the discrepancy
+>   instead of choosing a side — see
+>   [The Adobe step](#the-adobe-step--an-unresolved-discrepancy-2026-08-10).
 > - An earlier version claimed a 164/191 split of `assets/raw/` between script-written and
 >   directly-placed files. **That split was invented** — it did not survive checking against
 >   the repo, in either direction. Deleted; per-file routing is not recorded and is not
@@ -115,7 +122,7 @@ is a table so a new contributor is a new row, not a rewrite.
 | Contributor | Role | What they did | Tools used | Period |
 | --- | --- | --- | --- | --- |
 | Asset generator (identified privately to the owner; answered the provenance questionnaire) | Generation | Produced the source images | Codex, Google Flow, GitHub workflows + `2DGenerateSpriteSheet`, ChatGPT | Through 2026-08-10 |
-| `HetCreep` | Owner; mechanical editing | Trimmed and fitted generated images to the code's sizing/framing/slot requirements — no drawing, retouching, or compositing | Adobe application, used directly by hand (see the evidence below) | Through 2026-08-10 |
+| `HetCreep` | Owner; directed the fitting pass | Had the generated images trimmed and fitted to the code's sizing/framing/slot requirements — no drawing, retouching, or compositing, and nothing done by hand | Per the owner: an Adobe account connected to **Claude Code**, with agents carrying out the work. **The channel is disputed** — see the discrepancy below | Through 2026-08-10 |
 
 Automated repository scripts (`tools/`) are not contributors — they are build tooling, and
 they make no per-image decision. They are listed under layer 3 above for completeness.
@@ -138,85 +145,100 @@ Three layers sit between the generator and the shipped file. They are different 
 this record keeps them apart:
 
 1. **Generation** — AI output from the tools above.
-2. **A mechanical editing pass by the owner, performed by hand in an Adobe application.**
-   HetCreep personally trimmed and adjusted the generated images so they would fit the code
-   — sizing, framing, fitting the sprite and asset slots. This is neither "used exactly as
-   generated" nor "an artist redrew it": a person mechanically fitted images that already
-   existed. **No generative feature is believed to have been used** — on the grounds set out
-   below, which are owner testimony plus one route-independent indicator, not proof.
+2. **A mechanical fitting pass, agent-carried-out.** The owner's account: the generated
+   images were trimmed and adjusted to fit the code — sizing, framing, fitting the sprite
+   and asset slots — with the Adobe account connected and **agents doing the work**;
+   HetCreep states they *"did not press anything"*. This is neither "used exactly as
+   generated" nor "an artist redrew it": pixel-level fitting of images that already existed,
+   directed by the owner but executed by tooling. **Whether this ran through Adobe at all is
+   an open discrepancy** — see below; it is the reason this layer is described by what was
+   done rather than by which application did it.
 3. **Automated repository processing** — the scripts under `tools/` (frame extraction from
    sheets, background keying, de-numbering, mirroring, WebP conversion). Mechanical passes,
    verifiable in the code, involving no human decision per image.
 
 **No manual drawing, retouching, or compositing is reported** — layer 2 is fitting work, not
-artwork. Recording it accurately matters in both directions: it is more human involvement
-than "no manual editing" (which an earlier version of this file wrongly stated), and less
-than an authored art pass.
+artwork, on every account of it. Note that layers 2 and 3 describe the same *kind* of work
+(mechanical fitting), which matters for the discrepancy below.
 
-#### The Adobe step — assessed mechanical, on grounds of differing strength (2026-08-10)
+#### The Adobe step — an unresolved discrepancy (2026-08-10)
 
-The assessment is that the pass was **mechanical, not generative**. It rests on three
-separate things, and they are **not** equally strong. An earlier version of this file merged
-them and presented the weakest reading as proof; that was wrong, and the correction is set
-out here rather than hidden.
+**Two credible sources disagree about whether an Adobe step happened at all.** This record
+states both and picks neither. An earlier version of this file asserted a by-hand desktop
+Adobe session as established fact; that was an inference from an empty log, never something
+the owner had said, and it is retracted here.
 
-**(a) Owner testimony.** HetCreep states the pass was trim / size / fit-to-code — pixel-level
-edits of an image that already existed. This is the primary ground. It is a first-hand
-account by the person who performed the work; it is not independently verifiable.
+**The owner's account.** An Adobe editing pass happened. The Adobe account was connected and
+**agents carried the work out** — HetCreep states they *"did not press anything"*
+(*"ไม่ได้กด ฉันเชื่อมต่อ agents ทำให้ฉันเสร็จสรรพ"*). The work described is pixel-level
+trimming and sizing to fit the code. The application used was **Claude Code on this machine**,
+not the claude.ai web or desktop app — so, on this account, the work was agent-mediated and
+its transcripts should be on local disk.
 
-**(b) The Adobe generative-credit balance.** The owner reports it **did not decrease**. This
-is the only ground here that is **route-independent**: a generative operation consumes
-generative credits whether it is invoked through a Connector or performed by hand in the
-desktop application, so an unchanged balance is evidence that does not depend on how the
-tool was reached. Two limits, both material: it is the **owner's report** of the balance,
-not an inspected billing record; and **Adobe's credit-metering policy has not been verified
-against Adobe's live terms** by this project. This file does not characterise what Adobe's
-policy is — only what the owner reports observing.
+**The machine record.** The **"Adobe for creativity"** Connector in the Claude app (a toggle
+in the Connectors menu linking the user's Adobe account; nothing installed separately)
+exposes an MCP server with **70+ tools**. Two are generative (`image_generative_expand`,
+`image_fill_area`); one is rights-relevant (`asset_license_and_download_stock`, which licenses
+and pulls Adobe Stock assets); the rest are mechanical (`image_crop_and_resize`,
+`image_adjust_exposure`, `image_apply_gaussian_blur`, `image_remove_background`,
+`image_vectorize`, …).
 
-**(c) The MCP invocation log — narrower than it first appears.** The **"Adobe for
-creativity"** Connector in the Claude app (a toggle in the Connectors menu linking the user's
-Adobe account; nothing installed separately) exposes an MCP server with **70+ tools**. Two
-are generative (`image_generative_expand`, `image_fill_area`); one is rights-relevant
-(`asset_license_and_download_stock`, which licenses and pulls Adobe Stock assets); the rest
-are mechanical (`image_crop_and_resize`, `image_adjust_exposure`, `image_apply_gaussian_blur`,
-`image_remove_background`, `image_vectorize`, …).
-
-A search across the live Claude session store *and* the belt's session archive (8 transcripts,
-75 MB) found **zero invocations of any of those 70+ tools**; the server name appears only
-inside `tools[]` availability declarations. The absence is real rather than a failed search —
-the same pattern over the same files finds **272** `mcp__Claude_Browser__javascript_tool`
-invocations plus hundreds of further browser-tool calls, so the method demonstrably detects
+The documented asset set landed **today** — commit `3730322`, 2026-08-10,
+*"feat(hero): add Erlang Shen (spear-warrior)"*, 173 erlang-matching files — and local
+transcripts for this project run **2026-08-08 to now**, so the window containing that work is
+retained rather than expired. A search across **every** transcript location under `~/.claude`
+— `projects/` (all projects, not only this one), `session-archive/`, `sessions/`, `backups/`,
+`file-history/`, `jobs/`, `coal/`, `downloads/`; **1,727 `.jsonl` files** — found **zero
+invocations of that MCP server anywhere**: not generative, not mechanical, not Stock. The
+server name appears only inside `tools[]` availability declarations. The absence is real
+rather than a failed search: the same pattern over the same files finds **272**
+`mcp__Claude_Browser__javascript_tool` invocations, so the method demonstrably detects
 invocations.
 
-**What that log does and does not establish.** It establishes, solidly, that **no
-agent-mediated Adobe call of any kind occurred** — not generative, not mechanical, not
-Stock-licensing. It does **not** establish that no generative feature was used, because the
-pass was performed **by hand in the desktop application**, and a direct desktop session emits
-no Connector telemetry at all. Generative Fill used by hand would leave exactly the same
-empty log. Ground (c) excludes the agent-mediated route only; it cannot reach the route that
-was actually taken.
+**These do not reconcile.** On the owner's account the work was agent-mediated in Claude Code,
+which is exactly the channel that would have been logged — and the logs, searched exhaustively
+across the retained window that contains the asset set, show the connector available and never
+called. **This record does not resolve the discrepancy.** It is stated as open, and neither
+account is discarded: the owner is the only first-hand witness, and the transcript search is
+the only independent check available.
 
-**Adobe Stock, to the same standard.** `asset_license_and_download_stock` was never called
-**through the Connector**. A Stock asset licensed by hand in the desktop application would
-leave no trace there either, so this narrows the possibility rather than closing it. No Stock
-use is reported by the owner; that report, not the log, is what the position rests on.
+**One candidate explanation, offered as a candidate and not as a finding.** The trimming may
+have been performed by this repository's own `tools/` scripts — the frame-extraction and
+background-cleanup passes described as layer 3, which are verifiable in the code and do
+exactly the kind of mechanical fitting the owner describes — with the Adobe connector
+configured but never used. This is **not asserted**. It is recorded because a reader will
+reach for some reconciliation and should see the one that fits both sources, clearly marked
+as unverified.
 
-**What follows, stated at the strength the grounds support:**
+**Corroboration that survives either account: the generative-credit balance.** The owner
+reports Adobe generative credits **did not decrease**. This is **route-independent** — a
+generative operation consumes generative credits whether invoked through a connector or by
+hand — so it holds whichever account is right. Two limits, both material: it is the **owner's
+report** of the balance, not an inspected billing record; and **Adobe's credit-metering policy
+has not been verified against Adobe's live terms** by this project. This file does not
+characterise what Adobe's policy is, only what the owner reports observing.
 
-- The pass is **assessed as a human mechanical edit** — the least rights-fraught of the
-  branches that were open. Grounds (a) and (b) support it; ground (c) does not reach it.
-- **No agent-mediated Adobe call occurred at all.** This is a firm finding in its own right,
-  and it is narrower than "no generative feature entered the chain."
-- **Which Adobe desktop product was used is still unrecorded** — the tool identified above is
-  the *Connector*, and the evidence shows the Connector was never used. See KNOWN UNKNOWN #2,
-  which stays open for the product name.
+**Adobe Stock.** `asset_license_and_download_stock` was never invoked in any searched
+transcript, and no Stock use is reported by the owner. Both sources agree here; neither
+constitutes proof of a negative outside the searched channel.
 
-**Honest limits on this evidence.** The session log covers **Claude-app-mediated actions
-only** — and two things sit outside it, not one. The original **generation** (Codex, ChatGPT,
-Google Flow) happened outside it, and **the owner's own direct Adobe session is equally
-outside it**. Neither leaves a trace in the transcripts. Nothing here bears on
-[reference inputs](#reference-and-source-inputs--the-load-bearing-section), which remain the
-open, load-bearing unknown.
+**What follows, at the strength the sources support:**
+
+- **No generative feature is evidenced anywhere in the chain**, from either direction: the
+  owner reports mechanical fitting only and an unchanged credit balance, and the transcripts
+  show no generative call. The two sources disagree about whether Adobe was involved and
+  still converge on this. It is the practical conclusion, and it is unchanged by the
+  discrepancy.
+- **Whether an Adobe step occurred at all, and through what channel, is open.** See
+  KNOWN UNKNOWN #2.
+- **No agent-mediated Adobe call is recorded in any retained transcript.** That is a firm
+  finding about the record; what it implies about the work depends on which account is right.
+
+**Honest limits.** The transcripts cover **Claude-app-mediated actions only**. The original
+**generation** (Codex, ChatGPT, Google Flow) happened outside them entirely, and any work
+done outside Claude Code — by whatever route — leaves no trace in them either. Nothing here
+bears on [reference inputs](#reference-and-source-inputs--the-load-bearing-section), which
+remain the open, load-bearing unknown.
 
 ### Accounts and plans
 
@@ -280,10 +302,10 @@ work, where it can still be met.
 
 **One evidence source does exist, and an earlier version of this file wrongly said none
 did**: **Claude Code session transcripts** are retained — the live session store plus the
-belt's session archive. They are not a nothing: searching them is what established that **no
-agent-mediated Adobe call of any kind occurred**. Note what that does not cover — a by-hand
-desktop session leaves no trace in them, which is why the Adobe question is narrowed by this
-evidence rather than closed by it. Three caveats govern their use:
+belt's session archive. They are not a nothing: searching them — 1,727 `.jsonl` files across
+every location under `~/.claude` — is what established that **no agent-mediated Adobe call is
+recorded anywhere**, which is one half of the unresolved discrepancy above. Three caveats
+govern their use:
 
 1. **Local and machine-specific.** They live on the machine that produced them; they are not
    a project-wide or portable record, and another machine's history is not in them.
@@ -387,13 +409,13 @@ visible.
 | # | Unknown | Why it stays open |
 | --- | --- | --- |
 | 1 | **Original source of every reference image** | Owner: *"not currently recorded."* No prompts or seeds survive to reconstruct it, and the retained Claude Code transcripts do not reach the generation step. **The load-bearing unknown**, and the reason this file stays a DRAFT — it blocks any clean claim that the art is free of third-party input |
-| 2 | **Which Adobe desktop product was used** — and, to a lesser degree, whether any generative feature was used in it | **REOPENED 2026-08-10, same day it was wrongly closed.** The mechanical-vs-generative half is *addressed* by owner testimony plus an unchanged generative-credit balance (the one route-independent indicator), and this file assesses the pass as mechanical on that basis — but not proven: the pass ran **by hand in the desktop application**, which emits no Connector telemetry, so the zero-invocation log cannot reach it. The product identified earlier was the **Connector**, which the same log shows was never used; **the desktop product actually used remains unnamed.** See [The Adobe step](#the-adobe-step--assessed-mechanical-on-grounds-of-differing-strength-2026-08-10) |
-| 3 | **What each provider's terms actually permit** — commercial use, output ownership, whether a right survives cancelling a paid plan, disclosure duties | Tools and paid tiers are now known; the terms are not, and the ones in force at generation time are not recorded. **Adobe is on this list** — the desktop product is unnamed and its use is not fully evidenced (unknown #2), and Adobe's credit-metering policy is unverified, so its terms cannot be assumed irrelevant. Deliberately not answered here |
+| 2 | **Whether an Adobe step occurred at all — and if so, through what channel** | **WIDENED 2026-08-10.** Was narrowly "which Adobe product"; the question is now prior to that. The owner states an Adobe pass happened, agent-carried-out in Claude Code on this machine. An exhaustive search of 1,727 retained transcripts covering the window in which the documented asset set landed shows the Adobe connector **available but never invoked**, against a working control — and no other Adobe channel is evidenced. **The two accounts do not reconcile and this file does not resolve them.** A candidate explanation (the repo's own `tools/` scripts did the fitting, connector configured but unused) is recorded as a candidate, not a finding. See [The Adobe step](#the-adobe-step--an-unresolved-discrepancy-2026-08-10) |
+| 3 | **What each provider's terms actually permit** — commercial use, output ownership, whether a right survives cancelling a paid plan, disclosure duties | Tools and paid tiers are now known; the terms are not, and the ones in force at generation time are not recorded. **Adobe stays on this list** — the owner reports an Adobe pass (unknown #2), and Adobe's credit-metering policy is unverified, so its terms cannot be assumed irrelevant on the strength of an unresolved discrepancy. Deliberately not answered here |
 | 4 | **Provenance of 693 of 870 tracked assets** | Predate this record. Wukong, Pigsy, Tripitaka, walk/turnaround, UI, background, all of `assets/archive/` |
 | 5 | **`public/favicon.svg`** | Believed a URL/site icon; unverified. Ships to every visitor |
-| 6 | **Whether AI output is protectable, and who owns it** | Jurisdiction-dependent and unsettled. The human-involvement picture as reported: no drawing or retouching, but a **human mechanical fitting pass** by the owner by hand in an Adobe application (sizing/framing/slot-fitting), on top of the automated `tools/` steps. That picture rests on owner testimony (unknown #2), not on independent evidence. Whether it clears any given jurisdiction's authorship bar is a question, not a claim |
+| 6 | **Whether AI output is protectable, and who owns it** | Jurisdiction-dependent and unsettled — and the human-involvement picture got *weaker*, not stronger, on 2026-08-10: the owner states **nothing was done by hand**; the fitting pass was directed by them but carried out by agents. So every step between generator and shipped file is now machine-executed, with human involvement at the direction level only. Whether that clears any given jurisdiction's authorship bar is a question, not a claim |
 | 7 | **Visual similarity to existing commercial character designs** | Never checked, for any character |
-| 8 | **Per-asset tool mapping** — which generator produced which files, and which files went through the Adobe pass | Both are known as facts about the pipeline, not as per-file records, so per-provider terms cannot be applied per asset |
+| 8 | **Per-asset tool mapping** — which generator produced which files, and which files went through the fitting pass | Known as facts about the pipeline, not as per-file records, so per-provider terms cannot be applied per asset. Unknown #2 makes the fitting half worse: the channel itself is disputed, so there is nothing per-file to map it to |
 | 9 | **Licence for the 5 unfilled sound slots** | Not yet sourced |
 
 ---
@@ -415,11 +437,13 @@ Added by this seat:
 4. **Record provenance for the incoming Sun Wukong set in the same commit as the files** —
    the replacement set is the first chance to get an asset set right from the start rather
    than reconstructing it later.
-5. **Name the Adobe desktop product that was used** (unknown #2). One answer from the owner.
-   Without it, Adobe's terms cannot even be looked up, and the generative-credit indicator
-   cannot be checked against a metering policy. *An earlier revision struck this item as done
-   on the strength of the MCP log; that log covers the agent-mediated route only, so the item
-   is reinstated.*
+5. **Reconcile the Adobe discrepancy** (unknown #2) — the owner's account of an
+   agent-carried-out Adobe pass against 1,727 transcripts showing the connector never
+   invoked. Worth a direct look before any commercial step: check the Adobe account's own
+   activity history, which is the one record neither side has consulted, and settle whether
+   the fitting was in fact done by the repo's `tools/` scripts. *Twice mis-stated already —
+   struck as "done" on the MCP log, then re-stated as a by-hand desktop session. Neither was
+   the owner's account.*
 6. **Preserve the Claude Code session transcripts as an evidence source**, on the machines
    that hold them, for as long as any provenance question is open. They establish that no
    agent-mediated Adobe call occurred, and they are not reproducible once discarded. **Do not
@@ -450,11 +474,12 @@ every item below stops being housekeeping.**
    project cannot demonstrate what its art was derived from, and on what a defensible
    remediation looks like (re-generation from text-only inputs with logging, a similarity
    review, or accepting the risk in writing).
-2. **The Adobe step (unknown #2).** Name the desktop product internally first — that is free
-   and it changes what the lawyer is asked. The pass is *assessed* mechanical on owner
-   testimony plus an unchanged generative-credit balance, but it is not evidenced: a
-   by-hand desktop session leaves no log either way, so neither generative editing nor a
-   hand-licensed Adobe Stock asset can be excluded from the record alone.
+2. **The Adobe step (unknown #2).** Try to settle it internally first — that is free and it
+   changes what the lawyer is asked. As it stands the owner reports an Adobe pass and the
+   retained transcripts show no Adobe call at all; the two do not reconcile, so the record
+   cannot say whether Adobe was in the chain. No generative use is evidenced from either
+   direction, which is the part that matters most, but a lawyer should be told the channel
+   is disputed rather than shown a clean account.
 3. **Provider terms across the tool mix and the paid tiers (unknown #3).** Which terms bind,
    whether commercial use is permitted under each, and whether anything survives a plan
    lapsing. Retrieve the terms first; do not rely on this file for them.
