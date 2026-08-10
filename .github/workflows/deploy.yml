@@ -130,7 +130,7 @@ jobs:
       # ค่า VITE_* ถูกฝังใน browser bundle อยู่แล้ว จึงไม่ใช่ server secret
       # Secrets ยังชนะเสมอ; fallback นี้มีไว้เฉพาะ fork ที่ GitHub ไม่คัดลอก Secrets จาก upstream
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://huxalspcxuhdavsvetul.supabase.co' }}
-      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'sb_publishable_7HSMOB88bsrjsM9htRLFmQ_q5MQdaXh' }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'sb_publishable_7HSMOB88bsrjsM9htRLFmQ_q5MQdaXh' }} # gitleaks:allow — Supabase publishable browser key, not a secret
       VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
     permissions:
       contents: read
