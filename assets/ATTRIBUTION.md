@@ -5,21 +5,25 @@
 > This file is a **draft prepared for HetCreep's review**. Nothing in it is a legal
 > conclusion, a legal opinion, or legal advice — the author is not a lawyer.
 >
-> It is still a draft for four specific reasons, not as boilerplate caution:
-> reference/source images were used and **their original sources are not recorded**; an
-> **Adobe editing step sits in the production chain and nobody has established whether it
-> used generative features**; `public/favicon.svg` has **unknown** provenance; and the
-> record **covers 177 of 870 tracked assets** — the other 693 predate it and have no
-> confirmed origin.
+> It is still a draft for three specific reasons, not as boilerplate caution:
+> reference/source images were used and **their original sources are not recorded**;
+> `public/favicon.svg` has **unknown** provenance; and the record **covers 177 of 870
+> tracked assets** — the other 693 predate it and have no confirmed origin.
 >
 > Owner answers folded in 2026-08-10 (HetCreep, recorded with Codex) · Agent: Claude Code
 > (credits & legal ship-text seat)
 >
-> **Revision note, same day:** an earlier version of this file stated that no manual editing
-> occurred after generation. **That was wrong** — see [Post-generation editing](#post-generation-editing).
-> The Claude account line was also corrected from one Pro plan to three accounts. Both were
-> corrected by the owner. A wrong provenance record is worse than an incomplete one, so the
-> error is recorded here rather than quietly overwritten.
+> **Revision notes, all 2026-08-10.** A wrong provenance record is worse than an incomplete
+> one, so corrections are recorded here rather than quietly overwritten:
+>
+> - An earlier version stated that no manual editing occurred after generation. **That was
+>   wrong** — see [Post-generation editing](#post-generation-editing).
+> - The Claude account line was corrected from one Pro plan to three accounts.
+> - An earlier version listed the Adobe editing step as an open question — mechanical or
+>   generative. **That is now resolved: mechanical.** See the same section; the evidence is
+>   recorded there and the unknown is struck.
+> - An earlier version said no logs of any kind were retained. Too strong — Claude Code
+>   session transcripts exist. See [Prompts, seeds, and generation logs](#prompts-seeds-and-generation-logs).
 
 ---
 
@@ -86,6 +90,19 @@ There are **three distinct handling layers** between the generator and the shipp
 and they are not interchangeable — see [Post-generation editing](#post-generation-editing)
 before treating any of them as the others.
 
+### Who has touched the assets
+
+Owner-confirmed as at 2026-08-10. More people are expected to join asset work later; this
+is a table so a new contributor is a new row, not a rewrite.
+
+| Contributor | Role | What they did | Tools used | Period |
+| --- | --- | --- | --- | --- |
+| Asset generator (identified privately to the owner; answered the provenance questionnaire) | Generation | Produced the source images | Codex, Google Flow, GitHub workflows + `2DGenerateSpriteSheet`, ChatGPT | Through 2026-08-10 |
+| `HetCreep` | Owner; mechanical editing | Trimmed and fitted generated images to the code's sizing/framing/slot requirements — no drawing, retouching, or compositing | Adobe application, used directly by hand (see the evidence below) | Through 2026-08-10 |
+
+Automated repository scripts (`tools/`) are not contributors — they are build tooling, and
+they make no per-image decision. They are listed under layer 3 above for completeness.
+
 ### Tools and services used
 
 A **mix**, varying by asset — not a single generator:
@@ -104,11 +121,11 @@ Three layers sit between the generator and the shipped file. They are different 
 this record keeps them apart:
 
 1. **Generation** — AI output from the tools above.
-2. **An editing pass by the owner, human-directed and tool-assisted.** HetCreep personally
-   trimmed and adjusted the generated images so they would fit the code — sizing, framing,
-   fitting the sprite and asset slots — working through Claude Code with an agent driving an
-   **Adobe tool**. This is neither "used exactly as generated" nor "an artist redrew it": a
-   person made the decisions and a tool executed them, on images that already existed.
+2. **A mechanical editing pass by the owner, performed by hand in an Adobe application.**
+   HetCreep personally trimmed and adjusted the generated images so they would fit the code
+   — sizing, framing, fitting the sprite and asset slots. This is neither "used exactly as
+   generated" nor "an artist redrew it": a person mechanically fitted images that already
+   existed. **No generative feature was used** — established by evidence, below.
 3. **Automated repository processing** — the scripts under `tools/` (frame extraction from
    sheets, background keying, de-numbering, mirroring, WebP conversion). Mechanical passes,
    verifiable in the code, involving no human decision per image.
@@ -118,9 +135,44 @@ artwork. Recording it accurately matters in both directions: it is more human in
 than "no manual editing" (which an earlier version of this file wrongly stated), and less
 than an authored art pass.
 
-**Which Adobe product or tool was used is not recorded**, and whether that step was purely
-mechanical or used generative features is **not established** — see KNOWN UNKNOWN #2, which
-is why this correction is not merely a bookkeeping fix.
+#### The Adobe step — RESOLVED as mechanical (2026-08-10)
+
+The tool is **"Adobe for creativity"**, a built-in **Connector in the Claude app** — a toggle
+in the Connectors menu that links the user's Adobe account; nothing is installed separately.
+Its MCP server exposes **70+ tools**. Only **two** are generative
+(`image_generative_expand`, `image_fill_area`), and one other is rights-relevant
+(`asset_license_and_download_stock`, which licenses and pulls Adobe Stock assets). The rest
+are mechanical — `image_crop_and_resize`, `image_adjust_exposure`,
+`image_apply_gaussian_blur`, `image_remove_background`, `image_vectorize`, and so on.
+
+**Evidence.** A search across the live Claude session store *and* the belt's session archive
+(8 transcripts, 75 MB) for invocations of that MCP server returned **zero invocations of any
+of its 70+ tools** — not the two generative ones, not `asset_license_and_download_stock`, not
+even the mechanical crop tools. The server name appears only inside `tools[]` availability
+declarations, i.e. as an offered capability that was never called.
+
+**Why that absence is admissible rather than a failed search.** The same pattern over the
+same files finds **272** `mcp__Claude_Browser__javascript_tool` invocations plus hundreds of
+further browser-tool calls. The method demonstrably detects invocations; the Adobe absence is
+a real absence.
+
+**What follows:**
+
+- **No Generative Fill and no Generative Expand entered the chain.** There is no third
+  generator. The rights chain has the generation tools and nothing further.
+- **No Adobe Stock asset entered the chain either** — `asset_license_and_download_stock` was
+  never called, which closes a licensing route that would otherwise have been open.
+- **The mechanical Adobe tools were not agent-invoked either.** Stated plainly rather than
+  glossed: the trimming pass was done by the owner **directly in the Adobe application**,
+  with no agent driving it. It is a **human mechanical edit** — the least rights-fraught of
+  the three possibilities that were open, and now the recorded one.
+
+**Honest limit on this evidence.** It covers **Claude-app-mediated actions only**. The
+original **generation** — Codex, ChatGPT, Google Flow — happened outside this log and is
+**not** covered by it. Resolving the Adobe question resolves the Adobe question; it says
+nothing about the generation step or about
+[reference inputs](#reference-and-source-inputs--the-load-bearing-section), which remain the
+open, load-bearing unknown.
 
 ### Accounts and plans
 
@@ -177,10 +229,25 @@ before release.
 
 ### Prompts, seeds, and generation logs
 
-**None retained.** No prompt archive, no seed record, no generation log. There is nothing
-to reconstruct provenance from after the fact — which is why the recording duty in
-[Follow-ups](#follow-ups-owner-listed-plus-additions) applies to *future* work, where it
-can still be met.
+**No prompts or seeds for the image generation itself were retained.** That part stands:
+there is no way to reconstruct what any given image was generated from, which is why the
+recording duty in [Follow-ups](#follow-ups-owner-listed-plus-additions) applies to *future*
+work, where it can still be met.
+
+**One evidence source does exist, and an earlier version of this file wrongly said none
+did**: **Claude Code session transcripts** are retained — the live session store plus the
+belt's session archive. They are not a nothing: searching them is exactly what resolved the
+Adobe question above, and they are the reason that resolution rests on machine evidence
+rather than recollection. Three caveats govern their use:
+
+1. **Local and machine-specific.** They live on the machine that produced them; they are not
+   a project-wide or portable record, and another machine's history is not in them.
+2. **Never committed to this repository.** They contain everything a session touched. They
+   are an evidence source to *consult*, not an artefact to publish — do not add them, quote
+   them wholesale, or mirror them into the repo.
+3. **Claude-app-mediated work only.** They record what happened through Claude Code. The
+   image generation (Codex, ChatGPT, Google Flow) happened outside them and leaves no trace
+   in them. Their coverage stops exactly where the load-bearing unknown begins.
 
 ---
 
@@ -269,15 +336,17 @@ attributes.
 ## KNOWN UNKNOWNS
 
 Every open question, restated rather than dropped. An unanswered question is a finding.
+Resolved rows stay in place, struck and dated, so the numbering survives and the history is
+visible.
 
 | # | Unknown | Why it stays open |
 | --- | --- | --- |
-| 1 | **Original source of every reference image** | Owner: *"not currently recorded."* No prompts, seeds, or logs survive to reconstruct it. Blocks any clean claim that the art is free of third-party input |
-| 2 | **Whether the Adobe editing step was mechanical or generative** — and **which Adobe product/tool** it was | If it was purely mechanical (crop, resize, background removal, masking, format conversion) it adds nothing to the rights chain. If it used generative features (Generative Fill, Generative Expand, anything Firefly-backed) then there is a **third generator in the chain**, with its own separate terms and its own unrecorded inputs — which would **compound** unknown #1 rather than sit beside it. Nobody has established which. The product name is unrecorded too, so the terms cannot even be looked up yet |
-| 3 | **What each provider's terms actually permit** — commercial use, output ownership, whether a right survives cancelling a paid plan, disclosure duties | Tools and paid tiers are now known; the terms are not, and the ones in force at generation time are not recorded. If unknown #2 resolves to "generative", Adobe's terms join this list. Deliberately not answered here |
+| 1 | **Original source of every reference image** | Owner: *"not currently recorded."* No prompts or seeds survive to reconstruct it, and the retained Claude Code transcripts do not reach the generation step. **The load-bearing unknown**, and the reason this file stays a DRAFT — it blocks any clean claim that the art is free of third-party input |
+| 2 | ~~**Whether the Adobe editing step was mechanical or generative** — and which Adobe product it was~~ | **RESOLVED 2026-08-10 — mechanical.** Tool identified as the "Adobe for creativity" Claude-app Connector; zero invocations of any of its 70+ MCP tools across the live session store and the 8-transcript / 75 MB session archive, against a control showing 272 browser-tool invocations by the same method. No Generative Fill, no Generative Expand, no Adobe Stock licensing, and no agent-driven editing at all — the pass was human and mechanical. Row kept, struck, for the record; see [The Adobe step](#the-adobe-step--resolved-as-mechanical-2026-08-10) |
+| 3 | **What each provider's terms actually permit** — commercial use, output ownership, whether a right survives cancelling a paid plan, disclosure duties | Tools and paid tiers are now known; the terms are not, and the ones in force at generation time are not recorded. Adobe is **not** on this list — unknown #2 resolved mechanical, so no Adobe-generated content entered the chain. Deliberately not answered here |
 | 4 | **Provenance of 693 of 870 tracked assets** | Predate this record. Wukong, Pigsy, Tripitaka, walk/turnaround, UI, background, all of `assets/archive/` |
 | 5 | **`public/favicon.svg`** | Believed a URL/site icon; unverified. Ships to every visitor |
-| 6 | **Whether AI output is protectable, and who owns it** | Jurisdiction-dependent and unsettled. The human-involvement facts are now: no drawing or retouching, but a human-directed fitting pass by the owner (sizing/framing/slot-fitting) on top of the automated `tools/` steps. Whether that clears any given jurisdiction's authorship bar is a question, not a claim |
+| 6 | **Whether AI output is protectable, and who owns it** | Jurisdiction-dependent and unsettled. The human-involvement facts are now settled: no drawing or retouching, but a **human mechanical fitting pass** done by the owner by hand in an Adobe application (sizing/framing/slot-fitting), on top of the automated `tools/` steps. Whether that clears any given jurisdiction's authorship bar is a question, not a claim |
 | 7 | **Visual similarity to existing commercial character designs** | Never checked, for any character |
 | 8 | **Per-asset tool mapping** — which generator produced which files, and which files went through the Adobe pass | Both are known as facts about the pipeline, not as per-file records, so per-provider terms cannot be applied per asset |
 | 9 | **Licence for the 5 unfilled sound slots** | Not yet sourced |
@@ -301,18 +370,20 @@ Added by this seat:
 4. **Record provenance for the incoming Sun Wukong set in the same commit as the files** —
    the replacement set is the first chance to get an asset set right from the start rather
    than reconstructing it later.
-5. **Establish what the Adobe step actually did, and name the product** — mechanical or
-   generative (unknown #2). This is the cheapest open question here: it is one answer from
-   the person who ran it, and it decides whether the rights chain has two generators or
-   three. Answer it before the provider-terms work below, because it determines whose terms
-   are even on the list.
-6. **Retrieve and archive each provider's applicable terms** (OpenAI, Google, Anthropic,
-   GitHub — plus Adobe if #5 resolves to generative) rather than relying on recollection —
-   see unknown #3.
-7. **Resolve or replace `public/favicon.svg`.** Replacing it is cheaper than verifying it.
-8. **Keep account identifiers out of this repository permanently**, including out of any
+5. ~~**Establish what the Adobe step actually did, and name the product.**~~ **DONE
+   2026-08-10 — mechanical**, on machine evidence (unknown #2). Kept struck rather than
+   deleted so the closure is visible.
+6. **Preserve the Claude Code session transcripts as an evidence source**, on the machines
+   that hold them, for as long as any provenance question is open. They resolved item 5 and
+   they are not reproducible once discarded. **Do not commit them to this repository** — see
+   the caveats in [Prompts, seeds, and generation logs](#prompts-seeds-and-generation-logs).
+7. **Retrieve and archive each provider's applicable terms** (OpenAI, Google, Anthropic,
+   GitHub) rather than relying on recollection — see unknown #3. Adobe is not on this list;
+   item 5 closed that.
+8. **Resolve or replace `public/favicon.svg`.** Replacing it is cheaper than verifying it.
+9. **Keep account identifiers out of this repository permanently**, including out of any
    future revision of this file.
-9. Any commit that adds, replaces, or removes a tracked asset updates this file in the same
+10. Any commit that adds, replaces, or removes a tracked asset updates this file in the same
    commit — the same discipline `MEMORY.md` and `TASKS.md` already carry. A new asset with
    no row here is the finding, not an oversight to fix later.
 
@@ -325,20 +396,21 @@ Questions, **not** conclusions. The repo already ships a currency shop
 payment gateway wired**, so no real money moves today. **The day a gateway is connected,
 every item below stops being housekeeping.**
 
-1. **Unrecorded reference inputs (unknown #1) — now the first question, not the third.**
-   Reference images were used; their sources are unknown; no logs survive. A lawyer would
-   need to advise on exposure given that the project cannot demonstrate what its art was
-   derived from, and on what a defensible remediation looks like (re-generation from
+1. **Unrecorded reference inputs (unknown #1) — the first question, and now the only one of
+   its kind left.** Reference images were used; their sources are unknown; no prompts or
+   seeds survive, and the retained transcripts do not reach the generation step. A lawyer
+   would need to advise on exposure given that the project cannot demonstrate what its art
+   was derived from, and on what a defensible remediation looks like (re-generation from
    text-only inputs with logging, a similarity review, or accepting the risk in writing).
-2. **The Adobe step (unknown #2).** Answer the mechanical-vs-generative question *before*
-   the lawyer is engaged — it is free to answer internally and it changes what they are
-   being asked. If generative, it adds a third generator with its own terms and its own
-   unrecorded inputs, on top of question 1 rather than beside it.
+2. ~~**The Adobe step.**~~ **Closed 2026-08-10 before reaching a lawyer** — resolved
+   mechanical on machine evidence, so there is no third generator and no Adobe Stock
+   licensing to advise on. Listed struck because narrowing what a lawyer is asked is worth
+   as much as adding to it.
 3. **Provider terms across the tool mix and the paid tiers (unknown #3).** Which terms bind,
    whether commercial use is permitted under each, and whether anything survives a plan
    lapsing. Retrieve the terms first; do not rely on this file for them.
 4. **Ownership and copyrightability of the output (unknown #6).** Whether the owner's
-   human-directed fitting pass plus the automated `tools/` processing supplies the human
+   human mechanical fitting pass plus the automated `tools/` processing supplies the human
    authorship some jurisdictions require. Practical consequence if not: the project may
    still *use* the art but may be unable to stop others copying it.
 5. **Scope (unknown #4).** Whether 693 undocumented assets can ship commercially on an
