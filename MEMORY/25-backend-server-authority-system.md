@@ -100,3 +100,20 @@ _before_ applying `0001_init.sql`, so `handle_new_user()` never runs.
   lock 42501s `savePlayer`, which `useAuth.ts` treats as a whole-save rollback (team/friends/flags
   too). New server-owned table `lobby_progression_commits`: never prune it — a deleted row makes
   its transaction id replayable, same trap as the currency ledger.
+- `20260810160000_security_audit_hardening_wave1.sql` (audit F1-F8) — **written, NOT applied**,
+  owner relay owed, paste strictly AFTER 20260810100000 and 20260810130000. Contents: guest
+  cleanup rewritten to inactivity (F1, deadline was ~2026-09-06), EXECUTE sweep over 12 DEFINER
+  RPCs with the 4 cron jobs getting NO grant at all (F2), the grant_item 3-arg overload drop
+  finally in a FILE (F3 — the prod hand-fix from item 148 previously existed nowhere replayable),
+  server item_catalog + grant_item check (F4 — **new items now need a catalog insert migration**),
+  validate-before-rate-limit + denial `raise warning` (F5), pending-reward bounds/row-cap-64 (F6),
+  gem-only gacha banner CHECK (F8). F7 (within-level exp monotonicity) documented as accepted
+  residual in the file header — an attacker's best move is already the direct +20 level claim, the
+  guard defends against nobody's best move; real fix is scope C. Triple-paste proven safe in
+  PGlite. New lessons this pass: (1) **an apply-time backfill poisons activity heuristics** —
+  20260810100000 stamped `signup` ledger rows on every account at APPLY time, so any "recent
+  currency row = active" test must exclude `source='signup'` or every guest reads active for 30
+  days post-apply; (2) **fresh-env parity of prod hand-fixes**: any SQL ever run by hand in the
+  SQL Editor MUST land in a migration file, or CI/PGlite/db-reset silently diverges from prod —
+  the grant_item overload sat in that gap for 2 days with the integration harness actively
+  recreating it.
