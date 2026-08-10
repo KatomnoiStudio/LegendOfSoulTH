@@ -115,7 +115,19 @@ By design, not bugs — don't file these:
   hand-applied, in `supabase/migrations/20260810160000_security_audit_hardening_wave1.sql`. The same
   migration revokes EXECUTE from `public`/`anon`/`authenticated` on the maintenance RPCs that had
   shipped without it — including two account-deletion jobs an unauthenticated caller could otherwise
-  invoke. Report the same _class_ of bug elsewhere.)
+  invoke. Also on 2026-08-10, a hero upgrade's _effect_ persisted while its _cost_ evaporated:
+  `savePlayer` could write `skill_levels`/`talent_state`/`awakening_state` but not `profiles.gold`
+  (column-locked since `0009`), so the client's gold debit was dropped on save — free, unlimited
+  upgrades. `commit_lobby_battle_progression` handed the same three columns out a second way, as
+  unvalidated `SECURITY DEFINER` parameters no client-side revoke could reach. Closed by
+  `supabase/migrations/20260810180000_p26_progression_cost_authority.sql`: an RLS-locked
+  `progression_cost_catalog` the server prices from (the client never sends a price), a
+  `spend_progression_upgrade` RPC that debits and applies in one transaction with a compare-and-swap
+  on true server state as the replay guard, `revoke update on public.owned_characters from
+authenticated` with no re-grant, and the removal of the three progression parameters from
+  `commit_lobby_battle_progression`'s signature. **That migration is not yet applied** — it is
+  sequenced to land after the client build that stops using the old shapes. Report the same _class_
+  of bug elsewhere.)
 - **"I changed Star/Shard values in React state or called the preview calculator."** The preview
   is presentation-only. Report it only if the change persists in Supabase without a valid
   `ascend_character_star` transaction.

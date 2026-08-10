@@ -1,9 +1,132 @@
 # Changelog
 
-รูปแบบอิง [Keep a Changelog 2.0.0](https://keepachangelog.com/en/2.0.0/)
-เวอร์ชันอิง [Semantic Versioning 2.0.0](https://semver.org/)
+Format based on [Keep a Changelog 2.0.0](https://keepachangelog.com/en/2.0.0/).
+Versioning follows [Semantic Versioning 2.0.0](https://semver.org/).
+
+> **Language:** entries are written in English. Releases 0.15.1 and earlier carry
+> some Thai and are left as written — a shipped release note records what was said
+> at the time; it is not a document to retrofit.
 
 ## [Unreleased]
+
+## [0.17.0] - 2026-08-10
+
+No new toys. This release swaps the material of an existing skeleton. All of it
+traces to one 12-agent audit (MEMORY.md item 189) that returned 52 findings,
+worked off across nine belt lanes, each cleared by a QC gate spawned fresh.
+**Every lane was bounced at least once, and nearly every blocking finding was the
+same species: correct code with nothing pinning it there.**
+
+### Security
+
+- **Mass account-deletion RPCs were callable without authenticating.** Twelve
+  SECURITY DEFINER functions shipped with no EXECUTE revoke, and four of them are
+  deletion or cleanup jobs with no `auth.uid()` guard — "delete every dormant
+  account" sat one HTTP call away from the anon key. The four cleanup jobs now
+  revoke **from `authenticated` by name** — Supabase's bootstrap grants that role
+  directly, so revoking `public, anon` alone would have left them wide open — while
+  the eight client-callable RPCs keep it deliberately and gate on `auth.uid()` in
+  the body (`20260810160000`)
+- **`grant_item` never validated the item id** — self-mint anything into your own
+  inventory, including unreleased items. Closed with an RLS-locked `item_catalog`
+  no client role can read or write, seeded 1:1 against `items.ts`
+- **Two `grant_item` overloads coexisted.** The surviving 3-argument one had no
+  ledger idempotency at all. Production had been hand-patched, but the fix lived
+  in no migration file, so every fresh environment silently rebuilt the hole
+- **The rate limiter never recorded a denial**, and a malformed argument throttled
+  nothing. Validation now runs before the rate-limit call, and `raise warning` is
+  the one channel that survives the rollback
+
+### Fixed
+
+- **Cleanup jobs deleted on account AGE, not inactivity — both of them.** A guest
+  playing daily was deleted on day 31, and the registered-account sibling used the
+  same predicate. Measured against production: **15 of 17 accounts** qualified
+  within 30 days. Both jobs were disarmed on discovery, the predicate now reads
+  real activity, and the guest job is re-armed after a PRE-ARM count returned 0.
+  The sibling **stays disarmed** until its own PRE-ARM runs — and today's 0 is not
+  a permanent safety property (`20260810170000`)
+- **One network blip at boot bricked the game permanently** — `useAuth` session
+  restore had no `.catch()`. It now degrades to a playable guest state behind a
+  banner carrying a copyable code
+- **The crash screen's "back up your data" button was 100% broken** — on the one
+  screen that promises a player their data is safe. Deleted, not repaired: a button
+  that always errors is worse than no button. Its twin in Settings called the same
+  stub and went with it, along with the copy promising a backup file
+- **The durable pending-reward row was written too late to cover its own crash
+  window.** It now lands the moment the battle resolves, before the player touches
+  anything, and the transaction id no longer derives from the client clock — a
+  backwards clock jump used to void a whole battle's rewards while reporting success
+- **An upgrade's effect persisted while its cost evaporated** (#26/#35). `savePlayer`
+  could write `skill_levels`/`talent_state`/`awakening_state` but not `profiles.gold`,
+  column-locked since `0009` — so the client's gold debit was dropped on save. Free,
+  unlimited upgrades. Closing that door exposed a sibling: `commit_lobby_battle_progression`
+  declared the same three columns as `SECURITY DEFINER` parameters and wrote them
+  verbatim, where no client-side revoke can reach. QC measured a full upgrade sweep,
+  priced by the table at **2,940 gold**, completing for nothing. The server now prices
+  every upgrade from an RLS-locked catalog the client cannot read — no price crosses
+  the wire — and debits and applies in one transaction, with a compare-and-swap on
+  true server state as the replay guard. The three parameters were **removed from the
+  signature** rather than ignored: a retained-but-unused parameter still answers 200
+  through PostgREST, so a client writing a server-owned column would get a silent
+  success — the same lie the fix exists to end
+- **`savePlayer` silently dropped `friends`**, with a guard test that fails when
+  someone adds a field and forgets the payload
+- **Corpses shoved living enemies 105 units** — measured with a fixed-seed probe
+- **A gold-priced gacha banner would charge gems and report gold** — the schema no
+  longer permits that lie
+
+### Added
+
+- **Error egress** — a swappable sink, console-only by default. Zero egress was
+  proven rather than assumed: the Edge Function had 0 log lines across 238. Every
+  failing path now emits a structured log
+- **`assets/ATTRIBUTION.md`** — 870 shipped assets previously had no provenance
+  record of any kind; 849 now have a git-verified author. **Deliberately still a
+  draft**: reference-image sources are unrecorded, and Blender turned out to be in
+  the chain, which opens a second question about where the 3D models came from.
+  Seven correction rounds, each retraction recorded in the file rather than erased
+- **Branch protection** — PR required for outsiders, required check
+  `Continuous Integration`, `enforce_admins` deliberately false (GitHub forbids
+  self-approval; a solo owner would be locked out of their own repository)
+
+### Changed
+
+- **CI / release** — two workflows published the same required-check name and one
+  was a bare echo, which is why branch protection could not be configured correctly
+  · `deploy.yml` now runs the full `npm run ci` plus a blocking audit instead of a
+  partially-copied command list · the bundle budget set a higher ceiling for app
+  code than vendor code, contradicting its own stated rule, and classified app code
+  as vendor
+- **`tools/test-lock.sh`** — lanes may write concurrently but must take turns
+  running tests; contending for CPU produced false failures a gate cannot
+  distinguish from a real regression
+
+### Not yet live
+
+- **The progression-cost migration ships in this release but is not applied.**
+  `20260810180000` revokes UPDATE on `owned_characters` and drops the 21-argument
+  `commit_lobby_battle_progression`, both of which the currently deployed client
+  still uses. Applying it before this build reaches players turns every save into
+  a `42501` — rolling back team, friends and flags, not just progression — and
+  every battle commit into a `PGRST202`. Correct order: deploy this build, then
+  apply the migration. Until then the free-upgrade path is closed in the code and
+  open on the server
+
+### Credits
+
+- **kaoshock123** — author of **849 of the 870** shipped art assets, confirmed
+  against git history, and the questionnaire respondent whose first-hand answers
+  put the provenance record on testimony instead of inference
+- **nustanakritwithai** — external PRs taken in through the belt, plus 20 committed
+  image files (moves and format conversions rather than authorship — recorded
+  separately in the attribution file, because crediting the wrong person is a
+  different failure from counting wrong)
+- **mehvetero** — security reports that remain the origin of this release's
+  economy-side work
+- **TheColliery's belt** — a handoff on resource contention during parallel test
+  runs; every claim was checked against this repository before being adopted as
+  TASKS row 31, with four documented departures from theirs
 
 ## [0.16.0] - 2026-08-10
 
