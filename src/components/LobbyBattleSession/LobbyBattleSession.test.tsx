@@ -12,7 +12,8 @@ import type { CurrencyResult, ItemResult } from '../../data/accountRepository.sh
 import type { LobbyBattleProgressionRpcPayload } from '../../data/accountRepository.supabase'
 import type { PendingLobbyRewardRow } from '../../data/accountRepository.supabase'
 
-vi.mock('../BattleScene/BattleScene', () => {
+vi.mock('../BattleScene/BattleScene', async () => {
+  const { useRef } = await import('react')
   return {
     BattleScene: ({
       stageId,
@@ -25,19 +26,28 @@ vi.mock('../BattleScene/BattleScene', () => {
       onBattleEnd?: (res: RealtimeBattleResult) => void
       onExit: () => void
     }) => {
-      const victory = (): RealtimeBattleResult => ({
-        outcome: 'victory',
-        stageId,
-        stageName: 'ลานฝึกทดสอบ',
-        elapsedMs: 5000,
-        defeatedEnemyIds: ['shadow-soldier'],
-        damageDealt: 100,
-        damageTaken: 10,
-        earnedExp: 200,
-        earnedGold: 100,
-        droppedItems: [{ itemId: 'healing-peach', quantity: 1 }],
-        finishedAt: new Date().toISOString(),
-      })
+      /*
+        ONE battle per mount, exactly as production works: the real BattleScene holds the finished
+        result in `pendingResult` state and hands the SAME object to every continue press. Minting
+        a fresh result per click would make a retry look like a different battle and quietly void
+        every idempotency assertion in this file.
+      */
+      const resultRef = useRef<RealtimeBattleResult | null>(null)
+      const victory = (): RealtimeBattleResult =>
+        (resultRef.current ??= {
+          transactionId: `lobby:${stageId}:test-${Math.random().toString(36).slice(2, 10)}`,
+          outcome: 'victory',
+          stageId,
+          stageName: 'ลานฝึกทดสอบ',
+          elapsedMs: 5000,
+          defeatedEnemyIds: ['shadow-soldier'],
+          damageDealt: 100,
+          damageTaken: 10,
+          earnedExp: 200,
+          earnedGold: 100,
+          droppedItems: [{ itemId: 'healing-peach', quantity: 1 }],
+          finishedAt: new Date().toISOString(),
+        })
 
       return (
         <div data-testid="mock-battle-scene">
@@ -701,6 +711,7 @@ describe('F6: the durable row covers the wait for the continue press', () => {
 
   it('does not write the row twice when the player does press continue', async () => {
     const onRecordPending = vi.fn(async () => true)
+    const onExit = vi.fn()
     const player = makePlayer()
 
     render(
@@ -714,7 +725,7 @@ describe('F6: the durable row covers the wait for the continue press', () => {
         }))}
         onGrantItem={vi.fn(async (): Promise<ItemResult> => ({ ok: true as const, player }))}
         {...rewardMocks({ onRecordPending })}
-        onExit={vi.fn()}
+        onExit={onExit}
       />,
     )
 
@@ -722,9 +733,69 @@ describe('F6: the durable row covers the wait for the continue press', () => {
     const winBtn = await screen.findByTestId('btn-win')
     winBtn.click()
 
-    // Battle end records it; the pipeline sees it is already down and does not re-upsert.
-    // A second upsert is not harmful (it is an upsert on the same key) but it burns the RPC's
-    // 20-calls-per-60s rate limit for nothing.
+    /*
+      Wait for the WHOLE pipeline to finish before counting.
+
+      `waitFor(() => expect(...).toHaveBeenCalledTimes(1))` returns at the first poll that passes,
+      which is the battle-end write — the pipeline's own record call happens later and the
+      assertion would already be gone. A once-only assertion that cannot observe the second call
+      is not an assertion; this repo has shipped that shape twice. onExit is the last thing a
+      successful finalize does, so counting after it is counting at the end.
+    */
+    await waitFor(() => expect(onExit).toHaveBeenCalledTimes(1))
+
+    // Battle end recorded it; the pipeline reused that same write and did not re-upsert.
+    // A second upsert is not harmful (same key) but it burns the RPC's 20-per-60s limit.
+    expect(onRecordPending).toHaveBeenCalledTimes(1)
+  })
+
+  /*
+    The rejection shape of the same rule. onRecordPending can REJECT, not merely resolve false:
+    getSupabase() throws outright on missing env (lib/supabaseClient.ts), and with the fetch retry
+    wrapper gone a deadline abort surfaces as a thrown fetch error. Caching that rejected promise
+    made every later attempt at the same battle re-await the same rejection — the durable row
+    exists so a crash cannot lose rewards, and a permanently stuck retry loses them just as dead.
+  */
+  it('a rejected write is not cached — the next press writes again and the battle completes', async () => {
+    const onExit = vi.fn()
+    const player = makePlayer()
+    const onRecordPending = vi
+      .fn<(result: RealtimeBattleResult, transactionId: string) => Promise<boolean>>()
+      .mockRejectedValueOnce(new Error('rpc deadline exceeded'))
+      .mockResolvedValue(true)
+    const onEarnGold = vi.fn(async (): Promise<CurrencyResult> => ({
+      ok: true as const,
+      player,
+      amount: 100,
+    }))
+
+    render(
+      <LobbyBattleSession
+        player={player}
+        onPlayerChange={mockOnPlayerChange(player)}
+        onEarnGold={onEarnGold}
+        onGrantItem={vi.fn(async (): Promise<ItemResult> => ({ ok: true as const, player }))}
+        {...rewardMocks({ onRecordPending })}
+        onExit={onExit}
+      />,
+    )
+
+    screen.getByRole('button', { name: /ลานฝึกหน้าวิหาร/ }).click()
+    const winBtn = await screen.findByTestId('btn-win')
+
+    // First press: the durable write throws, so the pipeline refuses to grant anything.
+    winBtn.click()
     await waitFor(() => expect(onRecordPending).toHaveBeenCalledTimes(1))
+    expect(onEarnGold).not.toHaveBeenCalled()
+    expect(onExit).not.toHaveBeenCalled()
+
+    // Same battle, same transaction id — the player presses again on the same result panel.
+    winBtn.click()
+    await waitFor(() => expect(onExit).toHaveBeenCalledTimes(1))
+
+    // A cached rejection would have thrown again here and granted nothing, forever.
+    expect(onRecordPending).toHaveBeenCalledTimes(2)
+    expect(onRecordPending.mock.calls[1]?.[1]).toBe(onRecordPending.mock.calls[0]?.[1])
+    expect(onEarnGold).toHaveBeenCalledTimes(1)
   })
 })

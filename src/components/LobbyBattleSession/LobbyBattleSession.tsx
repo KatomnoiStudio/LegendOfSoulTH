@@ -88,17 +88,31 @@ export function LobbyBattleSession({
     re-sent — upsert_pending_lobby_reward allows only 20 calls per 60s.
 
     A write that FAILED is not cached: the player is offline or the RPC is down, and the pipeline
-    must be free to try again rather than inherit a permanent false.
+    must be free to try again rather than inherit a permanent false. FAILED covers BOTH shapes —
+    a resolved `false` AND a rejection. onRecordPending really can reject: getSupabase() throws
+    outright when the env vars are missing (lib/supabaseClient.ts), and with the fetch retry
+    wrapper gone a deadline abort surfaces as a thrown fetch error. Caching a rejected promise
+    would hand every later retry of this battle the same rejection forever — the durable row
+    exists to stop a crash losing rewards, so letting a failed write lose them permanently
+    instead is the same bug wearing a different hat.
   */
   const recordPendingOnce = useCallback(
     (result: RealtimeBattleResult, transactionId: string) => {
       const cached = recordedRef.current
       if (cached?.txId === transactionId) return cached.write
 
-      const write = onRecordPending(result, transactionId).then((ok) => {
-        if (!ok) recordedRef.current = null
-        return ok
-      })
+      const write = onRecordPending(result, transactionId).then(
+        (ok) => {
+          if (!ok) recordedRef.current = null
+          return ok
+        },
+        (cause: unknown) => {
+          recordedRef.current = null
+          // Rethrown, not swallowed: the pipeline reported RPC throws before this cache existed
+          // and must keep doing so — handleComplete turns it into a visible BATTLE_REWARD_FAIL.
+          throw cause
+        },
+      )
       recordedRef.current = { txId: transactionId, write }
       return write
     },
