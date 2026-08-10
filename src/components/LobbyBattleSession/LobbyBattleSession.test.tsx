@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import { setErrorSink, type ErrorReport } from '../../lib/errors/reportError'
 import userEvent from '@testing-library/user-event'
 import { LobbyBattleSession } from './LobbyBattleSession'
 import { lobbyBattleTransactionId } from '../../game/reward/lobbyBattleRewardPipeline'
@@ -93,6 +94,11 @@ vi.mock('../BattleScene/BattleScene', async () => {
       )
     },
   }
+})
+
+afterEach(() => {
+  // Back to the console sink — a captured sink leaking into the next file hides its reports.
+  setErrorSink(null)
 })
 
 function makePlayer(): Player {
@@ -769,6 +775,9 @@ describe('F6: the durable row covers the wait for the continue press', () => {
       amount: 100,
     }))
 
+    const reports: ErrorReport[] = []
+    setErrorSink((report) => reports.push(report))
+
     render(
       <LobbyBattleSession
         player={player}
@@ -788,6 +797,23 @@ describe('F6: the durable row covers the wait for the continue press', () => {
     await waitFor(() => expect(onRecordPending).toHaveBeenCalledTimes(1))
     expect(onEarnGold).not.toHaveBeenCalled()
     expect(onExit).not.toHaveBeenCalled()
+
+    /*
+      The rejection must reach the PLAYER, not just the cache.
+
+      recordPendingOnce nulls the cache AND rethrows, and those are two independent jobs: the
+      null keeps the retry alive, the rethrow is the only reason the player learns anything.
+      Swallow the rejection — `return false` instead of `throw cause` — and the pipeline reports
+      failure: 'progression_save', which handleComplete returns on silently because that branch
+      assumes updatePlayer already showed PLAYER_SAVE_FAIL. On this path onPlayerChange was never
+      called, so nothing showed anything: a dead "ต่อไป" button, no toast, no console line, and
+      the rewards never granted. Pin the visible tier so the swallow cannot pass as a tidy-up.
+    */
+    await waitFor(() =>
+      expect(reports.map((report) => `${report.code}:${report.tier}`)).toContain(
+        'BATTLE_REWARD_FAIL:visible',
+      ),
+    )
 
     // Same battle, same transaction id — the player presses again on the same result panel.
     winBtn.click()

@@ -45,12 +45,40 @@ server still enforces uniqueness via `(profile_id, transaction_id)` and the ledg
   writes the row the instant the runtime settles. `recordPendingOnce` hands the pipeline the same
   in-flight promise so it waits instead of racing (a late second write landing after the
   pipeline's clear would resurrect the row) and so one battle costs one RPC.
-  A FAILED write is deliberately not cached — the pipeline must be free to retry.
+  A FAILED write is deliberately not cached — the pipeline must be free to retry. FAILED means
+  BOTH a resolved `false` and a REJECTION; the reject handler nulls the cache AND rethrows, and
+  those are two independent jobs with two independent tests behind them. Deleting the null kills
+  the recovery assertion; swallowing the rethrow (`return false`) kills the visible-tier
+  assertion. Do not "simplify" the handler to `return false`: the pipeline would report
+  `progression_save`, and `handleComplete` returns on that silently because the branch assumes
+  `updatePlayer` already showed `PLAYER_SAVE_FAIL` — on this path `onPlayerChange` was never
+  called, so the player gets a dead "ต่อไป" button with no toast and no console line.
 - **F7 (2026-08-10, closed):** clock-derived id, see above.
 - **F8 (lane B, 2026-08-10):** `clearPendingLobbyReward` threw its error away and the
   `alreadyComplete` early return sat ABOVE the clear → a permanently uncleanable row re-ran the
   recovery pipeline on every lobby entry. The clear now happens before that early return; the
   dep returns `boolean`. Never reduce it back to `Promise<void>`.
+
+## Known, deliberately not fixed (QC gate 2026-08-10, recorded not actioned)
+
+- **The battle-end write failure is `'silent'`.** A player whose durable row never landed is
+  never told their victory is not yet safe. Deliberate — they can still press "ต่อไป" and the
+  pipeline retries — but whether that deserves a visible warning is an OWNER design lock, not a
+  lane fix. Do not change the tier without one.
+- **Latent seam this lane created.** The recovery effect (`LobbyBattleSession.tsx`, the
+  `onGetPendingRewards` effect) can now observe the IN-PROGRESS battle's own pending row, because
+  the row exists before `savedRef` is true — previously mutually exclusive by construction. Its
+  deps include `onExit`, which `LobbyPage.tsx` recreates every render. Unreachable today (nothing
+  re-renders LobbyPage while the result panel is up); it goes live the day anything adds an
+  energy-regen tick, a mail-badge poll, or presence. Bounded, NOT a double grant —
+  `earn_gold`/`grant_item` dedupe on `ref_id` at the DB.
+- **Pre-existing, not this lane's:** `finalizeLobbyBattleRewards` calls `onRecordPending` per
+  recovered row and the cache is per-txId, so an account sitting at the 64-row cap fires up to 64
+  `upsert_pending_lobby_reward` calls on ONE lobby entry against a 20-per-60s rate limit.
+- **Retry removal (lane B) changed this pipeline's failure modes** — worth a `resilience-audit`
+  WHEN SOMETHING ACTUALLY FAILS, not pre-emptively. Owner ruling 2026-08-10: auditing ground a
+  lane just changed is the start of the audit loop that ends in guarding conditions nobody has
+  shown can occur. Claimable if a real failure shows up.
 
 ## Open, not mine to close alone
 
