@@ -1,106 +1,171 @@
 # Asset Attribution — LegendOfSoulTH
 
-> ## ⚠️ DRAFT — NOT YET APPROVED
+> ## ⚠️ DRAFT — INCOMPLETE PROVENANCE RECORD
 >
 > This file is a **draft prepared for HetCreep's review**. Nothing in it is a legal
-> conclusion, a legal opinion, or legal advice — the author is not a lawyer. Every
-> `TODO(owner)` below marks a fact only HetCreep can supply; the file should not be
-> treated as the project's asserted attribution position until those are filled and
-> HetCreep signs off. If the game is ever monetised, the questions in
-> [Open legal questions](#open-legal-questions) should go to a real lawyer first.
+> conclusion, a legal opinion, or legal advice — the author is not a lawyer.
 >
-> Drafted 2026-08-10 · Operator: `HetCreep` · Agent: Claude Code (credits & legal ship-text seat)
+> It is still a draft for three specific reasons, not as boilerplate caution:
+> reference/source images were used and **their original sources are not recorded**;
+> `public/favicon.svg` has **unknown** provenance; and the record **covers 177 of 870
+> tracked assets** — the other 693 predate it and have no confirmed origin.
+>
+> Owner answers folded in 2026-08-10 (HetCreep, recorded with Codex) · Agent: Claude Code
+> (credits & legal ship-text seat)
 
 ---
 
-## Scope
+## Coverage — read this before anything else
 
-Every tracked non-code asset in this repository: **870 binary files** (488 `.png`,
-374 `.webp`, 8 `.ogg`) plus `public/favicon.svg`. Before this file existed, none of them
-carried any provenance record — no per-asset licence, no origin note, no manifest.
+**This is not a blanket provenance statement for the project's art.** The owner's own
+scope caveat is the governing sentence: the confirmed information *"applies primarily to
+the Erlang Shen asset set"* and *"must not be read as a provenance statement for every
+historical game asset."*
 
-This file records **origin and asserted licence**. It deliberately does **not** carry
-per-file checksums or a tamper manifest — that is a separate open task (asset supply-chain
-hardening, task #62), and moving `assets/archive/` + `assets/raw/` out of git belongs there
-too, not here.
+| Asset set | Files | Provenance status |
+| --- | --- | --- |
+| **Erlang Shen** (`*erlang-shen*` — 94 shipped `.webp`, 75 `.png` build inputs) | 169 | **Documented** below, to the level the owner could confirm |
+| **Audio** (`public/audio/sfx/`) | 8 | **Documented** — third-party, Kenney.nl, CC0 |
+| **Everything else** — Sun Wukong, Pigsy, Tripitaka, the walk/turnaround sets, UI, background, all of `assets/archive/` | 693 | **NOT DOCUMENTED.** Produced before this record existed. Assumed to have come out of a comparable AI workflow, but that is an assumption, not a confirmation |
+| `public/favicon.svg` | 1 | **UNKNOWN** — see below |
+
+A replacement **Sun Wukong** asset set is planned; it is **not yet shipped** and is not
+covered by this record either. When it ships, its provenance gets recorded at the same
+time as the files, not afterwards.
+
+Total tracked: **870 binary assets** (488 `.png`, 374 `.webp`, 8 `.ogg`) plus
+`public/favicon.svg`.
+
+This file records **origin**. It does **not** carry per-file checksums or a tamper
+manifest — that is a separate open task (asset supply-chain hardening, #62), which also
+owns moving `assets/archive/` and `assets/raw/` out of git.
+
+---
 
 ## Directory map
 
-| Directory | Files | Type | Shipped to players? | Origin |
+| Directory | Files | Type | Shipped to players? | Role |
 | --- | --- | --- | --- | --- |
-| `public/characters/` (incl. `walk/`, `turnaround/`, `erlang-shen-skill-2-fx/`) | 359 | `.webp` | Yes | AI-generated in-house, then cut/cleaned by the scripts in `tools/` |
-| `public/ui/thai/`, `public/ui/navigation/` | 14 | `.webp` | Yes | AI-generated in-house |
-| `public/backgrounds/` | 1 | `.webp` | Yes | AI-generated in-house |
-| `public/audio/sfx/` | 8 | `.ogg` | Yes | **Third-party — Kenney.nl, CC0** (see below) |
-| `public/favicon.svg` | 1 | `.svg` | Yes | Hand-authored in this repo |
-| `assets/raw/**` | 355 | `.png` | **No** — build input only | Pre-compression masters of the shipped `public/` art; same origin as their `public/` counterparts |
-| `assets/archive/**` | 133 | `.png` | **No** — retained history | Superseded generations, alternate poses/palettes, and uncut sheets (`*-source.png`, `*-sheet.png`) |
+| `public/characters/` (incl. `walk/`, `turnaround/`, `erlang-shen-skill-2-fx/`) | 359 | `.webp` | Yes | Generated art, cut/cleaned by `tools/` |
+| `public/ui/thai/`, `public/ui/navigation/` | 14 | `.webp` | Yes | Generated art |
+| `public/backgrounds/` | 1 | `.webp` | Yes | Generated art |
+| `public/audio/sfx/` | 8 | `.ogg` | Yes | **Third-party — Kenney.nl, CC0** |
+| `public/favicon.svg` | 1 | `.svg` | Yes | **Unknown origin** |
+| `assets/raw/**` | 355 | `.png` | **No** — build input only | Pre-compression masters of the shipped `public/` art |
+| `assets/archive/**` | 133 | `.png` | **No** — retained history | Superseded generations, alternate poses/palettes, uncut sheets (`*-source.png`, `*-sheet.png`) |
 
 `assets/raw/` is converted to `public/` WebP by `tools/optimize-images.mjs` (`npm run
-build:images`); the output is committed, nothing runs at CI/deploy time. `assets/archive/`
-is consumed by nothing at all — it was moved out of `public/` in commit `16f764b` so that
-88 MB of unused working files stopped being deployed to every visitor. The sheet-cutting
-scripts (`tools/cut-pigsy-*.mjs`) read from `assets/archive/` and write into `assets/raw/`.
+build:images`); output is committed, nothing runs at CI/deploy time. `assets/archive/` is
+consumed by nothing — it left `public/` in commit `16f764b` so 88 MB of unused working
+files stopped being deployed to every visitor. The sheet-cutting scripts
+(`tools/cut-pigsy-*.mjs`) read `assets/archive/` and write `assets/raw/`.
 
 ---
 
-## AI generation — the honest statement
+## How the art was made
 
-**The character art, UI art, and background art in this project were generated by AI
-agents, not drawn by hand.** The generated images were then cut into animation frames,
-background-keyed, de-numbered, mirrored, and colour-corrected in-repo by the scripts under
-`tools/` — that post-processing is original work by this project, but the underlying pixels
-came out of a generative model.
+**The character, UI, and background art was generated by AI, not drawn by hand.** The
+generated images were then cut into animation frames, background-keyed, de-numbered,
+mirrored, and colour-corrected in-repo by the scripts under `tools/`.
 
-This wording replaces the earlier claim that the art was "original — no external assets"
-in the sense a reader would normally take it (hand-authored by the team). "Not copied from
-another rightsholder's artwork" is still believed to be true; "drawn by the team" is not.
+**Those `tools/` steps are automated processing, not artwork.** The owner reports no
+manual drawing, retouching, or compositing after generation. Frame extraction and
+background cleanup are mechanical passes — this matches what the code itself shows, and it
+means there is no human-authored art pass anywhere in the pipeline to point at.
 
-Some parts of the repo still carry the older framing and should be corrected on their next
-touch — they are outside this file's edit scope:
+### Tools and services used
 
-- `tools/optimize-images.mjs` header — "ต้นฉบับที่ export มาจากโปรแกรมวาดภาพ" (originals
-  exported from a drawing program).
-- `16f764b` commit body — "artist working files". Commit history is immutable; noted for
-  the record, not for correction.
-- Several `feat(pigsy)`/`fix(pigsy)` commit messages describe sheets as "วาด" (drawn).
+A **mix**, varying by asset — not a single generator:
 
-### TODO(owner) — only HetCreep can answer these
+- Codex
+- Google Flow
+- GitHub workflows and `2DGenerateSpriteSheet` tooling
+- ChatGPT
 
-- `TODO(owner)`: **Which model / tool / service generated the images?** Nothing in this
-  repository names one. No generator string, no metadata sidecar, no note in `README.md`,
-  `MEMORY.md`, `docs/`, or any commit message. This file will not guess.
-- `TODO(owner)`: **Under which account and which plan/tier were they generated?** Most
-  image generators' commercial-use terms and output-ownership terms differ by tier
-  (free vs paid vs enterprise). The terms in force *at generation time* are the ones that
-  attach.
-- `TODO(owner)`: **Were any reference/input images supplied to the generator?** (img2img,
-  style reference, character reference, an uploaded sketch.) If any input was a third
-  party's image, that third party's rights may travel into the output regardless of the
-  generator's own terms.
-- `TODO(owner)`: **Were the prompts or the generation logs kept anywhere?** If they exist
-  outside the repo, they are the only surviving provenance evidence and should be preserved.
-- `TODO(owner)`: **Was any of the art touched by a human artist afterwards?** If a person
-  painted over frames, that pass is separately authored work and should be credited.
-- `TODO(owner)`: **`public/favicon.svg`** — confirm it was hand-authored here and not
-  lifted from an icon set.
+Because it is a mix, **different assets may sit under different providers' terms.** There
+is no single set of terms covering the art.
 
-Until the first three are answered, this project cannot state what licence, if any, the
-generator's terms impose on these files, and the "Licence asserted" section below is
-provisional.
+### Accounts and plans
+
+- **OpenAI / ChatGPT** — two **Plus**-plan accounts (paid tier).
+- **Claude** — **Pro** plan (paid tier), where Claude was used.
+
+Account identifiers and email addresses are **deliberately held privately by the owner and
+are intentionally not stored in this public-facing record.** That is correct and should
+stay that way; nothing in this repository needs them, and no future revision of this file
+should ask for them.
+
+### What this record does NOT say about terms
+
+**This file does not state what any provider's terms permit.** Not OpenAI's, not Google's,
+not Anthropic's, not GitHub's. Those terms change, they differ by plan, and the ones that
+bind are the ones that were in force at the time each asset was generated — which is not
+recorded either. Restating them from memory in an attribution record is precisely the
+failure this file exists to prevent.
+
+What is recorded here is only **which tools and which paid tiers were used**. The
+applicable terms must be retrieved from each provider and checked against the live terms
+**before any commercial release**. Flagged, not answered.
+
+---
+
+## Reference and source inputs — the load-bearing section
+
+The workflow used **all** of the following, depending on the asset:
+
+- text-only generation,
+- **image / reference inputs**,
+- other source material where appropriate.
+
+> **The original source for every reference image is not currently recorded.**
+
+That sentence is the single most consequential fact in this document, and it is stated
+without softening:
+
+- **Reference images were used.** This is confirmed by the owner, not inferred.
+- **Where those references came from is unknown.** There is no per-asset record, and per
+  the section below there are no retained prompts, seeds, or generation logs to reconstruct
+  it from.
+- **Therefore this project cannot currently assert that its art is free of third-party
+  input.** If a reference belonged to someone else, rights in it may travel into the
+  output regardless of what any generator's terms say about output ownership — and nothing
+  in the repository would show it.
+- **This is invisible in the files themselves.** No inspection of the `.png`/`.webp` set
+  can recover it. Only the person who ran the generation could, and the record was not kept
+  at the time.
+
+Where a reference's source cannot be verified, **this record says so rather than infer
+rights or ownership.** Any asset intended for commercial use needs a source-specific review
+before release.
+
+### Prompts, seeds, and generation logs
+
+**None retained.** No prompt archive, no seed record, no generation log. There is nothing
+to reconstruct provenance from after the fact — which is why the recording duty in
+[Follow-ups](#follow-ups-owner-listed-plus-additions) applies to *future* work, where it
+can still be met.
+
+---
+
+## `public/favicon.svg`
+
+Provenance **unknown**. Believed to be a URL/site icon; **not verified**. It ships to every
+visitor. Until verified, treat it as an unresolved third-party risk rather than
+project-authored work — the cheapest resolution is to replace it with something authored
+here.
 
 ---
 
 ## Licence asserted by this project
 
 The repository is MIT-licensed (`LICENSE`, Copyright (c) 2026 LegendofSoulTH). **That MIT
-grant is written for the software.** For the art this project intends the same permissive
-posture, but that intent is only enforceable to the extent the project actually holds
-rights in the output — which is exactly what the open questions below turn on. Treat the
-art's licence status as **provisional pending owner + counsel confirmation**, not as
-settled by the repo-root MIT file.
+grant is written for the software.**
 
-The 8 `.ogg` files are **not** covered by the project's own grant — see below.
+For the art the project intends the same permissive posture, but that intent is only
+enforceable to the extent the project actually holds rights in the output — which the
+unrecorded reference sources above put in question. **Treat the art's licence status as
+unresolved**, not as settled by the repo-root MIT file. The 8 `.ogg` files are covered by
+their own third-party licence, below, not by the project's grant.
 
 ---
 
@@ -108,8 +173,8 @@ The 8 `.ogg` files are **not** covered by the project's own grant — see below.
 
 ### `public/audio/sfx/` — 8 files, Kenney.nl, CC0 1.0 (public domain)
 
-Sourced from [kenney.nl](https://kenney.nl) on 2026-08-06 (verified live at the time of
-download; commit `0cb2142`, and `src/lib/audio/sounds.ts` carries the same record):
+Sourced from [kenney.nl](https://kenney.nl) on 2026-08-06, verified live at download time
+(commit `0cb2142`; the same record sits in `src/lib/audio/sounds.ts:8-13`):
 
 | File | Kenney pack |
 | --- | --- |
@@ -123,23 +188,23 @@ download; commit `0cb2142`, and `src/lib/audio/sounds.ts` carries the same recor
 | `battle-hit.ogg` | impact-sounds |
 
 CC0 1.0 Universal waives copyright worldwide and **does not require attribution**. This
-notice is kept as good practice and as a provenance record, not because CC0 compels it —
-and because a future asset audit that finds 8 files of unknown origin costs more than a
-table does. (`MEMORY.md` item 79 lists "missing Kenney CC0 attribution notice" as an open
-gap; this section closes it.)
+notice is kept as a provenance record and good practice, not because CC0 compels it.
+(`MEMORY.md` item 79 listed "missing Kenney CC0 attribution notice" as an open gap; this
+section closes it.) These 8 files are, at present, **the only assets in the project whose
+rights position is fully known.**
 
-`TODO(owner)`: the remaining registered-but-empty sound slots (`portalOpen`, `levelUp`,
-`victory`, `defeat`, lobby music) are placeholders. Whatever fills them needs its licence
-recorded here **before** the file lands, not after.
+The registered-but-empty sound slots (`portalOpen`, `levelUp`, `victory`, `defeat`, lobby
+music) are placeholders. Whatever fills them records its licence here **before** the file
+lands.
 
 ### Vendored agent-tooling content
 
 Not player-facing, listed for completeness: `.claude/skills/react-three-fiber/` and
 `.claude/skills/threejs-webgl/` are vendored MIT content from
-[`freshtechbro/claudedesignskills`](https://github.com/freshtechbro/claudedesignskills), and
+[`freshtechbro/claudedesignskills`](https://github.com/freshtechbro/claudedesignskills);
 `.agents/rules/ecc/` is vendored MIT content from
-[`affaan-m/ECC`](https://github.com/affaan-m/ECC). Their full notices live in
-`.claude/skills/THIRD_PARTY_NOTICES.md` and `.agents/rules/ecc/LICENSE` respectively.
+[`affaan-m/ECC`](https://github.com/affaan-m/ECC). Full notices live in
+`.claude/skills/THIRD_PARTY_NOTICES.md` and `.agents/rules/ecc/LICENSE`.
 
 ---
 
@@ -151,78 +216,88 @@ Hanuman, Lü Bu, Nezha — are **public-domain figures**: the underlying stories
 copyright, so no permission is needed to use the characters, their names, or their
 attributes.
 
-Two things that follow, and one that does not:
-
 - **Does follow**: the figures themselves are free to use.
 - **Does follow**: where a modern copyrighted design was the obvious reference point, this
   project reinterprets rather than reproduces it (e.g. "Astra Vale — Cosmic Force Warrior"
   as an original character instead of an existing one).
 - **Does NOT follow**: a public-domain *character* does not make a specific *depiction* of
   that character public-domain. Another studio's Sun Wukong design is still that studio's.
-  `TODO(owner)`: this is the practical reason the "were reference images supplied?" question
-  above matters — a generator steered toward an existing game's character art can land
-  closer to that art than intended, and nobody in this project has run a visual-similarity
-  check against known commercial designs.
+  With reference inputs now confirmed and their sources unrecorded, this stops being a
+  theoretical caveat: nobody has checked the generated art for visual similarity against
+  known commercial character designs, and the reference set that steered it cannot be
+  reviewed.
 
 ---
 
-## Open legal questions
+## KNOWN UNKNOWNS
 
-These are questions to route to a qualified lawyer, **not** conclusions. Each becomes
-materially more important if the game is monetised — the repo already ships a currency
-shop (`CurrencyShopModal`, `GOLD_PACKAGES`/`GEM_PACKAGES`) with `topUpGold`/`topUpGems`
-RPCs, and today no payment gateway is wired, so no real money moves. **The day a gateway
-is connected, these stop being housekeeping.**
+Every open question, restated rather than dropped. An unanswered question is a finding.
 
-### 1. Ownership and copyrightability of AI-generated output
-
-Whether purely AI-generated images attract copyright at all, and who owns them if they do,
-is unsettled and differs by jurisdiction — some registries have declined protection for
-output without sufficient human authorship. If the art turns out not to be protectable,
-the practical consequence is not that the project loses the right to *use* it, but that it
-may have no right to *stop others copying it*. That matters for a commercial game with
-distinctive characters. **The owner should confirm with a real lawyer if the game is
-monetised** — and specifically ask whether the in-repo post-processing (frame cutting,
-background keying, mirroring, colour work under `tools/`) counts as the human authorship
-that some jurisdictions require.
-
-### 2. The generator's terms of service on commercial use
-
-Image generators' terms vary on whether output may be used commercially, whether that
-right is tied to a paid tier, whether it survives cancelling the subscription, and whether
-attribution or a disclosure notice is required. The terms that bind are typically those in
-force at generation time under the account that generated. Since neither the tool nor the
-account tier is recorded anywhere in this repo, this cannot be assessed from the repository
-alone. **The owner should confirm with a real lawyer if the game is monetised**, and should
-first retrieve and archive the applicable terms.
-
-### 3. Third-party reference images as generator input
-
-If any generation used an uploaded or referenced image belonging to someone else, the
-output may carry that person's rights regardless of what the generator's terms say about
-output ownership. This is the single highest-risk unknown in the whole asset set, because
-it is invisible in the files themselves and only the person who ran the generation knows.
-**The owner should confirm with a real lawyer if the game is monetised**, and in the
-meantime should write down, per character, whether any reference input was used.
-
-### 4. Disclosure obligations
-
-Some storefronts and platforms now require a game to disclose that it contains
-AI-generated content, and some jurisdictions are moving toward labelling requirements for
-AI-generated media. This project currently ships on GitHub Pages, where no such requirement
-is known to apply. **The owner should confirm with a real lawyer if the game is monetised
-or published to a storefront** — the answer changes per platform, not per game.
-
-### 5. Player-facing credits
-
-Once the above are settled, this file's contents should be reflected in whatever
-player-facing credits screen the game ships, at least to the extent of the Kenney CC0
-acknowledgement and any AI-content disclosure that turns out to be required.
+| # | Unknown | Why it stays open |
+| --- | --- | --- |
+| 1 | **Original source of every reference image** | Owner: *"not currently recorded."* No prompts, seeds, or logs survive to reconstruct it. Blocks any clean claim that the art is free of third-party input |
+| 2 | **What each provider's terms actually permit** — commercial use, output ownership, whether a right survives cancelling a paid plan, disclosure duties | Tools and paid tiers are now known; the terms are not, and the ones in force at generation time are not recorded. Deliberately not answered here |
+| 3 | **Provenance of 693 of 870 tracked assets** | Predate this record. Wukong, Pigsy, Tripitaka, walk/turnaround, UI, background, all of `assets/archive/` |
+| 4 | **`public/favicon.svg`** | Believed a URL/site icon; unverified. Ships to every visitor |
+| 5 | **Whether AI output is protectable, and who owns it** | Jurisdiction-dependent and unsettled; with no manual art pass anywhere in the pipeline, the human-authorship argument rests entirely on the automated `tools/` steps |
+| 6 | **Visual similarity to existing commercial character designs** | Never checked, for any character |
+| 7 | **Per-asset tool mapping** — which of the four tools produced which files | The tool set is known as a set; the mapping is not, so per-provider terms cannot be applied per asset |
+| 8 | **Licence for the 5 unfilled sound slots** | Not yet sourced |
 
 ---
 
-## Maintenance
+## Follow-ups (owner-listed, plus additions)
 
-Any commit that adds, replaces, or removes a tracked asset updates this file in the same
-commit — same discipline `MEMORY.md` and `TASKS.md` already carry. A new asset with no row
-here is the finding, not an oversight to fix later.
+From the owner's record:
+
+1. **Record the source and permission basis for every third-party reference image used in
+   future work.** This is the one duty that is still fully achievable — it cannot be met
+   retroactively for existing assets.
+2. **Update this document if source-specific evidence, account terms, prompts, or
+   generation logs are recovered.**
+3. **Verify the provenance of historical non-Erlang asset sets before relying on this
+   record for commercial release or payment-system activation.**
+
+Added by this seat:
+
+4. **Record provenance for the incoming Sun Wukong set in the same commit as the files** —
+   the replacement set is the first chance to get an asset set right from the start rather
+   than reconstructing it later.
+5. **Retrieve and archive each provider's applicable terms** (OpenAI, Google, Anthropic,
+   GitHub) rather than relying on recollection — see unknown #2.
+6. **Resolve or replace `public/favicon.svg`.** Replacing it is cheaper than verifying it.
+7. **Keep account identifiers out of this repository permanently**, including out of any
+   future revision of this file.
+8. Any commit that adds, replaces, or removes a tracked asset updates this file in the same
+   commit — the same discipline `MEMORY.md` and `TASKS.md` already carry. A new asset with
+   no row here is the finding, not an oversight to fix later.
+
+---
+
+## Questions for a qualified lawyer
+
+Questions, **not** conclusions. The repo already ships a currency shop
+(`CurrencyShopModal`, `GOLD_PACKAGES`/`GEM_PACKAGES`, `topUpGold`/`topUpGems`) with **no
+payment gateway wired**, so no real money moves today. **The day a gateway is connected,
+every item below stops being housekeeping.**
+
+1. **Unrecorded reference inputs (unknown #1) — now the first question, not the third.**
+   Reference images were used; their sources are unknown; no logs survive. A lawyer would
+   need to advise on exposure given that the project cannot demonstrate what its art was
+   derived from, and on what a defensible remediation looks like (re-generation from
+   text-only inputs with logging, a similarity review, or accepting the risk in writing).
+2. **Provider terms across four tools and two paid tiers (unknown #2).** Which terms bind,
+   whether commercial use is permitted under each, and whether anything survives a plan
+   lapsing. Retrieve the terms first; do not rely on this file for them.
+3. **Ownership and copyrightability of the output (unknown #5).** With no manual art pass,
+   whether the automated `tools/` processing supplies the human authorship some
+   jurisdictions require. Practical consequence if not: the project may still *use* the art
+   but may be unable to stop others copying it.
+4. **Scope (unknown #3).** Whether 693 undocumented assets can ship commercially on an
+   assumption, or whether they need the same review — or replacement — that the Wukong set
+   is already getting.
+5. **Disclosure obligations.** Storefront and jurisdictional AI-content labelling rules
+   vary per platform. GitHub Pages today; a storefront changes the answer.
+6. **Player-facing credits.** Once the above settle, reflect this file's contents in the
+   game's credits screen — at minimum the Kenney CC0 acknowledgement plus any required AI
+   disclosure.
