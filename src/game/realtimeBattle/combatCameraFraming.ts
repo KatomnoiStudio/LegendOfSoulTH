@@ -92,6 +92,52 @@ export function computeCameraRigLimits(
   }
 }
 
+/** Scratch buffers — this runs once per rendered frame, so it must not allocate per call. */
+const relevantScratch: CameraEnemySample[] = []
+const relevantDistanceScratch: number[] = []
+
+/**
+ * The K nearest living enemies, nearest first.
+ *
+ * Equivalent to `filter(alive).toSorted(byDistance).slice(0, K)` including tie
+ * order (equal distances keep input order), but it selects in one pass into a
+ * reused K-slot buffer instead of allocating four arrays and running a full
+ * sort every frame. The returned array is the scratch buffer itself — read it
+ * before calling again.
+ */
+function selectNearestLiving(
+  player: WorldXZ,
+  enemies: CameraEnemySample[],
+  maxRelevant: number,
+): CameraEnemySample[] {
+  relevantScratch.length = 0
+  relevantDistanceScratch.length = 0
+  if (maxRelevant <= 0) return relevantScratch
+
+  for (const enemy of enemies) {
+    if (enemy.hp <= 0) continue
+
+    const distance = worldDistance2D(player, enemy.world)
+    if (relevantScratch.length === maxRelevant) {
+      if (distance >= relevantDistanceScratch[relevantScratch.length - 1]) continue
+      relevantScratch.length -= 1
+      relevantDistanceScratch.length -= 1
+    }
+
+    // Strictly-less keeps equal distances in input order, matching a stable sort.
+    let insertAt = relevantScratch.length
+    while (insertAt > 0 && distance < relevantDistanceScratch[insertAt - 1]) insertAt -= 1
+    for (let i = relevantScratch.length; i > insertAt; i -= 1) {
+      relevantScratch[i] = relevantScratch[i - 1]
+      relevantDistanceScratch[i] = relevantDistanceScratch[i - 1]
+    }
+    relevantScratch[insertAt] = enemy
+    relevantDistanceScratch[insertAt] = distance
+  }
+
+  return relevantScratch
+}
+
 /**
  * Weighted centroid of combat-relevant enemies — nearest first, bosses widen focus.
  */
@@ -100,13 +146,9 @@ export function computeEnemyGroupFocus(
   enemies: CameraEnemySample[],
   config: Pick<CombatCameraConfig, 'maxRelevantEnemies' | 'bossFramingScale'>,
 ): WorldXZ | null {
-  const living = enemies.filter((enemy) => enemy.hp > 0)
-  if (living.length === 0) return null
+  const relevant = selectNearestLiving(player, enemies, config.maxRelevantEnemies)
+  if (relevant.length === 0) return null
 
-  const sorted = [...living].toSorted(
-    (a, b) => worldDistance2D(player, a.world) - worldDistance2D(player, b.world),
-  )
-  const relevant = sorted.slice(0, config.maxRelevantEnemies)
   const hasBoss = relevant.some((enemy) => enemy.entityType === 'boss')
 
   let sumX = 0
