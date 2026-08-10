@@ -75,7 +75,7 @@
 > omitted a tool, and not an incidental one:
 >
 > - **`kaoshock123` also used Blender, and no version of this record mentioned it.** Every
->   tool this document names is an AI image generator, and the whole analysis is built on
+>   tool in the generation list produced 2D images, and the whole analysis is built on 2D
 >   generation and its reference inputs. Blender is 3D modelling and rendering — so an
 >   unknown share of the shipped art may be **renders of 3D models**, for which the rights
 >   question is not "what steered the generator" but **"where did the model come from"**, a
@@ -86,6 +86,16 @@
 >   payment-gateway section. **This is the seventh correction recorded here, and the pattern
 >   is the point**: the record's credibility rests on showing what it got wrong, not on
 >   having been right the first time.
+> - **Retracted before merge: "built from scratch is clean."** The first draft of that
+>   Blender entry closed half of a joint-highest unknown in three words, twice — the same
+>   over-claiming this file has now retracted seven times, committed while introducing the
+>   unknown that was supposed to stay open. It is also contradicted by this document's own
+>   body: a from-scratch model can depict another studio's design, its modeller worked from
+>   unrecorded reference, and "from scratch" routinely contains downloaded textures, HDRIs,
+>   rigs and animations. The narrow true point — **no third-party *model* licence attaches** —
+>   is now stated on its own, and **no provenance branch is called clean anywhere in this
+>   file.** Caught by the QC gate, which noted that the same draft never once called
+>   text-only generation clean.
 
 ---
 
@@ -181,7 +191,7 @@ is a table so a new contributor is a new row, not a rewrite.
 
 | Contributor | Role | What they did | Tools used | Period |
 | --- | --- | --- | --- | --- |
-| **`kaoshock123`** (`kaoshock123@gmail.com`) | Art author — generation | **The author of 849 of the 870 tracked assets** (all 693 non-Erlang plus 156 of the 169 Erlang files), on their own machine. The only exceptions are the 8 Kenney CC0 sound effects and the 13 `erlang-shen-skill-2-fx` frames. Owner-confirmed as **the person who answered the provenance questionnaire this document is built on**. On `master`: `62c0000` (2026-08-05, 345 asset files, "Initial commit"), `5aaba87` (193 images), `5aae711` (128), plus several smaller `feat(pigsy)` commits. Not merged, on the PR #102 branch (all 2026-08-09): `90fe738`, `91bf28b`, `e1fd040` (1,416 images), `fa9c86e` | AI generators: Codex, Google Flow, GitHub workflows + `2DGenerateSpriteSheet`, ChatGPT. **Plus Blender** (3D modelling/rendering — a different category, added to this record 2026-08-10; scope and model origin both unknown, see KNOWN UNKNOWN #10) | 2026-08-05 → 2026-08-09 |
+| **`kaoshock123`** (`kaoshock123@gmail.com`) | Art author — 2D generation **and Blender 3D work** (share of each unknown, #10) | **The author of 849 of the 870 tracked assets** (all 693 non-Erlang plus 156 of the 169 Erlang files), on their own machine. The only exceptions are the 8 Kenney CC0 sound effects and the 13 `erlang-shen-skill-2-fx` frames. Owner-confirmed as **the person who answered the provenance questionnaire this document is built on**. On `master`: `62c0000` (2026-08-05, 345 asset files, "Initial commit"), `5aaba87` (193 images), `5aae711` (128), plus several smaller `feat(pigsy)` commits. Not merged, on the PR #102 branch (all 2026-08-09): `90fe738`, `91bf28b`, `e1fd040` (1,416 images), `fa9c86e` | AI generators: Codex, Google Flow, GitHub workflows + `2DGenerateSpriteSheet`, ChatGPT. **Plus Blender** (3D modelling/rendering — a different category, added to this record 2026-08-10; scope and model origin both unknown, see KNOWN UNKNOWN #10) | 2026-08-05 → 2026-08-09 |
 | **`HetCreep`** (`zxc59217412@gmail.com`) | Owner — pipeline and fitting. **Not an art author** | **Four commits touch asset bytes**, two adding paths and two rewriting them: `16f764b` (2026-08-06, 520 images added — the `sharp` WebP conversion plus `git mv`, of which 194 are the shipped WebP) and `3730322` (2026-08-10, 193 added — the Erlang Shen set) are **layer 3**, automated processing; `64a67fd` (2026-08-07, 6 images modified, "cap oversized character sprite art") and `ff67fb1` (2026-08-08, **96 images modified**, "re-crop character sprites") are **layer 2**, the mechanical fitting pass — they are the last writer of those files' current bytes. **No image authorship in any of the four**: adding a converted or relocated copy is not authorship, and re-cropping an existing image is fitting, not drawing | Per the owner: an Adobe account connected to **Claude Code**, agents carrying out the work; plus `sharp` via `tools/` | 2026-08-05 → 2026-08-10 |
 | **`nustanakritwithai`** (`nustanakritwithai@gmail.com`) | Contributor — asset relocation and re-encoding. **Not an art author** | **Committed** 20 image files, **authored none of them**: `c58c3c2` renamed 10 `.png` with identical blob SHAs, and `062dcda` re-encoded those same 10 images to `.webp`. Every one traces byte-for-byte to `kaoshock123`'s root `62c0000` (measured below). Their contribution is restoring battle sprite and background assets after a cherry-pick, which is real work on this repository — it is simply not authorship | Not recorded | 2026-08-06 |
 
@@ -283,20 +293,35 @@ is no single set of terms covering the art.
 `kaoshock123` **also used Blender.** It is listed separately, and deliberately not appended
 to the list above, because it is not the same kind of thing.
 
-Every tool in that list is an **AI image generator**, and this entire record is built around
-generation: what the model produced, and what reference inputs steered it. **Blender is 3D
-modelling and rendering software.** If any shipped file is a **render of a 3D model** rather
-than a generated image, then for that file the rights question is not "what did the generator
-train on, and what reference was fed to it" — it is **"where did the 3D model come from"**.
-That is a different question with different answers, and the rest of this document does not
-ask it anywhere.
+Every tool in the generation list above produced **2D images**, and this entire record is
+built around 2D generation: what came out, and what reference inputs steered it. **Blender is
+3D modelling and rendering software.** If any shipped file is a **render of a 3D model**
+rather than a generated image, then for that file the rights question is not "what did the
+generator train on, and what reference was fed to it" — it is **"where did the 3D model come
+from"**. That is a different question with different answers, and the rest of this document
+does not ask it anywhere.
 
 **Two things are unknown, and this record does not guess at either:**
 
-1. **Whether the Blender models were built from scratch or downloaded.** Built from scratch
-   is clean. Downloaded — Sketchfab, BlenderKit, Mixamo, a marketplace, a free-model site —
-   means **each model carries its own licence**, with its own attribution, commercial-use and
-   redistribution terms, and **not one of them is recorded anywhere in this project.**
+1. **Whether the Blender models were built from scratch or downloaded.** Downloaded —
+   Sketchfab, BlenderKit, a marketplace, a free-model site — means **each model carries its
+   own licence**, with its own attribution, commercial-use and redistribution terms, and **not
+   one of them is recorded anywhere in this project.** Built from scratch means **no
+   third-party *model* licence attaches** — and that is the whole of what it means. It is not
+   a clean branch, and this record does not call it one:
+   - A model built from scratch can still **depict another studio's copyrighted design**. The
+     roster is Sun Wukong, Erlang Shen, Nezha; this document's own position is that a
+     public-domain *character* does not make a specific *depiction* public-domain, and
+     [nobody has run a similarity check](#known-unknowns) on any character.
+   - A modeller works **from reference** the same way a generator does, and those references
+     are as unrecorded here as the generation ones.
+   - "From scratch" routinely still contains downloaded **textures, HDRIs, material
+     libraries, rigs and animations** — each with its own licence. (Mixamo, for instance,
+     supplies rigs and animations rather than models; an earlier revision of this paragraph
+     listed it as a model source.)
+
+   So neither answer closes half (a) on its own. What each answer does is tell you **which
+   further questions to ask**.
 2. **Which shipped assets came through Blender at all.** It may be one prop. It may be the
    entire roster. Nothing in the repository distinguishes a render from a generated image,
    no `.blend` or other 3D source file is tracked here, and the owner's report does not scope
@@ -424,7 +449,7 @@ transcripts — with the same caveat that those transcripts cannot reach the rel
 within the retained window**. The generation (Codex, ChatGPT, Google Flow, on
 `kaoshock123`'s machine) and the 2026-08-06 fitting pass both sit outside that. Nothing here
 bears on [reference inputs](#reference-and-source-inputs--the-load-bearing-section), which
-remain the open, load-bearing unknown.
+remain one of the two open, load-bearing unknowns — the other being Blender (#10).
 
 ### Accounts and plans
 
@@ -458,16 +483,22 @@ applicable terms must be retrieved from each provider and checked against the li
 
 ## Reference and source inputs — the load-bearing section
 
-The workflow used **all** of the following, depending on the asset:
+The **2D generation** workflow used all of the following, depending on the asset:
 
 - text-only generation,
 - **image / reference inputs**,
 - other source material where appropriate.
 
+That list came from the questionnaire and covers the generation route only. It is **not** an
+enumeration of every way a shipped file could have been produced: a **Blender render** is a
+separate route this section does not analyse, with its own unrecorded inputs — see
+[Blender](#blender--a-different-category-of-tool-added-to-this-record-2026-08-10) and
+unknown #10.
+
 > **The original source for every reference image is not currently recorded.**
 
-That sentence is the single most consequential fact in this document, and it is stated
-without softening:
+That sentence is one of the two most consequential facts in this document — the other being
+the unrecorded Blender model origin (#10) — and it is stated without softening:
 
 - **Reference images were used.** This is confirmed by the owner, not inferred.
 - **Where those references came from is unknown.** There is no per-asset record, and per
@@ -507,7 +538,8 @@ they are kept as a record, not as support. Three caveats govern their use:
    them wholesale, or mirror them into the repo.
 3. **Claude-app-mediated work only.** They record what happened through Claude Code. The
    image generation (Codex, ChatGPT, Google Flow) happened outside them and leaves no trace
-   in them. Their coverage stops exactly where the load-bearing unknown begins.
+   in them. Their coverage stops exactly where both load-bearing unknowns begin — the
+   reference inputs (#1) and the Blender models (#10).
 
 ---
 
@@ -526,9 +558,10 @@ The repository is MIT-licensed (`LICENSE`, Copyright (c) 2026 LegendofSoulTH). *
 grant is written for the software.**
 
 For the art the project intends the same permissive posture, but that intent is only
-enforceable to the extent the project actually holds rights in the output — which the
-unrecorded reference sources above put in question. **Treat the art's licence status as
-unresolved**, not as settled by the repo-root MIT file. The 8 `.ogg` files are covered by
+enforceable to the extent the project actually holds rights in the output — which **two**
+unrecorded third-party inputs put in question: the reference sources above (#1) and the
+Blender model origins (#10). **Treat the art's licence status as unresolved**, not as settled
+by the repo-root MIT file. The 8 `.ogg` files are covered by
 their own third-party licence, below, not by the project's grant.
 
 ---
@@ -587,9 +620,11 @@ attributes.
 - **Does NOT follow**: a public-domain *character* does not make a specific *depiction* of
   that character public-domain. Another studio's Sun Wukong design is still that studio's.
   With reference inputs now confirmed and their sources unrecorded, this stops being a
-  theoretical caveat: nobody has checked the generated art for visual similarity against
-  known commercial character designs, and the reference set that steered it cannot be
-  reviewed.
+  theoretical caveat: **nobody has checked the shipped art for visual similarity against
+  known commercial character designs**, and neither steering artefact can be reviewed — for a
+  generated image that is the unrecorded reference set (#1), and for a Blender render it is
+  the **model itself** (#10), whose origin is equally unrecorded. This is where a
+  from-scratch model of another studio's design would land, and nothing here would catch it.
 
 ---
 
@@ -610,7 +645,7 @@ visible.
 | 7 | **Visual similarity to existing commercial character designs** | Never checked, for any character |
 | 8 | **Per-asset tool mapping** — which of `kaoshock123`'s generators produced which files, and which files went through the fitting pass | Author is resolved for all 693 non-Erlang assets and for 156 of the 169 Erlang files; the 13 `erlang-shen-skill-2-fx` frames are **not** traced (see above). The *tool* is resolved for none of them. The tool set is known as a set, so per-provider terms still cannot be applied per asset |
 | 9 | **Licence for the 5 unfilled sound slots** | Not yet sourced |
-| **10** | **Blender: where the 3D models came from, and which shipped assets are renders** — added 2026-08-10, **joint highest severity with #1** | `kaoshock123` also used **Blender**, which this record did not mention until now. Two halves, neither answered. **(a) Model origin**: built from scratch, or downloaded from Sketchfab / BlenderKit / Mixamo / a marketplace / a free-model site? Built = clean. Downloaded = **every model carries its own licence** — attribution, commercial-use and redistribution terms — and **none is recorded anywhere in this project**. **(b) Scope**: which shipped assets are renders rather than generated images. Could be one prop, could be the whole roster. No `.blend` or other 3D source file is tracked in this repository, nothing distinguishes a render from a generation by inspection, and the owner's report does not scope it. **Both halves are unanswered and neither is guessed at here.** Same shape as #1 — an unrecorded third-party input that may travel into the shipped art — and it applies to a class of file the rest of this document never analysed. See [Blender](#blender--a-different-category-of-tool-added-to-this-record-2026-08-10) |
+| **10** | **Blender: where the 3D models came from, and which shipped assets are renders** — added 2026-08-10, **joint highest severity with #1** | `kaoshock123` also used **Blender**, which this record did not mention until now. Two halves, neither answered. **(a) Model origin**: built from scratch, or downloaded from Sketchfab / BlenderKit / a marketplace / a free-model site? Downloaded = **every model carries its own licence** — attribution, commercial-use and redistribution terms — and **none is recorded anywhere in this project**. Built from scratch = **no third-party *model* licence attaches, and nothing more than that**: it does not resolve depicting another studio's design (unknown #7 — never checked, for any character), the modeller's own unrecorded references, or downloaded textures / HDRIs / material libraries / rigs / animations inside the model. **Neither answer closes this half**; each only says which questions come next. **(b) Scope**: which shipped assets are renders rather than generated images. Could be one prop, could be the whole roster. No `.blend` or other 3D source file is tracked in this repository, nothing distinguishes a render from a generation by inspection, and the owner's report does not scope it. **Both halves are unanswered and neither is guessed at here.** Same shape as #1 — an unrecorded third-party input that may travel into the shipped art — and it applies to a class of file the rest of this document never analysed. See [Blender](#blender--a-different-category-of-tool-added-to-this-record-2026-08-10) |
 
 ---
 
