@@ -45,6 +45,7 @@ describe('P12 private PvP room authority migration (isolated Postgres via PGLite
         event text,
         private boolean default false
       );
+      alter table realtime.messages enable row level security;
       grant select, insert on realtime.messages to authenticated;
       create or replace function realtime.topic() returns text
       language sql stable as $$ select current_setting('realtime.topic', true) $$;
@@ -191,6 +192,35 @@ describe('P12 private PvP room authority migration (isolated Postgres via PGLite
     } finally {
       await db.exec('reset role')
     }
+  })
+
+  it('delivers an authority broadcast to room participants only', async () => {
+    const room = await db.query<{ id: string }>(
+      `select id from public.pvp_rooms where host_profile_id = $1 order by created_at desc limit 1`,
+      [HOST],
+    )
+    const topic = `pvp:${room.rows[0]!.id}`
+    await db.query(
+      `insert into realtime.messages (topic, extension, event, private)
+       values ($1, 'broadcast', 'authoritative_state', true)`,
+      [topic],
+    )
+
+    const broadcastsVisibleTo = async (userId: string): Promise<number> => {
+      await setAuthenticatedUser(db, userId)
+      await db.exec(
+        `select set_config('realtime.topic', '${topic}', false); set role authenticated;`,
+      )
+      try {
+        const seen = await db.query(`select topic from realtime.messages where topic = $1`, [topic])
+        return seen.rows.length
+      } finally {
+        await db.exec('reset role')
+      }
+    }
+
+    expect(await broadcastsVisibleTo(GUEST)).toBe(1)
+    expect(await broadcastsVisibleTo(THIRD)).toBe(0)
   })
 
   it('commits authoritative state with compare-and-swap and rejects stale replay', async () => {
