@@ -47,6 +47,17 @@
 >   inferable from folder names.
 > - An earlier version said no logs of any kind were retained. Too strong — Claude Code
 >   session transcripts exist. See [Prompts, seeds, and generation logs](#prompts-seeds-and-generation-logs).
+> - **An earlier version credited 20 images to `nustanakritwithai` as their author.** Wrong,
+>   and the worst kind of wrong for this document: it named a living person as the author of
+>   someone else's work. The byte-tracing rule this file states was applied to `HetCreep`'s
+>   mechanical commits but not to theirs. Re-derived blob by blob, all 20 are `kaoshock123`'s
+>   — see the correction under
+>   [Who authored the shipped art](#who-authored-the-shipped-art-measured). Caught by the QC
+>   gate.
+> - **An earlier version asserted that Adobe's credit metering is route-independent**, one
+>   sentence before saying this file does not characterise Adobe's policy. It is now stated as
+>   the **assumption** that pillar (b) depends on, with the consequence spelled out if it is
+>   wrong.
 
 ---
 
@@ -61,7 +72,7 @@ historical game asset."*
 | --- | --- | --- |
 | **Erlang Shen** (`*erlang-shen*` — 94 shipped `.webp`, 75 `.png` build inputs) | 169 | **Documented** below, to the level the questionnaire could confirm. **156 of the 169 are byte-identical to `kaoshock123`'s own commit** — see [Who authored the shipped art](#who-authored-the-shipped-art-measured) |
 | **Audio** (`public/audio/sfx/`) | 8 | **Documented** — third-party, Kenney.nl, CC0 |
-| **Everything else** — Sun Wukong, Pigsy, Tripitaka, the walk/turnaround sets, UI, background, all of `assets/archive/` | 693 | **AUTHOR KNOWN, PROVENANCE NOT VOUCHED FOR.** Every one of the 693 traces to a named contributor (673 to `kaoshock123`, 20 to `nustanakritwithai`; measured, none unresolved). That is materially better than "unknown origin" — but `kaoshock123` explicitly declined to vouch for the historical sets, so the *generation details* behind them are undocumented |
+| **Everything else** — Sun Wukong, Pigsy, Tripitaka, the walk/turnaround sets, UI, background, all of `assets/archive/` | 693 | **AUTHOR KNOWN, PROVENANCE NOT VOUCHED FOR.** All **693** trace to `kaoshock123` (measured, none unresolved, no other author). That is materially better than "unknown origin" — but `kaoshock123` explicitly declined to vouch for the historical sets, so the *generation details* behind them are undocumented |
 | `public/favicon.svg` | 1 | **UNKNOWN** — see below |
 
 A replacement **Sun Wukong** asset set is planned; it is **not yet shipped** and is not
@@ -73,9 +84,11 @@ Total tracked: **870 binary assets** (488 `.png`, 374 `.webp`, 8 `.ogg`) plus
 
 This file records **origin**. It does **not** carry per-file checksums or a tamper
 manifest, and it does not move `assets/archive/` or `assets/raw/` out of git. That work —
-asset supply-chain hardening — was raised as finding **#62 of the 2026-08-10 asset audit**.
-It is **not** a `TASKS.md` row: no row covers it (that file runs to 28 and none of them is
-an asset row), so at the time of writing it has no claimable owner. That gap is itself
+asset supply-chain hardening — **has no durable reference anywhere in this repository.** It
+was raised in the working session that produced this file and carried an ad-hoc number
+("#62") that resolves to nothing: not a `TASKS.md` row (that file runs to 28 and none is an
+asset row), not an issue, not a document. Treat the description in this paragraph as the
+only record of it. That gap is itself
 worth closing.
 
 ---
@@ -100,7 +113,8 @@ build:images`); output is committed, nothing runs at CI/deploy time.
 
 - **Build and runtime**: consumed by nothing. It left `public/` in commit `16f764b` so
   88 MB of unused working files stopped being deployed to every visitor. No player request
-  ever reaches it, and nothing in `src/` references it.
+  ever reaches it, and no code path in `src/` loads from it — the only mention there is a
+  comment (`src/game/walkKits.ts:11`) naming a source sheet, not a load.
 - **Tooling**: actively read. The sheet-cutting scripts (`tools/cut-pigsy-*.mjs`) take their
   input sheets from `assets/archive/` and write frames into `assets/raw/`. Deleting the
   archive would break re-running them, and it would also destroy the only surviving copies
@@ -129,9 +143,9 @@ is a table so a new contributor is a new row, not a rewrite.
 
 | Contributor | Role | What they did | Tools used | Period |
 | --- | --- | --- | --- | --- |
-| **`kaoshock123`** (`kaoshock123@gmail.com`) | Art author — generation | Produced essentially all of the project's source images, on their own machine. Owner-confirmed as **the person who answered the provenance questionnaire this document is built on**. On `master`: `62c0000` (2026-08-05, 345 asset files, "Initial commit"), `5aaba87` (193 images), `5aae711` (128), plus several smaller `feat(pigsy)` commits. Not merged, on the PR #102 branch (all 2026-08-09): `90fe738`, `91bf28b`, `e1fd040` (1,416 images), `fa9c86e` | Codex, Google Flow, GitHub workflows + `2DGenerateSpriteSheet`, ChatGPT | 2026-08-05 → 2026-08-09 |
+| **`kaoshock123`** (`kaoshock123@gmail.com`) | Art author — generation | **The author of 849 of the 870 tracked assets** (all 693 non-Erlang plus 156 of the 169 Erlang files), on their own machine. The only exceptions are the 8 Kenney CC0 sound effects and the 13 `erlang-shen-skill-2-fx` frames. Owner-confirmed as **the person who answered the provenance questionnaire this document is built on**. On `master`: `62c0000` (2026-08-05, 345 asset files, "Initial commit"), `5aaba87` (193 images), `5aae711` (128), plus several smaller `feat(pigsy)` commits. Not merged, on the PR #102 branch (all 2026-08-09): `90fe738`, `91bf28b`, `e1fd040` (1,416 images), `fa9c86e` | Codex, Google Flow, GitHub workflows + `2DGenerateSpriteSheet`, ChatGPT | 2026-08-05 → 2026-08-09 |
 | **`HetCreep`** (`zxc59217412@gmail.com`) | Owner — pipeline and fitting | Directed a mechanical fitting pass (trim/size to fit the code) and built the WebP pipeline: `16f764b` (2026-08-06) converted and relocated the art, `3730322` (2026-08-10) landed the Erlang Shen set. **No image authorship** — the bytes in both commits are inherited, not created (measured below) | Per the owner: an Adobe account connected to **Claude Code**, agents carrying out the work; plus `sharp` via `tools/` | 2026-08-05 → 2026-08-10 |
-| **`nustanakritwithai`** (`nustanakritwithai@gmail.com`) | Contributor — asset fixes | Restored/resolved battle sprite and background assets: `062dcda` (2026-08-06, 10 image files) and `c58c3c2` (10) | Not recorded | 2026-08-06 |
+| **`nustanakritwithai`** (`nustanakritwithai@gmail.com`) | Contributor — asset relocation and re-encoding. **Not an art author** | **Committed** 20 image files, **authored none of them**: `c58c3c2` renamed 10 `.png` with identical blob SHAs, and `062dcda` re-encoded those same 10 images to `.webp`. Every one traces byte-for-byte to `kaoshock123`'s root `62c0000` (measured below). Their contribution is restoring battle sprite and background assets after a cherry-pick, which is real work on this repository — it is simply not authorship | Not recorded | 2026-08-06 |
 
 Automated repository scripts (`tools/`) are not contributors — they are build tooling, and
 they make no per-image decision. They are listed under layer 3 above for completeness.
@@ -161,9 +175,33 @@ its *bytes*. **Nothing is unresolved.**
 
 | Content author | Files | How they arrive |
 | --- | --- | --- |
-| `kaoshock123` | **673** | 203 introduced directly by their own commits (193 in `5aaba87`, the rest in smaller `feat(pigsy)` commits); 446 introduced by `HetCreep`'s `16f764b`, which is a mechanical `sharp` WebP conversion plus `git mv` of files whose `public/**.png` predecessors trace back to the byte-identical roots; 24 turnaround frames introduced by `3730322`, **all 24 byte-identical to `e1fd040`** |
-| `nustanakritwithai` | **20** | 10 in `062dcda`, 10 in `c58c3c2` |
+| `kaoshock123` | **693** | **203** introduced directly by their own commits (193 in `5aaba87`, the rest in smaller `feat(pigsy)` commits); **446** introduced by `HetCreep`'s `16f764b`, a mechanical `sharp` WebP conversion plus `git mv` of files whose `public/**.png` predecessors trace back to the byte-identical roots; **24** turnaround frames introduced by `3730322`, all 24 byte-identical to `e1fd040`; **20** introduced by `nustanakritwithai`'s two commits, which are the same mechanical steps again (below) |
+| Anyone else | **0** | — |
 | Unresolved | **0** | — |
+
+**Correction, 2026-08-10 — the 20 previously credited to `nustanakritwithai` are
+`kaoshock123`'s bytes.** An earlier revision of this table applied the byte-tracing rule to
+`HetCreep`'s mechanical commits but stopped short of applying it to
+`nustanakritwithai`'s. Re-derived here, blob by blob:
+
+- **`c58c3c2` — 10 `.png`, a pure rename.** Each file moved
+  `assets/archive/characters/X.png` → `assets/raw/characters/X.png` with **the identical blob
+  SHA on both sides**. All 10 of those SHAs are the ones in `kaoshock123`'s root `62c0000`,
+  and all 10 are still at the branch tip unchanged — verified individually, e.g.
+  `monkey-attack-new-12.png` is `37321818…` at the root and `37321818…` at the tip.
+  Root → `16f764b` (rename) → `c58c3c2` (rename): **zero byte change at any step.**
+- **`062dcda` — 10 `.webp`, a format conversion.** The commit adds `.webp` only, no `.png`.
+  At its parent, each file's same-basename `.png` predecessor already existed in
+  `assets/archive/` carrying the root blob SHA (checked: `monkey-attack-new-12.png` =
+  `37321818…`, `monkey-pose-0-alpha.png` = `1a6f5cbf…`, both matching `62c0000` exactly).
+  This is the identical mechanical WebP step already credited back to `kaoshock123` for
+  `16f764b`'s 446.
+
+The two commits are the same ten images in two formats. **`nustanakritwithai` authored zero
+images.** They committed image files — relocating and re-encoding art that already existed —
+which is a real contribution to this repository and not an authorship claim. Getting that
+distinction wrong named a living person as the author of work that is not theirs, which is
+precisely the failure a provenance record exists to prevent.
 
 **What this does and does not mean.** It establishes *who committed the bytes*, which is a
 real and checkable fact. It says nothing about how those bytes were generated — the tools,
@@ -245,21 +283,38 @@ for completeness, not as support.
 **(a) Owner testimony.** The pass was trim / size / fit-to-code: pixel-level adjustment of
 images that already existed. First-hand, and not independently verifiable.
 
-**(b) The Adobe generative-credit balance.** The owner reports it **did not decrease**. This
-is **route-independent** — a generative operation consumes generative credits whether invoked
-through a connector or by hand — so it holds regardless of which application or machine was
-used, which is precisely what the transcript search cannot do. Two limits, both material: it
-is the **owner's report** of the balance, not an inspected billing record; and **Adobe's
-credit-metering policy has not been verified against Adobe's live terms** by this project.
-This file does not characterise what Adobe's policy is, only what the owner reports observing.
+**(b) The Adobe generative-credit balance.** The owner reports it **did not decrease**.
+
+This pillar rests on an **assumption, not a verified fact**: that Adobe's generative-credit
+metering is **route-independent** — i.e. that a generative operation decrements credits
+whichever way it is reached, connector or application. If that holds, (b) reaches work done
+on a machine and in a window no retained evidence covers, which is exactly what the
+transcript search cannot do. **This project has not verified it.** Adobe's metering policy
+has not been checked against Adobe's live terms, and this file deliberately does not
+characterise what that policy is — the assumption is named so a reader can test it, not
+smuggled in as background.
+
+**If the assumption is wrong, pillar (b) collapses.** Plausible ways it could be wrong: a
+plan tier where some generative operations are free or unmetered; features that do not
+decrement at all; different accounting between the connector and the desktop application; a
+balance that reflects a billing period rather than each operation. In any of those cases an
+unchanged balance is consistent with generative use having occurred, and **the "no generative
+feature" conclusion would rest on owner testimony alone** — pillar (a), first-hand and
+unverifiable, with nothing corroborating it.
+
+A second limit stands regardless: it is the **owner's report** of the balance, not an
+inspected billing record.
 
 **Adobe Stock.** No Stock use is reported by the owner, and none appears in the searched
 transcripts — with the same caveat that those transcripts cannot reach the relevant work.
 
 **What follows:**
 
-- **No generative feature is evidenced anywhere in the chain**, on (a) and (b). This is the
-  practical conclusion and it is unchanged.
+- **No generative feature is evidenced anywhere in the chain.** That remains the practical
+  conclusion — but note its actual footing: pillar (a) is unverifiable first-hand testimony,
+  and pillar (b) corroborates it **only if** Adobe's metering is route-independent, which
+  nobody here has checked. Two grounds, one unverifiable and one conditional. The conclusion
+  is the most likely reading of what is known; it is not established.
 - **Which Adobe product, and through what channel, is still not recorded.** See
   KNOWN UNKNOWN #2. Adobe therefore stays on the terms-retrieval list.
 - The transcript evidence is **downgraded, not deleted** — kept so that a future reader does
@@ -276,10 +331,16 @@ remain the open, load-bearing unknown.
 - **OpenAI / ChatGPT** — two **Plus**-plan accounts (paid tier).
 - **Claude** — **three accounts**, on the **Pro**, **Max5**, and **Max20** tiers (all paid).
 
-Account identifiers and email addresses are **deliberately held privately by the owner and
-are intentionally not stored in this public-facing record.** That is correct and should
-stay that way; nothing in this repository needs them, and no future revision of this file
-should ask for them.
+**The login identifiers and email addresses for these AI-provider accounts** are deliberately
+held privately by the owner and are **intentionally not stored in this public-facing record.**
+That is correct and should stay that way; nothing in this repository needs them, and no future
+revision of this file should ask for them.
+
+This does not conflict with the contributor table above, which lists **git commit-author
+addresses** — those are already published in this repository's history by every commit their
+owners made, and identifying who committed what is the point of a provenance record. The two
+are different things: authorship attribution is public by nature, provider account credentials
+are not.
 
 ### What this record does NOT say about terms
 
@@ -443,7 +504,7 @@ visible.
 | 1 | **Original source of every reference image** | Owner: *"not currently recorded."* No prompts or seeds survive to reconstruct it, and the retained Claude Code transcripts do not reach the generation step. **The load-bearing unknown**, and the reason this file stays a DRAFT — it blocks any clean claim that the art is free of third-party input |
 | 2 | **Which Adobe product was used in the fitting pass, and through what channel** | Open. The owner reports an agent-carried-out Adobe pass; no log of it survives, because it predates the retained transcripts (`16f764b`, 2026-08-06 vs transcripts from 2026-08-08). The earlier "unresolved discrepancy" framing is **withdrawn** — the empty transcript search covered the wrong machine and the wrong window, and was never in tension with the owner's account. See [The Adobe step](#the-adobe-step-and-why-the-transcript-search-proves-nothing-about-it-2026-08-10) |
 | 3 | **What each provider's terms actually permit** — commercial use, output ownership, whether a right survives cancelling a paid plan, disclosure duties | Tools and paid tiers are now known; the terms are not, and the ones in force at generation time are not recorded. **Adobe stays on this list** — the owner reports an Adobe pass (unknown #2), and Adobe's credit-metering policy is unverified, so its terms cannot be assumed irrelevant. Deliberately not answered here |
-| 4 | **Generation details behind 693 of 870 tracked assets** | **Narrowed 2026-08-10.** The *author* is no longer unknown: all 693 measure to a named contributor (673 `kaoshock123`, 20 `nustanakritwithai`, 0 unresolved). What is missing is the generation detail — tools, reference inputs, terms — for sets `kaoshock123` explicitly declined to vouch for. Wukong, Pigsy, Tripitaka, walk/turnaround, UI, background, all of `assets/archive/` |
+| 4 | **Generation details behind 693 of 870 tracked assets** | **Narrowed 2026-08-10.** The *author* is no longer unknown: all **693** measure to `kaoshock123` (0 unresolved, no other author). What is missing is the generation detail — tools, reference inputs, terms — for sets `kaoshock123` explicitly declined to vouch for. Wukong, Pigsy, Tripitaka, walk/turnaround, UI, background, all of `assets/archive/` |
 | 5 | **`public/favicon.svg`** | Believed a URL/site icon; unverified. Ships to every visitor |
 | 6 | **Whether AI output is protectable, and who owns it** | Jurisdiction-dependent and unsettled — and the human-involvement picture got *weaker*, not stronger, on 2026-08-10: the owner states **nothing was done by hand**; the fitting pass was directed by them but carried out by agents. So every step between generator and shipped file is now machine-executed, with human involvement at the direction level only. Whether that clears any given jurisdiction's authorship bar is a question, not a claim |
 | 7 | **Visual similarity to existing commercial character designs** | Never checked, for any character |
