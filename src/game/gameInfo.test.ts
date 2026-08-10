@@ -1,9 +1,11 @@
 import { describe, expect, test } from 'vitest'
+import lock from '../../package-lock.json'
 import pkg from '../../package.json'
 import { GAME_INFO } from './gameInfo'
 
 /*
-  เวอร์ชันเกมกับเวอร์ชันใน package.json ต้องตรงกันเสมอ
+  เวอร์ชันเกม, package.json และ root metadata สองตำแหน่งใน package-lock.json
+  ต้องตรงกันเสมอ
 
   `GAME_INFO.version` คือเลขที่ผู้เล่นเห็นบนหน้าไตเติลและหน้าตั้งค่า และตั้งแต่ 2026-08-07
   มันเป็นตัวสั่งปล่อยเว็บด้วย — .github/workflows/deploy.yml จะ deploy ก็ต่อเมื่อเลขนี้เปลี่ยน
@@ -14,8 +16,10 @@ import { GAME_INFO } from './gameInfo'
   เทสต์นี้แดงก่อนถึง deploy เพราะ ci.yml และ deploy.yml รันชุดเดียวกัน
 */
 describe('GAME_INFO.version', () => {
-  test('ตรงกับ version ใน package.json', () => {
+  test('ตรงกับ version ใน package.json และ package-lock.json', () => {
     expect(GAME_INFO.version).toBe(pkg.version)
+    expect(lock.version).toBe(pkg.version)
+    expect(lock.packages[''].version).toBe(pkg.version)
   })
 
   test('เป็นรูปแบบ SemVer ที่ tag รีลีสใช้ได้', () => {

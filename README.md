@@ -56,11 +56,12 @@ A pre-commit hook (husky + lint-staged) runs oxlint on staged files automaticall
 The site does **not** deploy on every push — only when the game version changes.
 
 ```bash
-# 1. Bump the version in BOTH places (a test enforces they match — src/game/gameInfo.test.ts):
-#    src/game/gameInfo.ts  ->  version: '0.15.2'
-#    package.json          ->  "version": "0.15.2"
-# 2. Add a "## [0.15.2]" heading to CHANGELOG.md (the GitHub Release body is drawn from this)
-# 3. Push -> the deploy gate compares the version to the prior commit; a real bump triggers
+# 1. Set the same <x.y.z> version in both authoritative files:
+#    src/game/gameInfo.ts  ->  version: '<x.y.z>'
+#    package.json          ->  "version": "<x.y.z>"
+# 2. Sync generated lockfile metadata: npm install --package-lock-only --ignore-scripts
+# 3. Add a "## [x.y.z]" heading to CHANGELOG.md (the GitHub Release body is drawn from this)
+# 4. Push -> the deploy gate compares the version to the prior commit; a real bump triggers
 #    build + deploy + a GitHub Release with an attached SBOM, automatically.
 ```
 
