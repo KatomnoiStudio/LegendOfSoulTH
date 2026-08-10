@@ -8,13 +8,7 @@ the client never mutates valuable state directly. Read
 and [`supabase/migrations/`](supabase/migrations/) for exactly what's enforced where before filing
 a report. The older client-only `accountRepository.ts`/`password.ts` (localStorage + local PBKDF2)
 is **dormant, kept only for the shared validators it re-exports** — `useAuth.ts` no longer imports
-its own login/register/session logic. As of 2026-08-10 that label is literally true: no production
-module imports it any more (the crash screen's backup button used to, which kept the file and its
-PBKDF2 helper in the shipped bundle), and its types are imported from
-`accountRepository.shared.ts`, where they actually live. Save files exported by that repository no
-longer carry `passwordHash`/`passwordSalt` — an export is meant to leave the owner's machine, and a
-password hash plus its salt in a file is an offline cracking target that no server-side control can
-detect or lock. Still-real limitations are documented in **Out of Scope** below.
+its own login/register/session logic. Still-real limitations are documented in **Out of Scope** below.
 
 ## Reporting a Vulnerability
 
