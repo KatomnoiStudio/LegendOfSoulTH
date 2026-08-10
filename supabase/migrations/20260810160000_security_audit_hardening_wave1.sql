@@ -111,6 +111,14 @@ $$;
 -- ⚠ MAINTENANCE CONTRACT: adding an item to src/game/items.ts now REQUIRES a companion
 -- migration inserting its id here, or grant_item refuses it. That friction is the feature —
 -- an unreleased item id cannot be minted into inventories before the game ships it.
+--
+-- ⚠ SCOPE, stated precisely: this closes the PLAYER path. `grant_item_admin` (0015:65-91)
+-- still upserts inventory_items with no catalog check — deliberately left alone. It is gated
+-- on an admin_accounts row, a manually-provisioned privilege, and granting an off-catalog id
+-- is exactly what an admin grant tool is FOR (staging an item before its client release).
+-- Constraining it would need a product decision about admin powers, which is not this wave's
+-- topic. So: after this migration, an off-catalog item id is unmintable by any player and
+-- mintable only by a provisioned admin.
 create table if not exists public.item_catalog (
   item_id text primary key,
   created_at timestamptz not null default now()
@@ -121,15 +129,15 @@ create table if not exists public.item_catalog (
 alter table public.item_catalog enable row level security;
 revoke all on public.item_catalog from public, anon, authenticated;
 
--- Seed = the complete ITEMS record in src/game/items.ts as of this migration (7 ids).
+-- Seed = the complete ITEMS record in src/game/items.ts:48-84 as of this migration — FIVE ids,
+-- verified one-for-one against that file. Seeding an id the game does not define would do the
+-- exact thing this guard exists to prevent, so this list must never run ahead of items.ts.
 insert into public.item_catalog (item_id) values
   ('healing-peach'),
   ('spirit-incense'),
   ('iron-essence'),
   ('jade-shard'),
-  ('naga-scale'),
-  ('lotus-charm'),
-  ('golden-gourd')
+  ('naga-scale')
 on conflict (item_id) do nothing;
 
 -- ════════════════════════════════════════════════════════════════════════════════════════════
@@ -177,7 +185,20 @@ begin
 end;
 $$;
 
-revoke execute on function public.check_and_log_rpc_rate_limit(text, int, int) from public, anon;
+-- `authenticated` IS IN THIS LIST DELIBERATELY — do not "restore symmetry" with the client RPCs
+-- below by dropping it. Supabase's project bootstrap runs
+--   alter default privileges in schema public grant all on functions to anon, authenticated, ...
+-- so a function created here by `postgres` carries a DIRECT grant to `authenticated`, not merely
+-- the PUBLIC default; revoking from `public, anon` alone leaves that direct grant standing.
+-- 0011:72 (this helper's first lock) has exactly that gap today.
+-- This helper is never client-callable BY DESIGN: it is invoked with `perform` from other
+-- SECURITY DEFINER functions, which run as the function owner and need no grant at all. Left
+-- reachable over PostgREST, a signed-in caller supplies its OWN ceiling —
+-- {"p_rpc_name":"x","p_max_calls":2147483647,"p_window_seconds":1} never trips
+-- `v_recent_calls >= p_max_calls`, so nothing throttles and every request appends a row to
+-- public.rpc_rate_limit: a table-bloat vector bounded only by 0011's daily prune.
+revoke execute on function public.check_and_log_rpc_rate_limit(text, int, int)
+  from public, anon, authenticated;
 
 -- ════════════════════════════════════════════════════════════════════════════════════════════
 -- F5b: earn_gold — validate BEFORE the rate-limit call
@@ -336,6 +357,16 @@ begin
   end if;
   if p_dropped_items is not null and jsonb_typeof(p_dropped_items) <> 'array' then
     raise exception 'รูปแบบไอเทมดรอปไม่ถูกต้อง';
+  end if;
+  -- The row cap below bounds ROWS; these bound BYTES. stage_id/stage_name/transaction_id are
+  -- unbounded `text` on the table (0013:151-163) with no length check anywhere, so 64 rows of
+  -- megabyte strings would satisfy the cap and still be the storage abuse it exists to stop.
+  -- Ceilings are enormous against real data (stage ids look like 'trial-01'; the longest
+  -- shipped stage name is a short Thai phrase) — they reject garbage, never real play.
+  if length(p_transaction_id) > 200 or length(coalesce(p_stage_id, '')) > 200
+    or length(coalesce(p_stage_name, '')) > 200
+    or pg_column_size(coalesce(p_dropped_items, '[]'::jsonb)) > 8192 then
+    raise exception 'ข้อมูลรางวัลค้างยาวเกินกำหนด';
   end if;
 
   perform public.check_and_log_rpc_rate_limit('upsert_pending_lobby_reward', 20, 60);

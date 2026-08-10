@@ -136,6 +136,19 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
       exception when duplicate_object then null;
       end $$;
 
+      -- ⚠ SUPABASE-SHAPED ACL BASELINE — without this the harness is structurally blind to a
+      -- whole class of privilege bug. A Supabase project bootstrap runs
+      --   alter default privileges in schema public grant all on functions to anon, authenticated
+      -- so every function a migration creates carries a DIRECT grant to both roles, not merely
+      -- the PUBLIC default. Bare roles (the previous fixture) inherit only through PUBLIC, so
+      -- a revoke naming only public+anon LOOKED like it removed authenticated's access when in
+      -- production it does not. Reproducing the default-privilege grant makes every
+      -- has_function_privilege assertion below actually bite.
+      -- Scoped to FUNCTIONS on purpose: Supabase grants tables too, but this harness already
+      -- models the table side explicitly (see the owned_characters grant further down), and
+      -- widening it here would change assertions unrelated to the ACL class under test.
+      alter default privileges in schema public grant all on functions to anon, authenticated;
+
       -- pg_cron is a Supabase extension, not core Postgres — 0011 schedules a cleanup job.
       create schema if not exists cron;
       create or replace function cron.schedule(job_name text, schedule text, command text)
@@ -603,6 +616,18 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
       expect({ sig, authenticated: authed.rows[0]?.ok }).toEqual({ sig, authenticated: false })
     }
 
+    // The internal rate-limit helper is callable by NOBODY but other DEFINER functions.
+    // Its ceiling is caller-supplied, so a reachable /rest/v1/rpc/... route lets any signed-in
+    // account disable its own throttle and append rate_limit rows at will. `authenticated`
+    // holds a DIRECT default-privilege grant here (see the bootstrap note), so this assertion
+    // only means anything because the fixture is Supabase-shaped.
+    for (const role of ['anon', 'authenticated']) {
+      const helper = await db.query<{ ok: boolean }>(
+        `select has_function_privilege('${role}', 'public.check_and_log_rpc_rate_limit(text, int, int)', 'EXECUTE') as ok`,
+      )
+      expect({ role, canCall: helper.rows[0]?.ok }).toEqual({ role, canCall: false })
+    }
+
     // The client-callable eight keep working for signed-in players (spot-check the two the
     // reward pipeline fires every battle).
     for (const sig of ["public.earn_gold(text, int, text)", "public.grant_item(text, int, text, text)"]) {
@@ -611,6 +636,23 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
       )
       expect({ sig, authenticated: authed.rows[0]?.ok }).toEqual({ sig, authenticated: true })
     }
+  })
+
+  it('wave1: the item catalog matches src/game/items.ts exactly (F4)', async () => {
+    // Grounding assertion, not a privilege one: a seeded id the game does not define is
+    // mintable by any player and defeats the guard's whole purpose. Parse the real ITEMS
+    // record so the two can never drift silently again.
+    const source = readFileSync(join(process.cwd(), 'src/game/items.ts'), 'utf8')
+    const itemsBlock = source.slice(source.indexOf('export const ITEMS'))
+    const declared = [...itemsBlock.matchAll(/^ {2}'([a-z0-9-]+)':/gm)]
+      .map((m) => m[1])
+      .toSorted()
+    expect(declared.length).toBeGreaterThan(0)
+
+    const seeded = await db.query<{ item_id: string }>(
+      `select item_id from public.item_catalog order by item_id`,
+    )
+    expect(seeded.rows.map((r) => r.item_id)).toEqual(declared)
   })
 
   it('wave1: grant_item refuses an id missing from the item catalog (F4)', async () => {

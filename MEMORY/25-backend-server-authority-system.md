@@ -116,4 +116,20 @@ _before_ applying `0001_init.sql`, so `handle_new_user()` never runs.
   days post-apply; (2) **fresh-env parity of prod hand-fixes**: any SQL ever run by hand in the
   SQL Editor MUST land in a migration file, or CI/PGlite/db-reset silently diverges from prod —
   the grant_item overload sat in that gap for 2 days with the integration harness actively
-  recreating it.
+  recreating it. QC bounced v1 with two more, both now fixed and mutation-pinned:
+  (3) **`revoke ... from public, anon` IS NOT ENOUGH on this project.** Supabase's bootstrap runs
+  `alter default privileges in schema public grant all on functions to anon, authenticated`, so
+  every function a migration creates carries a DIRECT grant to `authenticated` — the PUBLIC
+  revoke never touches it. Any internal helper must revoke from `authenticated` too (a DEFINER
+  caller runs as owner and needs no grant). `0011:72` still has this gap for the rate-limit
+  helper, whose ceiling is CALLER-SUPPLIED — reachable over PostgREST it disables its own
+  throttle. And the PGlite harness was **structurally blind** to the whole class: bare
+  `create role` inherits only via PUBLIC. The fixture now runs the same `alter default
+  privileges`, so `has_function_privilege` assertions actually bite (proven: stripping
+  `authenticated` from any revoke now fails a test; before, it passed).
+  (4) **Never state a grounding claim you did not recount.** v1's seed comment said "the complete
+  ITEMS record (7 ids)" and listed two ids that exist nowhere in the repo — I had trusted a
+  `grep -c "id:"` (which counts the interface field too) instead of the 5 real keys. In a
+  436-line file the owner pastes by hand and cannot re-verify, a false grounding statement is
+  itself the defect. There is now a test parsing `src/game/items.ts` and asserting the catalog
+  equals it exactly.
