@@ -89,3 +89,27 @@ p_materials jsonb)` — atomic gold+material debit, reject on insufficient, idem
   written by the old client keeps its old id in flags and ledger refIds; if the new client derives
   a different id for the same battle, resume grants it a second time. Considered and rejected for
   that reason.
+
+### Round 2 (rebase onto the post-audit master) — the retry that stacked
+
+QC (MEMORY item 189) failed round 1's `fetch` wrapper. Confirmed by reading `node_modules`, not
+by argument:
+
+- **`postgrest-js` already retries.** `DEFAULT_MAX_RETRIES = 3`, `retryEnabled` defaults **true**,
+  backoff 1s/2s/4s, and it retries **only `GET`/`HEAD`/`OPTIONS`** (`RETRYABLE_METHODS`) — because
+  replaying a `POST`/`PATCH` can write twice. `auth-js` retries `_refreshAccessToken` with its own
+  exponential backoff on top.
+- **Stacked:** one failing GET = 4 postgrest attempts × 2 of mine = **8 requests**, and
+  4×(15s×2) + 7s backoff ≈ **127s** — from a wrapper whose own comment promised a 15s ceiling.
+- **And mine was less careful than the library it wrapped:** it retried 5xx on _every_ method, so
+  a `savePlayer` PATCH (no refId to dedupe on) could be replayed where postgrest would refuse.
+
+Fix = **delete the retry, keep only the deadline.** The deadline is the real gap (browser `fetch`
+has no default timeout; postgrest has no deadline). Retry is the library's job and it does it
+better. A `it.each` guard now pins "one request in, one request out" for 500/503/409/200 and for a
+network error — verified to fail when the retry is re-injected.
+
+**Standing lesson for this seat: before wrapping a client library's transport, read what the
+library already does at that layer.** "Add a retry" looked like pure hardening and was a latency
+and double-write regression. The idempotent-ledger argument I used to justify it was true and
+irrelevant — it covers `earn_gold`/`grant_item`, not the profile writes the wrapper also touched.

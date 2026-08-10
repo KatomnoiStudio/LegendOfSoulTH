@@ -22,38 +22,40 @@ const REQUEST_TIMEOUT_MS = 15_000
 let client: SupabaseClient | null = null
 
 /**
- * fetch ที่มีเพดานเวลา + ลองซ้ำหนึ่งครั้ง — ห่อ global.fetch ของเบราว์เซอร์
+ * fetch ที่มี "เพดานเวลาต่อคำขอ" อย่างเดียว — ห่อ global.fetch ของเบราว์เซอร์
  *
  * fetch ของเบราว์เซอร์ไม่มี timeout เป็นค่าเริ่มต้นเลย (ต่างจาก XHR) คำขอที่ค้างจึงไม่เคย
  * reject — หน้าจอผลการต่อสู้ค้างแช่โดยไม่มีทั้ง spinner และข้อความ ไม่มีอะไรบอกผู้เล่นว่า
- * เกิดอะไรขึ้นและไม่มีทางกดใหม่
+ * เกิดอะไรขึ้นและไม่มีทางกดใหม่ นี่คือช่องว่างจริงที่ไลบรารีไม่ได้ปิดให้ และเป็นสิ่งเดียว
+ * ที่ฟังก์ชันนี้ทำ
  *
- * ลองซ้ำได้แค่กรณี "ยังไม่มีคำตอบจากเซิร์ฟเวอร์" (network error/timeout) กับ 5xx เท่านั้น
- * และซ้ำได้ครั้งเดียว — 4xx คือคำตอบจริงของเซิร์ฟเวอร์ ยิงซ้ำไม่มีทางเปลี่ยนผล
- * ที่ยิงซ้ำได้โดยไม่ทำเงิน/ไอเทมซ้ำ เพราะ RPC ฝั่ง ledger เป็น idempotent ตาม refId อยู่แล้ว
- * (0013_reward_idempotency.sql — earn_gold/grant_item/commit_lobby_battle_progression)
+ * ── ห้ามใส่ retry ตรงนี้ (ของจริงที่ QC จับได้ 2026-08-10, MEMORY item 189) ──────────
+ * ฉบับแรกของไฟล์นี้ยิงซ้ำเองหนึ่งครั้งเมื่อเจอ network error/5xx โดยไม่รู้ว่า **postgrest-js
+ * ยิงซ้ำอยู่แล้ว**: `DEFAULT_MAX_RETRIES = 3`, `retryEnabled` เป็น true เป็นค่าเริ่มต้น,
+ * backoff 1s/2s/4s (ยืนยันจาก node_modules/@supabase/postgrest-js/dist/index.cjs) และ
+ * auth-js ก็ยิงซ้ำ `_refreshAccessToken` แบบ exponential ของมันเองอีกชั้น
  *
- * ⚠️ ใช้ได้กับผู้เรียกที่ส่ง (url, init) เท่านั้น ซึ่งเป็นรูปแบบเดียวที่ supabase-js ใช้ —
- * ถ้าส่ง Request object ที่ body ถูกอ่านไปแล้ว การยิงซ้ำจะใช้ body เดิมไม่ได้
+ * ผลคือ retry ซ้อน retry: หนึ่งคำขอ GET ที่เน็ตล้มจริง = postgrest 4 ครั้ง × ของเรา 2 ครั้ง
+ * = **8 คำขอ** และเวลารวม 4×(15s×2) + backoff 7s ≈ **127 วินาที** จากตัวเลขที่เขียนไว้ว่า
+ * "เพดาน 15 วินาที" — เพดานที่โกหก 8 เท่า
+ *
+ * และมันยังอันตรายกว่าไลบรารีด้วย: postgrest ยิงซ้ำเฉพาะ **GET/HEAD/OPTIONS** เท่านั้น
+ * (RETRYABLE_METHODS) เพราะ POST/PATCH ยิงซ้ำแล้วอาจเขียนซ้ำ ส่วนของเรายิงซ้ำทุก method
+ * ที่เจอ 5xx — savePlayer เป็น PATCH/upsert ที่ไม่มี refId ป้องกัน
+ *
+ * ไลบรารีทำ retry ได้ถูกต้องกว่าเราอยู่แล้ว จึงลบของเราทิ้ง เหลือแค่เพดานเวลาที่ไลบรารีไม่มี
+ * เพดานนี้เป็น **ต่อคำขอ** ไม่ใช่ต่อการเรียกของผู้ใช้ — postgrest ที่ยิงซ้ำ 4 ครั้งใช้เวลารวม
+ * ได้ถึง 4×15s + backoff 7s ≈ 67s ซึ่งเป็นพฤติกรรมของไลบรารี ไม่ใช่ของฟังก์ชันนี้
  */
-export function createResilientFetch(
+export function createDeadlineFetch(
   baseFetch: typeof fetch,
   timeoutMs: number = REQUEST_TIMEOUT_MS,
 ): typeof fetch {
   return async (input, init) => {
-    for (let attempt = 0; ; attempt++) {
-      const timeout = AbortSignal.timeout(timeoutMs)
-      const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout
-
-      try {
-        const response = await baseFetch(input, { ...init, signal })
-        // 5xx = ฝั่งเซิร์ฟเวอร์ล้มชั่วคราว ลองใหม่ได้ / 4xx = คำตอบจริง ยิงซ้ำไม่เปลี่ยนอะไร
-        if (response.status < 500 || attempt > 0) return response
-      } catch (cause: unknown) {
-        // ผู้เรียกยกเลิกเอง (ไม่ใช่ timeout ของเรา) ต้องไม่ถูกยิงซ้ำ
-        if (attempt > 0 || init?.signal?.aborted) throw cause
-      }
-    }
+    const timeout = AbortSignal.timeout(timeoutMs)
+    // ผู้เรียกที่ส่ง signal มาเองต้องยังยกเลิกได้ — รวมสองสัญญาณ ไม่ใช่ทับของเขา
+    const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout
+    return baseFetch(input, { ...init, signal })
   }
 }
 
@@ -85,7 +87,7 @@ export function getSupabase(): SupabaseClient {
 
   client = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { flowType: 'pkce' },
-    global: { fetch: createResilientFetch(globalThis.fetch.bind(globalThis)) },
+    global: { fetch: createDeadlineFetch(globalThis.fetch.bind(globalThis)) },
   })
   return client
 }
