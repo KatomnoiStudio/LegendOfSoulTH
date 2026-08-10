@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { LobbyBattleSession } from './LobbyBattleSession'
+import { lobbyBattleTransactionId } from '../../game/reward/lobbyBattleRewardPipeline'
 import { createDefaultSkillLevels } from '../../game/realtimeBattle/SkillProgressionSystem'
 import { REALTIME_STAGES, getRealtimeStage } from '../../game/realtimeBattle/stageConfig'
 import type { Player } from '../../types/player'
@@ -16,32 +17,42 @@ vi.mock('../BattleScene/BattleScene', () => {
     BattleScene: ({
       stageId,
       onComplete,
+      onBattleEnd,
       onExit,
     }: {
       stageId: string
       onComplete: (res: RealtimeBattleResult) => void
+      onBattleEnd?: (res: RealtimeBattleResult) => void
       onExit: () => void
     }) => {
+      const victory = (): RealtimeBattleResult => ({
+        outcome: 'victory',
+        stageId,
+        stageName: 'ลานฝึกทดสอบ',
+        elapsedMs: 5000,
+        defeatedEnemyIds: ['shadow-soldier'],
+        damageDealt: 100,
+        damageTaken: 10,
+        earnedExp: 200,
+        earnedGold: 100,
+        droppedItems: [{ itemId: 'healing-peach', quantity: 1 }],
+        finishedAt: new Date().toISOString(),
+      })
+
       return (
         <div data-testid="mock-battle-scene">
           <span data-testid="battle-stage-id">{stageId}</span>
+          {/* The runtime settles and the result panel appears — the player has NOT pressed yet. */}
+          <button data-testid="btn-battle-end" onClick={() => onBattleEnd?.(victory())}>
+            Battle end
+          </button>
           <button
             data-testid="btn-win"
-            onClick={() =>
-              onComplete({
-                outcome: 'victory',
-                stageId,
-                stageName: 'ลานฝึกทดสอบ',
-                elapsedMs: 5000,
-                defeatedEnemyIds: ['shadow-soldier'],
-                damageDealt: 100,
-                damageTaken: 10,
-                earnedExp: 200,
-                earnedGold: 100,
-                droppedItems: [{ itemId: 'healing-peach', quantity: 1 }],
-                finishedAt: new Date().toISOString(),
-              })
-            }
+            onClick={() => {
+              const result = victory()
+              onBattleEnd?.(result)
+              onComplete(result)
+            }}
           >
             Win
           </button>
@@ -638,5 +649,82 @@ describe('LobbyBattleSession', () => {
     winBtn.click()
     await waitFor(() => expect(onExit).toHaveBeenCalledTimes(1))
     expect(onEarnGold).toHaveBeenCalledTimes(2)
+  })
+})
+
+/*
+  2026-08-10 audit F6 — the durable pending row was written after the window it protects.
+
+  `pending_lobby_rewards` exists so that a crash between "battle won" and "rewards granted" does
+  not lose the player's rewards. But the only write was inside finalizeLobbyBattleRewards, which
+  runs when the player presses "ต่อไป" on the result panel. The span from the runtime settling to
+  that press — a human-length wait, unbounded — held the entire battle outcome in React state and
+  nowhere else. A tab closed, refreshed, OOM-killed, or backgrounded off a phone during it lost
+  the EXP, the gold, every drop, the trial_cleared flag and the battle history, with the stage
+  energy already spent on entry. The row now goes down at battle end, before the wait.
+*/
+describe('F6: the durable row covers the wait for the continue press', () => {
+  it('records the pending row at battle end — a tab that dies before the press keeps its rewards', async () => {
+    const onRecordPending = vi.fn(async () => true)
+    const onEarnGold = vi.fn()
+    const player = makePlayer()
+
+    const { unmount } = render(
+      <LobbyBattleSession
+        player={player}
+        onPlayerChange={mockOnPlayerChange(player)}
+        onEarnGold={onEarnGold}
+        onGrantItem={vi.fn(async (): Promise<ItemResult> => ({ ok: true as const, player }))}
+        {...rewardMocks({ onRecordPending })}
+        onExit={vi.fn()}
+      />,
+    )
+
+    screen.getByRole('button', { name: /ลานฝึกหน้าวิหาร/ }).click()
+    const endBtn = await screen.findByTestId('btn-battle-end')
+    endBtn.click()
+
+    // The battle is over and the result panel is up. The player never presses "ต่อไป".
+    await waitFor(() => expect(onRecordPending).toHaveBeenCalledTimes(1))
+    const [recorded, txId] = onRecordPending.mock.calls[0] as unknown as [
+      RealtimeBattleResult,
+      string,
+    ]
+    expect(recorded.earnedGold).toBe(100)
+    expect(recorded.droppedItems).toEqual([{ itemId: 'healing-peach', quantity: 1 }])
+    expect(txId).toBe(lobbyBattleTransactionId(recorded))
+
+    // The crash. Nothing was granted, and the durable row is what makes that recoverable.
+    unmount()
+    expect(onEarnGold).not.toHaveBeenCalled()
+  })
+
+  it('does not write the row twice when the player does press continue', async () => {
+    const onRecordPending = vi.fn(async () => true)
+    const player = makePlayer()
+
+    render(
+      <LobbyBattleSession
+        player={player}
+        onPlayerChange={mockOnPlayerChange(player)}
+        onEarnGold={vi.fn(async (): Promise<CurrencyResult> => ({
+          ok: true as const,
+          player,
+          amount: 100,
+        }))}
+        onGrantItem={vi.fn(async (): Promise<ItemResult> => ({ ok: true as const, player }))}
+        {...rewardMocks({ onRecordPending })}
+        onExit={vi.fn()}
+      />,
+    )
+
+    screen.getByRole('button', { name: /ลานฝึกหน้าวิหาร/ }).click()
+    const winBtn = await screen.findByTestId('btn-win')
+    winBtn.click()
+
+    // Battle end records it; the pipeline sees it is already down and does not re-upsert.
+    // A second upsert is not harmful (it is an upsert on the same key) but it burns the RPC's
+    // 20-calls-per-60s rate limit for nothing.
+    await waitFor(() => expect(onRecordPending).toHaveBeenCalledTimes(1))
   })
 })
