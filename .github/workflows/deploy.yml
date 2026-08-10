@@ -136,35 +136,33 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 22
+          # ci.yml เทสต์ทั้ง 22 (Maintenance LTS) และ 24 (Active LTS) — ปล่อยของจริงด้วยตัวที่
+          # active อยู่ ไม่ใช่ตัวที่กำลังจะหมดอายุ
+          node-version: 24
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint Code
-        run: npm run lint
-
-      # ต้องรันเทสต์ตรงนี้ด้วย ไม่ใช่พึ่ง ci.yml
-      # ci.yml เป็นคนละ workflow ที่ทริกเกอร์ขนานกัน ไม่มี needs/workflow_run ผูกกันไว้
-      # ก่อนหน้านี้ commit ที่เทสต์แดงจึงขึ้น production ได้ เพราะด่านเดียวที่กั้นอยู่คือ
-      # tsc -b ที่อยู่ใน npm run build — เทสต์อย่าง battleAssets.test.ts ที่คอยกันบั๊ก
-      # จอขาวจากไฟล์ภาพหาย ตรวจ path ที่เป็นสตริงล้วน ซึ่ง build มองไม่เห็น
-      - name: Run Tests
-        # VITE_SUPABASE_URL/ANON_KEY จำเป็นเหมือน step "Build Application" ด้านล่าง —
-        # accountRepository.supabase.test.ts ลาก supabaseClient.ts เข้ามา ซึ่ง throw ทันทีตอน
-        # module evaluate ถ้าไม่มีค่านี้ (ดู supabaseClient.ts) แม้เทสต์เองจะ test แค่ pure
-        # mapping ไม่แตะ Supabase จริงเลย (ดูฟิกซ์เดียวกันใน ci.yml)
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-        run: npm test
-
+      # ด่านกันของเสียของ release path ต้องเป็น "ตัวเดียวกับที่ dev รัน" ไม่ใช่ subset ที่ก๊อปด้วยมือ
+      #
+      # ต้องรันตรงนี้ ไม่ใช่พึ่ง ci.yml: ci.yml เป็นคนละ workflow ที่ทริกเกอร์ขนานกัน ไม่มี
+      # needs/workflow_run ผูกกันไว้ ก่อนหน้านี้ commit ที่เทสต์แดงจึงขึ้น production ได้
+      #
+      # เดิมที่นี่ก๊อป lint + test + build มาเรียงเอง แล้ว drift: `npm run ci` มี typecheck
+      # (รวม typecheck:edge), test:edge และเพดาน bundle ที่ชุดก๊อปมือไม่มีสักตัว — Edge Function
+      # ซึ่งเป็น trust boundary ฝั่งเซิร์ฟเวอร์จึงขึ้น production โดยไม่เคยถูกเทสต์ในไปป์ไลน์เลย
+      # เรียก `npm run ci` ตรง ๆ แทน ต่อไปเพิ่มด่านใน package.json ที่เดียว release path ได้ตาม
+      #
+      # VITE_SUPABASE_URL/ANON_KEY จำเป็นทั้งตอน test และ build —
+      # accountRepository.supabase.test.ts ลาก supabaseClient.ts เข้ามา ซึ่ง throw ทันทีตอน
+      # module evaluate ถ้าไม่มีค่านี้ (ดู supabaseClient.ts) แม้เทสต์เองจะ test แค่ pure
+      # mapping ไม่แตะ Supabase จริงเลย (ดูฟิกซ์เดียวกันใน ci.yml)
+      #
       # ไม่รัน build:models ที่นี่ตั้งใจ — ไม่มีโค้ดใน src/ โหลด .glb ใช้ (เกมเรนเดอร์ sprite 2D แทน,
       # ดู tools/build-models.mjs หัวไฟล์) การรันสคริปต์ยังตรวจสอบใน ci.yml เป็น canary อยู่
       # รันที่นี่แล้ว copy เข้า dist/ จะสิ้นเปลือง CI minutes + ส่ง asset ที่ไม่มีใครใช้ขึ้น production เปล่า ๆ
-
-      - name: Build Application
+      - name: Run the full CI pipeline (typecheck, lint, test, edge test, build, bundle budget)
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
@@ -172,7 +170,14 @@ jobs:
           # key ด้านบน) ไม่มีค่านี้ตอน build ทำให้ AuthModal.tsx ข้าม render widget ไปเงียบ ๆ
           # ถ้า Supabase เปิด CAPTCHA บังคับไว้ real login จะพังทั้งเว็บ (เกิดจริงมาแล้ว 2026-08-08)
           VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
-        run: npm run build
+        run: npm run ci
+
+      # dependency-review ใน ci.yml มี `if: github.event_name == 'pull_request'` — push ที่ bump
+      # เวอร์ชันจึงข้ามด่าน dependency ทั้งหมด และ security-scan.yml เป็นคนละ workflow ที่ไม่มี
+      # อะไรผูกไว้กับ deploy เลย ผลคือ dependency ที่มี CVE ระดับ high ขึ้น production ได้โดยไม่มี
+      # ด่านไหนกั้น — audit ตรงนี้ทำให้ release path มีด่าน dependency ของตัวเองที่บล็อกได้จริง
+      - name: Audit dependencies before shipping
+        run: npm run audit
 
       - name: Generate SBOM
         run: npm sbom --sbom-format=cyclonedx > sbom.cdx.json
