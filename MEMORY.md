@@ -173,7 +173,7 @@ All entries 2026-08-05/06 unless noted. Roughly chronological.
 - **76.** Closed the gold-standard gaps that could be closed: **lint gate live** (`oxlint --deny-warnings`, 0 warnings — 34 ... — `MEMORY/archive/076-100.md`
 - **77.** `no-shadow` proved itself twice in one hour — `MEMORY/archive/076-100.md`
 - **78.** Ran the remaining 6 CoalMine canaries in parallel — all converged on one theme: **detected + handled but never disclosed ... — `MEMORY/archive/076-100.md`
-- **79.** Open, needs a decision before fixing — `MEMORY/archive/076-100.md`
+- **79.** CLOSED 2026-08-10 by item 190 — Kenney CC0 attribution now recorded in `assets/ATTRIBUTION.md` — `MEMORY/archive/076-100.md`
 - **80.** HetCreep decided all 7 open items (RULES_VERSION 12→13) — `MEMORY/archive/076-100.md`
 - **81.** Error channel now live — `MEMORY/archive/076-100.md`
 - **82.** ask-CB 4-seat on `admins.ts` + ledger cap — `MEMORY/archive/076-100.md`
@@ -283,3 +283,5 @@ All entries 2026-08-05/06 unless noted. Roughly chronological.
 - **186.** Erlang Shen (`spear-warrior`) landed — belt inward-reimplement 2/2 complete — `MEMORY/archive/176-200.md`
 - **187.** #104 belt round-trip — a rule-violating direct merge caught, reverted, re-entered at MAKE — `MEMORY/archive/176-200.md`
 - **188.** #25 server-owns-progression code LANDED — first full claude -p caretaker → fresh-eyes gate → merge cycle + the ... — `MEMORY/archive/176-200.md`
+- **189.** The 12-agent audit, the memory split, and five lanes that all failed their first gate — `MEMORY/archive/176-200.md`
+- **190.** Asset provenance recorded (870 assets, authorship measured) + two account-deletion cron jobs disarmed — `MEMORY/archive/176-200.md`
