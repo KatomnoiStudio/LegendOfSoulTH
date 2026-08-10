@@ -20,7 +20,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
     paths-ignore:
       - '**/*.md'
       - '.agents/**'
@@ -81,6 +81,15 @@ jobs:
           version="$(read_version "$GAME_INFO")"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
+          # GameTurnBase เป็น fork สำหรับทดสอบบนมือถือ ไม่ใช่ release train ของ upstream
+          # จึงต้อง deploy ทุกครั้งที่ master ของ fork ขยับ แม้ GAME_INFO.version ยังเท่าเดิม
+          # เพื่อให้แก้ runtime/config แล้วทดสอบได้ทันทีโดยไม่สร้าง version ปลอม
+          if [ "${{ github.repository }}" = "nustanakritwithai/GameTurnBase" ]; then
+            echo "fork ทดสอบขยับ — ปล่อย v$version โดยไม่บังคับ bump"
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "สั่งด้วยมือ — ปล่อยเลย (v$version)"
             echo "should_deploy=true" >> "$GITHUB_OUTPUT"
@@ -117,6 +126,12 @@ jobs:
     needs: gate
     if: needs.gate.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
+    env:
+      # ค่า VITE_* ถูกฝังใน browser bundle อยู่แล้ว จึงไม่ใช่ server secret
+      # Secrets ยังชนะเสมอ; fallback นี้มีไว้เฉพาะ fork ที่ GitHub ไม่คัดลอก Secrets จาก upstream
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
     permissions:
       contents: read
       pages: write
@@ -144,6 +159,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate public production client configuration
+        run: |
+          set -euo pipefail
+          [[ "$VITE_SUPABASE_URL" =~ ^https://[a-z0-9]+\.supabase\.co$ ]] || {
+            echo "VITE_SUPABASE_URL หายหรือรูปแบบไม่ถูกต้อง"
+            exit 1
+          }
+          [[ "$VITE_SUPABASE_ANON_KEY" =~ ^sb_publishable_[A-Za-z0-9_-]+$ || "$VITE_SUPABASE_ANON_KEY" =~ ^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$ ]] || {
+            echo "VITE_SUPABASE_ANON_KEY หายหรือไม่ใช่ publishable/legacy anon key"
+            exit 1
+          }
+
       # ด่านกันของเสียของ release path ต้องเป็น "ตัวเดียวกับที่ dev รัน" ไม่ใช่ subset ที่ก๊อปด้วยมือ
       #
       # ต้องรันตรงนี้ ไม่ใช่พึ่ง ci.yml: ci.yml เป็นคนละ workflow ที่ทริกเกอร์ขนานกัน ไม่มี
@@ -163,13 +190,6 @@ jobs:
       # ดู tools/build-models.mjs หัวไฟล์) การรันสคริปต์ยังตรวจสอบใน ci.yml เป็น canary อยู่
       # รันที่นี่แล้ว copy เข้า dist/ จะสิ้นเปลือง CI minutes + ส่ง asset ที่ไม่มีใครใช้ขึ้น production เปล่า ๆ
       - name: Run the full CI pipeline (typecheck, lint, test, edge test, build, bundle budget)
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          # public site key (ไม่ใช่ secret จริง — ออกแบบมาให้ฝังใน client bundle ได้ เหมือน anon
-          # key ด้านบน) ไม่มีค่านี้ตอน build ทำให้ AuthModal.tsx ข้าม render widget ไปเงียบ ๆ
-          # ถ้า Supabase เปิด CAPTCHA บังคับไว้ real login จะพังทั้งเว็บ (เกิดจริงมาแล้ว 2026-08-08)
-          VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
         run: npm run ci
 
       # dependency-review ใน ci.yml มี `if: github.event_name == 'pull_request'` — push ที่ bump
@@ -245,7 +265,7 @@ jobs:
   release:
     name: Publish the GitHub Release for this version
     runs-on: ubuntu-latest
-    needs: [ gate, deploy ]
+    needs: [gate, deploy]
     permissions:
       contents: write # สร้าง tag + release
     steps:

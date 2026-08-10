@@ -299,3 +299,4 @@ All entries 2026-08-05/06 unless noted. Roughly chronological.
 - **196.** Dungeon objective fallback preserved when its stage snapshot is temporarily absent — `MEMORY/archive/176-200.md`
 - **197.** Fork integration refreshed onto upstream `f8f599d` during the pre-push gate — `MEMORY/archive/176-200.md`
 - **198.** Release-pipeline ledger corrected: Edge tests are inside `npm run ci` and the deploy gate — `MEMORY/archive/176-200.md`
+- **199.** Fork Pages bootstrap repaired with a public Supabase client fallback — `MEMORY/archive/176-200.md`
