@@ -46,13 +46,53 @@ build`.
   post-merge on a fresh build: `supabaseClient-*.js` still tiers vendor, app
   max still 47.4 KB under a 70 KB ceiling.
 
-## Open, not this lane's to fix
+## QC bounce 2 — `blueprint-citations` landed report-only, main's ruling
 
-- `docs/agent-blueprint/**` citation lane (13 MISSING-FILE) is a separate lane;
-  the `blueprint-citations` CI job this lane wired will stay red until that
-  lane lands. Recommended main sequence that job's landing behind the citation
-  fix rather than merging it pre-red (see this lane's prior RETURN for the
-  `paths-ignore` interaction that makes it worse than it looks).
+The gate proved the predicted risk empirically: `ci.yml`'s push trigger
+`paths-ignore: '**/*.md'` means a docs-only fix to the 13 MISSING-FILE
+citations would never re-trigger this workflow on master, so a red run from
+the merge commit itself would sit as the newest run indefinitely. Main's
+ruling: #78 (the branch-protection unblocker) must not wait on an unrelated
+docs backlog. Fix landed as `continue-on-error: true` on the citation step —
+the tool's own exit code is untouched (still 1 on MISSING-FILE/PAST-EOF; the
+defect the tool reports was never the thing wrong here, the job blocking on
+it pre-cleanup was). Flip it back to blocking: citation-hygiene lane, once
+MISSING-FILE reaches 0, **followed by a push that touches a non-`.md` file**
+so the workflow actually re-runs on master and the check reports fresh.
+
+## Open, not this lane's to fix (gate-raised follow-ups, claimable later)
+
+1. **The 70 KB app ratchet is per-chunk, never a total.** Largest app chunk
+   (`App-*.js`) measures 47.5 KB gzip today, so 22.5 KB of silent growth on
+   that one chunk passes unflagged — and because the budget is per-file,
+   splitting one large chunk into two halves each measurement with zero real
+   size reduction. All 11 app-tier chunks currently sum to ~93.5 KB gzip and
+   nothing in `check-bundle-size.mjs` reports or budgets that total. Add a
+   `total app gzip` line with its own ceiling.
+2. **Vendor-token matching is bare substring, not boundary-aware — latent, not
+   live.** `base.includes(token)` means the `react` token also matches
+   `reaction`/`reactive`/`reactor` in a chunk's base name. This repo already
+   has `06-hit-reaction-system` — a future chunk auto-named for e.g. a
+   `reactionQueue.ts` module would silently get the 200 KB vendor ceiling
+   instead of the 70 KB app one. Today's build classifies correctly; fix is a
+   one-line boundary-aware compare (word-boundary regex or exact segment
+   match against `-`/`.`-split tokens) before it bites for real.
+3. **CSS dropped out of the bundle report.** The old `du -h` line covered
+   `dist/assets/*.css`; `check-bundle-size.mjs` filters `f.endsWith('.js')`
+   only. `App-*.css` measures 28.33 KB gzip — third-largest app-tier asset on
+   the whole build — and is now completely unobserved by CI.
+4. **`npm run audit` (the new deploy-path gate) has no `--omit=dev`.** A high
+   CVE in a dev-only dependency (`vitest`, `sharp`, `jsdom` — none of which
+   ship to players) blocks a production release exactly as hard as one in a
+   shipped dependency, and because `npm audit` is a live registry call, a
+   brand-new advisory can turn a previously-green release red with zero code
+   change on this repo's side. Recording this as a known property of the
+   gate rather than a defect — arguably the point of running audit at all —
+   but the next person debugging "why did deploy just go red with no diff"
+   should find this line first.
+
+## Resolved from the previous round
+
 - Proposed to main, not made here (file ownership): `vite.config.ts` could
   extract `@supabase/supabase-js` into its own `manualChunks` entry the way
   `react` already is — would let the bundle tool's vendor/app split stop

@@ -156,8 +156,21 @@ jobs:
 
   # ตัวตรวจ citation ของ docs/agent-blueprint/** — ไม่พึ่ง dependency ใด ๆ จึงไม่ต้อง npm ci
   # ไม่ได้เป็น required check (branch protection ชี้ที่ "Continuous Integration" อย่างเดียว)
-  # จงใจ: MISSING-FILE คือ citation ที่ชี้ไปยังไฟล์ที่ไม่มีอยู่จริง = พังแน่นอน จึงทำให้ job แดง
-  # ส่วน SYMBOL-MISMATCH ตัวเช็คเองประกาศว่าเป็น heuristic จึงรายงานอย่างเดียว ไม่ทำให้แดง
+  #
+  # REPORT-ONLY ชั่วคราว (`continue-on-error: true` ที่ step ด้านล่าง) — วันแรกที่เพิ่ม job นี้
+  # เข้ามา ตัวเช็คตอนนั้นรายงาน MISSING-FILE: 13 อยู่แล้ว (12 ใน 13 เป็นแค่ bare `types.ts`
+  # กำกวม ไม่ใช่ path ที่หายไปจริง — citation-hygiene lane เป็นคนไล่ปิด) job จึงแดงทันทีที่ merge
+  # เข้า master โดยไม่มีโค้ดใครพังเลย และซ้ำร้ายกว่านั้น: การแก้ตามธรรมชาติคือ commit ที่แตะแค่
+  # docs/agent-blueprint/**/*.md ซึ่งเข้าเงื่อนไข `paths-ignore: '**/*.md'` ของ push trigger
+  # ด้านบน — workflow นี้จะไม่ re-run บน master เลยจนกว่าจะมี push ที่แตะไฟล์โค้ดอื่นมาบังเอิญ
+  # ผ่าน แปลว่า run สีแดงจะค้างเป็น run ล่าสุดของ workflow นี้นานเกินสมควร
+  #
+  # ใครปิด `continue-on-error` นี้กลับ = citation-hygiene lane เมื่อ MISSING-FILE เหลือ 0
+  # (SYMBOL-MISMATCH ปล่อยผ่านได้เสมอ ตัวเช็คเองประกาศว่าเป็น heuristic) และต้องตามด้วย push ที่
+  # แตะไฟล์โค้ด (ไม่ใช่แค่ .md) เพื่อให้ workflow นี้ re-run บน master จริง ไม่งั้นสถานะเก่าจะค้าง
+  #
+  # `tools/check-blueprint-citations.mjs` เองไม่แตะ — ยังคง exit 1 บน MISSING-FILE/PAST-EOF
+  # เหมือนเดิม (ตัวเช็คถูกต้องแล้ว ปัญหาอยู่ที่ job นี้ยังไม่ควร block บน backlog ที่มีอยู่ก่อน)
   blueprint-citations:
     name: Blueprint citation check
     runs-on: ubuntu-latest
@@ -176,6 +189,7 @@ jobs:
           node-version: 24
 
       - name: Check citations in docs/agent-blueprint
+        continue-on-error: true
         run: node tools/check-blueprint-citations.mjs
 
   dependency-review:
