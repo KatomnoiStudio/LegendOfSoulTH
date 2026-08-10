@@ -287,3 +287,4 @@ All entries 2026-08-05/06 unless noted. Roughly chronological.
 - **190.** Asset provenance recorded (870 assets, authorship measured) + two account-deletion cron jobs disarmed — `MEMORY/archive/176-200.md`
 - **191.** DESIGN LOCK (owner) — game values are BASE x SCALE under one rule; a PR carrying a per-case magic number is converted at intake — `MEMORY/archive/176-200.md`
 - **192.** v0.17.0 shipped — 10 belt lanes, 52 audit findings worked off, every lane bounced at least once on the same species: correct code with nothing pinning it — `MEMORY/archive/176-200.md`
+- **193.** Three external PRs taken in — #111 reverted for bypassing its own gate, #107 and #109 adopted through it — `MEMORY/archive/176-200.md`
