@@ -44,10 +44,6 @@ export function useDungeonStageBattle({
   onDungeonComplete: (result: DungeonResult) => void
 }) {
   const [orchestrator, setOrchestrator] = useState<DungeonOrchestrator | null>(null)
-  // ดันเจี้ยนสร้าง runtime ใหม่ทุกครั้งที่เปลี่ยนด่าน จึงต้องสลับ reference ที่ UI ใช้ด้วย
-  const [activeRuntime, setActiveRuntime] =
-    useState<ReturnType<DungeonOrchestrator['getRuntime']>>(null)
-  const activeRuntimeRef = useRef<ReturnType<DungeonOrchestrator['getRuntime']>>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [phase, setPhase] = useState<DungeonBattlePhase>('loading')
   const completedRef = useRef(false)
@@ -86,8 +82,6 @@ export function useDungeonStageBattle({
           return
         }
         setOrchestrator(orch)
-        activeRuntimeRef.current = orch.getRuntime()
-        setActiveRuntime(activeRuntimeRef.current)
         setPhase('active')
         detachKeyboard = input.attachKeyboard()
         loop = startBattleLoop({
@@ -99,11 +93,6 @@ export function useDungeonStageBattle({
             const skillSlot = input.consumeSkill()
             if (skillSlot) rt.requestSkill(skillSlot)
             orch?.tick(deltaMs)
-            const nextRuntime = orch?.getRuntime() ?? null
-            if (nextRuntime !== activeRuntimeRef.current) {
-              activeRuntimeRef.current = nextRuntime
-              setActiveRuntime(nextRuntime)
-            }
             const snap = orch?.getSnapshot()
             if (snap?.phase === 'dungeon_complete' || snap?.phase === 'dungeon_failed') {
               if (!completedRef.current && snap.result) {
@@ -134,26 +123,24 @@ export function useDungeonStageBattle({
       input.reset()
       orch?.dispose()
       setOrchestrator(null)
-      activeRuntimeRef.current = null
-      setActiveRuntime(null)
     }
   }, [dungeon, player])
 
   const subscribe = useCallback(
-    (listener: () => void) => activeRuntime?.subscribe(listener) ?? (() => {}),
-    [activeRuntime],
+    (listener: () => void) => orchestrator?.getRuntime()?.subscribe(listener) ?? (() => {}),
+    [orchestrator],
   )
   const getSnapshot = useCallback(
-    (): RealtimeBattleSnapshot | null => activeRuntime?.getSnapshot() ?? null,
-    [activeRuntime],
+    (): RealtimeBattleSnapshot | null => orchestrator?.getRuntime()?.getSnapshot() ?? null,
+    [orchestrator],
   )
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 
   const stageSnapshot = orchestrator?.getSnapshot().stageSnapshot ?? null
 
   const requestExit = useCallback(() => {
-    activeRuntime?.requestExit()
-  }, [activeRuntime])
+    orchestrator?.getRuntime()?.requestExit()
+  }, [orchestrator])
 
   const setJoystick = useCallback((input: MovementInput) => {
     inputRef.current?.setMovementInput(input)
@@ -170,7 +157,7 @@ export function useDungeonStageBattle({
   return {
     phase,
     errorMessage,
-    runtime: activeRuntime,
+    runtime: orchestrator?.getRuntime() ?? null,
     snapshot,
     stageSnapshot,
     dungeonSnapshot: orchestrator?.getSnapshot() ?? null,

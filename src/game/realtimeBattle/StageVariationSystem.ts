@@ -47,9 +47,6 @@ const resolveMissingParamsOutcome = resolveWaveOutcome
 function resolveSurvivalOutcome(state: RealtimeBattleState): StageOutcome {
   const params = state.stage.survival
   if (!params) return resolveMissingParamsOutcome(state)
-  // Survival time starts when the player can actually control the hero. The
-  // runtime's elapsedMs also includes the opening intro and must not shorten
-  // the stage objective.
   return state.stageElapsedMs >= params.durationMs ? 'victory' : null
 }
 

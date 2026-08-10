@@ -155,12 +155,6 @@ export interface RealtimeBattleSnapshot {
   stageName: string
   status: BattleStatus
   elapsedMs: number
-  /** เวลา objective ของด่านที่นับหลัง intro เท่านั้น */
-  stageElapsedMs: number
-  /** ค่าเลือดเป้าหมายของด่าน defend — null สำหรับ stage อื่น */
-  objectiveHp: number | null
-  /** ค่าเลือดกลไกอันตรายของด่าน hazard — null สำหรับ stage อื่น */
-  hazardHp: number | null
 
   player: RealtimeBattleEntity
   enemies: RealtimeBattleEntity[]
