@@ -8,13 +8,14 @@ on:
       - '.agents/**'
       - '.coalmine.json'
       - '.github/upstream-watch/**'
+  # ไม่มี paths-ignore ฝั่ง pull_request โดยตั้งใจ — branch protection บังคับ check ชื่อ
+  # "Continuous Integration" ไว้ ถ้า workflow นี้ไม่ทริกเกอร์ check นั้นจะไม่มีใครรายงานเลย
+  # และ PR ค้างตลอดกาล เดิมแก้ด้วย ci-docs-gate.yml ที่ประกาศ job ชื่อซ้ำกันเป๊ะ ผลคือ PR ที่
+  # แตะทั้ง .md และ .ts ยิงทั้งสอง workflow แล้วมี check ชื่อเดียวกันสองอัน (GitHub `paths`
+  # = "ไฟล์ที่เปลี่ยนตรงอย่างน้อยหนึ่งไฟล์ก็รัน" ไม่ใช่ "ต้องตรงทุกไฟล์") — workflow นั้นถูกลบทิ้ง
+  # แล้ว และชื่อ check นี้มีเจ้าของเดียวคือไฟล์นี้
   pull_request:
     branches: [ master ]
-    paths-ignore:
-      - '**/*.md'
-      - '.agents/**'
-      - '.coalmine.json'
-      - '.github/upstream-watch/**'
 
 # push ถี่มาก (หลาย dev, หลาย commit ต่อนาที) — push ใหม่ยกเลิกรันเก่าที่ยังไม่จบ
 # แทนที่จะปล่อยให้ build+test+lint เต็มรอบทุก push ที่มีอันใหม่กว่ามาแซงอยู่แล้ว
@@ -108,26 +109,31 @@ jobs:
           awk '/Coverage summary/,0' test-output.log | head -n 6 >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
+      # Edge Function (supabase/functions/pvp-authority) คือ trust boundary ฝั่งเซิร์ฟเวอร์ของ PvP
+      # `npm run typecheck` ด้านบนลาก typecheck:edge มาให้แล้ว (ดู package.json) แต่ `test:edge`
+      # ไม่เคยมี workflow ไหนรัน — เดิมกั้นด้วยการที่ dev พิมพ์ `npm run ci` เองที่เครื่องเท่านั้น
+      # deno มาจาก devDependency ที่ pin ไว้ (deno 2.9.5) จึงไม่ต้องติดตั้ง action เพิ่ม
+      - name: Run Edge Function tests
+        run: npm run test:edge
+
       - name: Build Application
         env:
           # public site key (ไม่ใช่ secret จริง — ออกแบบมาให้ฝังใน client bundle ได้)
           VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
         run: npm run build
 
-      - name: Report bundle size
-        # ไม่ต้องสมัคร external service — แค่ print ขนาด chunk ทุก build ลง log
-        # เทียบ trend เองได้จาก run history (Actions > this workflow > ผลลัพธ์ย้อนหลัง)
-        # shell: bash บังคับเสมอ — default shell ของ windows-latest คือ pwsh ซึ่งไม่รู้จัก
-        # du/sort/pipefail; runner windows มี Git Bash ติดมาอยู่แล้วจึงสั่ง bash ตรง ๆ ได้
+      - name: Check bundle size against the budget
+        # เดิม step นี้เป็น `du -h | sort -rh` เฉย ๆ — ไม่มีเพดาน ไม่มี exit code จึงเขียวเสมอ
+        # ต่อให้ chunk โตขึ้นเท่าไหร่ ส่วน tools/check-bundle-size.mjs (เพดานจริง 2 ระดับ) อยู่ใน
+        # สคริปต์ `npm run ci` แต่ไม่เคยมี workflow ไหนเรียก — เพดานจึงบังคับแค่ตอน dev พิมพ์เอง
+        # shell: bash บังคับ — tee/pipefail เป็น bash syntax, pwsh (default ของ windows-latest)
+        # parse ไม่ผ่าน; Git Bash มากับ windows runner อยู่แล้ว
         shell: bash
         run: |
-          # pipefail จำเป็น: shell ปริยายของ run: คือ bash -e ซึ่งไม่มี pipefail
-          # สถานะของไปป์จึงมาจาก sort ตัวท้ายเสมอ ถ้า du หาไฟล์ไม่เจอ (เช่น CSS ถูก
-          # inline หมด หรือ assetsDir เปลี่ยน) step นี้จะรายงานเขียวพร้อมกล่องโค้ดว่าง
           set -o pipefail
           echo "### Bundle size (dist/assets)" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          du -h dist/assets/*.js dist/assets/*.css | sort -rh >> "$GITHUB_STEP_SUMMARY"
+          node tools/check-bundle-size.mjs 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
   # branch protection ตั้ง required status check ไว้ที่ชื่อ "Continuous Integration" เดี่ยว ๆ
@@ -147,6 +153,44 @@ jobs:
             echo "อย่างน้อยหนึ่ง Node version ใน matrix ไม่ผ่าน" >&2
             exit 1
           fi
+
+  # ตัวตรวจ citation ของ docs/agent-blueprint/** — ไม่พึ่ง dependency ใด ๆ จึงไม่ต้อง npm ci
+  # ไม่ได้เป็น required check (branch protection ชี้ที่ "Continuous Integration" อย่างเดียว)
+  #
+  # REPORT-ONLY ชั่วคราว (`continue-on-error: true` ที่ step ด้านล่าง) — วันแรกที่เพิ่ม job นี้
+  # เข้ามา ตัวเช็คตอนนั้นรายงาน MISSING-FILE: 13 อยู่แล้ว (12 ใน 13 เป็นแค่ bare `types.ts`
+  # กำกวม ไม่ใช่ path ที่หายไปจริง — citation-hygiene lane เป็นคนไล่ปิด) job จึงแดงทันทีที่ merge
+  # เข้า master โดยไม่มีโค้ดใครพังเลย และซ้ำร้ายกว่านั้น: การแก้ตามธรรมชาติคือ commit ที่แตะแค่
+  # docs/agent-blueprint/**/*.md ซึ่งเข้าเงื่อนไข `paths-ignore: '**/*.md'` ของ push trigger
+  # ด้านบน — workflow นี้จะไม่ re-run บน master เลยจนกว่าจะมี push ที่แตะไฟล์โค้ดอื่นมาบังเอิญ
+  # ผ่าน แปลว่า run สีแดงจะค้างเป็น run ล่าสุดของ workflow นี้นานเกินสมควร
+  #
+  # ใครปิด `continue-on-error` นี้กลับ = citation-hygiene lane เมื่อ MISSING-FILE เหลือ 0
+  # (SYMBOL-MISMATCH ปล่อยผ่านได้เสมอ ตัวเช็คเองประกาศว่าเป็น heuristic) และต้องตามด้วย push ที่
+  # แตะไฟล์โค้ด (ไม่ใช่แค่ .md) เพื่อให้ workflow นี้ re-run บน master จริง ไม่งั้นสถานะเก่าจะค้าง
+  #
+  # `tools/check-blueprint-citations.mjs` เองไม่แตะ — ยังคง exit 1 บน MISSING-FILE/PAST-EOF
+  # เหมือนเดิม (ตัวเช็คถูกต้องแล้ว ปัญหาอยู่ที่ job นี้ยังไม่ควร block บน backlog ที่มีอยู่ก่อน)
+  blueprint-citations:
+    name: Blueprint citation check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+
+      - name: Check citations in docs/agent-blueprint
+        continue-on-error: true
+        run: node tools/check-blueprint-citations.mjs
 
   dependency-review:
     name: Dependency Review

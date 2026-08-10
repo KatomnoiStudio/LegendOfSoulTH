@@ -3,6 +3,10 @@
 // READ-ONLY: reads docs/agent-blueprint/** and whatever repo files those
 // contracts cite; writes nothing back into the repo.
 //
+// Exits 1 when a citation points at a file or line that does not exist
+// (MISSING-FILE / PAST-EOF); SYMBOL-MISMATCH is heuristic and advisory only.
+// Wired into .github/workflows/ci.yml as the "Blueprint citation check" job.
+//
 // Citation shapes handled (backtick-wrapped only — per task spec, a bare
 // "§4.2/AGENT_BLUEPRINT.md:85" mentioned in plain prose without backticks is
 // NOT a citation and is intentionally not checked):
@@ -297,6 +301,22 @@ function main() {
   console.log(`  PAST-EOF:        ${totals['PAST-EOF']}`);
   console.log(`  SYMBOL-MISMATCH: ${totals['SYMBOL-MISMATCH']}`);
   console.log(`  (of which OK citations had no adjacent symbol to check: ${totals.noSymbol})`);
+
+  // Exit code, so CI can gate on this instead of the tool always reporting green.
+  // Only the two DETERMINISTIC verdicts block: MISSING-FILE (the cited path
+  // resolves to nothing, or a bare filename is ambiguous) and PAST-EOF (the
+  // cited line is beyond the file's length). Both are provable from the tree.
+  // SYMBOL-MISMATCH stays advisory on purpose — the adjacency rule that picks
+  // the symbol is a heuristic this file labels as such at the point it emits
+  // the verdict, so it reports but must never fail a build.
+  const blocking = totals['MISSING-FILE'] + totals['PAST-EOF'];
+  if (blocking > 0) {
+    console.error(
+      `\n${blocking} citation(s) point at a file or line that does not exist — fix those. ` +
+        `SYMBOL-MISMATCH is heuristic and does not fail this check.`,
+    );
+    process.exitCode = 1;
+  }
 }
 
 main();
