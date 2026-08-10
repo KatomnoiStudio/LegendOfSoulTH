@@ -615,10 +615,12 @@ every item below stops being housekeeping.**
 3. **Provider terms across the tool mix and the paid tiers (unknown #3).** Which terms bind,
    whether commercial use is permitted under each, and whether anything survives a plan
    lapsing. Retrieve the terms first; do not rely on this file for them.
-4. **Ownership and copyrightability of the output (unknown #6).** Whether the owner's
-   human mechanical fitting pass plus the automated `tools/` processing supplies the human
-   authorship some jurisdictions require. Practical consequence if not: the project may
-   still *use* the art but may be unable to stop others copying it.
+4. **Ownership and copyrightability of the output (unknown #6).** Whether an **owner-directed
+   but machine-executed** fitting pass — nothing pressed by hand — plus the automated `tools/`
+   processing supplies the human authorship some jurisdictions require. State it that way to
+   a lawyer: every step between generator and shipped file was machine-executed, and the human
+   involvement is at the direction level only. Practical consequence if that is not enough:
+   the project may still *use* the art but may be unable to stop others copying it.
 5. **Scope (unknown #4).** Whether 693 assets with a known author but undocumented generation
    details can ship commercially, or whether they need the same review — or replacement — that
    the Wukong set is already getting. Worth telling a lawyer that `kaoshock123` is reachable
