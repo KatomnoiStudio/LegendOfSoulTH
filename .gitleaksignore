@@ -1,0 +1,30 @@
+# gitleaks — triaged historical findings
+#
+# One line per finding fingerprint (commit:file:rule:startline). A fingerprint
+# names a finding; it carries no secret material. Everything not listed here is
+# still scanned at full strength, in the working tree and in every commit — this
+# file suppresses the named finding and nothing else.
+#
+# Why this exists: `gitleaks git` re-scans the entire history on every push, so a
+# finding that is already in history is reported forever, even after the code is
+# reverted. Triaging it once here is gitleaks' own documented mechanism for that
+# (README, "ignore specific findings"). Deleting a line makes CI red again, which
+# is the point — nothing is hidden, it is written down.
+#
+# RULES FOR ADDING A LINE
+#   1. The secret must be verified NON-sensitive, or already rotated and dead.
+#   2. Say which, and why, in the comment above the line.
+#   3. A finding that is a real secret is NEVER added here — it is rotated first,
+#      and the line is added only after the old value is dead.
+
+# 2026-08-11 — Supabase PUBLISHABLE key, hard-coded as a workflow fallback:
+#   VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || '<literal>' }}
+# Arrived through PR #111 and was backed out of the tree the same day by revert
+# 5135bde; .github/workflows/deploy.yml now passes the secret with no fallback.
+# The commit itself stays in history, so the scan keeps finding it.
+# Not sensitive: this is the key Supabase publishes to every browser that loads
+# the game — it is in the shipped bundle by design, and RLS is the actual
+# boundary. gitleaks flags it on entropy alone (generic-api-key, 4.69), not on
+# provenance. Rotating it would not change that; the string would still sit in
+# history and still trip the same entropy rule.
+e8e9d210fea0ec565c5d88c3b34a37bc7f2dfdb0:.github/workflows/deploy.yml:generic-api-key:133
