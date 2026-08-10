@@ -4,6 +4,7 @@ import { ROSTER } from '../../game/characters'
 import { resolveHeroLevelStats } from '../../game/progression/heroStatsResolver'
 import { createDefaultSkillLevels } from '../../game/realtimeBattle/SkillProgressionSystem'
 import type { Player } from '../../types/player'
+import type { ProgressionUpgradeRequest } from '../../data/accountRepository.supabase'
 import { CharacterCard } from './CharacterCard'
 import { CharacterPreview } from './CharacterPreview'
 import { CharacterStats } from './CharacterStats'
@@ -17,6 +18,8 @@ interface CharacterRosterModalProps {
   player: Player
   onClose: () => void
   onPlayerChange: (next: Player) => Promise<boolean>
+  /** ยิง RPC อัปเกรด — ส่งต่อให้ HeroProgressionPanel เท่านั้น (task #26/#35) */
+  onUpgrade: (request: ProgressionUpgradeRequest) => Promise<{ ok: boolean; error?: string }>
 }
 
 type RightPanelTab = 'details' | 'progression'
@@ -31,6 +34,7 @@ export function CharacterRosterModal({
   player,
   onClose,
   onPlayerChange,
+  onUpgrade,
 }: CharacterRosterModalProps) {
   const ownedRoster = useMemo(
     () =>
@@ -188,11 +192,7 @@ export function CharacterRosterModal({
             {rightTab === 'details' ? (
               <CharacterStats character={selected} />
             ) : (
-              <HeroProgressionPanel
-                player={player}
-                heroId={selected.id}
-                onPlayerChange={onPlayerChange}
-              />
+              <HeroProgressionPanel player={player} heroId={selected.id} onUpgrade={onUpgrade} />
             )}
             <div className={styles.battleSelection}>
               <span className={styles.activeHeroLabel}>ตัวหลักลงด่าน: {activeHeroName}</span>

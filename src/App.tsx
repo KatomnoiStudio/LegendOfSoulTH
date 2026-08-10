@@ -46,6 +46,7 @@ export default function App() {
     clearPendingLobbyReward,
     getPendingLobbyRewards,
     pullGacha,
+    spendProgressionUpgrade,
     exportSave,
   } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
@@ -165,7 +166,7 @@ export default function App() {
           <LobbyPage
             player={activePlayer!}
             onPlayerChange={handlePlayerChange}
-
+            onUpgrade={spendProgressionUpgrade}
             onEarnGold={earnGold}
             onGrantItem={grantItem}
             onCommitProgression={commitLobbyBattleProgression}

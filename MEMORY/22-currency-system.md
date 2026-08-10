@@ -113,3 +113,39 @@ network error — verified to fail when the retry is re-injected.
 library already does at that layer.** "Add a retry" looked like pure hardening and was a latency
 and double-write regression. The idempotent-ledger argument I used to justify it was true and
 irrelevant — it covers `earn_gold`/`grant_item`, not the profile writes the wrapper also touched.
+
+## 2026-08-10 — #26/#35: the cost side of an upgrade becomes server-authoritative
+
+Closed the free-upgrade bug the wave-1 lane could only document. Migration
+`20260810180000_p26_progression_cost_authority.sql` + client wiring.
+
+- **The prices did not exist on the server at all.** They live in TypeScript fixtures
+  (`SKILL_PROGRESSION_FIXTURES`, `TALENT_NODE_FIXTURES`, `AWAKENING_TIER_FIXTURE_COSTS`), which
+  Postgres cannot read — so "server computes the cost" first required _bringing the cost across_
+  into `progression_cost_catalog`, the same move `20260810160000` made for `item_catalog`. That
+  is now a **two-place edit**: a price changed in the fixtures without a companion migration row
+  fails `src/data/progressionCostParity.test.ts`, which re-parses the seed out of the migration
+  rather than keeping a third copy of the numbers.
+- **The RPC alone would have fixed NOTHING.** `savePlayer` could still PATCH `skill_levels`
+  directly, so the upgrade stayed free for anyone who skipped it. The load-bearing line is
+  `revoke update on public.owned_characters from authenticated` with no re-grant — the client
+  now holds zero writable columns on that table, and `savePlayer` stopped sending the three it
+  used to. `20260810130000:49-50` had already reserved this exact change for this task.
+- **Idempotency cannot be keyed on the refId, because the CLIENT mints it.** A second uuid is
+  free. The real guard is a **compare-and-swap**: the caller states the level it believes the
+  hero is at, the server reads the true level from `owned_characters`, mismatch = rejection.
+  After a successful upgrade the true level has moved, so the same purchase under a fresh uuid
+  is refused. `progression_spend_ledger` only decides whether a _duplicate_ call is answered
+  with the old result or with an error.
+- **A row-count assertion cannot pin the validate-before-rate-limit ordering.** Measured, not
+  assumed: moving the `check_and_log_rpc_rate_limit` call above the validation block left every
+  behavioural assertion green, because a raise aborts the transaction and takes the log row with
+  it either way — exactly what `20260810160000`'s own F5a note says. The ordering is pinned on
+  `pg_proc.prosrc` instead, with the reason written next to it. **A property whose only
+  observable is statement order has to be asserted on the source, or it is not asserted.**
+- `lifetime_gold_earned` is untouched by a spend: it is lifetime EARNED, and the
+  `20260810100000` backfill derives it from credit rows only. Decrementing it would corrupt the
+  one reconciliation column this system has.
+- Constraint rewrite carried the `(currency='gem' and source='gacha' and amount<0)` branch
+  forward verbatim, per this file's own standing warning, and there is now a test that inserts a
+  gacha debit row to prove it survived.

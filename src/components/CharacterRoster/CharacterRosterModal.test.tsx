@@ -53,7 +53,12 @@ function renderModal(onClose = vi.fn(), onPlayerChange = vi.fn(async () => true)
   const player = buildPlayer()
   render(
     <ToastProvider>
-      <CharacterRosterModal player={player} onClose={onClose} onPlayerChange={onPlayerChange} />
+      <CharacterRosterModal
+        player={player}
+        onClose={onClose}
+        onPlayerChange={onPlayerChange}
+        onUpgrade={vi.fn(async () => ({ ok: true }))}
+      />
     </ToastProvider>,
   )
   return { onClose, onPlayerChange }
@@ -144,6 +149,7 @@ describe('CharacterRosterModal', () => {
           player={legacyPlayer}
           onClose={vi.fn()}
           onPlayerChange={vi.fn(async () => true)}
+          onUpgrade={vi.fn(async () => ({ ok: true }))}
         />
       </ToastProvider>,
     )

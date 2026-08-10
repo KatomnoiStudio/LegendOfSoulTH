@@ -323,7 +323,10 @@ const PLAYER_FIELD_OWNERS: Record<keyof Player, FieldOwner> = {
   frameId: 'save-player',
   friends: 'save-player',
   teamSlots: 'save-player',
-  ownedCharacters: 'save-player',
+  // ownedCharacters: NOTHING on this table is client-writable any more. 20260810180000 does a
+  // bare `revoke update on public.owned_characters from authenticated` with no re-grant, so
+  // savePlayer stopped sending skill_levels/talent_state/awakening_state entirely (#26/#35).
+  ownedCharacters: 'rpc',
   progress: 'save-player',
   // level/exp/expToNext: column-locked by 20260810130000 — commit_lobby_battle_progression owns
   // them. Sending them from savePlayer earns a 42501 that fails the ENTIRE save (#25).
@@ -333,24 +336,24 @@ const PLAYER_FIELD_OWNERS: Record<keyof Player, FieldOwner> = {
   // gachaPity: perform_gacha_pull owns gacha_pity (20260809073000).
   gachaPity: 'rpc',
   /*
-    KNOWN GAP — currency.gold and inventory are DEBITED client-side by
-    progressionService.spendCost() for skill/talent/awakening upgrades, and neither can be
-    written from here: profiles.gold is column-locked (0009) and inventory_items has no write
-    policy for `authenticated` at all (0001_init.sql:111 grants select only).
-
-    So the upgrade's EFFECT persists (skill_levels/talent_state/awakening_state below) while its
-    COST does not: reload and the gold is back with the upgrade kept — free unlimited upgrades,
-    and a currency bar that lies until the next refresh.
-
-    Fix = ONE new RPC, not a widened grant. Smallest shape that works:
-      spend_progression_cost(p_request_id uuid, p_hero_id text, p_upgrade text,
-                             p_gold int, p_materials jsonb)
-    debiting gold and materials in one transaction, rejecting an insufficient balance, idempotent
-    on p_request_id like ascend_character_star already is, and writing the spend to
-    currency_transactions. Needs a migration — belongs with #26 (skill/talent server authority).
+    currency: fully server-owned in BOTH directions as of 20260810180000 (#26/#35).
+      credits — earn_gold / redeem_coupon / grant_gold_admin / perform_gacha_pull
+      debits  — spend_progression_upgrade (gold), perform_gacha_pull (gem)
+    This was the free-upgrade gap: the client debited gold in memory for an upgrade, could not
+    write profiles.gold (column-locked since 0009:103), and savePlayer persisted the upgrade's
+    EFFECT anyway. The debit now happens inside the same transaction as the effect, server-side,
+    priced from progression_cost_catalog which the client cannot read or write.
   */
-  currency: 'known-gap',
-  inventory: 'known-gap',
+  currency: 'rpc',
+  /*
+    inventory: credit-only today, and that is currently sufficient rather than lucky.
+    grant_item owns the credits (item_grant_ledger, catalog-validated since 20260810160000);
+    there is NO debit RPC because no upgrade cost uses materials — progressionCostParity.test.ts
+    asserts that across all three fixture tables, and planUpgrade() refuses to submit a cost
+    that grows one. The first material cost needs a debit path in spend_progression_upgrade
+    AND a materials column on progression_cost_catalog; until then this is closed, not open.
+  */
+  inventory: 'rpc',
 }
 
 const PROGRESS_FIELD_OWNERS: Record<keyof PlayerProgress, FieldOwner> = {
@@ -370,9 +373,11 @@ const PROGRESS_FIELD_OWNERS: Record<keyof PlayerProgress, FieldOwner> = {
 const OWNED_FIELD_OWNERS: Record<keyof OwnedCharacter, FieldOwner> = {
   characterId: 'read-only',
   obtainedAt: 'read-only',
-  skillLevels: 'save-player',
-  talentState: 'save-player',
-  awakeningState: 'save-player',
+  // The three that used to be client-writable. spend_progression_upgrade (20260810180000) now
+  // writes them in the same transaction that debits the gold — that pairing IS the fix.
+  skillLevels: 'rpc',
+  talentState: 'rpc',
+  awakeningState: 'rpc',
   // Hero level/exp: same column lock as the profile's (20260810130000 / 20260808204905).
   level: 'rpc',
   exp: 'rpc',
@@ -384,11 +389,12 @@ const OWNED_FIELD_OWNERS: Record<keyof OwnedCharacter, FieldOwner> = {
   progressionVersion: 'known-gap',
 }
 
-const OWNED_FIELD_COLUMNS: Record<string, { table: string; column: string }> = {
-  skillLevels: { table: 'owned_characters', column: 'skill_levels' },
-  talentState: { table: 'owned_characters', column: 'talent_state' },
-  awakeningState: { table: 'owned_characters', column: 'awakening_state' },
-}
+/*
+  Deliberately empty: savePlayer writes no owned_characters column at all now. Kept as a named
+  constant rather than deleted so the next person to add a hero field has an obvious place to
+  discover that this table is off-limits to the client.
+*/
+const OWNED_FIELD_COLUMNS: Record<string, { table: string; column: string }> = {}
 
 /** Columns savePlayer actually sent, per table, gathered from the recorded write payloads. */
 function writtenColumns(): Record<string, Set<string>> {
@@ -406,11 +412,15 @@ function writtenColumns(): Record<string, Set<string>> {
 
 describe('F2: every Player field has exactly one declared owner', () => {
   test('no field of Player is unclassified', () => {
-    expect(Object.keys(makePlayer()).toSorted()).toEqual(Object.keys(PLAYER_FIELD_OWNERS).toSorted())
+    expect(Object.keys(makePlayer()).toSorted()).toEqual(
+      Object.keys(PLAYER_FIELD_OWNERS).toSorted(),
+    )
   })
 
   test('no field of PlayerProgress is unclassified', () => {
-    expect(Object.keys(makeProgress()).toSorted()).toEqual(Object.keys(PROGRESS_FIELD_OWNERS).toSorted())
+    expect(Object.keys(makeProgress()).toSorted()).toEqual(
+      Object.keys(PROGRESS_FIELD_OWNERS).toSorted(),
+    )
   })
 
   test('no field of OwnedCharacter is unclassified', () => {
@@ -451,19 +461,20 @@ describe('F2: every Player field has exactly one declared owner', () => {
     for (const column of ['level', 'exp', 'exp_to_next', 'gold', 'gem', 'energy']) {
       expect(written.profiles?.has(column), `profiles.${column}`).not.toBe(true)
     }
-    for (const column of ['level', 'exp', 'exp_to_next', 'star', 'shards']) {
-      expect(written.owned_characters?.has(column), `owned_characters.${column}`).not.toBe(true)
-    }
     expect(written.inventory_items).toBeUndefined()
   })
 
-  test('savePlayer writes these four tables and no others', async () => {
+  test('savePlayer writes these three tables and no others', async () => {
     const { savePlayer } = await import('./accountRepository.supabase')
     await savePlayer(makePlayer())
 
+    /*
+      owned_characters left this list in 20260810180000 (#26/#35). The client holds no writable
+      column on it at all now — sending one is a 42501 that fails the ENTIRE save (team,
+      friends, flags), which is exactly the trap #25 hit on profiles.
+    */
     expect([...new Set(writes.map((w) => w.table))].toSorted()).toEqual([
       'friends',
-      'owned_characters',
       'profiles',
       'team_slots',
     ])

@@ -48,6 +48,10 @@ interface LobbyPageProps {
   /** บันทึกความคืบหน้ากลับลงฐานข้อมูล */
   /** คืน true เมื่อบันทึกลงที่เก็บข้อมูลจริง — false แปลว่าหน้าจอถูกย้อนกลับแล้ว */
   onPlayerChange: (next: Player) => Promise<boolean>
+  /** ยิง RPC อัปเกรดสกิล/พรสวรรค์/ปลุกพลัง — หักทองฝั่งเซิร์ฟเวอร์ (task #26/#35) */
+  onUpgrade: (
+    request: import('../data/accountRepository.supabase').ProgressionUpgradeRequest,
+  ) => Promise<{ ok: boolean; error?: string }>
   /** ทองจากการเล่น (ดรอป/เควส) — ผ่าน ledger */
   onEarnGold: (source: GoldSource, amount: number, refId?: string) => Promise<CurrencyResult>
   /** ไอเทมดรอปจากการต่อสู้ */
@@ -94,6 +98,7 @@ interface LobbyPageProps {
 export function LobbyPage({
   player,
   onPlayerChange,
+  onUpgrade,
   onEarnGold,
   onGrantItem,
   onCommitProgression,
@@ -297,6 +302,7 @@ export function LobbyPage({
           player={player}
           onClose={() => setRosterOpen(false)}
           onPlayerChange={onPlayerChange}
+          onUpgrade={onUpgrade}
         />
       ) : null}
 
