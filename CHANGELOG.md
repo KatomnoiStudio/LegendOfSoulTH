@@ -5,6 +5,49 @@
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-08-10
+
+### Added
+
+- **Erlang Shen (`spear-warrior`), the 7th playable hero.** A three-hit spear chain, the
+  Three-Hound Assault skill (three hound projectiles), and a distinct `assassin` archetype. The
+  external PR that proposed him re-skinned every enemy to his sprite and 404'd his walk sheet; the
+  belt salvaged the verified-correct kit + hound effect and redid the breakage, and along the way
+  fixed a repo-wide gap where every hero's `attack-2/3` frames were dead (a hard-forced `attack-1`).
+
+### Fixed
+
+- **Stage-objective clock.** One intro-exclusive `stageElapsedMs` now drives both the victory
+  check and the on-screen HUD, closing a ~700ms gap where the timer disagreed with the verdict on
+  Survival / Chase / Time-Attack stages.
+- **Battle stage / camera / dungeon sync.** Smaller stage-objective HUD footprint, a wider combat
+  camera framing (no hitbox change), and dungeon sprites no longer persist from the previous stage
+  (the runtime subscription went stale after a stage swap) — with a regression test now pinning the
+  fix so it cannot silently regress.
+- **Gacha unready-banner freeze.** The Standard Banner's five placeholder heroes are gated behind
+  one production-readiness flag so they cannot be pulled before they are real.
+
+### Security
+
+- **Server owns progression (level / EXP).** `profiles` and `owned_characters`
+  `level`/`exp`/`exp_to_next` were client-writable — directly via `savePlayer`, and via the
+  `commit_lobby_battle_progression` RPC, which any authenticated client could call with arbitrary
+  values (a replayable client-supplied idempotency guard, no rate limit, no bound) and which would
+  MINT an unowned hero at any level. Closed by migration `20260810130000` (applied and verified
+  live on production): a column lock on both tables, a server-owned idempotency ledger, a rate
+  limit, an ownership check (UPDATE-only — no mint), per-call level bounds, and an `EXECUTE` lock.
+  The client remains the author of PvE outcomes (the game's accepted model); forging progression is
+  now bounded and non-trivial rather than free. Designed by a CoalBoard review — three independent
+  lenses converged that a plain column-revoke would have left the RPC back door wide open.
+
+### Credits
+
+- **mehvetero** — the security report that scoped this work (the `earn_gold`/`topup` and
+  client-writable-progression findings) and twelve live probes on an isolated test instance that
+  cross-checked the fixes.
+- **nustanakritwithai** — the battle stage/camera/dungeon PR and the Erlang Shen, stage-objective,
+  and gacha-freeze PRs, each reworked and landed through the belt rather than merged as-is.
+
 ## [0.15.2] - 2026-08-10
 
 ### Fixed
