@@ -2,7 +2,7 @@
 
 These files are the durable body store for the project journal. Root `MEMORY.md` holds the
 same items as a one-line-per-item **index**; the full text of every item lives here, verbatim
-and unedited, split into blocks of 25 items (`001-050.md`, `051-100.md`, ...).
+and unedited, split into blocks of 25 items (`001-025.md`, `026-050.md`, ...).
 
 **How an agent reads this**: read root `MEMORY.md` first — that obligation is unchanged and
 binding (`AGENTS.md` rule 1, `.agents/rules/agent-memory-law.md`). The index tells you what
