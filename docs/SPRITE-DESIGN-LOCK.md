@@ -4,11 +4,24 @@
 renders sprites, and the people who draw them.**
 
 This is a locked decision in the sense of `AGENTS.md` rule 15 — agents do not renegotiate it, and a PR
-that contradicts it is converted at intake, not filed as debt. It sits beside
-`docs/MASTER_BLUEPRINT_v3.0.md`, which remains the product-decision source of truth above it; this
-document governs sprite geometry and the asset contract only.
+that contradicts it is converted at intake, not filed as debt. `docs/MASTER_BLUEPRINT_v3.0.md` remains
+the product-decision source of truth above it; this document governs sprite geometry and the asset
+contract only.
 
-**How to read it.** Every value here is filed under who locked it, and that is the whole point:
+**This file is a TEMPLATE and carries no project data.** It defines the rules, the layers, and every
+tolerance that has a published external source. What this project actually ships — its canvas sizes,
+its frame counts, its consumers, its measured numbers, and where it currently fails these rules — lives
+in `docs/SPRITE-CONFORMANCE.md`. The separation is deliberate: a specification outlives the thing it
+specifies, and mixing the two is how a spec quietly becomes a description of whatever was built.
+
+**Terminology is kept in English throughout.** These are technical terms with exact referents; a
+translation would create two vocabularies for one contract.
+
+---
+
+## How to read this
+
+Every value is filed under **who locks it**, and that is the whole point.
 
 | layer      | who locks it                            | may an agent change it?                       |
 | ---------- | --------------------------------------- | --------------------------------------------- |
@@ -19,519 +32,368 @@ document governs sprite geometry and the asset contract only.
 | **B**      | this project's own measurement          | only by re-measuring the corpus               |
 | **C**      | nobody                                  | free — but say so, and never quote it as spec |
 
-**Three standing rules of this document, which bind every future edit to it:**
+### Three standing rules, binding on every future edit to this file
 
-1. Every value states who locked it. A value nobody locks is written as unlocked, never promoted to
+1. **Every value states who locked it.** A value nobody locks is written as unlocked, never promoted to
    spec to make a table look complete.
-2. A number **measured live** on a real player's browser and a number **computed** carry different
-   labels, always. This document was wrong for a day because that line was blurred.
-3. Every citation states whether it is a **specification** or a **tutorial**. They do not weigh the
-   same, and this document has already mis-attributed one as the other.
+2. **A number measured live and a number computed carry different labels, always.** This document was
+   wrong for a day because that line was blurred.
+3. **Every citation states whether it is a specification, a vendor document, a tool default, or a
+   recommendation.** They do not weigh the same. This document has already mis-attributed a tutorial
+   sentence to "the spec" once.
 
-> **Provenance.** ร่างแรกเขียนจากการวัดฝั่งเดียว แล้วถูกส่งเข้าตรวจแบบพยายามหักล้างทีละข้อ — **96 ข้อ
-> ผ่าน 44 ต้องแก้ 50** จากนั้นเปิดเบราว์เซอร์วัดของจริงบนโปรดักชัน ฉบับนี้คือผลหลังทั้งสองรอบ
-> **ทุกจุดที่เคยผิด ถูกเขียนกำกับไว้ว่าเคยผิดยังไง ไม่ลบร่องรอย** เพราะคนอ่านรอบหน้าจะได้ไม่เดินซ้ำ
-
----
-
-## สัญญาสไปรต์
-
-> 2026-08-11 · อ้างอิง master `f1425b8`
-> **ชั้น A (สัญญาของ API) เจ้าของสั่งล็อกแล้ว** ครอบเบราว์เซอร์วันนี้ และ Google Play / App Store ในอนาคต
-> ชั้น B-ext = ธรรมเนียมสากลที่ลอกได้ · ชั้น B = ค่าที่โปรเจกต์วัดเอง · ชั้น C = ไม่มีใครล็อก
+> **Provenance.** The first edition was written from one person's measurement alone. It was then handed
+> to an adversarial verification pass over every claim it made — **96 claims: 44 held, 50 corrected, 2
+> unverifiable** — and the live product was opened in a browser and measured. A second sweep then went
+> looking for published external tolerances across engine importers, atlas packers, store requirements,
+> perceptual standards, community sprite standards, and graphics API specifications: **172 published
+> values found, 72 quantities with no published source, 12 overclaims caught by a sceptic.**
+> Every point where an earlier edition was wrong is annotated as wrong rather than quietly deleted.
 
 ---
 
-## ฉบับนี้แก้อะไรจากฉบับก่อน
+# Layer A — locked by specification, not by us
 
-ฉบับก่อนถูกตรวจซ้ำแบบพยายามหักล้างทีละข้อ: **96 ข้อ ผ่าน 44 ต้องแก้ 50 ตรวจไม่ได้ 2** เกินครึ่งของเอกสารผิด สามจุดผิดแบบเปลี่ยนข้อสรุป ไม่ใช่ผิดตัวเลข
+## A1 · Aspect ratio belongs to geometry, not to the file
 
-```
-A3 ASTC          ผิดที่ราก — ตารางหารลงตัวทั้งตารางถูกลบ (ดู A3)
-L2 metadata      ผิดที่สมมติฐาน — รีโปนี้ทำอยู่แล้ว ไม่ใช่ไม่ทำ (ดู L2)
-renderer 3 ตัว   ผิดจำนวน — มีสี่ และตัวที่สี่คือตัวที่ทำถูก (ดู "ผู้ใช้อาร์ตสี่ราย")
-```
+**Correct wording:** UV coordinates **carry no aspect-ratio information**, therefore aspect must be
+carried by geometry.
 
-รายการแก้ที่เหลืออยู่ในหัวข้อของมันเอง ทุกจุดที่เคยผิดถูกเขียนกำกับไว้ว่าเคยผิดยังไง — **ไม่ลบร่องรอย** เพราะคนอ่านรอบหน้าจะได้ไม่เดินซ้ำ
+> An earlier edition wrote "UV space is always 0–1". That is wrong. 0–1 is the default convention and
+> the only one WebGL/WebGPU exposes, but it is not a rule at the GPU level: Vulkan offers
+> `VkSamplerCreateInfo::unnormalizedCoordinates = VK_TRUE` and Metal offers
+> `constexpr sampler s(coord::pixel, …)`. The new wording survives on every API; the old one does not.
 
----
+> A second earlier claim — "pixel size stops meaning anything once uploaded to the GPU" — is also
+> wrong. Only the **aspect ratio** stops being carried. Pixel size still governs mip/LOD selection,
+> `texelFetch`/`textureSize` addressing, sampling density against screen pixels, and VRAM footprint.
+> A-port's RAM ceiling and DPR floor are both arguments that pixel size matters very much.
 
-# ชั้น A — ล็อกโดยสเปก ไม่ใช่โดยเรา
+**Rule.** Any consumer that pins an aspect ratio must either be fed art of a matching aspect, **or**
+compensate explicitly with a comment naming the source canvas. **Every pinned aspect number must state
+its provenance.**
 
-## A1 · อัตราส่วนต้องอยู่ที่ geometry ไม่ใช่ที่ไฟล์ — **บังคับใช้กับเราจริง**
+**External corroboration at BREAKS_IF_VIOLATED strength**, inside a vendor's own pixel-exact pipeline:
 
-**ถ้อยคำที่ถูกต้อง:** พิกัด UV **ไม่พกอัตราส่วนภาพติดมาด้วย** เพราะฉะนั้นอัตราส่วนต้องถูกแบกโดย geometry
+> "After importing your textures into the project as Sprites, set all Sprites to the same Pixels Per
+> Unit value."
+> — Unity 2D Pixel Perfect package 5.0, _Pixel Perfect Camera_ (VENDOR_DOC)
 
-> **ฉบับก่อนเขียนว่า "UV space คือ 0–1 เสมอ" — ผิด** 0–1 คือค่าเริ่มต้นและเป็นแบบเดียวที่ WebGL/WebGPU เปิดให้ใช้ แต่ไม่ใช่กฎระดับ GPU: Vulkan มี `VkSamplerCreateInfo::unnormalizedCoordinates = VK_TRUE` และ Metal มี `constexpr sampler s(coord::pixel, …)` ทั้งคู่คือ API ที่ L3 เอ่ยชื่อเองด้วย **ถ้อยคำใหม่รอดทุก API ถ้อยคำเก่าไม่รอด**
+A single px→world scale shared by every sprite in a scene is the same invariant this rule states, from
+the other direction.
 
-> **และฉบับก่อนเขียนว่า "ขนาดพิกเซลหมดความหมายทันทีที่ขึ้น GPU" — ผิดเช่นกัน** สิ่งที่หมดความหมายคือ _อัตราส่วน_ อย่างเดียว ขนาดพิกเซลยังคุม mip/LOD · `texelFetch`/`textureSize` · ความหนาแน่นการสุ่มเทียบพิกเซลจอ · และ VRAM **เอกสารฉบับก่อนขัดแย้งตัวเองตรงนี้** เพราะ P1 (เพดานแรม) กับ P2 (พื้น DPR) คือข้อโต้แย้งว่าขนาดพิกเซลยังสำคัญมาก
+## A2 · Power-of-two and NPOT — a recommendation, not a requirement
 
-**กฎ:** ผู้ใช้ภาพรายใดที่ตรึงอัตราส่วนไว้ ต้องได้ภาพที่อัตราส่วนตรงกัน **หรือ** ชดเชยอย่างชัดแจ้งพร้อมคอมเมนต์ว่าชดเชยจากผืนไหน **และเลข aspect ที่ปักไว้ทุกตัวต้องบอกที่มา**
+Power-of-two dimensions are recommended by every engine and required by none on a modern target.
 
-## A2 · WebGL1 NPOT — **ไม่บังคับใช้กับเรา บันทึกกันคนมาขุดซ้ำ**
+> "Ideally, Texture dimension sizes should be powers of two on each side (that is, 2, 4, 8, 16, 32, 64,
+> 128, 256, 512, 1024, 2048 pixels (px), and so on)."
+> — Unity Manual, _Import a texture_ (RECOMMENDATION)
 
-WebGL1 ใช้ texture ที่ไม่ใช่ power-of-two ได้เฉพาะเมื่อ filter เป็น `NEAREST`/`LINEAR` ไม่มี mipmap และ wrap เป็น `CLAMP_TO_EDGE`
+The cost is stated rather than hidden: NPOT textures "generally take slightly more memory and might be
+slower for the GPU to sample."
 
-> **ฉบับก่อนอ้างว่า "สเปกบอกว่า" และบอกว่าผลลัพธ์คือ "ดำโปร่ง" — ผิดสองชั้น** ข้อความที่ยกมาเป็น **บทความสอนของ MDN ไม่ใช่ตัวสเปก** และค่าที่ได้จริงคือ **ดำทึบ (0,0,0,255)** ไม่ใช่ดำโปร่ง เรื่องนี้มีผลจริง — คนไล่บั๊กจะไปตามหาสไปรต์ที่หายไป ทั้งที่อาการจริงคือสี่เหลี่ยมดำ
+**The failure mode worth knowing**, because it changes the geometry underneath the art without telling
+anyone:
 
-**N-A เพราะวัดแล้ว** — `three@0.185.1` และ `LobbyScene.tsx:169` ลอง `WebGPURenderer` ก่อน ตกไป `WebGLRenderer` (WebGL2) ไม่มีเส้นทางไป WebGL1
+> "If the platform or GPU does not support NPOT Texture sizes, Unity scales and pads the Texture up to
+> the next power of two size."
+> — Unity Manual, _Import a texture_ (VENDOR_DOC)
 
-**แต่ข้อนี้เป็นเจ้าของขนาดผืนจากภายนอกรายที่สอง** ถ้าวันหนึ่งเป้าหมายเรนเดอร์ถอยลงไป WebGL1 มันกลับมาทันที และผืนที่ ship อยู่มีตัวที่เป็น power-of-two แล้วหนึ่งตัว (512×512) กับที่ไม่ใช่อีกหกตัว
+**On WebGL1 specifically**, NPOT textures are usable only with `NEAREST`/`LINEAR` filtering, no mipmaps,
+and `CLAMP_TO_EDGE` wrapping. Violating that yields **opaque black** — RGBA (0,0,0,255) — not
+transparent black.
 
-## A3 · block compression — **ตารางหารลงตัวถูกลบทั้งตาราง**
+> An earlier edition attributed the NPOT sentence to "the spec" while quoting MDN tutorial prose, and
+> stated the failure colour as transparent black. Both were wrong. The distinction is practical: someone
+> debugging looks for a missing sprite, when the symptom is a black rectangle.
 
-> **นี่คือจุดที่ฉบับก่อนผิดหนักที่สุด** ฉบับก่อนเขียนว่า "ASTC ต้องการให้ `pixelWidth` เป็นพหุคูณของความกว้าง block" แล้วสร้างตารางหารลงตัว แล้วสรุปว่า "วันที่เลือก block 8×8 คือวันที่ 96 เฟรมนั้นเข้าสายบีบไม่ได้"
+**A2 is a conditional external owner of canvas size.** It binds nothing on a WebGL2/WebGPU target. It
+returns in full the day a render target regresses to WebGL1.
+
+## A3 · Block compression — no divisibility requirement
+
+> **This is where an earlier edition was most seriously wrong.** It asserted that ASTC requires the
+> texture dimensions to be a multiple of the block size, built a divisibility table on that assertion,
+> and concluded that a future mobile port could not compress part of the shipped art.
 >
-> **ASTC ไม่มีข้อกำหนดนั้น** บล็อกขอบถูก pad แล้วทิ้ง padding ตอน decode ขนาดข้อมูล = `ceil(w/bw) × ceil(h/bh) × 16` ไบต์ สำหรับ w, h ใดก็ได้ 396×376 ที่ 8×8 = `ceil(396/8) × ceil(376/8)` = 50 × 47 บล็อก เข้ารหัสได้ปกติ
+> ASTC has no such requirement. Edge blocks are padded and the padding is discarded on decode; the data
+> size is `ceil(w / bw) × ceil(h / bh) × 16` bytes for any `w`, `h`.
 >
-> กฎ "ต้องหารด้วย 4 ลงตัว" ที่มีอยู่จริง เป็นของ **BCn บน Direct3D 11 และเก่ากว่า** — คนละตระกูลฟอร์แมต คนละ API ที่โปรเจกต์นี้ไม่ได้เล็ง
+> The multiple-of-four rule that does exist belongs to **BCn on Direct3D 11 and earlier** — a different
+> format family on an API this project does not target.
+
+**Honest weakness, recorded rather than hidden:** the external sweep could not reach a Khronos
+_specification_ stating the padding behaviour. The correction above is corroborated at **vendor level
+only** (block-compression documentation from tooling vendors). It should be cited as such — not as
+"the spec says" — which is the same discipline A2 just failed once.
+
+**What differs between canvases at a given ASTC footprint is bitrate and edge-block quality, not
+encodability.**
+
+**Not applicable while the project ships an uncompressed web image format.** It binds on a port to
+mobile or a move to GPU-compressed containers, and **on that day the specification must be re-read
+rather than trusted from this page.**
+
+---
+
+# Layer A-port — variables that appear when a device target is chosen
+
+## P1 · RAM ceiling
+
+Compute the decode ceiling as `frames × width × height × 4` bytes (RGBA8). State it as a **theoretical
+ceiling**, never as measured usage — browsers evict decoded bitmaps, and nothing on the page can observe
+the eviction policy.
+
+**No external source bounds the acceptability of that ceiling.** No vendor publishes a per-application
+texture-RAM budget for a browser tab; the real limit is set by the device, the tab count, and an
+eviction policy the page cannot see.
+
+## P2 · Resolution floor
+
+Compute the required device pixels as `CSS box width × devicePixelRatio`, and compare against the source
+width **for the state actually on screen** — a project with different canvases per animation state has a
+different floor per state, and the worst case is the one that matters.
+
+**Include any runtime scale factor in the box width.** A box that is multiplied by a perspective or
+depth scale does not have one width, it has a range, and the floor must be computed at the end of the
+range that demands the most pixels.
+
+**External finding worth carrying:** non-integer upscale factors are documented as a distinct defect for
+this class of art, and at least one engine ships a floor() to prevent them.
+
+> Godot 4 documentation, _Multiple resolutions_ (RECOMMENDATION) — integer scaling is offered precisely
+> because fractional scaling distorts pixel-exact art.
+
+## P3 · Render target
+
+A WebView port keeps the same renderer and the same contract. A native-engine port changes the whole
+pipeline, and **per-frame metadata becomes more valuable, not less**, because every engine already
+expects a pivot/offset per sprite.
+
+---
+
+# The locked rules — L1 to L4
+
+> **What is locked is the mechanism, never a project's numbers.**
+
+## L1 · Aspect ownership
+
+Any consumer that pins an aspect ratio must (a) be fed matching art, or (b) compensate explicitly with a
+comment naming the source canvas. **Every pinned aspect number must state its provenance.**
+
+Both halves are binding. An implementation that satisfies (a) or (b) but leaves the number unexplained
+has met half of L1.
+
+## L2 · Crop for one consumer, record it, and walk every other consumer
+
+Cropping or resizing shipped art obliges two things in the **same** commit:
+
+1. record the original geometry — the source canvas and what was trimmed — somewhere other than version
+   control history;
+2. enumerate every consumer of that art and state the effect on each.
+
+**External convergence, stated at the strength the evidence actually supports:** several independent
+tools converge on the _concept_ of keeping the untrimmed frame of reference in metadata — Aseprite
+(`sourceSize` / `spriteSourceSize`), libGDX (`offsetX` / `originalWidth`), Unity (`Sprite.pivot` in
+import metadata).
+
+> The sceptic pass flagged an earlier overclaim here: the convergence is real **about the concept** and
+> loose **about the field names**, which differ per tool. Cite the mechanism, not a shared schema.
+
+**Why the record matters, in the tools' own terms:** a trim that keeps one frame of reference preserves
+the anchor across frames; a trim that discards it desynchronises every frame by its own trimmed amount.
+That is the difference between a uniform crop and a per-frame tight crop, and it is invisible until the
+animation plays.
+
+## L3 · The contract carries across platforms unchanged
+
+| target                         | L1                    | L2                                           |
+| ------------------------------ | --------------------- | -------------------------------------------- |
+| browser, WebGL2 / WebGPU       | binding               | binding                                      |
+| WebView (Capacitor / Cordova)  | binding — same engine | binding                                      |
+| native engine (Metal / Vulkan) | binding               | binding, and per-frame metadata matters more |
+
+It carries because **UV coordinates carry no aspect information on any API** — not because "UV is always
+0–1" (see A1).
+
+## L4 · Stores govern texture FORMAT and non-texture asset GEOMETRY
+
+**Textures.** No store publishes a dimension or aspect requirement for in-app textures. What a store
+governs is the delivered **format**, and there is one hard failure worth stating plainly: an Android App
+Bundle that targets texture compression formats without shipping a default-format directory is
+**uninstallable** for any device that matches none of the targeted formats.
+
+**Non-texture assets — and this is where an earlier edition was dangerously loose.** Both stores mandate
+exact pixel geometry for submitted listing assets. An unqualified "stores don't touch geometry" is read
+by an art side as covering everything they hand over.
+
+See the tolerance register below for the published numbers.
+
+> **L4's facts are external and they move.** Device-fleet percentages, supported format lists, and
+> accepted screenshot sizes must be re-checked at the moment a port is decided, not trusted from this
+> page. **L1–L3 need no such re-check** — normalized texture coordinates date from OpenGL 1.0 (1992).
+
+---
+
+# Layer B-ext — external conventions, adoptable with citation
+
+## E1 · Bottom-centre anchor, on the feet
+
+For a project that sorts sprites by their ground position, the anchor belongs at the horizontal centre
+of the bottom edge, on the feet.
+
+> `SpriteAlignment.BottomCenter` — "Pivot is at the center of the bottom edge of the graphic rectangle."
+> — Unity ScriptReference (VENDOR_DOC)
+
+**The load-bearing argument is y-sorting, not the citation.** Sorting by the centre of the bounding box
+makes tall and short characters swap depth against each other even when their feet are correctly
+ordered; sorting by the foot position does not. Any project whose renderer already sorts by ground
+position is already relying on this convention whether or not it wrote it down.
+
+> **Two corrections to how earlier editions argued this.**
 >
-> ตัวเลขในตารางเก่าก็ผิดซ้ำอีก: **396 ÷ 6 = 66 ลงตัว** (เขียนว่าไม่ลงตัวสักตัว) และ **376 ÷ 8 = 47 ลงตัว** (เขียนว่าตก)
-
-**สิ่งที่เป็นจริง:** ผืนทุกขนาดเข้ารหัส ASTC ได้ทุก footprint สิ่งที่ต่างกันคือ **bitrate/คุณภาพที่คอลัมน์ขอบซึ่งถูก pad** ไม่ใช่เข้ารหัสได้หรือไม่ได้
-
-**N-A วันนี้** เพราะเรา ship WebP ไม่ได้ ship texture ที่บีบแบบ GPU · ข้อนี้ติดเมื่อ port ลงมือถือหรือย้ายไป KTX2/Basis และ**ตอนนั้นต้องตรวจสเปกใหม่ ไม่ใช่เชื่อหน้านี้**
-
----
-
-# ชั้น A-port — ตัวแปรที่เพิ่มเมื่อคิดเรื่อง iOS/Android
-
-## P1 · เพดานแรม — **≈98 MiB ไม่ใช่ 120 MiB**
-
-```
-1 เฟรม 640x512   1,310,720 B = 1.25 MiB หลัง decode
-1 เฟรม 396x376     595,584 B = 0.568 MiB
-ชุด preload ต่อตัวละคร 1 ตัว
-  walk 64 @ 640x512   80.00 MiB
-  turn  8 @ 396x376    4.55 MiB
-  idle 24 @ 396x376   13.63 MiB
-                      -------
-                      98.18 MiB
-```
-
-> **ฉบับก่อนเขียน 120 MiB** ซึ่งได้จากการคูณ 96 × 1.25 คือคิดว่าทั้ง 96 เฟรมอยู่บนผืน 640×512 **นั่นคือเลขของยุคก่อน `ff67fb1`** ไม่ตรงกับตัวละครที่ ship อยู่จริงสักตัว
-
-**ยังไม่ได้วัดว่าอยู่ครบพร้อมกันจริงไหม** เบราว์เซอร์ evict บิตแมปที่ decode แล้วได้ 98 MiB คือ**เพดานทางทฤษฎี** ห้ามอ้างเป็นการใช้จริง
-
-## P2 · พื้นความละเอียด — **แย่กว่าที่เคยเขียน**
-
-```
-กล่อง .actor        340 CSS px × perspectiveScale 0.8–1.04  =  272–354 CSS px จริง
-ตอนเดิน   ต้นทาง 640    DPR 2 = 1.06x   DPR 3 = 1.59x
-ตอนยืน    ต้นทาง 396    DPR 2 = 1.72x   DPR 3 = 2.58x
-```
-
-> **ฉบับก่อนเขียนแค่ 1.59x** ซึ่งเป็น**กรณีดีที่สุด** — ใช้ได้เฉพาะตอนเดิน เพราะเฉพาะเฟรมเดินที่กว้าง 640 **ตอนยืนซึ่งเป็นสถานะปกติในลานพระจันทร์ ต้นทางกว้าง 396** และ `object-fit: contain` ดันให้เต็มความกว้างกล่องเท่ากัน อัปสเกลจริงจึงเป็น **2.58 เท่าที่ DPR 3** และฉบับก่อนยังเขียน 340 เป็นค่าคงที่ ทั้งที่มันถูกคูณ perspectiveScale ตลอดเวลา
-
-**iPhone เป็น DPR 3 มาสิบกว่าปี** — ปลายบนของช่วงได้ภาพเบลอ และเราไม่เคยประกาศเรื่องนี้ที่ไหน **ตัวเลขชุดนี้เป็นค่าคำนวณ ยังไม่มีใครเปิดบนเครื่อง DPR 3 จริง**
-
-## P3 · เรนเดอร์เป้าหมาย
-
-port ผ่าน WebView → ยังเป็น WebGL2/WebGPU สัญญาไม่เปลี่ยน
-port ลง native engine → pipeline เปลี่ยนทั้งชุด และ **metadata ต่อเฟรมยิ่งจำเป็น** เพราะทุก engine คาดหวัง pivot/offset ต่อ sprite อยู่แล้ว
-
----
-
-# ล็อกแล้ว — สัญญาของ API
-
-> **สิ่งที่ล็อกคือกลไก ไม่ใช่ตัวเลข** ตัวเลขผืนยังเป็นของโปรเจกต์เรา (ชั้น B) **บนเป้าหมายเบราว์เซอร์วันนี้**
-
-## L1 · อัตราส่วนเป็นของ geometry
-
-ผู้ใช้ภาพที่ตรึงอัตราส่วนไว้ ต้อง (ก) ได้ภาพอัตราส่วนตรงกัน หรือ (ข) ชดเชยชัดแจ้งพร้อมคอมเมนต์ระบุผืนต้นทาง
-**และเลข aspect ที่ปักไว้ทุกตัวต้องบอกที่มา**
-
-วันนี้ `planeGeometry args={[4.018, 3.213]}` ไม่มีคอมเมนต์ — **และมันมีสองที่ ไม่ใช่ที่เดียว** คือ `CharacterModel.tsx:160` กับ `:164` (คู่ mesh สำหรับ crossfade) ใครชดเชยตามข้อ (ข) ต้องทำสองที่ ไม่งั้น mesh สองตัวไม่ตรงกันเอง
-
-## L2 · ครอปเพื่อคนหนึ่ง ต้องบันทึก และต้องไล่เช็คทุกคน
-
-ครอป/รีไซซ์อาร์ตที่ ship แล้ว ต้องทำสองอย่างในคอมมิตเดียวกัน — บันทึกเรขาคณิตเดิม และไล่รายชื่อผู้ใช้ภาพนั้นให้ครบพร้อมระบุผลกับแต่ละราย
-
-> **ฉบับก่อนเขียนว่า "เรขาคณิตเดิมเหลืออยู่ที่เดียวคือประวัติ git" และ "วงการทำ metadata ต่อเฟรม เราไม่ได้ทำ" — เท็จทั้งสองประโยค**
+> **Bottom-centre is a real convention but it is NOT the industry default.** Tool defaults across the
+> external sweep are centre, corner, or bottom-centre depending on vendor — cocos2d-x, for one, defaults
+> to centre (0.5, 0.5) when a pivot is omitted. Adopt bottom-centre on the y-sort argument, and do not
+> claim the industry has settled on it.
 >
-> `src/game/realtimeBattle/entitySpritePresentation.ts` เก็บ canvas/anchor **ต่อตระกูลไฟล์** อยู่แล้ว วัดด้วย alpha scan และมีเทสคุม **รีโปนี้ทำสิ่งที่วงการทำอยู่แล้ว** แค่มีผู้ใช้รายเดียวที่ใช้มัน
+> An earlier edition cited Tiled in support. That citation **argues the other way**: Tiled defaults tile
+> objects to bottom-_left_ in every orientation except isometric. It may only be cited by a project that
+> explicitly treats its own view as isometric for this purpose.
 
-Aseprite (`sourceSize`/`spriteSourceSize`) · libGDX (`offsetX`/`originalWidth`) · Unity (`Sprite.pivot` ใน import metadata) ทำแบบเดียวกันมาเป็นสิบปี — **ไม่มีใครห้ามครอป ทุกคนบันทึกว่าครอปอะไรไป**
+## E2 · The anchor must survive trimming
 
-## L3 · สัญญานี้ข้ามแพลตฟอร์มได้ทั้งก้อน
-
-```
-เบราว์เซอร์ WebGL2 / WebGPU      L1 L2 บังคับ
-WebView (Capacitor / Cordova)    เหมือนเดิมทุกข้อ engine เดิม
-native engine (Metal / Vulkan)   L1 L2 บังคับ และ metadata ต่อเฟรมยิ่งจำเป็น
-```
-
-เหตุผลที่มันข้ามได้คือ **UV ไม่พก aspect มาด้วยในทุก API** ไม่ใช่เพราะ "UV เป็น 0–1 เสมอ" (ดู A1)
-
-## L4 · store แตะฟอร์แมตของ texture — **แต่แตะเรขาคณิตของ asset อื่นเต็ม ๆ**
-
-```
-texture      Google Play และ App Store ไม่กำหนดขนาดหรืออัตราส่วนของ texture
-             Play targeting: ASTC >80% ของเครื่อง · ETC2 >95%
-             ทางตาย: ไม่มีโฟลเดอร์ฟอร์แมตเริ่มต้น
-             "If assets have not been packaged in a default format, Google Play
-              marks the app as not available for the device."
-             = ผู้เล่นบางกลุ่มโหลดเกมไม่ได้เลย ไม่ใช่แค่ภาพเพี้ยน
-
-asset อื่น    ทั้งสอง store บังคับพิกเซลเป๊ะ
-             Play  icon 512x512 · feature graphic 1024x500 · screenshot 320–3840px
-                   และด้านยาวห้ามเกินสองเท่าของด้านสั้น · tablet 16:9 / 9:16 · Wear 1:1
-             App Store  screenshot ขนาดตายตัวต่อรุ่น (6.9" 1260x2736 · 13" iPad 2064x2752 ...)
-```
-
-> **ฉบับก่อนเขียนหัวข้อว่า "store ไม่แตะเรขาคณิต" แบบไม่จำกัดขอบเขต — อันตราย** ฝั่งอาร์ตจะอ่านว่าครอบทุกอย่างที่เขาส่ง ทั้งที่ icon/screenshot ถูกบังคับพิกเซลเป๊ะทั้งคู่ **ประโยคนี้จริงเฉพาะกับ texture เท่านั้น**
-
-> **และ App Store ไม่ได้ "ชุดเดียวพอ" แบบไม่มีเงื่อนไข** จริงเฉพาะ iOS/iPadOS/tvOS · **Mac App Store ไม่จริง** — ตาราง Metal Feature Set ของ Apple บอกว่า ASTC รองรับบน Apple GPU family 2 ขึ้นไป **ไม่รองรับบน Mac1/Mac2** ที่ Intel Mac ใช้ ซึ่งต้องมีชุด BC/S3TC และเหตุผลที่ iOS ไม่ต้องมีตัวสำรองวันนี้คือ iOS รุ่นปัจจุบันตัดเครื่องก่อน A8 ไปหมดแล้ว — **เป็นข้อเท็จจริงที่เคลื่อนได้ ไม่ใช่คุณสมบัติถาวรของ vendor เดียว**
-
-> **ข้อเท็จจริงในกล่อง L4 เป็นของนอกบ้าน มันเปลี่ยนได้** ต้องตรวจใหม่ ณ วันตัดสินใจ port **ส่วน L1–L3 ไม่ต้องตรวจซ้ำ** เพราะ "UV ไม่พก aspect" เป็นจริงตั้งแต่ OpenGL 1.0 (1992) — สามสิบกว่าปี
+Whatever anchor a project adopts, it must be expressed in a frame of reference that trimming cannot
+move — i.e. relative to the untrimmed source rect, not to the trimmed bounding box. This is the
+mechanical half of L2 and the reason `sourceSize`-style metadata exists at all.
 
 ---
 
-# ใครล็อกขนาดผืนได้บ้าง
+# Layer B — locked by the project's own measurement
 
-```
-วันนี้            ไม่มีใคร                    -> ค่าของโปรเจกต์เราล้วน ๆ
-ถ้า port         block size ของ ASTC/ETC2     -> เจ้าของภายนอกรายที่ 1 (มีเงื่อนไข)
-ถ้าถอยไป WebGL1  power-of-two + NPOT rules    -> เจ้าของภายนอกรายที่ 2 (มีเงื่อนไข)
-เพดาน            แรมของเครื่องปลายทาง          -> P1
-พื้น              DPR x ขนาดกล่อง              -> P2
-```
+**No external standard fixes a sprite canvas in pixels.** The sweep checked engine importers, atlas
+packers, store requirements, community sprite standards, and graphics API specifications; the only
+external bounds on canvas dimensions are **upper ceilings** (see the register) and the NPOT
+recommendation. Everything between those ceilings is a project decision.
 
-> **ฉบับก่อนเขียนว่า ASTC เป็น "เจ้าของจากข้างนอกตัวเดียวที่เป็นไปได้" และ "สามตัวนี้คือทั้งหมด ไม่มีตัวที่สี่" — ผิดโดยเอกสารตัวเอง** เพราะ A2 ที่มันเขียนเองก็เป็นเจ้าของภายนอกแบบมีเงื่อนไขเหมือนกัน
+A project fills these slots in its conformance document, each with its provenance:
 
----
+- canvas dimensions, per animation set
+- frame count per direction, and direction count
+- direction-to-index mapping for any set addressed by number
+- animation-set lengths and playback cadence
+- the anchor's position inside the canvas
 
-# ชั้น B-ext — ธรรมเนียมสากลที่ลอกได้
-
-## E1 · จุดยึด = bottom-center อยู่ที่เท้า
-
-```
-Unity   SpriteAlignment.BottomCenter
-        "Pivot is at the center of the bottom edge of the graphic rectangle"
-
-เหตุผล  y-sort ต้องเรียงตามเท้า ไม่ใช่ตามกึ่งกลางกล่อง
-        เรียงตามกึ่งกลาง -> ตัวสูงกับตัวเตี้ยสลับหน้าหลังกันเองทั้งที่เท้าเรียงถูก
-```
-
-**เกมเราเรียงแบบนี้อยู่แล้ว** — `zIndex: Math.round(view.y)` (`WukongAdventure.tsx:469`) คือ y-sort เต็มตัว **ธรรมเนียมนี้ไม่ใช่ของแปลกปลอม มันคือธรรมเนียมของระบบที่เราใช้อยู่โดยไม่ได้เขียนไว้**
-
-> **ฉบับก่อนอ้าง Tiled มาหนุน — อ้างแล้วเข้าทางตรงข้าม** ประโยคของ Tiled คือ tile object เป็น **bottom-LEFT ในทุก orientation ยกเว้น Isometric** ถ้ามุมมองเกมนี้เป็น top-down/เฉียง ไม่ใช่ isometric แท้ ๆ การอ้างนั้น**เถียงต้าน**ไม่ใช่เถียงหนุน **เหตุผล y-sort ยืนได้ด้วยตัวเอง ให้ใช้อันนั้น** ส่วน Tiled จะอ้างได้ต่อเมื่อประกาศชัดว่าโปรเจกต์นับมุมมองตัวเองเป็น isometric ในเรื่องนี้
-
-> **และ "Sort Point = Pivot" ตรวจไม่ผ่าน** — เอกสาร Unity อธิบายว่ามันคือทางเลือก ไม่ใช่ค่าที่วงการตั้งเป็นธรรมเนียมคู่กัน ตัดคำว่า "ธรรมเนียมคู่กัน" ออก
-
-## E2 · สามเลขที่ควรบรรยายเส้นพื้นเส้นเดียว — **วัดสดแล้ว**
-
-วัดบนโปรดักชัน 2026-08-11 บัญชี ProdCheck · DPR 1.25 · กล่อง `.actor` 309.7 × 382.5 · `matrix(0.910769, 0, 0, 0.910769, 594, 184.195)`
-
-```
-                             หน่วยกล่อง (420)   หน่วยจอ ณ scale 0.9108
-จุดยึดในโค้ด                       356                540.2
-เงาใต้ตัว (bottom 52, สูง 36)       350                534.7
-เท้าตอนยืน (monkey-v2-idle)        408.8              588.3
-เท้าตอนเดิน (monkey-walk-down)     385.5              567.5
-```
-
-**ยืนยันด้วยตาแล้ว** — ระบายเงาสีแดงแล้วหรี่สไปรต์ลง **เงาอยู่ที่หัวเข่า** ในภาพปกติมองไม่เห็นเงาใต้เท้าเลยเพราะตัวละครบังเงาตัวเอง (เงา z-index 1 · สไปรต์ z-index 3)
-
-**และเท้าขยับเทียบพื้น 20.8px ตอนเริ่มเดิน** หัวตกลง ~91px พร้อมกัน — ตัวละครไม่ได้แค่หด เท้ามันลอยขึ้นด้วย
-
-> **ฉบับก่อนเขียน "เท้าตกลงกล่องที่ 403" จาก alpha bottom 480/512 — ผิดที่ต้นทาง** 480 คือค่าของ `erlang-shen-v6-idle` ซึ่ง **กล่องนั้นวาดไม่ได้เลย** (`walkPrefix: null` ถูกกรองออกที่ `WukongAdventure.tsx:152-154`) เลข 47–53px ที่ตามมาจึงมาจากชีตที่ renderer นี้ไม่เคยโหลด **ค่าที่วัดสดได้คือ 48.1px หน่วยจอ / 52.8px หน่วยกล่อง** ซึ่งบังเอิญใกล้ แต่มาคนละทาง
-
-## E3 · ส่วนที่ลอกไม่ได้
-
-```
-ลอกได้      ทิศทาง = bottom-center            Unity + เหตุผล y-sort
-ลอกไม่ได้    เผื่อใต้เท้ากี่พิกเซล
-ลอกไม่ได้    tolerance ยอมเพี้ยนได้กี่พิกเซล
-```
+**A value enters Layer B only with a corpus measurement behind it, not a rationale.**
 
 ---
 
-# ชั้น B — ล็อกโดยการวัดของโปรเจกต์เอง
+# Layer C — locked by nobody
 
-ไม่มีมาตรฐานภายนอกกำหนดพิกเซล (ยืนยันจาก exemplar: Aseprite · libGDX · Unity · Godot — **ไม่มีตัวไหนกำหนดพิกเซล**)
+Values in this layer are legitimate, are chosen by the project, and **must never be quoted as
+specification**. A project's conformance document lists its own; the classes that always land here are
+enumerated in the unbounded register below.
 
-> ฉบับก่อนนับ 5 ตัวโดยใส่ `AssetPostprocessor` แยกอีกรายการ — **มันคือ API นำเข้าของ Unity เอง นับซ้ำ Unity** เหลือ 4
-
-## B1 · ผืน 640 × 512
-
-**ที่มา:** สายสคริปต์ pigsy ไล่มา 10 รุ่นใน ~8 ชั่วโมง วันที่ 2026-08-06
-
-> **ฉบับก่อนเรียกว่า "ที่มาสองทางอิสระกัน" โดยนับ `planeGeometry` 1.25054 เป็นทางที่สอง — ไม่ใช่** plane ถูก _คำนวณจาก_ ผืน มันคือผู้ใช้ ไม่ใช่พยานอิสระ **หนึ่งต้นทาง หนึ่งผู้ใช้**
-
-## B2 · 8 ทิศ × 8 เฟรม — **และลำดับเป็นเรื่องเป็นตาย**
-
-`FRAME_COUNT = 8` (`WukongAdventure.tsx:29`) · อาร์เรย์ `DIRECTIONS` 8 ตัว · ไฟล์ที่ขาด = 404 ไม่ใช่ภาพสำรอง
-
-**ลำดับจริงในโค้ด (`WukongAdventure.tsx:48-57`) และ `TURN_INDEX` ใช้ลำดับนี้เป็นเลขไฟล์ของชุดหันทิศตรง ๆ:**
-
-```
-0  down          4  up
-1  down-right    5  up-left
-2  right         6  left
-3  up-right      7  down-left
-```
-
-> **ฉบับก่อนให้รายการทิศเริ่มที่ `up` — อันตรายที่สุดในเอกสารทั้งฉบับ** ชุดหันทิศส่งเป็น `<prefix>-<0..7>.webp` คือ**นับด้วยเลข ไม่ใช่ชื่อ** ใครทำตามรายการเก่าจะวางท่าหันขึ้นในช่อง 0 ที่โค้ดคาดว่าเป็นท่าหันลง **ผลคือตัวละครหันผิดทางทั้งเกมโดยไม่มี error**
-
-## B3 · idle — พื้นจริงคือ 19 ธรรมเนียมคือ 24
-
-`WukongAdventure.tsx:455` — `idleFrame = (view.frame * 3) % idleCount` และ `view.frame` วิ่ง 0–7 เสมอ
-
-```
-ทำให้ซ้ำ    {1,2,3,4,5,6,7,9,12,15,18,21}
-ปลอดภัย     19, 20 และทุกค่า >= 22
-24          เลขที่ ship อยู่จริง 6 จาก 7 ชุด
-```
-
-> **ฉบับก่อนเขียนว่าพื้นคือ 22 — ไม่ตรงกับตารางของตัวเอง** 22 คือจุดที่ความปลอดภัย*ต่อเนื่อง* (ทุกค่าตั้งแต่นั้นปลอดภัย) แต่ 19 กับ 20 ก็ปลอดภัย
-
-**เลข `3` ในโค้ดไม่มีใครอธิบายไว้ที่ไหน** และมันคือเหตุผลทั้งหมดที่ 24 เป็นธรรมเนียม
-
-## B4 · x-centre 319.5 — **ค่าที่ถูกกำหนดโดยข้ออื่น ไม่ใช่ค่าอิสระ**
-
-> **ฉบับก่อนใส่ไว้ชั้น C ว่า "ไม่มีใครล็อก" — ผิดชั้น** E1 ล็อกครึ่งแนวนอนของจุดยึดไว้แล้ว ("กึ่งกลางแนวนอน") และ B1 ล็อกความกว้างไว้ที่ 640 สองข้อนี้กำหนด (640−1)/2 = 319.5 ออกมาเอง **เป็นค่าที่ derive ได้ เหมือน 1.25054**
+**Promoting a value from C to B requires a corpus measurement. Promoting it to B-ext requires a named
+external exemplar. Neither can be done with an argument alone.**
 
 ---
 
-# ชั้น C — ไม่มีใครล็อก ห้ามยกเป็นสเปก
+# The tolerance register — published external values
 
-| ค่า                    | สถานะจริง                                                                                         |
-| ---------------------- | ------------------------------------------------------------------------------------------------- |
-| เผื่อใต้เท้าฝั่งโค้ด   | 420 − 356 = **64px** ไม่มีคอมเมนต์อธิบาย                                                          |
-| เผื่อใต้เท้าฝั่งอาร์ต  | ไม่มีค่าเดียว — ต่างกันทุกชุด (ดูตารางล่าง)                                                       |
-| tolerance ของจุดยึด    | **ไม่มีตัวเลขอยู่จริง**                                                                           |
-| จังหวะ idle 170ms      | `Math.floor(time / 170) % 8` (`:367`) มีอยู่จริง ไม่มีใครอธิบาย                                   |
-| จังหวะเดิน             | ผูกระยะทาง `stride = running ? 28 : 34` (`:364`) เท้าไม่ลื่นเพราะแบบนี้ ไม่มีที่ไหนเขียนว่าตั้งใจ |
-| จำนวนเฟรมท่าวิ่ง       | **ไม่มีท่าวิ่งอยู่เลย** ทั้ง 7 kit ไม่มี `runPrefix` ปุ่มวิ่งแค่ย่น stride                        |
-| perspectiveScale       | `0.8 + depthProgress * 0.24` (`:453`) ไม่มีที่มา                                                  |
-| ฝุ่นตอนเดิน            | 165ms เดิน · 105ms วิ่ง (`:410`) ไม่มีที่มา                                                       |
-| เรขาคณิตเงา            | `bottom: 52px` สูง 36 — **E2 ใช้มันเป็น 1 ใน 3 เลขเส้นพื้น แต่ไม่มีใครล็อกมัน**                   |
-| stride การสุ่ม `3`     | B3 บอกเองว่าไม่มีใครอธิบาย แต่ถูกใช้เป็นฐานของ "พื้น 19/22"                                       |
-| กล่อง `.actor` 340×420 | P2 ทั้งหัวข้อคำนวณจากเลขนี้ ไม่มีที่มา                                                            |
+Every row carries its source and its strength. **Read the strength column before using a number**: a
+tool default is a considered choice by one vendor, not a rule, and this register keeps them apart
+deliberately.
 
-> สามแถวล่างเป็นของที่ฉบับก่อน**ตกหล่น** ทั้งที่เอกสารตัวเองอ้างอิงมันในหัวข้ออื่น
+## Hard — a gatekeeper or an API rejects violations
 
-## สองข้อในตารางนี้มีราคาจริง
+| quantity                           | value                                                              | source                                               |
+| ---------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------- |
+| Store listing screenshot, per side | **320 – 3840 px inclusive**                                        | Google Play Console Help, _Add preview assets_       |
+| Store listing screenshot, aspect   | **max dimension ≤ 2 × min dimension** — any aspect from 1:2 to 2:1 | Google Play Console Help                             |
+| Store listing icon                 | **exactly 512 × 512 px**, 32-bit PNG with alpha, **≤ 1024 KB**     | Google Play Console Help                             |
+| Store feature graphic              | **exactly 1024 × 500 px**, JPEG or 24-bit PNG, no alpha            | Google Play Console Help                             |
+| Apple screenshot sizes             | a **set** of accepted sizes per display class, not one fixed size  | Apple, App Store Connect Help                        |
+| Texture dimension ceiling          | **16384 × 16384 px** — importer will not accept larger             | Unity Manual, _Import a texture_                     |
+| Texture dimension ceiling          | **8192 × 8192 px** without an engine configuration change          | Unreal Engine, _Texture Format Support and Settings_ |
+| Minimum size for tight sprite mesh | **32 × 32 px** — below this the engine silently forces Full Rect   | Unity Manual, _Sprite texture type reference_        |
+| Pixel-exact rendering              | **one identical Pixels Per Unit across every sprite in a scene**   | Unity 2D Pixel Perfect 5.0                           |
 
-**356 กับเส้นเท้าไม่เคยถูกจับมาเทียบกัน** โค้ดวางจุดยึดที่ 84.76% ของกล่อง อาร์ตวางเท้าที่ 96.6–99.5% ของผืน แล้ว `object-position: 50% 100%` ดันภาพชิดล่างอีกที **ไม่มีใครเคยเขียนว่าสองเลขนี้ควรสัมพันธ์กันยังไง**
+**The 2:1 ratio rule is the strongest evidence this register contains** — it is a published tolerance
+expressed as a range rather than a point, by a gatekeeper that enforces it.
 
-> ฉบับก่อนปิดท้ายว่า "ทุกวันนี้มันลงตัวเพราะบังเอิญพอดี" — **ประโยคนั้นถูกลบ** ไม่มีอะไรในเอกสารสนับสนุนคำว่าลงตัว และการวัดสดบอกตรงข้าม
+## Recommendation — documented cost, no rejection
 
-**idle ship 24 ขึ้นจอ 8** `(frame * 3) % 24` โดย frame วิ่ง 0–7 ได้เฟรม `{0,3,6,9,12,15,18,21}` **อีก 16 เฟรมไม่เคยขึ้นจอในฉากผจญภัย** และเฉพาะตอนหันหน้าลงเท่านั้น (16 เฟรมนั้นยังมีประโยชน์กับ CharacterPreview ซึ่งเล่นครบ 24)
+| quantity                     | guidance                                                                                            | source                                  |
+| ---------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Power-of-two dimensions      | preferred; NPOT costs memory and sample speed                                                       | Unity, corroborated by Godot and Unreal |
+| Integer upscale factors      | fractional scaling distorts pixel-exact art; engines ship a floor() to avoid it                     | Godot 4, _Multiple resolutions_         |
+| Store listing aspect targets | 16:9 / 9:16 and similar are **highly recommended** for listing eligibility — **not** an upload gate | Google Play Console Help                |
 
----
+## Tool default — one vendor's considered choice, cited as such
 
-# คลังเฟรมจริง — **เจ็ดขนาดผืน ไม่ใช่สอง**
+| quantity                             | value            | source               |
+| ------------------------------------ | ---------------- | -------------------- |
+| Atlas padding between packed sprites | **4 px** default | Unity Sprite Atlas   |
+| Atlas padding                        | **2 px**         | libGDX TexturePacker |
+| Atlas padding                        | **"at least 2"** | TexturePacker        |
+| Atlas padding                        | **1 px**         | Godot                |
 
-> **ฉบับก่อนสมมติตลอดทั้งฉบับว่ามีสองขนาด** A2, A3, L4 และรายการ "ไม่มีตัวที่สี่" ตั้งอยู่บนสมมติฐานนั้นหมด **ผิด** และมันมีผลจริง: 512×512 **เป็น** power-of-two (กระทบ A2) ส่วน 627×627 กับ 1194×1317 เป็นเลขคี่
+> ⚠️ **Do not spend these numbers on the wrong quantity.** Every one of them measures the gap **between
+> two sprites sharing one texture**, so that bilinear filtering cannot sample a neighbour. Empty canvas
+> **inside a single frame** — margin under a character's feet, headroom above it — is a different
+> quantity that happens to share the English word "padding". The sceptic pass caught this register about
+> to make exactly that substitution.
 
-สแกน header ทุกไฟล์ใต้ `public/characters` :
+## Derived arithmetic — a consequence of a real specification
 
-```
-640x512      233 ไฟล์
-396x376       96
-512x512       13   (erlang-shen-skill-2 fx/aura + hound)
-800x640        6   (erlang-shen-skill-2-cast)
-1200x960       6   (monkey-attack-new)
-627x627        4   (monkey-pose-*-alpha)
-1194x1317      1   (tripitaka-buddha-aura)
------------------
-359 ไฟล์ · 13.11 MiB · 40 กลุ่ม
-```
-
-รีโปรู้เรื่องนี้อยู่แล้ว — `entitySpritePresentation.ts` ลงทะเบียน 1200×960, 627×627 และ 800×640 ไว้ตามชื่อ
-
-**"257 เฟรม" หมายถึงอะไรกันแน่ — มีสามความหมาย ต้องระบุทุกครั้ง**
-
-```
-257 เฟรม / 10 กลุ่ม   ชุดที่ WukongAdventure preload   (96 อยู่บนผืน 396x376)
-287 เฟรม / 14 กลุ่ม   ที่โค้ดอ้างถึงทั้งหมด (รวม spriteSequences.ts)
-359 เฟรม / 40 กลุ่ม   ที่อยู่ในไดเรกทอรีจริง
-```
-
-> ฉบับก่อนใช้ 257 เป็น "จำนวนเฟรมที่ ship ทั้งหมด" ใต้กฎที่ขึ้นต้นว่า "ทุกเฟรมในเกม" — **คนละของกัน**
+| quantity              | derivation                                                                                                                                                                                                 |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Decode footprint      | `frames × w × h × 4` bytes at RGBA8                                                                                                                                                                        |
+| Block-compressed size | `ceil(w / bw) × ceil(h / bh) × 16` bytes — any `w`, `h`                                                                                                                                                    |
+| Contain-fit scale     | `min(boxW / srcW, boxH / srcH)`; the fitted axis determines the on-screen size                                                                                                                             |
+| Half-texel offset     | index-space `n − 0.5` and continuous texel-space `n` are the same point; a 0.5 gap between the two conventions is the half-texel offset, not a discrepancy (Microsoft Learn, _Bilinear Texture Filtering_) |
 
 ---
 
-# ผู้ใช้อาร์ต — **สี่ราย ไม่ใช่สาม**
+# The unbounded register — quantities with no published external value
 
-```
-1  WukongAdventure    กล่อง 340x420 · object-fit contain · จุดยึด 356 (hardcode)
-2  CharacterPreview   .figure { aspect-ratio: 396 / 376 }
-3  CharacterModel     planeGeometry [4.018, 3.213] ที่บรรทัด 160 และ 164
-4  EntitySprite       ENTITY_SPRITE_ASPECT = 1.2508
-                      กินค่าจาก entitySpritePresentation.ts (ตารางคาลิเบรตต่อตระกูลไฟล์)
-```
+**This half of the document is as load-bearing as the tolerance register, and it is the honest answer to
+"why not just use the international number?".** For each class below, the sweep looked and found
+nothing — and in most cases can say why nothing exists.
 
-> **ฉบับก่อนเขียนสามราย และเขียนว่า "renderer ตัวที่ 4 ต้องกรอกค่าใหม่อีกรอบ" เหมือนเป็นสมมติ — มันมีอยู่แล้ว และมันคือตัวที่ทำถูก**
+| quantity                                                                                                    | why no external source exists                                                                                                                                                                                                                                                                                                                       |
+| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Per-frame anchor consistency** — how far a foot line or an anchor may drift between the frames of one set | **The strongest negative result of the sweep.** Four tools were checked for a cross-frame anchor consistency check; **none publishes one**, because none stores a per-frame anchor it could validate. Pivot data, where it exists at all, is optional and user-authored. Nobody can publish a tolerance on a quantity their format does not record. |
+| Anchor tolerance in general                                                                                 | Same evidence: five tools, zero published tolerances, zero validation hooks, one human-eyeball preview.                                                                                                                                                                                                                                             |
+| Frame count per direction; animation-set length                                                             | An animation-density choice traded against file count and RAM. Tools publish frame _ordering_ support and never a frame _count_ — there is no interoperation surface.                                                                                                                                                                               |
+| Direction-to-index mapping                                                                                  | An application-private key into a filename template. No external consumer exists, so no external body can bound it.                                                                                                                                                                                                                                 |
+| Filename templates                                                                                          | A private contract between a project's art side and its own loader.                                                                                                                                                                                                                                                                                 |
+| Playback cadence, sampling stride, movement constants, camera scale ramps                                   | Feel-tuning constants. Standards publish timing only where it crosses safety or interop (flash thresholds, frame pacing); a cadence crosses neither. Violating them changes how a game **feels**.                                                                                                                                                   |
+| Component box geometry and its internal margins                                                             | Layout of one component in one application. No external consumer, therefore no external bound even in principle.                                                                                                                                                                                                                                    |
+| Cache lifetime for shipped assets                                                                           | HTTP standards define the `max-age` **mechanism** and deliberately never a value: the correct TTL is a function of deploy cadence and whether URLs are content-addressed.                                                                                                                                                                           |
+| Art payload budget                                                                                          | Set by target download time on target networks — a product decision, not a format property.                                                                                                                                                                                                                                                         |
+| Image format choice among universally-supported options                                                     | Standards publish what a decoder must **accept**, never which accepted format a producer should **emit**.                                                                                                                                                                                                                                           |
+| Acceptability of a RAM ceiling                                                                              | The number derives cleanly; its acceptability does not. No vendor publishes a per-app texture-RAM budget for a browser tab.                                                                                                                                                                                                                         |
+| Requiring every frame of one set to share a canvas                                                          | **No format requires this, and the industry answer is the opposite**: carry the untrimmed frame of reference in per-frame metadata and let frames differ. A project may still adopt the stricter rule — but as its own Layer B choice, not as a standard.                                                                                           |
+| Device-fleet format support percentages                                                                     | Telemetry that moves month to month as the installed base turns over. Re-check at port-decision time; never carry the number forward.                                                                                                                                                                                                               |
 
-**ยืนยันด้วยตาแล้ว** เข้าด่านจาก ต่อสู้ → ในสนามรบ **เงาอยู่ใต้เท้าถูกต้อง** ต่างจากลอบบี้ที่เงาอยู่หัวเข่า **รีโปเดียวกัน อาร์ตเดียวกัน สอง renderer ตัวหนึ่งทำถูกอยู่แล้ว — ฝั่งที่ต้องแก้คือฝั่งลอบบี้ และของที่ต้องลอกอยู่ในบ้าน**
+## Known coverage gap in this register
 
-**และ CharacterModel ยืด 18.7% เฉพาะบางเวลา ไม่ใช่ตลอด**
-
-```
-idle ของ 6 จาก 7 kind   396x376   ยืด 18.74%   (72 เฟรม)
-เฟรมท่า 26 เฟรม          640x512   ยืด  0.04%
-spear-warrior ทั้ง 33     640x512   ยืด  0.04%   -> ตัวนี้ไม่เคยยืดเลย
-```
-
-**แปลว่ามันเด้ง** — ยืดตอน idle แล้วกลับเป็น 1:1 ทันทีที่เฟรมท่าเล่น **ยังไม่มีใครเห็นการเด้งนี้ และยังหาไม่เจอว่า CharacterModel ขึ้นจอตรงไหน**
-
----
-
-# เรื่องจุดยึดของอาร์ต — วัดครบทุกชุดแล้ว
-
-```
-ชุด                        ผืน        เส้นเท้า      กระจาย    กึ่งกลาง        กระจาย
-spear-warrior-stop-turn   640x512   475-475        0px     320-320          0px
-pigsy-turn                396x376   350-362       12px     167.5-245.5     78px
-tripitaka-turn            396x376   335-366       31px     125.5-214       88.5px
-monkey-turn               396x376   323-374       51px     134-219         85px
-```
-
-**ชุดเดียวที่จุดยึดเป๊ะสมบูรณ์คือชุดที่ `ff67fb1` ไม่ได้แตะ** — และนั่นพิสูจน์ว่ามาตรฐานนี้ทำได้จริงในบ้านนี้ มีคนทำได้แล้วหนึ่งชุด
-
-**แต่การครอปไม่ใช่ผู้ร้าย** — วัด `monkey-turn` เวอร์ชันก่อน `ff67fb1` (ผืน 640×512 เดิม) ได้
-
-```
-ก่อนครอป  bottom  487 487 486 475 474 436 443 444   กระจาย 51px   กึ่งกลาง กระจาย 85px
-หลังครอป                                            กระจาย 51px            กระจาย 85px
-```
-
-**เท่ากันเป๊ะทั้งสองแกน** การครอปใช้กรอบเดียวทั้งชุดและรักษาเรขาคณิตสัมพัทธ์ไว้ครบ **ความเพี้ยน 51px มีมาแต่วันวาด**
-
-> **`ff67fb1` ถูกล้างข้อกล่าวหาสองข้อในเอกสารฉบับนี้** — มันไม่ได้ทำจุดยึดพัง และมันครอปอย่างถูกวิธี สิ่งที่มันขาดคือ**ไม่ได้บอกผู้ใช้อีกสองราย**เท่านั้น
->
-> และฉบับก่อนเขียนว่า 85px นั้นอยู่ "บนเนื้องานที่ถูกต้อง" — **ใช้คำนั้นไม่ได้แล้ว** เมื่อชุดพี่น้องทำได้ 0px
+**Not one web-platform source appears in it.** Every finding above is a native engine, a desktop atlas
+packer, a Direct3D page, a container specification, or a store listing — while this project renders
+through WebGL2/WebGPU inside a DOM box under CSS transforms. Any tolerance concerning
+`devicePixelRatio`, CSS box sizing, `object-fit` behaviour, or browser image decoding is **unsearched**,
+not absent. A future sweep should start there.
 
 ---
 
-# ฝั่งคนสร้างอาร์ต
+# Conformance
 
-> ทำตามหน้านี้แล้วชุดจะเข้าเกมได้ตั้งแต่ครั้งแรก · **อย่าเปิดอาร์ตเก่าในรีโปแล้วเลียนแบบ** เพราะผืนในนั้นมีเจ็ดขนาด
+A project bound by this document maintains a conformance record — for this repository,
+`docs/SPRITE-CONFORMANCE.md` — which for **every** slot above states the project's chosen value, its
+provenance, and its current status. A rule with no conformance entry is a rule nobody is checking.
 
-## ส่งอะไรมา
-
-```
-เดิน       8 ทิศ x 8 เฟรม = 64 ไฟล์   ผืน 640 x 512 RGBA   <prefix>-<ทิศ>-<0..7>.webp
-หันทิศ     8 ไฟล์                      ผืน 396 x 376 RGBA   <prefix>-<0..7>.webp
-ยืนเฉย     24 ไฟล์                     ผืน 396 x 376 RGBA   <prefix>-<0..23>.webp
-บีบ        npm run build:images
-วางไฟล์    PNG ต้นฉบับ -> assets/raw/  ·  WebP ที่ ship -> public/
-
-ชื่อทิศของชุดเดิน   up · up-right · right · down-right · down · down-left · left · up-left
-เลขของชุดหันทิศ    0 down · 1 down-right · 2 right · 3 up-right
-                   4 up   · 5 up-left    · 6 left  · 7 down-left
-```
-
-> **ผืนไม่ใช่ 640×512 ทั้งหมด** ฉบับก่อนสั่งว่าทุกไฟล์ต้อง 640×512 **ซึ่งขัดกับ L1 ของตัวเอง** เพราะ `CharacterPreview` ตรึง `aspect-ratio: 396/376` ไว้ ถ้า idle/turn เป็น 640×512 หน้าทำเนียบจะเพี้ยนทันที **เช็คลิสต์เดิมกับกฎข้อ 4 ทำพร้อมกันไม่ได้**
-
-> **ลำดับเลขของชุดหันทิศเป็นเรื่องเป็นตาย** ดู B2 — ฉบับก่อนให้ลำดับเริ่มที่ `up` ซึ่งจะทำให้ตัวละครหันผิดทางทั้งเกมโดยไม่มี error
-
-## เรื่องจุดยึด
-
-**เกมนี้ไม่มีสเปกจุดยึดที่เป็นตัวเลข และเอกสารนี้จะไม่แต่งขึ้นมาให้**
-
-```
-ภายในชุดเดียวกัน  เท้าต้องอยู่แถวเดิมทุกเฟรม  ตัวต้องกึ่งกลางแนวนอนเท่ากันทุกเฟรม
-```
-
-**ชุดอ้างอิงที่ทำได้จริงแล้วคือ `spear-warrior-stop-turn`** — เท้าอยู่แถว 475 ทุกเฟรม กึ่งกลาง 320 ทุกเฟรม กระจาย 0px ทั้งสองแกน **ให้ยึดชุดนั้นเป็นตัวอย่าง ไม่ใช่ `monkey-turn` ซึ่งกระจาย 51px มาตั้งแต่วันวาด**
-
-## สิ่งที่ทำแล้วพังทั้งเกม
-
-**เปลี่ยนขนาดผืน** — ไฟล์ชุดหนึ่งถูกใช้โดย renderer **สี่ตัว** ที่มีกรอบต่างกัน
-
-**ส่งไฟล์ไม่ครบ** — โค้ดสร้างชื่อไฟล์จากตัวเลขที่ปักไว้ ไฟล์ที่ขาดคือ 404 ผู้เล่นเห็นรูปแตก
-
-**เรียงเลขชุดหันทิศผิด** — ไม่มี error ตัวละครแค่หันผิดทาง
-
-**ส่ง idle น้อยกว่า 19** — ตัวเล่นหยิบเฟรมข้ามทีละ 3 ต่ำกว่านั้นวนซ้ำเร็วผิดจังหวะ **โดยไม่มี error**
-
-## เช็คก่อนส่ง
-
-```
-[ ] ผืนตรงตามตาราง (เดิน 640x512 · หันทิศและยืนเฉย 396x376)
-[ ] จำนวนครบ (64 / 8 / 24)
-[ ] ชุดหันทิศเรียงตามเลขทิศข้างบน ไม่ใช่ตามชื่อ
-[ ] เท้าอยู่แถวเดิม และกึ่งกลางเท่ากัน ทุกเฟรมในชุด (เทียบกับ spear-warrior-stop-turn)
-[ ] รัน npm run build:images แล้ว
-[ ] ไม่ได้แก้ตารางในโค้ดเอง
-```
-
-> **เรื่อง lossless** ฉบับก่อนสั่ง "ห้าม lossless" **แต่ 43 จาก 359 เฟรมที่ ship อยู่เป็น VP8L lossless แล้ว (3.55 MiB = 27% ของ payload อาร์ต)** ทั้งหมดอยู่ในตระกูล erlang-shen attack/skill **กฎนี้ต้องมีข้อยกเว้นที่เขียนไว้ ไม่งั้นมันถูกละเมิดตั้งแต่วันที่เซ็น**
-
----
-
-# ฝั่งโค้ด
-
-```
-1. ทุกเฟรมที่ใช้ prefix เดียวกัน ต้องมีขนาดผืนเท่ากัน
-   (ไม่ใช่ "ทุกเฟรมในเกมต้อง 640x512" — เท็จกับ 126 จาก 359 เฟรม)
-
-2. ทุก path ที่ตารางปักหมุด ต้องมีไฟล์อยู่จริงในรีโป
-
-3. จำนวนไฟล์ต้องตรงกับจำนวนที่ปักไว้
-
-4. ผู้ใช้ภาพที่ตรึงอัตราส่วนไว้ ต้องได้ภาพอัตราส่วนตรงกัน หรือชดเชยชัดแจ้ง
-   และ เลข aspect ที่ปักไว้ทุกตัวต้องบอกที่มา                    [ล็อกแล้ว = L1]
-   วันนี้ CharacterModel ละเมิดครึ่งแรก 18.7% ตอน idle
-   และละเมิดครึ่งหลังที่บรรทัด 160 และ 164
-
-5. เมื่อครอปอาร์ตใหม่เพื่อผู้ใช้รายหนึ่ง ต้องบันทึกเรขาคณิตเดิม
-   และต้องไล่เช็คผู้ใช้รายอื่นทุกราย                              [ล็อกแล้ว = L2]
-```
-
-> **ฉบับก่อนเขียนกฎ 4 ครึ่งเดียว** ทิ้งประโยค "ต้องบอกที่มา" ของ L1 ไป ทั้งที่มันเป็นข้อผูกพันที่ล็อกแล้ว — หน้าที่ฝั่งโค้ดถูกสั่งให้ทำตาม จึงหล่นข้อผูกพันไปเงียบ ๆ
-
-**ข้อ 5 คือข้อเดียวที่ถ้ามีอยู่ก่อน จะกันเรื่องทั้งหมดนี้ไม่ให้เกิด**
-
-`ff67fb1` (2026-08-08) ครอป 96 เฟรมจาก 640×512 → 396×376 เพื่อ `CharacterPreview` **ทำถูกทุกอย่างสำหรับผู้ใช้รายนั้น** อัปเดต `.figure { aspect-ratio: 396/376 }` ในคอมมิตเดียวกัน เทสต์ผ่าน 507 ตัว **และครอปอย่างถูกวิธี รักษาเรขาคณิตสัมพัทธ์ครบ**
-
-แต่ไฟล์ชุดนั้นมีผู้ใช้อยู่ **สี่** ราย และอีกสองรายไม่เคยถูกบอก
-
-```
-WukongAdventure   กล่อง 340x420 object-fit contain   ->  ตัวโต +81.5% ตอนหยุดเดิน (วัดสด)
-CharacterModel    planeGeometry 4.018 x 3.213        ->  ยืด 18.7% เฉพาะตอน idle
-CharacterPreview  aspect-ratio 396/376               ->  ถูกต้อง (คนแก้ดูแลรายนี้)
-EntitySprite      ตารางคาลิเบรตต่อตระกูลไฟล์          ->  ถูกต้อง (มีตารางของตัวเอง)
-```
-
----
-
-# ต้นทุนที่วัดได้ — วัดสดบนโปรดักชัน
-
-```
-preload            new Image() ทุกไฟล์พร้อมกัน ไม่มี priority ไม่มีแบ่งชุด
-                   (WukongAdventure.tsx:81-86 และ :237)
-burst              96 requests ใน 1 วินาที ที่ t=748ms หลัง navigation
-ยิงซ้ำ              144 requests สำหรับ 97 URLs ที่ต่างกัน = 1.48 เท่า
-                   (idle 54 ครั้งสำหรับ 24 ไฟล์)
-แคช                cache-control: max-age=600 — สิบนาที
-                   และชื่อไฟล์ไม่มี content hash เลยยืดอายุแคชไม่ได้ถ้าไม่ hash ก่อน
-เสีย                16 จาก 24 เฟรม idle ถูกโหลดแต่ไม่เคยวาดในฉากนี้
-```
-
-**ท่าวิ่งจะเข้า preload ตัวเดียวกัน** — 8 เฟรม = +64 ไฟล์ · 12 เฟรม = +96 ไฟล์ และ `FRAME_COUNT = 8` หยิบได้ 8 ช่อง **ส่ง 12 มาโดยไม่แก้โค้ดคือโรคเดียวกับ idle: ส่งของมามากกว่าที่ตัวเล่นหยิบไปใช้**
-
-**แก้ที่ preload ที่เดียว ทั้งเรื่อง idle 16 เฟรมทิ้ง และเรื่อง 8-vs-12 หายพร้อมกัน**
-
----
-
-# ยังไม่ได้ยืนยัน
-
-```
-วัดสดแล้ว   +81.5% ตัวโต · เงาที่หัวเข่า · เท้าขยับ 20.8px · burst 96/วิ
-            re-fetch 1.48x · max-age=600 · console สะอาด · network 0 error
-            จุดยึดทุกชุดหันทิศ ก่อนและหลังครอป
-
-ยังไม่เห็น   CharacterModel เด้ง idle<->action 18.7%   ยังหาไม่เจอว่าขึ้นจอตรงไหน
-ยังไม่เห็น   พื้น DPR — 2.58x ที่ DPR 3 เป็นค่าคำนวณ ยังไม่มีใครเปิดบนเครื่องจริง
-ยังไม่วัด    แรมที่ใช้จริง — 98.2 MiB เป็นเพดาน decode เบราว์เซอร์ evict ได้
-ยังไม่ตัดสิน  ท่าวิ่ง 8 หรือ 12 · จะแก้ preload ไหม · จะทำ metadata ต่อเฟรมไหม
-```
-
-**+55.8% ถึง +81.5% คือช่วงจริงข้ามตัวละครและข้ามเฟรม** พิกซี่อยู่ปลายล่าง ลิงอยู่ปลายบน ค่าที่วัดสดวันนี้คือลิง = +81.5%
-
-> ฉบับก่อนเขียนช่วง "56–79%" แล้วบอกว่ามาจากสี่ทางที่ให้ +79/+79/+81.5/+74.8 — **ช่วงนั้นไม่ครอบเลขของตัวเอง** ทั้งไม่ถึง 81.5 และไม่มีอะไรผลิตเลข 56 ออกมา
+**The conformance record is where measured numbers, file paths, commit references, and open violations
+belong. None of them belong in this file.**

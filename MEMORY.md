@@ -295,3 +295,5 @@ All entries 2026-08-05/06 unless noted. Roughly chronological.
 - **196.** Audit #36 (`loadPlayer` ignores 7 of 8 query errors) was already fixed in `0bee26d` — its TEST covered 5 of 8 tables; list now derived from the real calls — `MEMORY/archive/176-200.md`
 - **197.** Task #93 split at the gate — honest login error shipped, recovery form held for SMTP; two account-existence oracles closed, one named as still open — `MEMORY/archive/176-200.md`
 - **198.** DESIGN LOCK (owner) — sprite geometry contracted; the draft's own verification killed 50 of 96 claims, and the live browser settled the rest — `MEMORY/archive/176-200.md`
+
+- **199.** The sprite lock split into template + conformance; a six-domain sweep found 172 published values, and proved the anchor tolerance cannot have one — no tool stores a per-frame anchor to validate — `MEMORY/archive/176-200.md`
