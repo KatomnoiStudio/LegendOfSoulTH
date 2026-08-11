@@ -416,14 +416,30 @@ of good work already fails is not a spec.
 ## Provenance and limits of these numbers
 
 ```
-corpora         two, both openly licensed, both measured rather than cited:
-                a community spritesheet standard with a fixed cell and hundreds of contributors,
-                and a two-decade open strategy game with one file per frame
+corpora         Universal LPC Spritesheet (Liberated Pixel Cup)
+                github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator
+                fixed 64 px cell, filename = animation name, hundreds of contributors.
+                Assets are licensed PER FILE, not per repository — CC0, CC-BY 4.0,
+                CC-BY-SA 4.0, OGA-BY, or GPL 3.0 depending on the piece — and the
+                repository ships CREDITS.csv naming the author and licence of every image.
+
+                Battle for Wesnoth  ·  github.com/wesnoth/wesnoth  ·  GPL-2.0
+                one file per frame, two decades of community art, unit heights varying
+                inside a fixed frame. Per-file copyright is recorded in copyrights.csv.
+
+what was used   MEASUREMENTS ONLY. No pixel of either corpus was copied into this project,
+                and none is redistributed. What was taken is a set of numbers — alpha
+                bounding boxes and their spreads — and a measured statistic is a fact.
+                No licence obligation attaches to a fact.
+                The credit here is owed for a different and stronger reason: a number whose
+                source is not named cannot be re-derived by anyone, and this document's own
+                third standing rule forbids that.
+
 sample          314 external animation sets after kind classification
-kind labels     unambiguous in the first corpus (the filename IS the animation name);
-                inferred from filenames in the second, which is coarser — a drawn-bow "attack"
-                whose feet never move was classified as action, so the action band is, if
-                anything, slightly wider than the truth
+kind labels     unambiguous in LPC (the filename IS the animation name); inferred from
+                filenames in Wesnoth, which is coarser — a drawn-bow "attack" whose feet
+                never move was classified as action, so the action band is, if anything,
+                slightly wider than the truth
 not covered     no web-platform corpus, no commercial corpus, no 3D-rendered-to-sprite corpus
 ```
 
