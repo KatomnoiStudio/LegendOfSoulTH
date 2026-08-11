@@ -1,4 +1,41 @@
+<!--
+  LICENCE NOTICE — THIS FILE ONLY
+
+  Copyright (c) 2026 HetCreep / Katomnoi Studio. All rights reserved.
+
+  This file is licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0
+  International (CC BY-NC-ND 4.0): https://creativecommons.org/licenses/by-nc-nd/4.0/
+  It is NOT covered by the MIT licence that governs the rest of this repository.
+
+  Commercial use, adaptation, or redistribution as part of a paid product or service requires a
+  separate written licence from the copyright holder.
+
+  STANDING GRANT — Katomnoi Studio (github.com/KatomnoiStudio)
+  Katomnoi Studio is granted a perpetual, irrevocable, royalty-free licence to use, reproduce,
+  modify, and create derivative works from this file, and to apply it in the Studio's own products
+  and services, including commercially.
+  This grant deliberately does NOT include the right to sublicense the file, or to distribute the
+  file or substantial portions of it to third parties. MIT would include both, and either one would
+  release the document to anyone who received it — which is what the CC BY-NC-ND terms above exist
+  to prevent. The Studio may ship what it BUILDS from this document freely; the document itself
+  stays the copyright holder's to license.
+
+  ⚠️ DRAFT — NOT LEGAL ADVICE. Written by an AI assistant at the owner's direction and NOT reviewed
+  by a lawyer. Two things a lawyer must settle before this is relied on:
+    1. Earlier revisions of this file were published in a public MIT-licensed repository. An MIT
+       grant already made cannot be withdrawn for copies already distributed. This notice binds
+       future revisions; it does not reach back.
+    2. The named holder must be a real legal person or registered entity. "LegendofSoulTH" in the
+       repository LICENSE is a project name, which is weak for enforcement.
+-->
+
 # SPRITE DESIGN LOCK
+
+> **Licence — this file only.** © 2026 HetCreep / Katomnoi Studio.
+> Released under [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/), **not** under
+> the MIT licence covering the rest of this repository. Commercial use or adaptation requires a
+> separate written licence. See `LICENSE` for the carve-out, and the comment above for what a lawyer
+> still has to settle.
 
 **Locked by HetCreep (Ring 0) on 2026-08-11. Binding on both sides of this project: the code that
 renders sprites, and the people who draw them.**
@@ -300,6 +337,101 @@ external exemplar. Neither can be done with an argument alone.**
 
 ---
 
+# The anchor tolerance register — measured from external corpora
+
+**These are the numbers nobody publishes.** The sweep confirmed that no tool publishes a cross-frame
+anchor tolerance, and gave the structural reason: no tool stores a per-frame anchor it could validate
+(see the unbounded register). A tolerance can still be recovered — not by reading a specification, but
+by **measuring the shipped work of people who have been tuning this for years**, with an instrument
+stated precisely enough that anyone can re-run it.
+
+That makes this a fourth class of evidence, distinct from the three below it:
+**EXTERNAL-MEASURED — not published anywhere, derived by measuring an external corpus.**
+
+## Method — stated so the numbers can be checked, not trusted
+
+```
+instrument      alpha threshold 8; foot band = the bottom 3.75% of character height
+                (character height = alpha top to alpha bottom within the frame)
+foot line       lowest opaque row
+foot centre     horizontal centre of the alpha inside the foot band, NOT of the whole
+                silhouette — a staff or a tail moves the bounding box without moving the feet
+two axes        inDir : drift within one direction's own cycle
+                xDir  : drift between the MEAN foot line of each direction
+```
+
+The two axes answer different questions and must never be merged. `inDir` may legitimately be large —
+a stride lifts a foot, a lunge leaves the ground. `xDir` has no such excuse: nothing about any
+animation explains why the left-facing cycle should stand at a different height from the right-facing
+one.
+
+## Does the tolerance scale with character size? — measured, and no
+
+Tested by building the ceiling from external corpora only (n=314 sets, character heights 24–82 px) and
+scoring a separate body of art against it (n=28 sets, character heights 163–566 px). Building the
+ceiling from a pool that contains the sets under judgement would be circular.
+
+```
+correlation(character height, drift in px), all six kind x axis cells:
+    -0.594   0.131   0.293   0.214   -0.107   0.268
+```
+
+**Not one cell shows the strong positive correlation a proportional model requires.** The strongest is
+negative — taller characters drifting _less_. And the decisive check comes from combining the ranges:
+well-made pose-hold sets land on **0–1 px at character heights from 24 px to 370 px**, a 15× span.
+
+**The reason is physical.** This drift is an authoring alignment error, not a depiction of movement. An
+artist aligning to the pixel grid is off by a pixel or two regardless of how large the subject is — the
+error is bounded by the precision of the hand and the tool, not by the size of what is drawn.
+
+## The base
+
+```
+alignment error       base = 1 px, ABSOLUTE, does not scale with character height
+                      per-kind multiplier applies
+
+depicted movement     NOT absolute — a larger character's stride really does cross more pixels
+                      expressed as a fraction of character height
+```
+
+| animation kind                                          | `xDir` — alignment   | `inDir` — alignment | `inDir` — depicted movement   |
+| ------------------------------------------------------- | -------------------- | ------------------- | ----------------------------- |
+| **pose-hold** (idle, combat idle, emote, cast-in-place) | **±1 px** (1 × base) | **±1 px**           | n/a — the body is planted     |
+| **locomotion** (walk, run, jump, climb)                 | **±2 px** (2 × base) | —                   | **≤ 27% of character height** |
+| **action** (slash, thrust, shoot, and similar)          | **±3 px** (3 × base) | —                   | **≤ 23% of character height** |
+
+Every figure is the **p90 of the external corpora**, rounded up to a whole pixel. p90 rather than max
+because a corpus of that size contains its own defects, and rather than median because a spec that half
+of good work already fails is not a spec.
+
+> **These are ceilings evidenced from outside, not targets.** The corpora measured have characters
+> 24–82 px tall and cannot resolve drift finer than one pixel. Art drawn at several hundred pixels has
+> an order of magnitude more room, and the well-made sets in that range measure **0**. Quote the ceiling
+> when judging; quote your own best work when setting a target.
+
+> **Applying it to a set of single-frame directions** — an eight-facing "turn" set, one frame per
+> direction — is the `xDir` pose-hold case, not `inDir`. The body is planted in every frame; only the
+> facing changes. **±1 px.**
+
+## Provenance and limits of these numbers
+
+```
+corpora         two, both openly licensed, both measured rather than cited:
+                a community spritesheet standard with a fixed cell and hundreds of contributors,
+                and a two-decade open strategy game with one file per frame
+sample          314 external animation sets after kind classification
+kind labels     unambiguous in the first corpus (the filename IS the animation name);
+                inferred from filenames in the second, which is coarser — a drawn-bow "attack"
+                whose feet never move was classified as action, so the action band is, if
+                anything, slightly wider than the truth
+not covered     no web-platform corpus, no commercial corpus, no 3D-rendered-to-sprite corpus
+```
+
+**Two corpora is evidence, not consensus.** A third and fourth would strengthen the base and could move
+it by a pixel. The method above is written out so that adding one is a re-run, not a re-derivation.
+
+---
+
 # The tolerance register — published external values
 
 Every row carries its source and its strength. **Read the strength column before using a number**: a
@@ -363,21 +495,21 @@ expressed as a range rather than a point, by a gatekeeper that enforces it.
 "why not just use the international number?".** For each class below, the sweep looked and found
 nothing — and in most cases can say why nothing exists.
 
-| quantity                                                                                                    | why no external source exists                                                                                                                                                                                                                                                                                                                       |
-| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Per-frame anchor consistency** — how far a foot line or an anchor may drift between the frames of one set | **The strongest negative result of the sweep.** Four tools were checked for a cross-frame anchor consistency check; **none publishes one**, because none stores a per-frame anchor it could validate. Pivot data, where it exists at all, is optional and user-authored. Nobody can publish a tolerance on a quantity their format does not record. |
-| Anchor tolerance in general                                                                                 | Same evidence: five tools, zero published tolerances, zero validation hooks, one human-eyeball preview.                                                                                                                                                                                                                                             |
-| Frame count per direction; animation-set length                                                             | An animation-density choice traded against file count and RAM. Tools publish frame _ordering_ support and never a frame _count_ — there is no interoperation surface.                                                                                                                                                                               |
-| Direction-to-index mapping                                                                                  | An application-private key into a filename template. No external consumer exists, so no external body can bound it.                                                                                                                                                                                                                                 |
-| Filename templates                                                                                          | A private contract between a project's art side and its own loader.                                                                                                                                                                                                                                                                                 |
-| Playback cadence, sampling stride, movement constants, camera scale ramps                                   | Feel-tuning constants. Standards publish timing only where it crosses safety or interop (flash thresholds, frame pacing); a cadence crosses neither. Violating them changes how a game **feels**.                                                                                                                                                   |
-| Component box geometry and its internal margins                                                             | Layout of one component in one application. No external consumer, therefore no external bound even in principle.                                                                                                                                                                                                                                    |
-| Cache lifetime for shipped assets                                                                           | HTTP standards define the `max-age` **mechanism** and deliberately never a value: the correct TTL is a function of deploy cadence and whether URLs are content-addressed.                                                                                                                                                                           |
-| Art payload budget                                                                                          | Set by target download time on target networks — a product decision, not a format property.                                                                                                                                                                                                                                                         |
-| Image format choice among universally-supported options                                                     | Standards publish what a decoder must **accept**, never which accepted format a producer should **emit**.                                                                                                                                                                                                                                           |
-| Acceptability of a RAM ceiling                                                                              | The number derives cleanly; its acceptability does not. No vendor publishes a per-app texture-RAM budget for a browser tab.                                                                                                                                                                                                                         |
-| Requiring every frame of one set to share a canvas                                                          | **No format requires this, and the industry answer is the opposite**: carry the untrimmed frame of reference in per-frame metadata and let frames differ. A project may still adopt the stricter rule — but as its own Layer B choice, not as a standard.                                                                                           |
-| Device-fleet format support percentages                                                                     | Telemetry that moves month to month as the installed base turns over. Re-check at port-decision time; never carry the number forward.                                                                                                                                                                                                               |
+| quantity                                                                                                    | why no external source exists                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Per-frame anchor consistency** — how far a foot line or an anchor may drift between the frames of one set | **The strongest negative result of the sweep.** Four tools were checked for a cross-frame anchor consistency check; **none publishes one**, because none stores a per-frame anchor it could validate. Pivot data, where it exists at all, is optional and user-authored. Nobody can publish a tolerance on a quantity their format does not record. **The finding stands — and the number was recovered anyway, by measuring external corpora rather than citing one. See the anchor tolerance register above.** |
+| Anchor tolerance in general                                                                                 | Same evidence: five tools, zero published tolerances, zero validation hooks, one human-eyeball preview. **Same resolution: measured, never cited.**                                                                                                                                                                                                                                                                                                                                                              |
+| Frame count per direction; animation-set length                                                             | An animation-density choice traded against file count and RAM. Tools publish frame _ordering_ support and never a frame _count_ — there is no interoperation surface.                                                                                                                                                                                                                                                                                                                                            |
+| Direction-to-index mapping                                                                                  | An application-private key into a filename template. No external consumer exists, so no external body can bound it.                                                                                                                                                                                                                                                                                                                                                                                              |
+| Filename templates                                                                                          | A private contract between a project's art side and its own loader.                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Playback cadence, sampling stride, movement constants, camera scale ramps                                   | Feel-tuning constants. Standards publish timing only where it crosses safety or interop (flash thresholds, frame pacing); a cadence crosses neither. Violating them changes how a game **feels**.                                                                                                                                                                                                                                                                                                                |
+| Component box geometry and its internal margins                                                             | Layout of one component in one application. No external consumer, therefore no external bound even in principle.                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Cache lifetime for shipped assets                                                                           | HTTP standards define the `max-age` **mechanism** and deliberately never a value: the correct TTL is a function of deploy cadence and whether URLs are content-addressed.                                                                                                                                                                                                                                                                                                                                        |
+| Art payload budget                                                                                          | Set by target download time on target networks — a product decision, not a format property.                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Image format choice among universally-supported options                                                     | Standards publish what a decoder must **accept**, never which accepted format a producer should **emit**.                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Acceptability of a RAM ceiling                                                                              | The number derives cleanly; its acceptability does not. No vendor publishes a per-app texture-RAM budget for a browser tab.                                                                                                                                                                                                                                                                                                                                                                                      |
+| Requiring every frame of one set to share a canvas                                                          | **No format requires this, and the industry answer is the opposite**: carry the untrimmed frame of reference in per-frame metadata and let frames differ. A project may still adopt the stricter rule — but as its own Layer B choice, not as a standard.                                                                                                                                                                                                                                                        |
+| Device-fleet format support percentages                                                                     | Telemetry that moves month to month as the installed base turns over. Re-check at port-decision time; never carry the number forward.                                                                                                                                                                                                                                                                                                                                                                            |
 
 ## Known coverage gap in this register
 

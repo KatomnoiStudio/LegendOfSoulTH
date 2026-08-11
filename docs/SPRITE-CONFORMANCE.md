@@ -243,6 +243,39 @@ feet.
 **For walk sets, read the across-directions column, not the in-direction one.** A foot legitimately
 lifts during a stride; what should not move is where each direction's cycle sits relative to the others.
 
+### Scored against the anchor tolerance register
+
+The design lock's anchor tolerances were built from external corpora only (314 sets, character heights
+24-82 px) and this project's sets were scored against them afterwards. Building the ceiling from a pool
+containing the sets under judgement would be circular.
+
+A turn set is eight single-frame directions, so it is the **xDir pose-hold** case: the body is planted
+in every frame and only the facing changes. Ceiling **±1 px**.
+
+| set                                                         | kind       | axis  |         drift | ceiling | verdict              |
+| ----------------------------------------------------------- | ---------- | ----- | ------------: | ------: | -------------------- |
+| `spear-warrior-stop-turn`                                   | pose-hold  | xDir  |             0 |       1 | PASS                 |
+| `spear-warrior-stop-turn-key`                               | pose-hold  | xDir  |             0 |       1 | PASS                 |
+| `monkey-v2-idle` · `tripitaka-idle` · `erlang-shen-v6-idle` | pose-hold  | inDir |             0 |       1 | PASS                 |
+| `pigsy-idle`                                                | pose-hold  | inDir |             1 |       1 | PASS                 |
+| `monkey-walk`                                               | locomotion | xDir  |          1.13 |       2 | PASS                 |
+| `monkey-walk`                                               | locomotion | inDir |  2 px = 0.68% |   ≤ 27% | PASS                 |
+| `pigsy-walk`                                                | locomotion | xDir  |          5.63 |       2 | **FAIL — 2.8× over** |
+| `pigsy-walk`                                                | locomotion | inDir | 12 px = 3.69% |   ≤ 27% | PASS                 |
+| `pigsy-turn`                                                | pose-hold  | xDir  |            12 |       1 | **FAIL — 12× over**  |
+| `tripitaka-turn`                                            | pose-hold  | xDir  |            31 |       1 | **FAIL — 31× over**  |
+| `monkey-turn`                                               | pose-hold  | xDir  |            51 |       1 | **FAIL — 51× over**  |
+
+**The three turn sets are the worst conformance failures in the repository**, and they fail the
+strictest band there is — the one for animations where the body does not move at all, so nothing about
+the animation excuses the drift. `spear-warrior-stop-turn` holds 0 px on both axes and proves the band
+is reachable here, with this project's own tools.
+
+Action sets are scored on the proportional band, because a larger character's swing really does cross
+more pixels. On that basis `monkey-attack-new` measures 22.79% of character height against a ≤ 23%
+ceiling — inside, narrowly. Scored in absolute pixels it would read as a 14× failure, which is why the
+design lock separates alignment error from depicted movement instead of forcing one formula.
+
 **No external tolerance exists for any of these numbers** — see the design lock's unbounded register.
 The band is a project decision and is **still open**.
 
