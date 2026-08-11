@@ -243,38 +243,122 @@ feet.
 **For walk sets, read the across-directions column, not the in-direction one.** A foot legitimately
 lifts during a stride; what should not move is where each direction's cycle sits relative to the others.
 
-### Scored against the anchor tolerance register
+### Scored against the anchor tolerance register — every shipped group
 
-The design lock's anchor tolerances were built from external corpora only (314 sets, character heights
-24-82 px) and this project's sets were scored against them afterwards. Building the ceiling from a pool
-containing the sets under judgement would be circular.
+The design lock's anchor tolerances were built from external corpora only (314 sets, character
+heights 24-82 px) and this project's art was scored against them afterwards. Building the ceiling
+from a pool containing the sets under judgement would let the defective sets widen the band meant to
+catch them.
 
-A turn set is eight single-frame directions, so it is the **xDir pose-hold** case: the body is planted
-in every frame and only the facing changes. Ceiling **±1 px**.
+**21 groups measured · 15 PASS · 4 FAIL · 2 deliberately unclassified.**
 
-| set                                                         | kind       | axis  |         drift | ceiling | verdict              |
-| ----------------------------------------------------------- | ---------- | ----- | ------------: | ------: | -------------------- |
-| `spear-warrior-stop-turn`                                   | pose-hold  | xDir  |             0 |       1 | PASS                 |
-| `spear-warrior-stop-turn-key`                               | pose-hold  | xDir  |             0 |       1 | PASS                 |
-| `monkey-v2-idle` · `tripitaka-idle` · `erlang-shen-v6-idle` | pose-hold  | inDir |             0 |       1 | PASS                 |
-| `pigsy-idle`                                                | pose-hold  | inDir |             1 |       1 | PASS                 |
-| `monkey-walk`                                               | locomotion | xDir  |          1.13 |       2 | PASS                 |
-| `monkey-walk`                                               | locomotion | inDir |  2 px = 0.68% |   ≤ 27% | PASS                 |
-| `pigsy-walk`                                                | locomotion | xDir  |          5.63 |       2 | **FAIL — 2.8× over** |
-| `pigsy-walk`                                                | locomotion | inDir | 12 px = 3.69% |   ≤ 27% | PASS                 |
-| `pigsy-turn`                                                | pose-hold  | xDir  |            12 |       1 | **FAIL — 12× over**  |
-| `tripitaka-turn`                                            | pose-hold  | xDir  |            31 |       1 | **FAIL — 31× over**  |
-| `monkey-turn`                                               | pose-hold  | xDir  |            51 |       1 | **FAIL — 51× over**  |
+A turn set is eight single-frame directions, so it is the **xDir pose-hold** case: the body is
+planted in every frame and only the facing changes. Ceiling ±1 px.
+
+| group                                | kind       | canvas   |      inDir |    xDir | verdict                      |
+| ------------------------------------ | ---------- | -------- | ---------: | ------: | ---------------------------- |
+| `monkey-turn`                        | pose-hold  | 396×376  |      51 px |   51 px | **FAIL — 51× over**          |
+| `tripitaka-turn`                     | pose-hold  | 396×376  |      31 px |   31 px | **FAIL — 31× over**          |
+| `pigsy-turn`                         | pose-hold  | 396×376  |      12 px |   12 px | **FAIL — 12× over**          |
+| `pigsy-walk`                         | locomotion | 640×512  |      3.69% | 5.63 px | **FAIL — 2.8× over on xDir** |
+| `monkey-v2-idle`                     | pose-hold  | 396×376  |          0 |       — | PASS                         |
+| `tripitaka-idle`                     | pose-hold  | 396×376  |          0 |       — | PASS                         |
+| `erlang-shen-v6-idle`                | pose-hold  | 640×512  |          0 |       — | PASS                         |
+| `pigsy-idle`                         | pose-hold  | 396×376  |       1 px |       — | PASS                         |
+| `spear-warrior-stop-turn`            | pose-hold  | 640×512  |          0 |   **0** | PASS                         |
+| `spear-warrior-stop-turn-key`        | pose-hold  | 640×512  |          0 |   **0** | PASS                         |
+| `monkey-walk`                        | locomotion | 640×512  |      0.68% | 1.13 px | PASS                         |
+| `erlang-shen-attack-v1`              | action     | 640×512  |          0 |       — | PASS                         |
+| `erlang-shen-skill-2-cast`           | action     | 800×640  |          0 |       — | PASS                         |
+| `monkey-v2`                          | action     | 640×512  |          0 |       — | PASS                         |
+| `pigsy-team`                         | action     | 640×512  |      0.59% |       — | PASS                         |
+| `erlang-shen-normal-attack-v3-final` | action     | 640×512  |      2.82% |       — | PASS                         |
+| `erlang-shen-normal-attack-v2`       | action     | 640×512  |      3.78% |       — | PASS                         |
+| `erlang-shen-skill-1`                | action     | 640×512  |      7.89% |       — | PASS                         |
+| `monkey-attack-new`                  | action     | 1200×960 | **22.79%** |       — | PASS — narrowly, ceiling 23% |
+| `aura`                               | —          | 512×512  |      3.14% |       — | **UNCLASSIFIED**             |
+| `hound`                              | —          | 512×512  |     34.97% |       — | **UNCLASSIFIED**             |
 
 **The three turn sets are the worst conformance failures in the repository**, and they fail the
-strictest band there is — the one for animations where the body does not move at all, so nothing about
-the animation excuses the drift. `spear-warrior-stop-turn` holds 0 px on both axes and proves the band
-is reachable here, with this project's own tools.
+strictest band there is — the one for animations where the body does not move at all, so nothing
+about the animation excuses the drift. `spear-warrior-stop-turn` holds 0 px on both axes and
+proves the band is reachable here, with this project's own tools.
 
-Action sets are scored on the proportional band, because a larger character's swing really does cross
-more pixels. On that basis `monkey-attack-new` measures 22.79% of character height against a ≤ 23%
-ceiling — inside, narrowly. Scored in absolute pixels it would read as a 14× failure, which is why the
-design lock separates alignment error from depicted movement instead of forcing one formula.
+`monkey-attack-new` is the case that justifies keeping two different kinds of ceiling.
+Measured in absolute pixels it drifts 129 px and would read as a 14× failure; measured as a fraction
+of its own character height it is 22.79% against a 23% ceiling, and passes. A larger character's
+swing really does cross more pixels, and forcing one formula across both alignment error and
+depicted movement would have condemned correct art.
+
+**Two groups carry no verdict on purpose.** `aura` and `hound` could not be classified
+into an animation kind from their names and code references with confidence, and the kind decides the
+ceiling — a wrong kind silently applies the wrong standard, which is worse than no verdict. They need
+a human to say what they depict before they can be scored.
+
+### Lossless frames still shipping
+
+Five groups, **3,546 KiB**, all VP8L: `aura`, `hound`, `erlang-shen-skill-1`,
+`erlang-shen-skill-2-cast`, `erlang-shen-normal-attack-v3-final`. Any rule forbidding
+lossless is violated by this repository on the day it is written; either the exception is stated or
+these are re-encoded.
+
+---
+
+## PRESENT — PR #113, measured against the same lock
+
+> head `DemoGODRTX/LegendOfSoulTH-1@466e1e8b` · open at the time of this measurement.
+> Full point-by-point review: see the reviewer's conformance note for that PR.
+
+**This is the first PR in this repository to satisfy L1 the way the lock intends.** It ships three
+different canvases for one character and registers each one in the calibration table, rather than
+forcing the art to one size or letting a pinned aspect stretch it.
+
+| set                     | kind       | canvas  |                 foot line | ceiling | verdict |
+| ----------------------- | ---------- | ------- | ------------------------: | ------: | ------- |
+| `monkey-king-v4/idle`   | pose-hold  | 640×512 | **0 px across 12 frames** |   ±1 px | PASS    |
+| `monkey-king-v4/attack` | action     | 640×640 |              7 px = 2.11% |   ≤ 23% | PASS    |
+| `monkey-king-v4/run`    | locomotion | 512×512 |             13 px = 4.53% |   ≤ 27% | PASS    |
+
+Its declared calibration reproduces under an independent alpha scan: visible heights 390.75 / 332.00 /
+286.85 match to two decimals, and the declared bottom insets (31 / 20 / 113) all fall inside the
+measured per-frame ranges (31 exactly on all 12 idle frames; 16-23 for attack; 105-118 for run).
+
+**Two things this raises for the code, not for the art.** `bottomInsetPx` is one value per family, so
+a 20-frame run set whose inset genuinely ranges 105-118 is represented by its mean — the structure
+cannot express what the art does. And the new test computes the rendered foot position **from the same
+literals the calibration declares**, so it proves the arithmetic rather than the alignment; it would
+pass unchanged if every frame were redrawn 20 px higher. Both are the code's limits, exposed by art
+precise enough to reach them.
+
+**A new canvas enters the repository with this PR**: 640×640, an eighth distinct size. Not a violation
+on the current browser target, but recorded here because every shipped canvas gets re-examined the day
+this project moves to GPU-compressed textures.
+
+---
+
+## FUTURE — what makes the lock hold
+
+Nothing above was caught by a gate. Every number on this page came from someone deciding to measure.
+
+**Task #101 is what converts this document from a snapshot into a check.** Canvas size per prefix,
+frame count, direction-index ordering, and foot-line spread per animation kind are all computable from
+the files alone. A frame-contract test turns four of this page's findings from prose into CI failures,
+and turns the design lock from a document people are asked to follow into one the build enforces.
+
+Until that exists, the standing obligations are:
+
+```
+new art          scored against the anchor tolerance register before merge, by kind
+new consumer     declares its pinned aspect WITH provenance (L1), or does not pin one
+re-crop          records the original geometry and walks every consumer, same commit (L2)
+new canvas       recorded in the inventory above; the count is now eight
+```
+
+**And the ceilings are not targets.** They come from corpora whose characters are 24-82 px tall and
+which cannot resolve finer than one pixel. Art drawn at several hundred pixels has an order of
+magnitude more room, and the sets in this repository that were made carefully measure **0**.
+
+---
 
 **No external tolerance exists for any of these numbers** — see the design lock's unbounded register.
 The band is a project decision and is **still open**.
