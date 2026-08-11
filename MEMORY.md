@@ -300,3 +300,4 @@ All entries 2026-08-05/06 unless noted. Roughly chronological.
 
 - **200.** The anchor tolerance nobody publishes, measured out of two external corpora — base = 1 px absolute for alignment (proved not to scale with character size), proportional bands for depicted movement; template carved out to CC BY-NC-ND — `MEMORY/archive/176-200.md`
 - **201.** Sprite belt lanes 1 and 2 landed (preload burst 96→80 with a 4-deep queue; an 18-test frame contract with every invariant proven red-then-green) — lane 3 blocked by main dispatching three agents into one tree without the workdir lock — `MEMORY/archive/201-225.md`
+- **202.** `E3` turned #100/#106 from "design a mechanism" into "extend a table that already exists" — size spread 8.0-75.1% down to 0.02-0.55%, feet at 356.0000 for all ten families, the resolution cost published rather than buried, and a green-staying seventh mutation disclosed as a real hole jsdom cannot see — `MEMORY/archive/201-225.md`
