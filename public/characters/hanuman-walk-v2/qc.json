@@ -1,0 +1,88 @@
+{
+  "character": "hanuman",
+  "animation": "walk",
+  "source": "assets/raw/characters/hanuman-walk-erlang-sheet-v1.png",
+  "frameCount": 8,
+  "outputSize": [
+    640,
+    640
+  ],
+  "targetAnchor": {
+    "x": 320,
+    "y": 570
+  },
+  "qc": {
+    "groundDriftPixels": 2,
+    "centerDriftPixels": 0.353,
+    "bodyHeightCv": 0.009573,
+    "sourceEdgeTouchFrames": [],
+    "outputEdgeTouchFrames": [],
+    "passed": true
+  },
+  "frames": [
+    {
+      "frameIndex": 0,
+      "groundY": 505,
+      "centerX": 320.0644652470596,
+      "bodyHeight": 170,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 1,
+      "groundY": 506,
+      "centerX": 319.86770437589814,
+      "bodyHeight": 170,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 2,
+      "groundY": 504,
+      "centerX": 319.740852291259,
+      "bodyHeight": 171,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 3,
+      "groundY": 506,
+      "centerX": 319.9561180688413,
+      "bodyHeight": 174,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 4,
+      "groundY": 505,
+      "centerX": 320.0787523703019,
+      "bodyHeight": 170,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 5,
+      "groundY": 506,
+      "centerX": 319.83967550388894,
+      "bodyHeight": 170,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 6,
+      "groundY": 504,
+      "centerX": 319.72566465900104,
+      "bodyHeight": 171,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 7,
+      "groundY": 506,
+      "centerX": 319.925174158069,
+      "bodyHeight": 174,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    }
+  ]
+}

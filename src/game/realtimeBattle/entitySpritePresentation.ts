@@ -180,6 +180,71 @@ const SPRITE_SHEET_CALIBRATIONS: readonly SpriteSheetCalibration[] = [
     pixelsPerCanonicalHeight: 526,
     bottomInsetPx: 119,
   },
+  /*
+     หนุมาน — ทุกชีตออกมาเป็น canvas 640x640 จาก pipeline feet-band-anchor เอง
+     (tools/lib/hanuman-sprite-pipeline.mjs, TARGET_ANCHOR = [320,570]) แต่ตัวจริง
+     ในเฟรมกินพื้นที่แค่ ~170-230px สูง ไม่ใช่เต็ม 640 เหมือนชีตอื่น ถ้าไม่ลงทะเบียน
+     ตรงนี้จะตกไปใช้ DEFAULT_SHEET_CALIBRATION (396x376) แล้วหนุมานจะเรนเดอร์เล็กกว่า
+     ตัวละครอื่นมาก + สัดส่วนบิด (canvas จริงเป็นสี่เหลี่ยมจัตุรัส ไม่ใช่ 396x376)
+     ค่าด้านล่างวัดจาก qc.json ของแต่ละท่าจริง (bodyHeight/groundY เฉลี่ยทั้ง 8 เฟรม)
+     แล้วแปลงด้วยสูตรเดียวกับเอ้อหลางเสิน: pixelsPerCanonicalHeight = visibleHeight×376/320
+  */
+  {
+    pathFragment: '/characters/hanuman-idle-',
+    canvasWidth: 640,
+    canvasHeight: 640,
+    // bodyHeight 191px คงที่ทั้ง 8 เฟรม, groundY 532px
+    pixelsPerCanonicalHeight: 224,
+    bottomInsetPx: 108,
+  },
+  {
+    pathFragment: '/characters/hanuman-walk-',
+    canvasWidth: 640,
+    canvasHeight: 640,
+    // bodyHeight เฉลี่ย 171.25px, groundY เฉลี่ย 505.25px
+    pixelsPerCanonicalHeight: 201,
+    bottomInsetPx: 135,
+  },
+  {
+    pathFragment: '/characters/hanuman-attack1-',
+    canvasWidth: 640,
+    canvasHeight: 640,
+    // bodyHeight เฉลี่ย 173.875px, groundY เฉลี่ย 507.875px
+    pixelsPerCanonicalHeight: 204,
+    bottomInsetPx: 132,
+  },
+  {
+    pathFragment: '/characters/hanuman-attack3-',
+    canvasWidth: 640,
+    canvasHeight: 640,
+    // ท่ากระโดดทิ่ม motion ใหญ่ — bodyHeight เฉลี่ย 182.5px, groundY เฉลี่ย 523.625px
+    pixelsPerCanonicalHeight: 214,
+    bottomInsetPx: 116,
+  },
+  {
+    pathFragment: '/characters/hanuman-skill1-',
+    canvasWidth: 640,
+    canvasHeight: 640,
+    // bodyHeight เฉลี่ย 209.875px, groundY เฉลี่ย 543px
+    pixelsPerCanonicalHeight: 247,
+    bottomInsetPx: 97,
+  },
+  {
+    pathFragment: '/characters/hanuman-skill2-',
+    canvasWidth: 640,
+    canvasHeight: 640,
+    // ท่าขยายร่าง — bodyHeight เฉลี่ย 233.375px, groundY เฉลี่ย 553.25px
+    pixelsPerCanonicalHeight: 274,
+    bottomInsetPx: 87,
+  },
+  {
+    pathFragment: '/characters/hanuman-ultimate-',
+    canvasWidth: 640,
+    canvasHeight: 640,
+    // ท่าเผาลงกา — bodyHeight เฉลี่ย 213px, groundY เฉลี่ย 537.25px
+    pixelsPerCanonicalHeight: 250,
+    bottomInsetPx: 103,
+  },
 ] as const
 
 const DEFAULT_SHEET_CALIBRATION: SpriteSheetCalibration = {

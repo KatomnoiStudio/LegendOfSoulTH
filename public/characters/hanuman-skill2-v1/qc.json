@@ -1,0 +1,92 @@
+{
+  "character": "hanuman",
+  "animation": "skill2",
+  "source": "assets/raw/characters/hanuman-skill2-giant-sheet.png",
+  "frameCount": 8,
+  "outputSize": [
+    640,
+    640
+  ],
+  "targetAnchor": {
+    "x": 320,
+    "y": 570
+  },
+  "qc": {
+    "groundDriftPixels": 59,
+    "centerDriftPixels": 0.961,
+    "bodyHeightCv": 0.080362,
+    "sourceEdgeTouchFrames": [
+      3,
+      4,
+      6
+    ],
+    "outputEdgeTouchFrames": [],
+    "passed": true
+  },
+  "frames": [
+    {
+      "frameIndex": 0,
+      "groundY": 560,
+      "centerX": 320.4721865550305,
+      "bodyHeight": 240,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 1,
+      "groundY": 562,
+      "centerX": 320.37270214835286,
+      "bodyHeight": 242,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 2,
+      "groundY": 564,
+      "centerX": 320.3763862522755,
+      "bodyHeight": 244,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 3,
+      "groundY": 570,
+      "centerX": 320.2475422242941,
+      "bodyHeight": 250,
+      "sourceEdgeTouch": true,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 4,
+      "groundY": 570,
+      "centerX": 319.5109929819458,
+      "bodyHeight": 250,
+      "sourceEdgeTouch": true,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 5,
+      "groundY": 511,
+      "centerX": 319.604835257931,
+      "bodyHeight": 190,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 6,
+      "groundY": 541,
+      "centerX": 320.02549199566795,
+      "bodyHeight": 222,
+      "sourceEdgeTouch": true,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 7,
+      "groundY": 548,
+      "centerX": 319.6314283134291,
+      "bodyHeight": 229,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    }
+  ]
+}

@@ -18,7 +18,7 @@ import type { MovePhaseOverrides } from './combatMoveSchema'
 export interface AttackDefinition {
   id: string
   /** ชุดเฟรมที่จะเล่น (ดู src/game/battleSpriteSequences.ts) */
-  animationId: 'attack-1' | 'attack-2' | 'attack-3' | 'skill-1' | 'skill-2'
+  animationId: 'attack-1' | 'attack-2' | 'attack-3' | 'skill-1' | 'skill-2' | 'ultimate'
 
   startupMs: number
   activeMs: number

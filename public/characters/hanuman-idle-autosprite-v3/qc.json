@@ -1,0 +1,88 @@
+{
+  "character": "hanuman",
+  "animation": "idle-autosprite",
+  "source": "assets/raw/characters/hanuman-idle-v3-default-bg-sheet.png",
+  "frameCount": 8,
+  "outputSize": [
+    640,
+    640
+  ],
+  "targetAnchor": {
+    "x": 320,
+    "y": 570
+  },
+  "qc": {
+    "groundDriftPixels": 0,
+    "centerDriftPixels": 0.619,
+    "bodyHeightCv": 0,
+    "sourceEdgeTouchFrames": [],
+    "outputEdgeTouchFrames": [],
+    "passed": true
+  },
+  "frames": [
+    {
+      "frameIndex": 0,
+      "groundY": 532,
+      "centerX": 319.74050410429743,
+      "bodyHeight": 191,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 1,
+      "groundY": 532,
+      "centerX": 320.3260050912762,
+      "bodyHeight": 191,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 2,
+      "groundY": 532,
+      "centerX": 320.13658382015353,
+      "bodyHeight": 191,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 3,
+      "groundY": 532,
+      "centerX": 319.99758470288316,
+      "bodyHeight": 191,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 4,
+      "groundY": 532,
+      "centerX": 320.3594807108278,
+      "bodyHeight": 191,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 5,
+      "groundY": 532,
+      "centerX": 319.93473630200884,
+      "bodyHeight": 191,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 6,
+      "groundY": 532,
+      "centerX": 319.97619957421256,
+      "bodyHeight": 191,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 7,
+      "groundY": 532,
+      "centerX": 319.75829481293044,
+      "bodyHeight": 191,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    }
+  ]
+}

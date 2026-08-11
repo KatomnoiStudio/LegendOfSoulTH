@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hanuman Idle + Run comparison</title>
+    <style>
+      :root { color-scheme: dark; font-family: Inter, "Noto Sans Thai", system-ui, sans-serif; background: #071019; color: #f7f2df; }
+      * { box-sizing: border-box; }
+      body { min-height: 100vh; margin: 0; background: radial-gradient(circle at 50% 20%, #1f3745, #071019 60%); }
+      main { width: min(1200px, 96vw); margin: 0 auto; padding: 24px 0 36px; text-align: center; }
+      h1 { margin: 0; color: #ffd66b; font-size: clamp(1.35rem, 3vw, 2.2rem); }
+      .intro { margin: 8px auto 18px; color: #c4d2d8; }
+      .compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+      .panel { min-width: 0; padding: 14px; border: 1px solid #568a91; border-radius: 16px; background: rgb(10 26 35 / 88%); }
+      h2 { margin: 0 0 10px; color: #ffe49a; font-size: 1.2rem; }
+      .stage { position: relative; width: min(100%, 520px); aspect-ratio: 1; margin: auto; overflow: hidden; border: 1px solid #9ac4b5; border-radius: 14px; background: repeating-conic-gradient(#eaf4f0 0% 25%, #cde4dc 0% 50%) 50% / 28px 28px; }
+      .stage::before { content: ""; position: absolute; z-index: 2; top: 0; left: 50%; bottom: 0; border-left: 1px dashed rgb(72 228 232 / 60%); }
+      .stage img { display: block; width: 100%; height: 100%; object-fit: contain; }
+      .y-axis { position: absolute; z-index: 3; left: 0; right: 0; top: 91.71875%; border-top: 2px dashed #e15b3d; pointer-events: none; }
+      .y-axis span { position: absolute; left: 8px; bottom: 5px; padding: 2px 7px; border-radius: 999px; background: #fff8e8; color: #9e351e; font-size: .7rem; font-weight: 700; }
+      .status { min-height: 1.5em; margin: 10px 0; color: #dbe5e9; font-variant-numeric: tabular-nums; }
+      button { min-height: 44px; padding: 0 15px; border: 1px solid rgb(255 214 107 / 55%); border-radius: 10px; background: #1a2630; color: #fff5d5; font: inherit; cursor: pointer; }
+      button:hover, button:focus-visible { background: #263a47; outline: 2px solid #ffd66b; outline-offset: 2px; }
+      .note { margin: 18px 0 0; color: #a9bcc4; font-size: .9rem; }
+      @media (max-width: 760px) { .compare { grid-template-columns: 1fr; } }
+      @media (prefers-reduced-motion: reduce) { .stage img { animation: none; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>เปรียบเทียบ Idle กับ Run</h1>
+      <p class="intro">ดีไซน์เดียวกัน · ขนาดเทียบกัน · แนวเท้า Y = 587 เหมือนกัน</p>
+      <div class="compare">
+        <section class="panel" aria-labelledby="idle-title">
+          <h2 id="idle-title">Idle · 8 ticks</h2>
+          <div class="stage" aria-label="ตัวอย่างแอนิเมชัน Idle หนุมาน">
+            <img id="idle-stage" src="characters/hanuman-idle-holefree-v2/idle-1.png?v=holefree-v2" alt="หนุมานท่า Idle" width="640" height="640" />
+            <div class="y-axis" aria-hidden="true"><span>Y = 587</span></div>
+          </div>
+          <p id="idle-status" class="status" role="status" aria-live="polite">Idle · Tick 1 / 8</p>
+        </section>
+        <section class="panel" aria-labelledby="run-title">
+          <h2 id="run-title">Run · 12 frames</h2>
+          <div class="stage" aria-label="ตัวอย่างแอนิเมชันวิ่งหนุมาน">
+            <img id="run-stage" src="characters/hanuman-run-erlang-12-v5/run-1.png?v=erlang12-v5" alt="หนุมานท่าวิ่ง" width="640" height="640" />
+            <div class="y-axis" aria-hidden="true"><span>Y = 587</span></div>
+          </div>
+          <p id="run-status" class="status" role="status" aria-live="polite">Run · Frame 1 / 12</p>
+        </section>
+      </div>
+      <button id="toggle" type="button" aria-pressed="false">หยุดทั้งคู่</button>
+      <p class="note">เส้นประกลางคือแกน X = 320 · เส้นแดงคือแนวเท้า Y = 587</p>
+    </main>
+    <script>
+      const idleFrames = [1, 1, 2, 2, 3, 3, 4, 4].map((frame) => `characters/hanuman-idle-holefree-v2/idle-${frame}.png?v=holefree-v2`)
+      const runFrames = Array.from({ length: 12 }, (_, index) => `characters/hanuman-run-erlang-12-v5/run-${index + 1}.png?v=erlang12-v5`)
+      const idleStage = document.querySelector('#idle-stage')
+      const runStage = document.querySelector('#run-stage')
+      const idleStatus = document.querySelector('#idle-status')
+      const runStatus = document.querySelector('#run-status')
+      const toggle = document.querySelector('#toggle')
+      let idleIndex = 0
+      let runIndex = 0
+      let playing = true
+      let idleTimer = window.setInterval(() => { if (playing) { idleIndex = (idleIndex + 1) % idleFrames.length; idleStage.src = idleFrames[idleIndex]; idleStatus.textContent = `Idle · Tick ${idleIndex + 1} / ${idleFrames.length}` } }, 300)
+      let runTimer = window.setInterval(() => { if (playing) { runIndex = (runIndex + 1) % runFrames.length; runStage.src = runFrames[runIndex]; runStatus.textContent = `Run · Frame ${runIndex + 1} / ${runFrames.length}` } }, 137)
+      toggle.addEventListener('click', () => { playing = !playing; toggle.textContent = playing ? 'หยุดทั้งคู่' : 'เล่นต่อ'; toggle.setAttribute('aria-pressed', String(!playing)) })
+      window.addEventListener('beforeunload', () => { window.clearInterval(idleTimer); window.clearInterval(runTimer) })
+    </script>
+  </body>
+</html>

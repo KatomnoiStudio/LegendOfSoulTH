@@ -42,6 +42,7 @@ export type BattleAnimationId =
   | 'dash'
   | 'skill-1'
   | 'skill-2'
+  | 'ultimate'
   | 'hit'
   | 'death'
   | 'victory'
@@ -113,6 +114,14 @@ const ERLANG_ATTACK_3 = frames('erlang-shen-normal-attack-v3-final', 8)
 const ERLANG_SKILL_1 = frames('erlang-shen-skill-1', 16)
 const ERLANG_SKILL_2_CAST = frames('erlang-shen-skill-2-cast', 6)
 
+const HANUMAN_IDLE = frames('hanuman-idle', 8)
+const HANUMAN_WALK = frames('hanuman-walk', 8)
+const HANUMAN_ATTACK_1 = frames('hanuman-attack1', 8)
+const HANUMAN_ATTACK_3 = frames('hanuman-attack3', 8)
+const HANUMAN_SKILL_1 = frames('hanuman-skill1', 8)
+const HANUMAN_SKILL_2 = frames('hanuman-skill2', 8)
+const HANUMAN_ULTIMATE = frames('hanuman-ultimate', 8)
+
 /**
  * เอฟเฟกต์ Skill 2 ของเอ้อหลางเสิน — วาดด้วย ErlangHoundSkillEffect ไม่ใช่ระนาบตัวละคร
  * จึงไม่อยู่ใน BattleSpriteSet แต่ยังต้อง preload และต้องถูกเทสต์ว่ามีไฟล์จริง
@@ -134,6 +143,8 @@ const MONKEY_KING_SET: BattleSpriteSet = {
   dash: { frames: walkFrames8('monkey-walk'), rate: 20, loop: false },
   'skill-1': { frames: allDirections(MONKEY_ACTION), rate: 16, loop: false },
   'skill-2': { frames: allDirections(MONKEY_ACTION), rate: 16, loop: false },
+  // ยังไม่มีเฟรม ultimate ของตัวเอง — ยืมชุด action มาเล่นซ้ำเหมือน skill (ดูหมายเหตุหัวไฟล์)
+  ultimate: { frames: allDirections(MONKEY_ACTION), rate: 14, loop: false },
   hit: { frames: allDirections([MONKEY_IDLE[0]]), rate: 1, loop: false },
   death: { frames: allDirections([MONKEY_IDLE[0]]), rate: 1, loop: false },
   victory: { frames: allDirections(MONKEY_VICTORY), rate: 5, loop: false },
@@ -148,6 +159,7 @@ const PIG_WARRIOR_SET: BattleSpriteSet = {
   dash: { frames: walkFrames8('pigsy-walk'), rate: 16, loop: false },
   'skill-1': { frames: allDirections(PIGSY_ACTION), rate: 12, loop: false },
   'skill-2': { frames: allDirections(PIGSY_ACTION), rate: 12, loop: false },
+  ultimate: { frames: allDirections(PIGSY_ACTION), rate: 10, loop: false },
   hit: { frames: allDirections([PIGSY_IDLE[0]]), rate: 1, loop: false },
   death: { frames: allDirections([PIGSY_IDLE[0]]), rate: 1, loop: false },
   victory: { frames: allDirections(PIGSY_ACTION), rate: 6, loop: false },
@@ -162,6 +174,7 @@ const PILGRIM_MONK_SET: BattleSpriteSet = {
   dash: { frames: allDirections(TRIPITAKA_IDLE), rate: 16, loop: false },
   'skill-1': { frames: allDirections(TRIPITAKA_IDLE), rate: 10, loop: false },
   'skill-2': { frames: allDirections(TRIPITAKA_IDLE), rate: 10, loop: false },
+  ultimate: { frames: allDirections(TRIPITAKA_IDLE), rate: 10, loop: false },
   hit: { frames: allDirections([TRIPITAKA_IDLE[0]]), rate: 1, loop: false },
   death: { frames: allDirections([TRIPITAKA_IDLE[0]]), rate: 1, loop: false },
   victory: { frames: allDirections(TRIPITAKA_IDLE), rate: 6, loop: false },
@@ -181,9 +194,32 @@ const SPEAR_WARRIOR_SET: BattleSpriteSet = {
   dash: { frames: allDirections(ERLANG_IDLE), rate: 12, loop: false },
   'skill-1': { frames: allDirections(ERLANG_SKILL_1), rate: 14, loop: false },
   'skill-2': { frames: allDirections(ERLANG_SKILL_2_CAST), rate: 10, loop: false },
+  // ultimate (พิพากษาสวรรค์) ยืมภาพ skill-2 cast มาเล่นซ้ำ — ยังไม่มีเฟรมของตัวเอง
+  ultimate: { frames: allDirections(ERLANG_SKILL_2_CAST), rate: 8, loop: false },
   hit: { frames: allDirections([ERLANG_IDLE[0]]), rate: 1, loop: false },
   death: { frames: allDirections([ERLANG_IDLE[0]]), rate: 1, loop: false },
   victory: { frames: allDirections(ERLANG_IDLE), rate: 8, loop: false },
+}
+
+/**
+ * หนุมาน — Attack 2 (กวาดแนวนอน) gen ไม่ผ่าน QC จึงยืมเฟรม Attack 1 มาเล่นแทน
+ * (ต่างที่จังหวะ/knockback ไม่ใช่ที่ภาพ เหมือนหงอคง) walk/dash ยังไม่มีเฟรมครบ 8 ทิศ
+ * (มีแค่ด้านเดียว) จึงใช้ allDirections ยืมภาพชุดเดียวกันทุกทิศ — เห็นขาขยับจริงแม้ทิศจะไม่ตรง
+ * ดู MEMORY.md ข้อ 208-226 สำหรับที่มาของแต่ละชุดเฟรม
+ */
+const HANUMAN_SET: BattleSpriteSet = {
+  idle: { frames: allDirections(HANUMAN_IDLE), rate: 8, loop: true },
+  walk: { frames: allDirections(HANUMAN_WALK), rate: 10, loop: true },
+  'attack-1': { frames: allDirections(HANUMAN_ATTACK_1), rate: 18, loop: false },
+  'attack-2': { frames: allDirections(HANUMAN_ATTACK_1), rate: 20, loop: false },
+  'attack-3': { frames: allDirections(HANUMAN_ATTACK_3), rate: 14, loop: false },
+  dash: { frames: allDirections(HANUMAN_WALK), rate: 16, loop: false },
+  'skill-1': { frames: allDirections(HANUMAN_SKILL_1), rate: 12, loop: false },
+  'skill-2': { frames: allDirections(HANUMAN_SKILL_2), rate: 10, loop: false },
+  ultimate: { frames: allDirections(HANUMAN_ULTIMATE), rate: 10, loop: false },
+  hit: { frames: allDirections([HANUMAN_IDLE[0]]), rate: 1, loop: false },
+  death: { frames: allDirections([HANUMAN_IDLE[0]]), rate: 1, loop: false },
+  victory: { frames: allDirections(HANUMAN_SKILL_1), rate: 8, loop: false },
 }
 
 /**
@@ -198,6 +234,7 @@ const BATTLE_SPRITE_SETS: Record<CharacterModelKind, BattleSpriteSet> = {
   'nezha-warden': MONKEY_KING_SET,
   'sand-sage': PIG_WARRIOR_SET,
   'spear-warrior': SPEAR_WARRIOR_SET,
+  hanuman: HANUMAN_SET,
 }
 
 export function getBattleSpriteSet(kind: CharacterModelKind): BattleSpriteSet {
@@ -253,6 +290,7 @@ const ALL_ANIMATIONS: BattleAnimationId[] = [
   'dash',
   'skill-1',
   'skill-2',
+  'ultimate',
   'hit',
   'death',
   'victory',

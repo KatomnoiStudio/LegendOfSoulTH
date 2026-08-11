@@ -45,9 +45,10 @@ function turnFrames(prefix: string): string[] {
  */
 const SEQUENCES: Record<CharacterModelKind, SpriteSequence> = {
   'monkey-king': {
-    idleUrls: frames('monkey-v2-idle', 24),
+    idleUrls: frames('monkey-king-idle-v3/idle', 12),
     actionUrls: frames('monkey-v2', 10),
-    turnUrls: turnFrames('monkey-turn'),
+    // ชุดหมุน 8 ทิศเดิม (monkey-turn-*) ถูกลบไปรอทำใหม่ — ใช้เฟรมยืนเฉยแทนไปก่อน (ตัวไม่หมุนจริง)
+    turnUrls: [frames('monkey-king-idle-v3/idle', 12)[0]],
     actionOrder: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
     idleRate: 8,
     actionRate: 8,
@@ -56,7 +57,8 @@ const SEQUENCES: Record<CharacterModelKind, SpriteSequence> = {
   'pig-warrior': {
     idleUrls: frames('pigsy-idle', 24),
     actionUrls: frames('pigsy-team', 8),
-    turnUrls: turnFrames('pigsy-turn'),
+    // ชุดหมุน 8 ทิศเดิม (pigsy-turn-*) ถูกลบไปรอทำใหม่ — ใช้เฟรมยืนเฉยแทนไปก่อน (ตัวไม่หมุนจริง)
+    turnUrls: [frames('pigsy-idle', 24)[0]],
     actionOrder: [0, 1, 2, 3, 4, 5, 6, 7, 7, 7, 6, 5, 4, 3, 2, 1, 0],
     idleRate: 8,
     actionRate: 5.5,
@@ -83,7 +85,8 @@ const SEQUENCES: Record<CharacterModelKind, SpriteSequence> = {
   'nezha-warden': {
     idleUrls: frames('monkey-v2-idle', 24),
     actionUrls: frames('monkey-v2', 10),
-    turnUrls: turnFrames('monkey-turn'),
+    // ชุดหมุน 8 ทิศเดิม (monkey-turn-*) ถูกลบไปรอทำใหม่ — ใช้เฟรมยืนเฉยแทนไปก่อน (ตัวไม่หมุนจริง)
+    turnUrls: [frames('monkey-v2-idle', 24)[0]],
     actionOrder: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
     idleRate: 8,
     actionRate: 8,
@@ -92,7 +95,8 @@ const SEQUENCES: Record<CharacterModelKind, SpriteSequence> = {
   'sand-sage': {
     idleUrls: frames('pigsy-idle', 24),
     actionUrls: frames('pigsy-team', 8),
-    turnUrls: turnFrames('pigsy-turn'),
+    // ชุดหมุน 8 ทิศเดิม (pigsy-turn-*) ถูกลบไปรอทำใหม่ — ใช้เฟรมยืนเฉยแทนไปก่อน (ตัวไม่หมุนจริง)
+    turnUrls: [frames('pigsy-idle', 24)[0]],
     actionOrder: [0, 1, 2, 3, 4, 5, 6, 7, 7, 7, 6, 5, 4, 3, 2, 1, 0],
     idleRate: 8,
     actionRate: 5.5,
@@ -114,6 +118,16 @@ const SEQUENCES: Record<CharacterModelKind, SpriteSequence> = {
     idleRate: 8,
     actionRate: 14,
     autoPeriod: 12,
+  },
+  hanuman: {
+    idleUrls: frames('hanuman-idle', 8),
+    actionUrls: frames('hanuman-attack1', 8),
+    // ยังไม่มีชุดเฟรมหมุน 8 ทิศ — ใช้เฟรมยืนเฉยแทนไปก่อน เหมือนหงอคง/ตือโป๊ยก่าย (ตัวไม่หมุนจริง)
+    turnUrls: [frames('hanuman-idle', 8)[0]],
+    actionOrder: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1, 0],
+    idleRate: 8,
+    actionRate: 10,
+    autoPeriod: 11.4,
   },
 }
 

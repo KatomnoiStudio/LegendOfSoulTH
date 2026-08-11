@@ -1,6 +1,7 @@
 import type { RealtimeSkillKit } from '../../realtimeBattle/skills'
 import { CELESTIAL_ARCHER_KIT } from './celestialArcher'
 import { ERLANG_SHEN_KIT } from './erlangShen'
+import { HANUMAN_KIT } from './hanuman'
 import { MONKEY_KING_KIT } from './monkeyKing'
 import { NEZHA_WARDEN_KIT } from './nezhaWarden'
 import { PIG_WARRIOR_KIT } from './pigWarrior'
@@ -15,6 +16,7 @@ export const HERO_SKILL_KITS: Record<string, RealtimeSkillKit> = {
   'nezha-warden': NEZHA_WARDEN_KIT,
   'sand-sage': SAND_SAGE_KIT,
   'spear-warrior': ERLANG_SHEN_KIT,
+  hanuman: HANUMAN_KIT,
 }
 
 export function getHeroSkillKit(characterId: string | undefined): RealtimeSkillKit | undefined {
@@ -35,4 +37,5 @@ export {
   NEZHA_WARDEN_KIT,
   SAND_SAGE_KIT,
   ERLANG_SHEN_KIT,
+  HANUMAN_KIT,
 }

@@ -1,0 +1,92 @@
+{
+  "character": "hanuman",
+  "animation": "skill1",
+  "source": "assets/raw/characters/hanuman-skill1-yawn-sheet.png",
+  "frameCount": 8,
+  "outputSize": [
+    640,
+    640
+  ],
+  "targetAnchor": {
+    "x": 320,
+    "y": 570
+  },
+  "qc": {
+    "groundDriftPixels": 24,
+    "centerDriftPixels": 0.741,
+    "bodyHeightCv": 0.041636,
+    "sourceEdgeTouchFrames": [
+      3,
+      4,
+      5
+    ],
+    "outputEdgeTouchFrames": [],
+    "passed": true
+  },
+  "frames": [
+    {
+      "frameIndex": 0,
+      "groundY": 532,
+      "centerX": 320.15304300764086,
+      "bodyHeight": 199,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 1,
+      "groundY": 531,
+      "centerX": 320.146488557571,
+      "bodyHeight": 198,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 2,
+      "groundY": 536,
+      "centerX": 319.6352481703616,
+      "bodyHeight": 204,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 3,
+      "groundY": 555,
+      "centerX": 319.6432206385102,
+      "bodyHeight": 223,
+      "sourceEdgeTouch": true,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 4,
+      "groundY": 540,
+      "centerX": 319.7611470266673,
+      "bodyHeight": 211,
+      "sourceEdgeTouch": true,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 5,
+      "groundY": 540,
+      "centerX": 319.78904118466676,
+      "bodyHeight": 220,
+      "sourceEdgeTouch": true,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 6,
+      "groundY": 540,
+      "centerX": 320.3757773772943,
+      "bodyHeight": 216,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 7,
+      "groundY": 540,
+      "centerX": 319.9790834623849,
+      "bodyHeight": 208,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "character": "hanuman",
+  "animation": "attack3",
+  "source": "assets/raw/characters/hanuman-attack3-jumpslam-sheet.png",
+  "frameCount": 8,
+  "outputSize": [
+    640,
+    640
+  ],
+  "targetAnchor": {
+    "x": 320,
+    "y": 570
+  },
+  "qc": {
+    "groundDriftPixels": 67,
+    "centerDriftPixels": 0.696,
+    "bodyHeightCv": 0.107654,
+    "sourceEdgeTouchFrames": [],
+    "outputEdgeTouchFrames": [],
+    "passed": true
+  },
+  "frames": [
+    {
+      "frameIndex": 0,
+      "groundY": 567,
+      "centerX": 320.1213920028246,
+      "bodyHeight": 231,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 1,
+      "groundY": 528,
+      "centerX": 320.47877514168874,
+      "bodyHeight": 180,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 2,
+      "groundY": 561,
+      "centerX": 320.0644524754451,
+      "bodyHeight": 190,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 3,
+      "groundY": 508,
+      "centerX": 320.3283472104571,
+      "bodyHeight": 169,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 4,
+      "groundY": 500,
+      "centerX": 320.4032646806139,
+      "bodyHeight": 167,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 5,
+      "groundY": 501,
+      "centerX": 319.782354310333,
+      "bodyHeight": 169,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 6,
+      "groundY": 509,
+      "centerX": 320.07590036563073,
+      "bodyHeight": 175,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 7,
+      "groundY": 515,
+      "centerX": 320.46575717729564,
+      "bodyHeight": 179,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    }
+  ]
+}

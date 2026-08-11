@@ -1,0 +1,9 @@
+Use case: identity-preserve
+Asset type: production 2D game character idle animation sprite sheet
+Input image: exact identity and style reference for the same white-and-gold Hanuman character
+Primary request: create one clean 2x2 grid containing four subtle in-place idle poses of exactly this character. Gentle breathing only: slight chest rise, tiny shoulder settle, minimal tail-tip motion. No walking, no attack.
+Scene/backdrop: perfectly flat solid #FF00FF chroma-key background across the entire image, with no shadows, gradients, texture, floor, grid lines, cell borders, labels, or separators.
+Composition: exactly 2 columns by 2 rows. One full-body character centered in each equal cell. Same camera angle, body scale, and standing height in all four cells. Full body and tail contained inside the central 65% of every cell with generous padding. Feet on the exact same baseline. Pelvis and waist remain fixed.
+Identity lock: preserve the exact facial identity, both eyes, turquoise facial mask, open-mouth expression and teeth, white swept hair, gold pointed crown, muscular white body, gold jewelry, turquoise waist jewel, red-and-gold Thai costume panels, wrist and ankle ornaments, bare feet, and long white tail with gold tip. Preserve the same clean illustrated linework, palette, proportions, and detail density. Do not redesign, simplify, recolor, zoom, mirror, or change the viewing direction.
+Silhouette integrity: no black rectangles, no missing pixels, no cut-off eyes or limbs, no holes or #FF00FF intrusions inside the character body, clothing, face, arms, legs, tail, or ornaments. Pose the arms close enough to the torso that no background wedge cuts into the body silhouette. Keep every contour crisp and complete.
+Constraints: no extra character, staff, weapon, effects, dust, aura, cast shadow, text, watermark, logo, frame lines, or panel borders. Do not use #FF00FF anywhere in the character.

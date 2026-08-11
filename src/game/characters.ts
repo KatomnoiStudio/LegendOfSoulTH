@@ -10,9 +10,10 @@ export type CharacterModelKind =
   | 'nezha-warden'
   | 'sand-sage'
   | 'spear-warrior'
+  | 'hanuman'
 
 /** สไปรต์ idle เริ่มต้นของแต่ละตัวละคร ใช้เป็น fallback เมื่อไม่มี model.spriteUrl ให้ใช้ */
-export const MONKEY_SPRITE_URL = publicUrl('characters/monkey-v2-idle-0.webp')
+export const MONKEY_SPRITE_URL = publicUrl('characters/monkey-king-idle-v3/idle-0.webp')
 export const PIGSY_SPRITE_URL = publicUrl('characters/pigsy-idle-0.webp')
 export const TRIPITAKA_SPRITE_URL = publicUrl('characters/tripitaka-idle-0.webp')
 /** Placeholder sprites สำหรับ Batch 01 จนกว่าทีมภาพส่ง production asset */
@@ -21,6 +22,8 @@ export const NEZHA_SPRITE_URL = MONKEY_SPRITE_URL
 export const SAGE_SPRITE_URL = PIGSY_SPRITE_URL
 /** เอ้อหลางเสินมีชุดเฟรมของตัวเองจริง ไม่ได้ยืมของใคร */
 export const ERLANG_SHEN_SPRITE_URL = publicUrl('characters/erlang-shen-v6-idle-0.webp')
+/** หนุมานก็มีชุดเฟรมของตัวเองจริงเช่นกัน — ยืน idle ถือตรีศูล (ดู MEMORY.md ข้อ 216) */
+export const HANUMAN_SPRITE_URL = publicUrl('characters/hanuman-idle-0.webp')
 export type CharacterOrigin = 'Myth' | 'History' | 'Original'
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary'
 
@@ -229,6 +232,27 @@ export const ROSTER: Character[] = [
       kind: 'spear-warrior',
       spriteUrl: ERLANG_SHEN_SPRITE_URL,
       accent: '#d7b35b',
+    },
+  },
+  {
+    id: 'hanuman',
+    name: 'หนุมาน',
+    epithet: 'ขุนศึกวานรผู้อมตะ',
+    origin: 'Myth',
+    lore: 'ทหารเอกแห่งกองทัพวานร ผู้ได้รับพรให้เป็นอมตะและครอบครองกายสิทธิ์แปดประการ ภักดีต่อพระรามสุดชีวิต พร้อมเผาผลาญศัตรูด้วยเปลวไฟแห่งลงกา',
+    role: 'นักรบพลังบ้าคลั่ง',
+    archetype: 'berserker',
+    productionBatch: null,
+    element: 'ไฟ',
+    rarity: 'legendary',
+    level: 1,
+    exp: 0,
+    expToNext: 500,
+    stats: { hp: 1050, atk: 94, def: 68, spd: 88 },
+    model: {
+      kind: 'hanuman',
+      spriteUrl: HANUMAN_SPRITE_URL,
+      accent: '#ffcf4d',
     },
   },
 ]

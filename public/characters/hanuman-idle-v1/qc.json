@@ -1,0 +1,183 @@
+{
+  "character": "hanuman",
+  "source": "assets/raw/characters/hanuman-idle-source.png",
+  "sourceGrid": {
+    "rows": 2,
+    "columns": 6
+  },
+  "selectedSourceFrames": [
+    2,
+    4
+  ],
+  "playbackSourceFrames": [
+    2,
+    2,
+    4,
+    4,
+    2,
+    2,
+    4,
+    4
+  ],
+  "outputSize": [
+    640,
+    512
+  ],
+  "targetAnchors": {
+    "waistX": 320,
+    "groundY": 490
+  },
+  "resampled": false,
+  "qc": {
+    "groundDriftPixels": 0,
+    "waistDriftPixels": 0.5,
+    "frameCount": 8,
+    "passed": true
+  },
+  "frames": [
+    {
+      "outputIndex": 0,
+      "sourceIndex": 1,
+      "groundY": 490,
+      "waistX": 320,
+      "bbox": {
+        "minX": 188,
+        "minY": 169,
+        "maxX": 381,
+        "maxY": 490
+      },
+      "translation": {
+        "x": 154,
+        "y": 98
+      },
+      "removedBorderBackgroundPixels": 99049,
+      "removedBackgroundArtifacts": 0
+    },
+    {
+      "outputIndex": 1,
+      "sourceIndex": 1,
+      "groundY": 490,
+      "waistX": 320,
+      "bbox": {
+        "minX": 188,
+        "minY": 169,
+        "maxX": 381,
+        "maxY": 490
+      },
+      "translation": {
+        "x": 154,
+        "y": 98
+      },
+      "removedBorderBackgroundPixels": 99049,
+      "removedBackgroundArtifacts": 0
+    },
+    {
+      "outputIndex": 2,
+      "sourceIndex": 3,
+      "groundY": 490,
+      "waistX": 320.5,
+      "bbox": {
+        "minX": 188,
+        "minY": 169,
+        "maxX": 381,
+        "maxY": 490
+      },
+      "translation": {
+        "x": 153,
+        "y": 98
+      },
+      "removedBorderBackgroundPixels": 99058,
+      "removedBackgroundArtifacts": 0
+    },
+    {
+      "outputIndex": 3,
+      "sourceIndex": 3,
+      "groundY": 490,
+      "waistX": 320.5,
+      "bbox": {
+        "minX": 188,
+        "minY": 169,
+        "maxX": 381,
+        "maxY": 490
+      },
+      "translation": {
+        "x": 153,
+        "y": 98
+      },
+      "removedBorderBackgroundPixels": 99058,
+      "removedBackgroundArtifacts": 0
+    },
+    {
+      "outputIndex": 4,
+      "sourceIndex": 1,
+      "groundY": 490,
+      "waistX": 320,
+      "bbox": {
+        "minX": 188,
+        "minY": 169,
+        "maxX": 381,
+        "maxY": 490
+      },
+      "translation": {
+        "x": 154,
+        "y": 98
+      },
+      "removedBorderBackgroundPixels": 99049,
+      "removedBackgroundArtifacts": 0
+    },
+    {
+      "outputIndex": 5,
+      "sourceIndex": 1,
+      "groundY": 490,
+      "waistX": 320,
+      "bbox": {
+        "minX": 188,
+        "minY": 169,
+        "maxX": 381,
+        "maxY": 490
+      },
+      "translation": {
+        "x": 154,
+        "y": 98
+      },
+      "removedBorderBackgroundPixels": 99049,
+      "removedBackgroundArtifacts": 0
+    },
+    {
+      "outputIndex": 6,
+      "sourceIndex": 3,
+      "groundY": 490,
+      "waistX": 320.5,
+      "bbox": {
+        "minX": 188,
+        "minY": 169,
+        "maxX": 381,
+        "maxY": 490
+      },
+      "translation": {
+        "x": 153,
+        "y": 98
+      },
+      "removedBorderBackgroundPixels": 99058,
+      "removedBackgroundArtifacts": 0
+    },
+    {
+      "outputIndex": 7,
+      "sourceIndex": 3,
+      "groundY": 490,
+      "waistX": 320.5,
+      "bbox": {
+        "minX": 188,
+        "minY": 169,
+        "maxX": 381,
+        "maxY": 490
+      },
+      "translation": {
+        "x": 153,
+        "y": 98
+      },
+      "removedBorderBackgroundPixels": 99058,
+      "removedBackgroundArtifacts": 0
+    }
+  ]
+}

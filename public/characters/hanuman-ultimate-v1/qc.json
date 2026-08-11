@@ -1,0 +1,88 @@
+{
+  "character": "hanuman",
+  "animation": "ultimate",
+  "source": "assets/raw/characters/hanuman-ultimate-sheet.png",
+  "frameCount": 8,
+  "outputSize": [
+    640,
+    640
+  ],
+  "targetAnchor": {
+    "x": 320,
+    "y": 570
+  },
+  "qc": {
+    "groundDriftPixels": 50,
+    "centerDriftPixels": 0.964,
+    "bodyHeightCv": 0.088208,
+    "sourceEdgeTouchFrames": [],
+    "outputEdgeTouchFrames": [],
+    "passed": true
+  },
+  "frames": [
+    {
+      "frameIndex": 0,
+      "groundY": 551,
+      "centerX": 319.7421932825222,
+      "bodyHeight": 227,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 1,
+      "groundY": 556,
+      "centerX": 319.6437975863015,
+      "bodyHeight": 232,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 2,
+      "groundY": 557,
+      "centerX": 320.0091981777899,
+      "bodyHeight": 232,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 3,
+      "groundY": 531,
+      "centerX": 319.9159976603306,
+      "bodyHeight": 206,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 4,
+      "groundY": 541,
+      "centerX": 320.2578811228796,
+      "bodyHeight": 217,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 5,
+      "groundY": 547,
+      "centerX": 320.4892644230258,
+      "bodyHeight": 223,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 6,
+      "groundY": 507,
+      "centerX": 320.19785571493196,
+      "bodyHeight": 183,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    },
+    {
+      "frameIndex": 7,
+      "groundY": 508,
+      "centerX": 319.52517253658453,
+      "bodyHeight": 184,
+      "sourceEdgeTouch": false,
+      "outputEdgeTouch": false
+    }
+  ]
+}

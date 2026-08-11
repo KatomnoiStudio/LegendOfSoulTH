@@ -1,0 +1,5 @@
+Reference: public/characters/hanuman-idle-holefree-v2/idle-1.png
+
+Generate exactly one 12-frame, 4-column x 3-row sprite sheet of the identical Hanuman/Wukong character. Preserve the Idle White face, eyes, gold ornaments, white body, red-gold skirt, tail, colors, proportions, and crisp line art. Erlang-style run-in-place cadence: alternate left/right arm and opposite leg emphasis every frame with natural passing poses, keep one foot clearly planted, and wag the tail side-to-side. Keep every character fully inside its cell with generous margin; no cropping, edge contact, neighboring overlap, missing eyes, or missing feet. Use a solid #ff00ff background for chroma-key processing. Keep scale and root/feet height consistent across all frames.
+
+Post-process contract: 640x640 transparent PNG frames, 3 rows x 4 columns, 137 ms/frame, feet alignment, shared scale, preserve strategy, largest component, strict QC (body-scale CV <= 0.08, source/output edge touches = 0, empty = 0, paste clamped = 0, anchor-Y std <= 0.06).

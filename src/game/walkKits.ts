@@ -35,15 +35,17 @@ export interface WalkKit {
 }
 
 const WALK_KITS: Record<CharacterModelKind, WalkKit> = {
+  // ชุดหมุน 8 ทิศเดิม (monkey-turn-*) ถูกลบไปรอทำใหม่ — ชี้ turnPrefix ไปที่ idle แทน
+  // (ไฟล์ idle-0..7 มีอยู่แล้วครบ ไม่ 404 แต่ตอนหมุนจะเห็นภาพยืนเฉยไม่ใช่ท่าหมุนจริง)
   'monkey-king': {
     walkPrefix: publicUrl('characters/walk/monkey-walk'),
-    turnPrefix: publicUrl('characters/turnaround/monkey-turn'),
+    turnPrefix: publicUrl('characters/monkey-v2-idle'),
     idlePrefix: publicUrl('characters/monkey-v2-idle'),
     idleCount: 24,
   },
   'pig-warrior': {
     walkPrefix: publicUrl('characters/walk/pigsy-walk'),
-    turnPrefix: publicUrl('characters/turnaround/pigsy-turn'),
+    turnPrefix: publicUrl('characters/pigsy-idle'),
     idlePrefix: publicUrl('characters/pigsy-idle'),
     idleCount: 24,
   },
@@ -61,13 +63,13 @@ const WALK_KITS: Record<CharacterModelKind, WalkKit> = {
   },
   'nezha-warden': {
     walkPrefix: publicUrl('characters/walk/monkey-walk'),
-    turnPrefix: publicUrl('characters/turnaround/monkey-turn'),
+    turnPrefix: publicUrl('characters/monkey-v2-idle'),
     idlePrefix: publicUrl('characters/monkey-v2-idle'),
     idleCount: 24,
   },
   'sand-sage': {
     walkPrefix: publicUrl('characters/walk/pigsy-walk'),
-    turnPrefix: publicUrl('characters/turnaround/pigsy-turn'),
+    turnPrefix: publicUrl('characters/pigsy-idle'),
     idlePrefix: publicUrl('characters/pigsy-idle'),
     idleCount: 24,
   },
@@ -83,6 +85,17 @@ const WALK_KITS: Record<CharacterModelKind, WalkKit> = {
     turnPrefix: publicUrl('characters/turnaround/spear-warrior-stop-turn'),
     idlePrefix: publicUrl('characters/erlang-shen-v6-idle'),
     idleCount: 25,
+  },
+  /*
+     หนุมาน — ชุดเดินที่มี (hanuman-walk-0..7) วาดมาด้านเดียว (side view ทิศเดียว) ไม่ครบ 8 ทิศ
+     เหมือนสถานการณ์ของเอ้อหลางเสินด้านบน — walkPrefix: null จึงประกาศตามจริงว่ายังไม่มีชุดเดิน
+     ครบทิศ วาดครบ 8 ทิศเมื่อไหร่ค่อยใส่ walkPrefix แล้วใช้งานได้ทันที
+  */
+  hanuman: {
+    walkPrefix: null,
+    turnPrefix: publicUrl('characters/hanuman-idle'),
+    idlePrefix: publicUrl('characters/hanuman-idle'),
+    idleCount: 8,
   },
 }
 

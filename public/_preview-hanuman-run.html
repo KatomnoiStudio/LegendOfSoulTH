@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hanuman Run — Erlang 12-Frame Preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, "Noto Sans Thai", system-ui, sans-serif;
+        background: #070b12;
+        color: #f7f2df;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(circle at 50% 42%, rgb(31 55 69 / 72%), transparent 42%),
+          linear-gradient(145deg, #080b12, #101a24 58%, #070a10);
+      }
+
+      main {
+        width: min(1000px, 96vw);
+        padding: 22px 18px 28px;
+        text-align: center;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.35rem, 3vw, 2.2rem);
+        color: #ffd66b;
+      }
+
+      .subtitle {
+        margin: 7px 0 16px;
+        color: #bac7cf;
+      }
+
+      .stage {
+        position: relative;
+        width: min(640px, 92vw);
+        aspect-ratio: 1 / 1;
+        margin: 0 auto;
+        overflow: hidden;
+        border: 1px solid #9ac4b5;
+        border-radius: 18px;
+        background:
+          repeating-conic-gradient(#eaf4f0 0% 25%, #cde4dc 0% 50%) 50% / 28px 28px;
+      }
+
+      .stage::before {
+        content: "";
+        position: absolute;
+        z-index: 2;
+        top: 0;
+        left: 50%;
+        bottom: 0;
+        width: 1px;
+        border-left: 1px dashed rgb(72 228 232 / 55%);
+        pointer-events: none;
+      }
+
+      .stage::after {
+        content: "แกน X = 320 · root คงที่";
+        position: absolute;
+        z-index: 3;
+        top: 9px;
+        left: 50%;
+        padding: 2px 8px;
+        transform: translateX(-50%);
+        border-radius: 999px;
+        background: rgb(7 17 24 / 82%);
+        color: #75e7eb;
+        font-size: 0.72rem;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+
+      .y-axis {
+        position: absolute;
+        z-index: 3;
+        left: 0;
+        right: 0;
+        top: 91.71875%;
+        height: 2px;
+        border-top: 2px dashed #e15b3d;
+        pointer-events: none;
+      }
+
+      .y-axis span {
+        position: absolute;
+        left: 10px;
+        bottom: 6px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: #fff8e8;
+        color: #9e351e;
+        border: 1px solid rgb(225 91 61 / 48%);
+        font-weight: 700;
+        font-size: 0.72rem;
+      }
+
+      #hanuman-run-stage {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        image-rendering: auto;
+      }
+
+      .status {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+        margin: 12px 0;
+        color: #dbe5e9;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .badge {
+        padding: 4px 10px;
+        border: 1px solid rgb(117 231 235 / 30%);
+        border-radius: 999px;
+        background: rgb(8 22 29 / 78%);
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+      }
+
+      button,
+      input {
+        min-height: 44px;
+      }
+
+      button {
+        padding: 0 16px;
+        border: 1px solid rgb(255 214 107 / 45%);
+        border-radius: 10px;
+        background: #1a2630;
+        color: #fff5d5;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      button:hover,
+      button:focus-visible {
+        background: #263a47;
+        outline: 2px solid #ffd66b;
+        outline-offset: 2px;
+      }
+
+      label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 44px;
+        padding: 0 12px;
+        border-radius: 10px;
+        background: rgb(17 29 38 / 75%);
+      }
+
+      input[type="range"] {
+        width: min(220px, 42vw);
+      }
+
+      .strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        width: min(720px, 94vw);
+        margin: 16px auto 0;
+      }
+
+      .thumb {
+        position: relative;
+        padding: 0;
+        aspect-ratio: 1 / 1;
+        overflow: hidden;
+        background:
+          repeating-conic-gradient(#eaf4f0 0% 25%, #cde4dc 0% 50%) 50% / 16px 16px;
+      }
+
+      .thumb[data-active="true"] {
+        border-color: #72e5e9;
+        box-shadow: 0 0 0 2px #72e5e9;
+      }
+
+      .thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        pointer-events: none;
+      }
+
+      .thumb span {
+        position: absolute;
+        right: 5px;
+        bottom: 4px;
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: rgb(0 0 0 / 72%);
+        font-size: 0.68rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>หนุมาน — Run แบบ Erlang · 12 เฟรม</h1>
+      <p class="subtitle">จังหวะลอย–เหยียด–ลงน้ำหนัก–ย่อ–ถ่ายน้ำหนัก สลับข้างแบบ Erlang โดยคง Design หนุมาน</p>
+
+      <section class="stage" aria-label="ตัวอย่างแอนิเมชันวิ่งหนุมาน 12 เฟรม">
+        <img
+          id="hanuman-run-stage"
+          src="characters/hanuman-run-erlang-12-v5/run-1.png?v=erlang12-v5"
+          alt="หนุมานท่าวิ่ง เฟรม 1 จาก 12"
+          width="640"
+          height="640"
+        />
+        <div class="y-axis" aria-hidden="true"><span>แกน Y = 587 · แนวเท้า (ตรงกับ Idle)</span></div>
+      </section>
+
+      <div class="status" aria-live="polite">
+        <span class="badge" id="frame-status">กำลังเตรียม 12 เฟรม…</span>
+        <span class="badge">Erlang cadence · 137 ms/เฟรม · 12 เฟรม · Root drift: Y ≤ 5 px</span>
+      </div>
+
+      <div class="controls">
+        <button type="button" id="previous">◀ ก่อนหน้า</button>
+        <button type="button" id="toggle">หยุด</button>
+        <button type="button" id="next">ถัดไป ▶</button>
+        <label>
+          ความเร็ว
+          <input id="speed" type="range" min="50" max="220" step="1" value="137" />
+          <output id="speed-value">137 ms</output>
+        </label>
+      </div>
+
+      <div class="strip" id="frame-strip" aria-label="ลำดับเฟรมวิ่งทั้ง 12 เฟรม"></div>
+    </main>
+
+    <script>
+      const frameUrls = Array.from({ length: 12 }, (_, index) =>
+        `characters/hanuman-run-erlang-12-v5/run-${index + 1}.png?v=erlang12-v5`,
+      )
+      const stage = document.querySelector('#hanuman-run-stage')
+      const frameStatus = document.querySelector('#frame-status')
+      const strip = document.querySelector('#frame-strip')
+      const toggle = document.querySelector('#toggle')
+      const speed = document.querySelector('#speed')
+      const speedValue = document.querySelector('#speed-value')
+      let currentFrame = 0
+      let playing = true
+      let timer = null
+
+      const preloadFrame = async (url) => {
+        const image = new Image()
+        image.src = url
+        await image.decode()
+      }
+
+      const updateStatus = () => {
+        frameStatus.textContent = `Frame ${currentFrame + 1} / 12 · ${speed.value} ms · loop-safe`
+        stage.alt = `หนุมานท่าวิ่ง เฟรม ${currentFrame + 1} จาก 12`
+        strip.querySelectorAll('.thumb').forEach((thumb, index) => {
+          thumb.dataset.active = String(index === currentFrame)
+        })
+      }
+
+      const setFrame = (index) => {
+        currentFrame = (index + frameUrls.length) % frameUrls.length
+        stage.src = frameUrls[currentFrame]
+        updateStatus()
+      }
+
+      const restartTimer = () => {
+        window.clearInterval(timer)
+        if (playing) timer = window.setInterval(() => setFrame(currentFrame + 1), Number(speed.value))
+      }
+
+      frameUrls.forEach((url, index) => {
+        const button = document.createElement('button')
+        button.className = 'thumb'
+        button.type = 'button'
+        button.dataset.active = String(index === 0)
+        button.ariaLabel = `แสดงเฟรม ${index + 1}`
+        button.innerHTML = `<img src="${url}" alt="" width="640" height="640" /><span>${index + 1}</span>`
+        button.addEventListener('click', () => setFrame(index))
+        strip.append(button)
+      })
+
+      document.querySelector('#previous').addEventListener('click', () => setFrame(currentFrame - 1))
+      document.querySelector('#next').addEventListener('click', () => setFrame(currentFrame + 1))
+      toggle.addEventListener('click', () => {
+        playing = !playing
+        toggle.textContent = playing ? 'หยุด' : 'เล่น'
+        restartTimer()
+      })
+      speed.addEventListener('input', () => {
+        speedValue.textContent = `${speed.value} ms`
+        restartTimer()
+        updateStatus()
+      })
+
+      Promise.all(frameUrls.map(preloadFrame)).then(() => {
+        updateStatus()
+        restartTimer()
+      })
+    </script>
+  </body>
+</html>
