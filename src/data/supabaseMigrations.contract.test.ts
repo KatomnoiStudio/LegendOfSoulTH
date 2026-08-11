@@ -17,6 +17,10 @@ interface MigrationViolation {
 const MIGRATIONS_DIR = join(process.cwd(), 'supabase/migrations')
 const PVP_MIGRATION = '20260809064000_p12_private_pvp_rooms.sql'
 const DISARM_MIGRATION = '20260811000000_disarm_account_deletion_crons.sql'
+const DEAD_ACCOUNT_MIGRATION = '20260810170000_security_reconcile_dead_account_cleanup.sql'
+// The pre-arm query lives inside a `--` comment block, because the owner copies it out of the
+// file and pastes it into the SQL Editor by hand. This lifts it back out, exactly as pasted.
+const COMMENTED_QUERY = /^--\s+select\b[\s\S]*?;\s*$/m
 // Both jobs delete auth.users rows and cascade through 11 tables; the project has PITR off and
 // no backups. They were unscheduled by hand on production on 2026-08-10, but until
 // DISARM_MIGRATION every `cron.unschedule` in this repository sat inside a `--` comment while
@@ -206,6 +210,14 @@ function findCronRearmViolations(sql: string, file: string): MigrationViolation[
         ]
       : [],
   )
+}
+
+function preArmProjection(sql: string): string {
+  return (COMMENTED_QUERY.exec(sql)?.[0] ?? '').replaceAll(/^--\s?/gm, '').trim()
+}
+
+function intervalsIn(sql: string): Set<string> {
+  return new Set(sql.match(/interval\s+'[^']*'/gi) ?? [])
 }
 
 function listMigrationFiles(directory: string): string[] {
@@ -404,5 +416,52 @@ select cron.schedule('cleanup-dead-unplayed-accounts', '30 3 * * *', $$select 1;
     ],
   ])('allows %s', (_name, sql) => {
     expect(findCronRearmViolations(sql, 'allowed.sql')).toEqual([])
+  })
+})
+
+/*
+  Task #92. The dead-account migration shipped a PRE-ARM CHECK: the deletion predicate with
+  `count(*)` in place of `delete`, under the instruction that a returned 0 cleared `cron.schedule`.
+  It was relayed to the owner in those terms and believed.
+
+  It cannot bound anything. Every clock-driven clause in that predicate is
+  `<timestamp> < now() - interval '30 days'`, `now()` binds when the query RUNS, and age only ever
+  increases — so an account that fails the test today passes it in a few days with nobody doing
+  anything, and a cron job fires every day forever rather than once. The count measures the leading
+  edge of an advancing window at the one moment nobody is due. Measured forward on the same
+  predicate and the same population: 0 accounts on 2026-09-06, 12 on 2026-09-08, two days apart.
+
+  Both jobs are disarmed (20260811000000), so this pins the INSTRUCTION, which is still shipped and
+  is what the next operator reads. A migration file is documentation as much as it is SQL.
+*/
+describe('dead-account cleanup pre-arm instruction', () => {
+  it('projects per account and per date instead of counting at the moment of checking', () => {
+    const sql = readFileSync(join(MIGRATIONS_DIR, DEAD_ACCOUNT_MIGRATION), 'utf8')
+    const projection = preArmProjection(sql)
+
+    expect(projection).toMatch(/^select\b/)
+    // The trap, mechanically: an age threshold anchored to the instant of checking.
+    expect(projection).not.toMatch(/\bnow\s*\(/)
+    // A count collapses "which accounts, on which day" into one number taken on the wrong day.
+    expect(projection).not.toMatch(/\bcount\s*\(/)
+    // What replaces it: the date each account enters range, which a count cannot express.
+    expect(projection).toContain('deletable_from')
+    // Pasted by hand into the SQL Editor against live player data. Read-only or nothing.
+    expect(projection).not.toMatch(/\b(?:delete|update|insert|drop|truncate|alter|grant|revoke)\b/i)
+    // The retention window is written twice — once in the body that deletes, once in the
+    // projection that promises what the body will delete. Widening one alone makes the promise
+    // false again, silently, in exactly the way this section now exists to prevent.
+    expect(intervalsIn(projection)).toEqual(
+      intervalsIn(/create or replace function[\s\S]*?\$\$;/.exec(sql)?.[0] ?? ''),
+    )
+  })
+
+  it('offers no reading that turns arming the job into a formality', () => {
+    const sql = readFileSync(join(MIGRATIONS_DIR, DEAD_ACCOUNT_MIGRATION), 'utf8')
+
+    // "re-arm only if it returns 0" and "do not re-arm unless it returns 0" — the two sentences
+    // that made a single number the green light. Any successor phrasing of the same conditional
+    // fails here; the file may describe the removed instruction, but not restate it as one.
+    expect(sql).not.toMatch(/re-?arm[^.]{0,120}\b(?:0|zero|none|nothing|empty)\b/i)
   })
 })

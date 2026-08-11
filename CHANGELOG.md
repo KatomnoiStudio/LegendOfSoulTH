@@ -9,6 +9,181 @@ Versioning follows [Semantic Versioning 2.0.0](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-08-11
+
+A release about art that nothing could check. The sprite pipeline had no compiler:
+every defect in it was silent, shipped, and found by a person squinting at a screen
+months later. This gives it one, and fixes the two defects the first run found.
+
+### Fixed
+
+- **A character was up to 75% bigger standing than walking** — and it was four
+  characters, not one. The lobby scene and the adventure scene each decided sprite
+  size from a box they had typed by hand rather than from the art, so a family drawn
+  on a different canvas silently came out a different size. Both now derive size
+  from the texture through the calibration table the battle scene had been using
+  correctly all along. Measured across families: 75.1 / 64.1 / 46.8 / 8.0 % spread
+  down to 0.03 / 0.55 / 0.09 / 0.02 %.
+- **The ground shadow sat at the character's knees.** Feet were declared at 386–409
+  box units and rendered 30–53 px below the anchor. All ten families now land at
+  356.0000, and the true alpha-measured foot line sits in a 2.16 px band around it
+  instead of a 22.7 px one.
+- **Tripitaka's halo was stretched 37.9% wide** — a 1194×1317 portrait sheet pinned
+  to a landscape plane. Nobody had counted it; it was the worst single site and had
+  no provenance row anywhere.
+
+### Performance
+
+- **The adventure scene fired 96 image requests inside one second, and re-fired
+  them.** 144 requests for 97 distinct URLs. Now a 4-deep queue that advances on
+  `load` **or** `error`, so one 404 cannot stall the rest, fetching in the order the
+  scene actually draws. 96 → 80 files per character; re-fetch 1.48× → 1× by
+  construction. Monkey King −462.8 KiB, Pig Warrior −753.2 KiB.
+
+### Added
+
+- **A frame contract for the sprite art** — 22 tests over five invariants, decoding
+  all 359 shipped frames. It pins one canvas per family, every path both ways (too
+  many frames is art the code loads and never draws), the direction ordering read
+  out of component source at assert time rather than snapshotted, foot-line spread
+  per animation kind, and world size derived from texture pixels.
+  The last one compares **the declared table against alpha-measured art**, so it
+  cannot pass by agreeing with itself. Every invariant was proven to fail and
+  restored byte-identical before it shipped.
+- **The four groups that fail today are pinned as named exceptions**, and the
+  failing set must equal exactly those four — a fifth reddens, and fixing one
+  without removing its row reddens too.
+
+### Documentation
+
+- **A sprite geometry standard, split three ways.** A template that carries no
+  project data, a conformance record that carries nothing else, and an art-side
+  brief for whoever draws the frames. The template's first draft failed 50 of its
+  own 96 claims under adversarial review, and every point where an earlier edition
+  was wrong is annotated rather than deleted.
+- **Anchor tolerances nobody publishes**, recovered by measuring two public corpora
+  with a stated, re-runnable instrument rather than by citing anyone: ±1 px for
+  pose-hold, ±2 for locomotion, ±3 for action, with depicted movement bounded
+  separately. The base is 1 px **absolute** — proven not to scale with character
+  size, which is the opposite of what the intuition says.
+
+### Known open, stated rather than quietly carried
+
+- `L1` is **open in the character roster**. `CharacterPreview` still pins
+  `aspect-ratio: 396/376` and is fed 640×512 art for Erlang, who therefore shrinks
+  31.9% mid-drag — the same defect class this release closed in the other two
+  scenes, in the one consumer nobody was watching.
+- The resolution floor got **worse**, and that is the price of the fix: walk frames
+  now render at 93% of source instead of 53%, moving the DPR-3 worst case from
+  2.68× to 2.89×. Published rather than buried.
+- Three registered foot offsets read ~2 px shallower than the art. Correcting them
+  moves the battle scene, which is a different topic on a shared table.
+
+### Credits
+
+No external pull requests landed in this cycle, and saying so is better than an
+empty heading.
+
+- **Universal LPC Spritesheet Character Generator** and **Battle for Wesnoth** — the
+  anchor tolerance figures in the design lock were measured out of these two
+  corpora, 314 sets in total. Measurements only: no pixel of either was copied into
+  this project. Both are licensed per file rather than per repository, and both are
+  named at the point of use in `docs/SPRITE-DESIGN-LOCK.md` with their own terms.
+  The numbers this release enforces would not exist without work those two
+  communities did and never wrote down as a standard.
+
+## [0.18.0] - 2026-08-11
+
+A release about things that read as safe and were not. A verification instruction
+that could only ever return "all clear". A secret scan that reported green because
+its own lookup never ran. A login error that named the wrong cause. Five commits
+carrying a key that a revert could not reach. The common shape: **a check that
+agrees with itself, and never asks who else depends on the answer.**
+
+### Security
+
+- **A shipped migration told the operator that a count of zero meant it was safe
+  to arm an account-deletion job.** Zero on 2026-09-06; twelve two days later.
+  Every clock-driven clause in that check has the form `<timestamp> < now() -
+interval '30 days'` — an age test, and age only increases — while the clause
+  that _shelters_ an account expires by the same arithmetic. Every term widened
+  the deletable set as the clock ran and not one narrowed it, so the count was
+  never a blast radius; it measured the leading edge of an advancing window at the
+  one moment nobody was due. The replacement contains no `now()` at all: it
+  projects a `deletable_from` date per account, so there is nothing left to
+  misread as a green light. SQL body unchanged
+- **Both account-deletion cron jobs are disarmed in a file, not just on one
+  database.** `cron.unschedule('name')` raises when the job is absent, so the
+  statement is set-based on purpose and re-runs clean. The functions are
+  deliberately left in place; only the schedules are gone
+- **The login error stopped naming a cause it could not know.** One message
+  covered a wrong password, a deleted account and a network failure alike. Two
+  Supabase codes that would have distinguished them were **removed rather than
+  shipped**: `email_not_confirmed` and `user_banned` fire only for an address that
+  _has_ an account, which is the account-existence oracle `invalid_credentials`
+  deliberately avoids. Measured before deciding — `mailer_autoconfirm: true`, zero
+  unconfirmed users, zero banned — so the first cannot fire today, and the day it
+  could is the day custom SMTP arrives. It would have armed itself exactly when
+  the recovery flow shipped
+- **A Supabase publishable key and the project URL were removed from history,
+  not silenced.** A revert had taken them out of the working tree the day before,
+  but a scan walks commits, and a commit that exists cannot be un-found — so the
+  secret scan stayed red on every push. History was rewritten across the five
+  commits that carried them: 743 commits before and after, file contents
+  byte-identical to the old tip, none of the 28 tags affected. The proof it worked
+  is that `.gitleaksignore` could then be **deleted**, and the scan came back green
+  on a commit that does not contain it. An alarm with nothing to report is not the
+  same as an alarm told to stay quiet
+- **Account enumeration is now a named, reportable class in `SECURITY.md`**, with
+  the two known exceptions written down rather than left to be rediscovered
+
+### Fixed
+
+- **Two objective HUDs could describe the same stage differently.** One HUD now,
+  with validity guards shared by both objective paths and a safe fallback when a
+  stage carries no objective (external PR #107)
+- **A Realtime migration aborted itself.** `alter table realtime.messages enable
+row level security` targets a platform-owned table; it fails on ownership and
+  takes the whole file down with it, leaving no policy at all. The migration is
+  policy-only now, and the PGLite harness still models the platform default so
+  removing that line turns three tests red (external PR #109)
+- **PR #111 reverted.** Six commits, three unrelated topics, merged straight to
+  master past a gate that had already bounced part of it
+
+### Tests
+
+- **`loadPlayer`'s guard was covered for five of its eight read slices.** Because
+  all eight share one branch, five green rows read like proof of a branch three
+  slices had never entered. The table list is now discovered from the calls the
+  code actually makes, with a tripwire that fails if the query count changes
+- **The save-export credential guard now walks every key at every depth** and
+  matches a key pattern rather than a name list. The previous allowlist promised
+  new sensitive fields could not leak unnoticed, but two sub-objects passed through
+  whole — the promise stopped one level down
+- The new pre-arm projection is pinned twice: as source text, and **executed** —
+  lifted out of its comment block and run against the fully replayed migration
+  chain on a fixture where the old check reads a clean zero
+
+### Governance
+
+- **`master` went from one required check to ten**, with up-to-date-before-merge
+  enforced and self-merge closed: an approval is required, stale approvals are
+  dismissed, and the last pusher cannot be the approver. `CODEOWNERS` makes it the
+  owner's approval specifically — "one approval" never said whose, and two
+  non-admin collaborators could close the loop between them
+- **Outside code lands from a fork.** A repository ruleset restricts branch
+  creation and updates, so a non-admin contributor forks and opens a pull request
+  rather than pushing a branch here. Break-glass for admins is unchanged and
+  deliberate
+
+### Credits
+
+- **nustanakritwithai** — external PRs #107 and #109, both taken in through the
+  belt. #109 is also the standing evidence for a gap no local test can cover: the
+  Realtime ownership error is a property of Supabase's hosted schema at runtime,
+  and it was found by running the migration against a real project, not by reading
+  it
+
 ## [0.17.0] - 2026-08-10
 
 No new toys. This release swaps the material of an existing skeleton. All of it
