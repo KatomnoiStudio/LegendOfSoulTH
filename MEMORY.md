@@ -299,3 +299,4 @@ All entries 2026-08-05/06 unless noted. Roughly chronological.
 - **199.** The sprite lock split into template + conformance; a six-domain sweep found 172 published values, and proved the anchor tolerance cannot have one — no tool stores a per-frame anchor to validate — `MEMORY/archive/176-200.md`
 
 - **200.** The anchor tolerance nobody publishes, measured out of two external corpora — base = 1 px absolute for alignment (proved not to scale with character size), proportional bands for depicted movement; template carved out to CC BY-NC-ND — `MEMORY/archive/176-200.md`
+- **201.** Sprite belt lanes 1 and 2 landed (preload burst 96→80 with a 4-deep queue; an 18-test frame contract with every invariant proven red-then-green) — lane 3 blocked by main dispatching three agents into one tree without the workdir lock — `MEMORY/archive/201-225.md`
