@@ -94,6 +94,51 @@ in the same commit and told **neither of the other two**.
 
 ---
 
+## `E3` — derived world size · **the mechanism is already here, with two of four consumers using it**
+
+`src/game/realtimeBattle/entitySpritePresentation.ts` implements `E3` in full and has since before the
+design lock existed. Its calibration record is exactly the shape the convention describes:
+
+```ts
+interface SpriteSheetCalibration {
+  pathFragment: string
+  canvasWidth: number
+  canvasHeight: number
+  /** Family-specific source pixels that equal one canonical world-space height. */
+  pixelsPerCanonicalHeight: number
+  /** Average transparent rows below the feet for this animation family. */
+  bottomInsetPx: number
+}
+```
+
+`pixelsPerCanonicalHeight` is Unity's `pixelsPerUnit` and Godot's `pixel_size` under a local name;
+`bottomInsetPx` is `E1`'s foot offset in the same record, as `E3` requires. `ENTITY_SPRITE_HEIGHT = 1.6`
+is the canonical world height each family converts into. **18 families are registered**, every value
+alpha-scanned rather than guessed.
+
+**So this project did not copy the convention — it arrived at it independently, and the two vendors
+corroborate the choice.** That is stronger evidence than adoption would have been, and it is why `E3`
+is stated in the lock as a convergence rather than as an import.
+
+| consumer                                      | conforms to `E3` | how                                                                                          |
+| --------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------- |
+| `BattleScene/EntitySprite.tsx`                | **yes**          | reads the calibration table; `ENTITY_SPRITE_ASPECT` is a fallback, not the source of truth   |
+| `CharacterRoster/CharacterPreview.module.css` | **n/a**          | 2D DOM, no world units — its pinned `aspect-ratio` is the DOM equivalent and matches its art |
+| `LobbyScene/CharacterModel.tsx`               | **NO**           | `planeGeometry args={[4.018, 3.213]}` hand-typed at three sites; ignores the table entirely  |
+| `AdventureScene/WukongAdventure.tsx`          | **NO**           | a fixed CSS box with `object-fit: contain` deciding size, and a hardcoded anchor             |
+
+**This reclassifies the open work.** `#100`/`#106` are not "design a mechanism and tune numbers" —
+they are "extend a table that already exists to the two consumers that never read it". Smaller, and
+with far less room to invent something inconsistent.
+
+**What is still genuinely unmeasured** is small and named: the four turnaround families have no
+calibration row yet. They were measured during the blocked dispatch — `monkey-turn` 377/23,
+`pigsy-turn` 367/19, `tripitaka-turn` 406/25, `spear-warrior-stop-turn` 296/37, each normalised to its
+own character's idle sheet by the rule the walk rows already use. Those numbers exist in that agent's
+report only; they are recorded here so they are not re-derived.
+
+---
+
 ## `A3` — block compression · **N/A today**
 
 The project ships WebP, not GPU-compressed textures. Binding on a mobile port or a move to

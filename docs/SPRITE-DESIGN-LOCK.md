@@ -299,6 +299,45 @@ position is already relying on this convention whether or not it wrote it down.
 > objects to bottom-_left_ in every orientation except isometric. It may only be cited by a project that
 > explicitly treats its own view as isometric for this purpose.
 
+## E3 · World size is DERIVED from texture pixels, never hand-authored
+
+A sprite drawn into a 3D scene — a billboard, a camera-facing quad, a textured plane — must take its
+world dimensions from a stated conversion between texture pixels and world units, declared **per sprite
+family**. It must not carry a hand-typed width and height.
+
+> `Sprite.pixelsPerUnit` — "The number of pixels in the Sprite that correspond to one unit in world
+> space."
+> — Unity ScriptReference (VENDOR_DOC)
+
+> `SpriteBase3D.pixel_size` — "The size of one pixel's width on the sprite to scale it in 3D."
+> Default `0.01`.
+> — Godot 4 documentation (VENDOR_DOC)
+
+Two engines from unrelated lineages expose the same mechanism under different names, and neither offers
+a way to type a world width directly on a sprite. That convergence is the evidence; the names are
+incidental.
+
+**Why this is interop and not taste.** A hand-authored width/height pair encodes two independent facts
+in one place: the aspect ratio and the absolute size. Change the art's canvas and the pair is wrong on
+aspect; change it to fix the aspect and the character silently resizes. A derived pair has neither
+failure: aspect is correct for **any** canvas, including canvases nobody has drawn yet, and size stays
+where the constant puts it. This is the same invariant `L1` states, enforced by construction rather
+than by remembering.
+
+**The pivot travels in the same record.** Scale alone puts a sprite at the right size in the wrong
+place. The per-family entry must also carry the foot offset — how far the art's contact point sits from
+its canvas edge — because that is what lands the feet on the ground (`E1`). One family, one scale, one
+offset, read together.
+
+**What this convention does NOT give you**, and must not be pretended to:
+
+```
+the constant's value          depends on the scene's own camera and scale       -> Layer B
+where the feet sit per family depends on how each piece of art was drawn        -> Layer B
+```
+
+Both are recovered by measuring the project's own corpus, once, per family — not by citation.
+
 ## E2 · The anchor must survive trimming
 
 Whatever anchor a project adopts, it must be expressed in a frame of reference that trimming cannot
