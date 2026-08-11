@@ -1,7 +1,7 @@
 # SPRITE CONFORMANCE RECORD
 
 **This repository, measured against `docs/SPRITE-DESIGN-LOCK.md`. Last measured 2026-08-11 against
-master `ac1cc3b`.**
+master `a178e8e`.**
 
 The design lock states the rules and carries no project data. This file states what this project ships,
 where each value came from, and every place the project currently fails its own lock. Rule IDs (`L1`,
@@ -49,22 +49,27 @@ ceiling — 6.2× headroom.
 Four consumers read the same art. An earlier reading counted three and described the fourth as
 hypothetical; it already exists, and it is the one that gets this right.
 
-| consumer                                      | pinned aspect                                       | status                               |
-| --------------------------------------------- | --------------------------------------------------- | ------------------------------------ |
-| `AdventureScene/WukongAdventure.tsx`          | none — 340 × 420 box, `object-fit: contain` decides | silent size change                   |
-| `CharacterRoster/CharacterPreview.module.css` | `.figure { aspect-ratio: 396 / 376 }`               | correct — matches its art            |
-| `LobbyScene/CharacterModel.tsx`               | `planeGeometry args={[4.018, 3.213]}` = 1.25054     | **VIOLATION**                        |
-| `BattleScene/EntitySprite.tsx`                | `ENTITY_SPRITE_ASPECT = 1.2508`                     | correct — fed by a calibration table |
+| consumer                                      | pinned aspect                                 | status                               |
+| --------------------------------------------- | --------------------------------------------- | ------------------------------------ |
+| `AdventureScene/WukongAdventure.tsx`          | none — derived per frame from the calibration | **CLOSED 2026-08-11**                |
+| `CharacterRoster/CharacterPreview.module.css` | `.figure { aspect-ratio: 396 / 376 }`         | correct — matches its art            |
+| `LobbyScene/CharacterModel.tsx`               | none — derived per frame from the calibration | **CLOSED 2026-08-11**                |
+| `BattleScene/EntitySprite.tsx`                | `ENTITY_SPRITE_ASPECT = 1.2508`               | correct — fed by a calibration table |
 
-**`CharacterModel` violates both halves of `L1`.**
+**No consumer pins an aspect ratio any more, so `L1` has nothing left to violate.** Both halves are met
+by construction rather than by comment: the aspect comes out of the source canvas (`E3`), so it is right
+for every canvas including ones nobody has drawn yet, and its provenance is the calibration row.
+
+**What was violated, kept for the record.** `CharacterModel` failed both halves at once:
 
 1. **Aspect mismatch, COMPUTED: 18.738%** while a 396 × 376 sheet is displayed — which is the idle loop
    of 6 of 7 kinds, 72 frames. Its action frames (26) and all 33 spear-warrior frames are 640 × 512 and
-   mismatch by 0.04%. **So it pops**: stretched during idle, snapping to 1:1 the instant an action frame
-   plays. **Never observed — the component was not located on screen during the live session.**
-2. **Provenance missing.** The number appears at **`CharacterModel.tsx:160` and `:164`** — the crossfade
-   mesh pair — with no comment at either site. Any compensation must be applied twice or the two meshes
-   disagree.
+   mismatch by 0.04%. **So it popped**: stretched during idle, snapping to 1:1 the instant an action
+   frame played. **Never observed — the component was not located on screen during the live session.**
+2. **Provenance missing** at both `:160` and `:164` — the crossfade mesh pair — so any compensation had
+   to be applied twice or the two meshes would disagree. A third site (`:206`, the Tripitaka halo) had
+   the same pair typed against a **portrait** 1194 × 1317 texture: a **37.9%** stretch, double the
+   character figure, and the one nobody had counted.
 
 ---
 
@@ -94,7 +99,7 @@ in the same commit and told **neither of the other two**.
 
 ---
 
-## `E3` — derived world size · **the mechanism is already here, with two of four consumers using it**
+## `E3` — derived world size · **all four consumers now use it** (closed 2026-08-11)
 
 `src/game/realtimeBattle/entitySpritePresentation.ts` implements `E3` in full and has since before the
 design lock existed. Its calibration record is exactly the shape the convention describes:
@@ -113,7 +118,7 @@ interface SpriteSheetCalibration {
 
 `pixelsPerCanonicalHeight` is Unity's `pixelsPerUnit` and Godot's `pixel_size` under a local name;
 `bottomInsetPx` is `E1`'s foot offset in the same record, as `E3` requires. `ENTITY_SPRITE_HEIGHT = 1.6`
-is the canonical world height each family converts into. **18 families are registered**, every value
+is the canonical world height each family converts into. **23 families are registered**, every value
 alpha-scanned rather than guessed.
 
 **So this project did not copy the convention — it arrived at it independently, and the two vendors
@@ -124,18 +129,48 @@ is stated in the lock as a convergence rather than as an import.
 | --------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------- |
 | `BattleScene/EntitySprite.tsx`                | **yes**          | reads the calibration table; `ENTITY_SPRITE_ASPECT` is a fallback, not the source of truth   |
 | `CharacterRoster/CharacterPreview.module.css` | **n/a**          | 2D DOM, no world units — its pinned `aspect-ratio` is the DOM equivalent and matches its art |
-| `LobbyScene/CharacterModel.tsx`               | **NO**           | `planeGeometry args={[4.018, 3.213]}` hand-typed at three sites; ignores the table entirely  |
-| `AdventureScene/WukongAdventure.tsx`          | **NO**           | a fixed CSS box with `object-fit: contain` deciding size, and a hardcoded anchor             |
+| `LobbyScene/CharacterModel.tsx`               | **yes**          | `deriveSpriteSize(url, 3.213)` per family; unit planes scaled from it, at all three sites    |
+| `AdventureScene/WukongAdventure.tsx`          | **yes**          | `deriveSpriteSize(url, 322.83)` per frame → the `<img>` width/height/bottom in CSS px        |
 
-**This reclassifies the open work.** `#100`/`#106` are not "design a mechanism and tune numbers" —
-they are "extend a table that already exists to the two consumers that never read it". Smaller, and
-with far less room to invent something inconsistent.
+**The scene's own constant is the only number each consumer types**, which is exactly what the lock
+says a project must supply itself (`E3`: "the constant's value depends on the scene's own camera and
+scale → Layer B"). Both were chosen to hold the reference sheet exactly where it already was:
 
-**What is still genuinely unmeasured** is small and named: the four turnaround families have no
-calibration row yet. They were measured during the blocked dispatch — `monkey-turn` 377/23,
-`pigsy-turn` 367/19, `tripitaka-turn` 406/25, `spear-warrior-stop-turn` 296/37, each normalised to its
-own character's idle sheet by the rule the walk rows already use. Those numbers exist in that agent's
-report only; they are recorded here so they are not re-derived.
+```
+LobbyScene       3.213  world units   = the height half of the old hand-typed 4.018 x 3.213 pair,
+                                        which for a 396x376 sheet rendered at exactly that height
+AdventureScene   322.83 CSS px        = 340 x 376/396, the height a 396x376 sheet got from
+                                        object-fit: contain in the 340px-wide .actor box
+```
+
+So the standing pose — the first thing a player sees in either scene — is unchanged in height, and
+every other state moves to meet it. **The walk frames were the wrong ones, not the standing ones.**
+
+### The turnaround rows, measured twice
+
+The four turnaround families had no row, so they fell to the 396 × 376 default. Measured during the
+blocked dispatch and **re-measured independently 2026-08-11** by a fresh alpha scan (threshold 8,
+`sharp`) — all eight numbers reproduced to the unit:
+
+| family                    | canvas    | mean visible height | `pixelsPerCanonicalHeight` | `bottomInsetPx` |
+| ------------------------- | --------- | ------------------: | -------------------------: | --------------: |
+| `monkey-turn`             | 396 × 376 |              320.75 |     377 = 320.75 × 376/320 |    23 (of 22.5) |
+| `pigsy-turn`              | 396 × 376 |              322.38 |     367 = 322.38 × 376/330 |    19 (of 18.5) |
+| `tripitaka-turn`          | 396 × 376 |              335.75 |     406 = 335.75 × 376/311 |   25 (of 25.13) |
+| `spear-warrior-stop-turn` | 640 × 512 |              252.00 |     296 = 252.00 × 376/320 |              37 |
+
+The divisor is that character's own idle mean visible height — the rule the walk rows already used
+(`monkey-walk` 296.11 × 376/320 = 348, the registered value, reproduced exactly). Erlang divides by
+monkey's 320 rather than his own 370, as all his other rows do, which is what keeps him the taller god
+he is drawn as. `spear-warrior-stop-turn-key` shares the row: both sets alpha-scan identically
+(visible height 252, inset 37, on every frame of both).
+
+**One discrepancy found and deliberately not fixed.** Three registered `bottomInsetPx` values read
+about 2 px lower than a fresh scan of the same files: `monkey-v2-idle` declares 11 against 13,
+`monkey-v2` 34 against 36, `monkey-walk` 62 against 63.72. The erlang and pigsy rows agree exactly.
+Editing them would move the battle scene, which is a different topic on the same table — recorded
+here instead. Its cost is bounded and stated below: the feet land within ~1.7 px of the anchor rather
+than on it, consistently, in the same direction.
 
 ---
 
@@ -170,20 +205,35 @@ no shipped character matches.
 
 ---
 
-## `A-port P2` — resolution floor · **COMPUTED, worst case 2.68×**
+## `A-port P2` — resolution floor · **COMPUTED, worst reachable case 2.89× after the `E3` fix**
 
-The `.actor` box is 340 CSS px **multiplied by a depth scale of 0.8–1.04**, so the real box is
-272–354 CSS px.
+The sprite is no longer sized by the `.actor` box; it is sized per family and then **multiplied by a
+depth scale of 0.8–1.04**. So the floor must be computed per family, at the far end of that range.
 
-| state    | source width | DPR 2 |     DPR 3 |
-| -------- | -----------: | ----: | --------: |
-| walking  |          640 | 1.06× |     1.59× |
-| standing |          396 | 1.72× | **2.68×** |
+| state, as it renders now    | rendered width | source width | upscale | DPR 3 floor |
+| --------------------------- | -------------: | -----------: | ------: | ----------: |
+| standing (`monkey-v2-idle`) |          340.0 |          396 |   0.859 |       2.68× |
+| facing (`monkey-turn`)      |          339.1 |          396 |   0.856 |       2.67× |
+| walking (`monkey-walk`)     |          593.7 |          640 |   0.928 |   **2.89×** |
+| walking (`pigsy-walk`)      |          555.4 |          640 |   0.868 |       2.71× |
+| facing (`pigsy-turn`)       |          348.3 |          396 |   0.880 |       2.74× |
 
-Two earlier errors, both corrected: only the walk frames are 640 px wide, so 1.59× was the **best** case
-quoted as the only case; and the box was treated as a flat 340 px when the depth scale makes it a range.
-**None of the four factors is an integer** — the condition Godot documents as distorting for this class
-of art.
+**The fix costs 2.68× → 2.89× on the worst reachable state**, because the walk frames stopped rendering
+at 53% of their source and now render at 93%. That is the price of the size fix and it is not hidden:
+a walking character used to be 81.5% too small, which is why its floor looked good.
+
+**Every reachable state is still a downscale** (max 0.928). **One unreachable state is not**:
+`spear-warrior-stop-turn` derives to 698 px wide against a 640 px source — a **1.091× upscale**, DPR-3
+floor **3.40×**. It cannot be shown today, because the adventure scene only offers characters with walk
+frames (`walkKits.ts`, `walkPrefix: null` for erlang and tripitaka). **It becomes reachable the day
+erlang gets his other seven directions**, and on that day this row is the one to look at first.
+
+**None of these factors is an integer** — the condition Godot documents as distorting for this class of
+art. **All COMPUTED. Nothing here was opened on a DPR-3 device.**
+
+Two earlier errors, both corrected before this table: only the walk frames are 640 px wide, so 1.59×
+was the **best** case quoted as the only case; and the box was treated as a flat 340 px when the depth
+scale makes it a range.
 
 ---
 
@@ -240,10 +290,32 @@ The constant `3` is explained nowhere in the repository and is the entire reason
 
 ---
 
-## `E1` — bottom-centre anchor · **VIOLATION, and the exemplar is in-repo**
+## `E1` — bottom-centre anchor · **the code half closed 2026-08-11; the art half still fails**
 
 The adventure scene y-sorts by `zIndex: Math.round(view.y)`, so it already depends on a foot anchor
 whether or not that was written down.
+
+### Where the feet land now · **COMPUTED**
+
+Each frame's `bottom` is placed so the family's declared foot line falls on the `.actor` box's ground
+anchor, 356 — the same point `transform-origin: 50% 356px` and the `-356px` translate already used, and
+6 px below the shadow ellipse's centre (`bottom: 52px`, height 36 → centre 350).
+
+```
+declared feet   356.0000 box units, all ten adventure families, exactly    (was 386.1 - 408.8)
+true alpha feet 354.28 - 356.44, a 2.16 px band around the anchor          (was a 22.7 px band,
+                                                                            30 - 53 px BELOW it)
+```
+
+The residual 2 px is the `bottomInsetPx` discrepancy recorded under `E3` above — three monkey rows
+declare an inset about 2 px shallower than the files measure. It is consistent in direction and size
+across states, which is the property that matters: the character no longer changes its footing when it
+starts walking.
+
+**Not observed. This is arithmetic over an alpha scan, not a browser.** The live measurement below is
+what the old numbers came from, and no equivalent session has been run since the fix.
+
+### What was measured live, before the fix
 
 **MEASURED-LIVE**, production, logged in, DPR 1.25, box 309.7 × 382.5 under
 `matrix(0.910769, 0, 0, 0.910769, 594, 184.195)`:
@@ -383,20 +455,46 @@ this project moves to GPU-compressed textures.
 
 ## FUTURE — what makes the lock hold
 
-Nothing above was caught by a gate. Every number on this page came from someone deciding to measure.
+Nothing on this page was caught by a gate until 2026-08-11. Every number here came from someone
+deciding to measure.
 
-**Task #101 is what converts this document from a snapshot into a check.** Canvas size per prefix,
-frame count, direction-index ordering, and foot-line spread per animation kind are all computable from
-the files alone. A frame-contract test turns four of this page's findings from prose into CI failures,
-and turns the design lock from a document people are asked to follow into one the build enforces.
+**`src/game/spriteContract.test.ts` is what converted this document from a snapshot into a check**
+(#101, landed `aceb6c5`; a fifth invariant added with the `E3` fix). Everything it asserts is
+computable from the shipped files alone, so these findings are CI failures now rather than prose:
 
-Until that exists, the standing obligations are:
+```
+1  canvas per prefix     one set, one canvas — a stray frame renders silently at the wrong size
+2  paths and counts      every pinned path resolves, and the pinned count is what ships, both ways
+3  direction order       turn set addressed by NUMBER, walk set by NAME, and the orders differ
+4  anchor tolerance      foot-line drift inside the band for the animation kind, four pinned failures
+5  derived world size    every drawn family is calibrated, and one character is one height (+-2%)
+```
+
+Invariant 5's band is **Layer C** — this project's own choice. Measured spread today: 0.02% best
+(`pilgrim-monk`), 0.86% worst (`monkey-king`, widened by `monkey-pose`'s hand-tuned row). Every defect
+it exists to catch is an order of magnitude larger.
+
+**What the gates still do not reach**, and the honest reason for each:
+
+```
+CSS regressions      the stylesheet is not evaluated in jsdom. Re-adding `inset: 0` to `.sprite`
+                     would over-constrain the derived `bottom` and un-anchor the feet, and NO test
+                     goes red. Proven by injecting exactly that.
+the lobby's 3D side  CharacterModel is R3F; there is no WebGL context in the test environment, so
+                     nothing asserts its plane geometry. Only the shared table underneath it is gated.
+a consumer opting    nothing stops a future consumer from typing its own width and height again.
+out entirely         The consumer table above is still the only check on that, and it is a person.
+```
+
+The standing obligations that no test can carry:
 
 ```
 new art          scored against the anchor tolerance register before merge, by kind
-new consumer     declares its pinned aspect WITH provenance (L1), or does not pin one
+new consumer     derives its size from the calibration table (E3), or states why it cannot
 re-crop          records the original geometry and walks every consumer, same commit (L2)
 new canvas       recorded in the inventory above; the count is now eight
+new family       gets a calibration row in the same commit that first draws it — invariant 5 will
+                 fail the build otherwise, which is the intended way to find out
 ```
 
 **And the ceilings are not targets.** They come from corpora whose characters are 24-82 px tall and
@@ -410,9 +508,9 @@ The band is a project decision and is **still open**.
 
 ---
 
-## Size discontinuity · **MEASURED-LIVE +81.5%**
+## Size discontinuity · **was MEASURED-LIVE +81.5% · closed 2026-08-11**
 
-Both states sampled at an identical box and transform, so the source canvas was the only variable:
+Both states were sampled at an identical box and transform, so the source canvas was the only variable:
 
 ```
 standing   396 x 376   alpha height 320   x 0.78207  =  250.3 px on screen
@@ -420,13 +518,41 @@ walking    640 x 512   alpha height 285   x 0.48391  =  137.9 px on screen
                                           250.3 / 137.9 = +81.5%
 ```
 
-Across characters and frames the range is **+55.8% to +81.5%** — the low end is pigsy, the high end is
+Across characters and frames the range was **+55.8% to +81.5%** — the low end pigsy, the high end
 monkey. An earlier reading quoted "56–79%", a band that contained neither its own stated inputs nor the
 measured value.
 
-**Not fixable by re-normalising the 96 frames**: `ff67fb1` cropped them deliberately for
-`CharacterPreview`, which consumes all 24 idle frames correctly. Any fix must satisfy all four consumers
-at once.
+**It was never fixable by re-normalising the 96 frames**: `ff67fb1` cropped them deliberately for
+`CharacterPreview`, which consumes all 24 idle frames correctly. The fix had to satisfy all four
+consumers at once, which is what `E3` does — the art is untouched and the size comes out of the table.
+
+### After · **COMPUTED**, alpha-scanned visible height per family × the calibration
+
+On-screen character height in `.actor` box units, across every family a character can show in the
+adventure scene:
+
+| character                   | before (idle / turn / walk) |     spread | after (idle / turn / walk) |    spread |
+| --------------------------- | --------------------------- | ---------: | -------------------------- | --------: |
+| `monkey-king` / `nezha`     | 274.7 / 275.4 / 157.3       | **+75.1%** | 274.7 / 274.7 / 274.7      | **0.03%** |
+| `pig-warrior` / `sand-sage` | 283.3 / 276.8 / 172.6       | **+64.1%** | 283.3 / 283.6 / 282.0      | **0.55%** |
+| `spear-warrior`             | 196.6 / 133.9 / —           | **+46.8%** | 274.6 / 274.8 / —          | **0.09%** |
+| `pilgrim-monk` / `archer`   | 267.0 / 288.3 / —           |  **+8.0%** | 267.0 / 267.0 / —          | **0.02%** |
+
+The same fix in the lobby, where the pop was between idle and action rather than idle and walk:
+
+```
+monkey-king     27.4%  ->  0.18%
+pig-warrior     31.8%  ->  0.16%
+spear-warrior    7.4%  ->  0.03%
+```
+
+**The residual sub-1% is the table's integer rounding**, not art drift: `pixelsPerCanonicalHeight` is a
+whole number by convention, so a family lands within half a source pixel of its neighbours rather than
+exactly on them. `pigsy-walk` is the widest at 0.55% because its registered 372 came from a scan
+reading 326.34 where this one reads 324.97.
+
+**Not observed.** No browser session has been run since the change; these are the alpha-measured
+heights of the shipped files put through the shipped calibration.
 
 ---
 
@@ -491,34 +617,51 @@ either the exception is stated or those files are re-encoded.
 
 ## Open violations
 
-| #   | rule       | what                                                                                |
-| --- | ---------- | ----------------------------------------------------------------------------------- |
-| 100 | `L1` / `B` | standing renders +81.5% larger than walking — two canvases, one box                 |
-| 106 | `E1`       | shadow renders at knee height; foot-to-anchor gap 48.1 px standing, 27.3 px walking |
-| 108 | delivery   | `max-age=600` on unhashed immutable art                                             |
-| 101 | all        | **nothing in CI asserts any sprite invariant**                                      |
-| —   | `L1`       | `planeGeometry [4.018, 3.213]` has no provenance comment at `:160` or `:164`        |
-| —   | `B3`       | the sampling constant `3` is undocumented                                           |
-| —   | delivery   | 43 lossless frames vs an unwritten no-lossless rule                                 |
+| #   | rule     | what                                                                    |
+| --- | -------- | ----------------------------------------------------------------------- |
+| 108 | delivery | `max-age=600` on unhashed immutable art                                 |
+| —   | `E1`     | three turn sets fail the pose-hold band by 12×/31×/51× — **art defect** |
+| —   | `B3`     | the sampling constant `3` is undocumented                               |
+| —   | delivery | 43 lossless frames vs an unwritten no-lossless rule                     |
 
-**The rest are held pending the owner's sprite go-ahead.** The lock ships; conformance does not.
+**The rest are held pending the owner's sprite go-ahead.** The lock ships; conformance mostly does now.
 
-**Closed 2026-08-11 — #107** (`L2` / delivery), the one violation above that was purely the code's own
+**Closed 2026-08-11 — #107** (`L2` / delivery), the one violation that was purely the code's own
 scheduling and needed no art decision: the burst, the re-fetch and the 16 undrawn frames are all gone,
 and the policy is pinned by test. See the Delivery section above for what is and is not claimed. It is
 also the reason **#107 no longer carries the 8-vs-12 run-cycle question with it** — see below.
+
+**Closed 2026-08-11 — #101**: `src/game/spriteContract.test.ts`. Five invariants, computable from the
+shipped files alone, every one proven by re-injecting the defect it catches.
+
+**Closed 2026-08-11 — #100 and #106**, and the two unnumbered `L1` rows with them. One mechanism, one
+commit: `deriveSpriteSize()` in `entitySpritePresentation.ts`, five new calibration rows, and the two
+consumers that never read the table now reading it. Size spread per character 8.0–75.1% → 0.02–0.55%;
+declared feet 386.1–408.8 → 356.0000. The **art half of `E1` is untouched and still fails** — a table
+cannot fix a turn set whose own frames disagree by 51 px, and that stays with the owner's sprite
+go-ahead.
+
+**What this cost, stated rather than buried**: the walk frames now render at 93% of source instead of
+53%, so the DPR-3 resolution floor on the worst reachable state goes **2.68× → 2.89×**, and one state
+that cannot be reached today (`spear-warrior-stop-turn`, no walk frames for erlang) would render as a
+**1.091× upscale** if it ever could be. See `A-port P2`.
 
 ---
 
 ## Still unobserved
 
-| quantity                                          | status                                                        |
-| ------------------------------------------------- | ------------------------------------------------------------- |
-| `CharacterModel` idle↔action aspect pop (18.738%) | COMPUTED — the component was never located on screen          |
-| DPR floor 2.68×                                   | COMPUTED — never opened on a DPR-3 device                     |
-| RAM in use                                        | never measured; 98.18 MiB is a decode ceiling                 |
-| run-cycle frame count, 8 or 12                    | undecided — `FRAME_COUNT = 8` constrains it internally        |
-| foot-line tolerance band                          | open — no external source exists, so it is a project decision |
+| quantity                          | status                                                        |
+| --------------------------------- | ------------------------------------------------------------- |
+| everything the `E3` fix changed   | COMPUTED — no browser session has been run since the change   |
+| `CharacterModel` on screen at all | the component has still never been located in a live session  |
+| DPR floor, now 2.89×              | COMPUTED — never opened on a DPR-3 device                     |
+| RAM in use                        | never measured; 98.18 MiB is a decode ceiling                 |
+| run-cycle frame count, 8 or 12    | undecided — `FRAME_COUNT = 8` constrains it internally        |
+| foot-line tolerance band          | open — no external source exists, so it is a project decision |
+
+**The first row is the one to read.** The size discontinuity and the knee-height shadow were both
+MEASURED-LIVE; their fix is arithmetic over an alpha scan and a test suite. The character is now
+computed to stand at one height with its feet on the anchor — nobody has looked at it.
 
 The 8-vs-12 row is still undecided, but it is **no longer a delivery argument**. It was being weighed
 partly on what 32 more frames per character would do to the 96-request burst; the burst is now a 4-deep

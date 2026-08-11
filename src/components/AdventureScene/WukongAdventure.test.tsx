@@ -133,6 +133,30 @@ describe('WukongAdventure — นโยบายโหลดเฟรมล่�
     expect(requested[0].startsWith(`${KIT.idlePrefix}-`)).toBe(true)
   })
 
+  /*
+    ข้อ #100/#106 — ขนาดของภาพต้องมาจากพิกเซลจริงของชีต ไม่ใช่จากกล่อง
+
+    เดิม .sprite เป็น width/height:100% + object-fit:contain กล่องขนาดเดียวจึงบีบชีตคนละขนาด
+    ให้ได้ตัวคนละขนาด (วัดจริง: ยืนใหญ่กว่าเดิน 81.5%) เทสต์นี้ล็อกว่า <img> ต้องถูกกำหนดขนาด
+    เป็น px จริง และอัตราส่วนต้องเท่ากับชีตที่กำลังแสดง
+
+    396/376 เขียนตายตัวโดยตั้งใจ ไม่ได้เรียกตารางเทียบพิกเซลมาคำนวณซ้ำ — ถ้าคำนวณจากตาราง
+    เดียวกับที่โค้ดใช้ เทสต์จะพิสูจน์แค่ว่าเลขคณิตตรงกับตัวเอง เลขนี้มาจากไฟล์จริง
+    (ดู "Frame inventory" ใน docs/SPRITE-CONFORMANCE.md — ชีตยืน/หันทิศของซุนหงอคง)
+  */
+  test('ขนาดภาพมาจากชีต ไม่ใช่จากกล่อง — และได้อัตราส่วนของชีตนั้นจริง (#100)', async () => {
+    const { container } = await mountScene()
+    const sprite = container.querySelector('img')!
+
+    expect(sprite.style.width).toMatch(/px$/)
+    expect(sprite.style.height).toMatch(/px$/)
+    expect(sprite.style.bottom).toMatch(/px$/)
+
+    const width = Number.parseFloat(sprite.style.width)
+    const height = Number.parseFloat(sprite.style.height)
+    expect(width / height).toBeCloseTo(396 / 376, 4)
+  })
+
   test('mount ใหม่ไม่ยิงชุดเดิมซ้ำ (ต้นเหตุอัตราซ้ำ 1.48 เท่า)', async () => {
     vi.resetModules()
     const { WukongAdventure } = await import('./WukongAdventure')

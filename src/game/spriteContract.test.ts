@@ -4,6 +4,8 @@ import sharp from 'sharp'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { getBattleSpriteSet } from './battleSpriteSequences'
 import type { CharacterModelKind } from './characters'
+import { publicUrl } from '../lib/publicUrl'
+import { SPRITE_SHEET_CALIBRATIONS } from './realtimeBattle/entitySpritePresentation'
 import { getSpriteSequence } from './spriteSequences'
 import { getWalkKit } from './walkKits'
 
@@ -20,6 +22,7 @@ import { getWalkKit } from './walkKits'
  *   2. PATHS AND COUNTS       every path the code pins resolves, and the pinned count is what ships
  *   3. DIRECTION ORDER        the turn set is addressed by NUMBER, the walk set by NAME
  *   4. ANCHOR TOLERANCE       foot-line drift inside the band for the animation kind
+ *   5. DERIVED WORLD SIZE     every drawn family is calibrated, and one character is one height
  *
  * `docs/SPRITE-DESIGN-LOCK.md` is the owner-locked standard; `docs/SPRITE-CONFORMANCE.md` is what
  * this repo measures against it. Both are prerequisites for editing anything below.
@@ -148,6 +151,10 @@ const LOCKED_TURN_ORDER = [
 
 /** Direction tokens that appear in a walk filename. Longest-first so `down-left` wins over `down`. */
 const DIRECTION_SUFFIX = /-(?:up|down)(?:-(?:left|right))?$|-(?:left|right)$/
+
+/** First match wins, exactly as `resolveSheetCalibration` resolves it at runtime. */
+const calibrationFor = (url: string) =>
+  SPRITE_SHEET_CALIBRATIONS.find((row) => url.includes(row.pathFragment))
 
 interface FrameMeasurement {
   width: number
@@ -574,6 +581,155 @@ describe('sprite frame contract', () => {
       const exemplar = scores.find((entry) => entry.group === 'spear-warrior-stop-turn')
       expect(exemplar?.xDirPx).toBe(0)
       expect(exemplar?.inDirPx).toBe(0)
+    })
+  })
+
+  /**
+   * INVARIANT 5 — world size is DERIVED from texture pixels (`docs/SPRITE-DESIGN-LOCK.md` `E3`).
+   *
+   * `entitySpritePresentation.ts` converts a frame to a rendered rect through one calibration
+   * row per family. Two things can go silently wrong with that, and neither throws:
+   *
+   *   - a family nobody registered falls back to the 396x376 default and renders at the wrong
+   *     scale (erlang's 640x512 sheets are 15% off that way, a turn set 21%);
+   *   - a registered row carrying the wrong number renders wrong for exactly one animation
+   *     state, which nobody notices until they watch the character switch into it.
+   *
+   * The band below is the gate on the second: for one character, every family it can draw must
+   * put the same number of ALPHA-MEASURED pixels into one canonical height. That compares the
+   * declared table against the art, so it cannot pass by agreeing with itself.
+   */
+  describe('derived world size per family', () => {
+    /**
+     * Every frame URL a sizing consumer draws, per character. Three sources, because three
+     * scenes draw the same art: `walkKits` (adventure), `spriteSequences` (lobby + roster),
+     * `battleSpriteSequences` (battle).
+     *
+     * NOT included: `ERLANG_SKILL_2_AURA_FRAMES` / `..._HOUND_FRAMES`, which are drawn by
+     * `ErlangHoundSkillEffect` with its own sizing and deliberately live outside
+     * `BattleSpriteSet` — see the comment at their declaration.
+     */
+    const bodyUrlsByKind = new Map<CharacterModelKind, string[]>(
+      ALL_KINDS.map((kind) => {
+        const walkKit = getWalkKit(kind)
+        const sequence = getSpriteSequence(kind)
+        const battle = getBattleSpriteSet(kind)
+        const walkUrls = walkKit.walkPrefix
+          ? LOCKED_TURN_ORDER.flatMap((direction) =>
+              Array.from(
+                { length: 8 },
+                (_, frame) => `${walkKit.walkPrefix}-${direction}-${frame}.webp`,
+              ),
+            )
+          : []
+
+        return [
+          kind,
+          [
+            ...walkUrls,
+            ...Array.from({ length: 8 }, (_, i) => `${walkKit.turnPrefix}-${i}.webp`),
+            ...Array.from(
+              { length: walkKit.idleCount },
+              (_, i) => `${walkKit.idlePrefix}-${i}.webp`,
+            ),
+            ...sequence.idleUrls,
+            ...sequence.actionUrls,
+            ...sequence.turnUrls,
+            ...Object.values(battle).flatMap((animation) => Object.values(animation.frames).flat()),
+          ],
+        ]
+      }),
+    )
+
+    /**
+     * Textures a sizing consumer draws that are NOT a character body. They still need a
+     * calibration row — `CharacterModel.tsx` used to stretch this one 37.9% wide — but they are
+     * excluded from the height agreement below, because a halo has no alpha-measured body
+     * height to agree about. Its size is a placement choice, and the row says so.
+     */
+    // Built through `publicUrl` exactly as `CharacterModel.tsx` builds it, base prefix and all.
+    const NON_BODY_URLS = [publicUrl('characters/tripitaka-buddha-aura.webp')]
+
+    it('every frame a sizing consumer draws has a calibration row of its own', () => {
+      const uncalibrated = [...new Set([...bodyUrlsByKind.values()].flat())]
+        .filter((url) => !calibrationFor(url))
+        .map((url) => toPublicPath(url))
+
+      expect([...new Set(uncalibrated)].toSorted()).toEqual([])
+    })
+
+    it('the non-body textures a sizing consumer draws are calibrated too', () => {
+      expect(NON_BODY_URLS.filter((url) => !calibrationFor(url))).toEqual([])
+    })
+
+    /**
+     * A row whose declared canvas disagrees with the files renders every frame of that family
+     * at the wrong aspect AND the wrong size, since both are computed from these two numbers.
+     */
+    it('every calibration row declares the canvas its files actually ship', () => {
+      // First match wins, exactly as the runtime lookup resolves it — `/characters/monkey-v2-`
+      // also matches the idle sheet's filenames, and only the ORDER keeps them apart.
+      const owned = new Map<string, FrameFile[]>()
+      for (const file of files) {
+        const row = calibrationFor(`/${file.publicPath}`)
+        if (!row) continue
+        const bucket = owned.get(row.pathFragment)
+        if (bucket) bucket.push(file)
+        else owned.set(row.pathFragment, [file])
+      }
+
+      const wrong = SPRITE_SHEET_CALIBRATIONS.flatMap((row) => {
+        const rowFiles = owned.get(row.pathFragment) ?? []
+        if (rowFiles.length === 0) {
+          return [{ row: row.pathFragment, problem: 'owns no shipped file — dead or shadowed' }]
+        }
+        return rowFiles
+          .map((file) => ({ file, frame: measure(file) }))
+          .filter(
+            ({ frame }) => frame.width !== row.canvasWidth || frame.height !== row.canvasHeight,
+          )
+          .map(({ file, frame }) => ({
+            row: row.pathFragment,
+            problem: `declares ${row.canvasWidth}x${row.canvasHeight}, ${file.publicPath} ships ${frame.width}x${frame.height}`,
+          }))
+      })
+
+      expect(wrong).toEqual([])
+    })
+
+    /**
+     * The `#100` gate. One character, one on-screen height, whichever state it is in.
+     *
+     * 2% is a LAYER C band — this project's own choice, no external source publishes one (see
+     * the lock's unbounded register). It is set against what the corpus measures today: the
+     * worst character spans 0.86% (`monkey-king`, widened by `monkey-pose`'s hand-tuned row),
+     * the best 0.02%. Every defect this is meant to catch is an order of magnitude bigger — an
+     * unregistered 640x512 family lands 15-21% out, the pre-fix adventure scene 81.5%.
+     */
+    const CANONICAL_HEIGHT_AGREEMENT_PCT = 2
+
+    it('one character renders one canonical height, in every family it can draw', () => {
+      const offenders = [...bodyUrlsByKind].flatMap(([kind, urls]) => {
+        const byFamily = new Map<string, number[]>()
+        for (const url of new Set(urls)) {
+          const row = calibrationFor(url)
+          const frame = measurements.get(toPublicPath(url))
+          if (!row || !frame) continue
+          const bucket = byFamily.get(row.pathFragment)
+          const ratio = frame.charHeight / row.pixelsPerCanonicalHeight
+          if (bucket) bucket.push(ratio)
+          else byFamily.set(row.pathFragment, [ratio])
+        }
+
+        const perFamily = [...byFamily].map(([family, ratios]) => ({ family, ratio: mean(ratios) }))
+        const ratios = perFamily.map((entry) => entry.ratio)
+        const spreadPct = (Math.max(...ratios) / Math.min(...ratios) - 1) * 100
+        return spreadPct > CANONICAL_HEIGHT_AGREEMENT_PCT
+          ? [{ kind, spreadPct: +spreadPct.toFixed(2), perFamily }]
+          : []
+      })
+
+      expect(offenders).toEqual([])
     })
   })
 })

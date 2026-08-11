@@ -15,6 +15,7 @@ import {
   type Point,
 } from '../../game/adventure/movement'
 import { ROSTER, type Character } from '../../game/characters'
+import { deriveSpriteSize } from '../../game/realtimeBattle/entitySpritePresentation'
 import { SCENE_WIDTH, SCENE_HEIGHT } from '../../game/sceneDimensions'
 import { getWalkKit } from '../../game/walkKits'
 import { TEMPLE_LOBBY_BG } from '../../game/backgroundAssets'
@@ -44,6 +45,31 @@ const COMMIT_INTERVAL_MS = 1000 / TARGET_COMMIT_HZ
 
 const DEPTH_TOP = 530
 const DEPTH_BOTTOM = 790
+
+/*
+   เรขาคณิตของกล่อง .actor — ต้องตรงกับ WukongAdventure.module.css เป๊ะ ๆ
+
+   กล่องนี้ไม่ได้เป็นตัวกำหนด "ขนาด" ของตัวละครอีกแล้ว (เดิม object-fit: contain เป็นคนตัดสิน
+   ซึ่งแปลว่าชีตคนละขนาดได้ตัวคนละขนาดโดยไม่มีใครสั่ง — วัดจริงบนโปรดักชัน: ยืน 396x376
+   ใหญ่กว่าเดิน 640x512 อยู่ 81.5% ดู docs/SPRITE-CONFORMANCE.md ข้อ #100) ตอนนี้เหลือหน้าที่
+   สองอย่างคือเป็นกรอบวางตำแหน่ง และเป็นที่ยึดของเงา/ฝุ่น/ป้ายชื่อ
+*/
+const ACTOR_BOX_HEIGHT_PX = 420
+/** จุดที่ "พื้น" อยู่ในกล่อง — ค่าเดียวกับ transform-origin/translate ของ .actor */
+const ACTOR_FOOT_ANCHOR_PX = 356
+
+/**
+ * ความสูงของ "ตัวละครหนึ่งหน่วยมาตรฐาน" ในหน่วย px ของกล่อง .actor
+ *
+ * ค่าเดียวที่ฉากนี้กำหนดเอง — ขนาดจริงของทุกเฟรมมาจาก deriveSpriteSize() ตามข้อ E3 ของ
+ * docs/SPRITE-DESIGN-LOCK.md (ความสูงจากตารางเทียบพิกเซล, ความกว้างจากอัตราส่วนของชีตเอง,
+ * ตำแหน่งเท้าจาก bottomInsetPx) ไม่มีเลขขนาดพิมพ์มืออยู่ในไฟล์นี้อีก
+ *
+ * ที่มาของ 322.83: 340 x 376/396 คือความสูงที่ชีตอ้างอิง 396x376 เคยได้จาก object-fit:
+ * contain ในกล่องกว้าง 340 พอดี — ตั้งใจให้ "ท่ายืน" ซึ่งเป็นสิ่งแรกที่ผู้เล่นเห็นตอนเข้าฉาก
+ * มีขนาดเท่าเดิมเป๊ะ แล้วให้ท่าอื่นวิ่งมาหาขนาดนี้แทน (ท่าเดินเดิมเล็กเกินไป ไม่ใช่ท่ายืนใหญ่เกิน)
+ */
+const SPRITE_CANONICAL_HEIGHT_PX = 322.83
 
 const DIRECTIONS: Direction[] = [
   'down',
@@ -532,6 +558,19 @@ export function WukongAdventure({
       ? `${kit.idlePrefix}-${idleFrame}.webp`
       : turnUrl
 
+  /*
+     ขนาดและตำแหน่งของภาพเฟรมนี้ — คำนวณจากพิกเซลจริงของชีต (E3) ไม่ใช่ให้กล่องเป็นคนตัดสิน
+     `bottom` วางให้ "เส้นเท้า" ของชีต (bottomInsetPx) ตกลงที่ ACTOR_FOOT_ANCHOR_PX พอดี
+     ทุกชีต — ซึ่งเป็นจุดเดียวกับที่เงาวงรีอยู่ (ข้อ #106: เดิมเท้าต่ำกว่าเงา 30-53px
+     เงาจึงไปอยู่ระดับหัวเข่า)
+  */
+  const spriteSize = deriveSpriteSize(spriteUrl, SPRITE_CANONICAL_HEIGHT_PX)
+  const spriteStyle: CSSProperties = {
+    width: `${spriteSize.width}px`,
+    height: `${spriteSize.height}px`,
+    bottom: `${ACTOR_BOX_HEIGHT_PX - ACTOR_FOOT_ANCHOR_PX - spriteSize.footInset}px`,
+  }
+
   const actorScreenPos = worldToScreen(view)
   const actorStyle = {
     '--actor-x': `${actorScreenPos.x}px`,
@@ -626,7 +665,13 @@ export function WukongAdventure({
             <i />
           </div>
         ) : null}
-        <img className={styles.sprite} src={spriteUrl} alt={active.name} draggable={false} />
+        <img
+          className={styles.sprite}
+          style={spriteStyle}
+          src={spriteUrl}
+          alt={active.name}
+          draggable={false}
+        />
         {mode === 'moonlight' ? null : (
           <div className={styles.nameplate}>
             <span>{active.epithet}</span>
