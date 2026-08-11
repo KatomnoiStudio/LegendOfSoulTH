@@ -71,6 +71,39 @@ describe('entitySpritePresentation', () => {
     expect(idle.scaleX / idle.scaleY).toBeCloseTo(640 / 512 / ENTITY_SPRITE_ASPECT, 8)
     expect(cast.scaleX / cast.scaleY).toBeCloseTo(800 / 640 / ENTITY_SPRITE_ASPECT, 8)
   })
+
+  it('keeps Wukong v4 the same stature and foot anchor across idle, attack, and run', () => {
+    const sheets = [
+      ['/characters/monkey-king-v4/idle-0.webp', 390.75, 640, 512, 31],
+      ['/characters/monkey-king-v4/attack-0.webp', 332, 640, 640, 20],
+      ['/characters/monkey-king-v4/run-0.webp', 286.85, 512, 512, 113],
+    ] as const
+    const pitchCos = Math.cos(Math.abs(ENTITY_SPRITE_PITCH_RAD))
+    const visibleHeights: number[] = []
+
+    for (const [frameUrl, visibleHeight, canvasWidth, canvasHeight, bottomInsetPx] of sheets) {
+      const presentation = resolveSpriteMeshPresentation('monkey-king', frameUrl)
+      visibleHeights.push(
+        ENTITY_SPRITE_HEIGHT * (visibleHeight / canvasHeight) * presentation.scaleY,
+      )
+      expect(presentation.scaleX / presentation.scaleY).toBeCloseTo(
+        canvasWidth / canvasHeight / ENTITY_SPRITE_ASPECT,
+        8,
+      )
+
+      const localFootY =
+        ENTITY_SPRITE_HEIGHT * (bottomInsetPx / canvasHeight - 0.5) * presentation.scaleY
+      const renderedFootY =
+        resolveTemporaryEntityContainerLiftY('monkey-king') +
+        presentation.centerY +
+        localFootY * pitchCos
+      expect(renderedFootY).toBeCloseTo(0, 8)
+    }
+
+    expect(visibleHeights[1]).toBeCloseTo(visibleHeights[0], 2)
+    expect(visibleHeights[2]).toBeCloseTo(visibleHeights[0], 2)
+  })
+
   it.each([
     ['monkey-king', '/characters/monkey-v2-idle-0.webp', 11, 376],
     ['pig-warrior', '/characters/pigsy-idle-0.webp', 15, 376],

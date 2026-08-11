@@ -11,7 +11,7 @@
 > which shipped files are renders (added 2026-08-10 — same severity as the reference-image
 > gap); the **Adobe product and channel used in the fitting pass are still unrecorded**, and
 > no log of that pass survives; `public/favicon.svg` has **unknown** provenance; and the
-> record **covers 177 of 870 tracked assets** in detail — the other 693 have a known author
+> record **covers 253 of 946 tracked assets** in detail — the other 693 have a known author
 > but undocumented generation details.
 >
 > Owner answers folded in 2026-08-10 (HetCreep, recorded with Codex) · Agent: Claude Code
@@ -96,6 +96,12 @@
 >   is now stated on its own, and **no provenance branch is called clean anywhere in this
 >   file.** Caught by the QC gate, which noted that the same draft never once called
 >   text-only generation clean.
+>
+> **2026-08-11 — Sun Wukong v4 replacement added.** Codex recorded the 38 raw PNG inputs,
+> 38 shipped WebP derivatives, generator, reference roles, and local processing below in the
+> same change as the files. This documents the process; it does not resolve the unknown
+> original source of the user-supplied Erlang motion reference or perform a similarity/legal
+> review.
 
 ---
 
@@ -110,14 +116,15 @@ historical game asset."*
 | --- | --- | --- |
 | **Erlang Shen** (`*erlang-shen*` — 94 shipped `.webp`, 75 `.png` build inputs) | 169 | **Documented** below, to the level the questionnaire could confirm. **156 of the 169 are byte-identical to `kaoshock123`'s own commit** — see [Who authored the shipped art](#who-authored-the-shipped-art-measured) |
 | **Audio** (`public/audio/sfx/`) | 8 | **Documented** — third-party, Kenney.nl, CC0 |
-| **Everything else** — Sun Wukong, Pigsy, Tripitaka, the walk/turnaround sets, UI, background, all of `assets/archive/` | 693 | **AUTHOR KNOWN, PROVENANCE NOT VOUCHED FOR.** All **693** trace to `kaoshock123` (measured, none unresolved, no other author). That is materially better than "unknown origin" — but `kaoshock123` explicitly declined to vouch for the historical sets, so the *generation details* behind them are undocumented |
+| **Sun Wukong v4** (`characters/monkey-king-v4/` — 38 shipped `.webp`, 38 `.png` build inputs) | 76 | **Process documented 2026-08-11** — OpenAI image generation under HetCreep's direction, with reference roles and post-processing recorded below. Reference-source and similarity questions remain open |
+| **Historical remainder** — pre-v4 Sun Wukong, Pigsy, Tripitaka, the walk/turnaround sets, UI, background, all of `assets/archive/` | 693 | **AUTHOR KNOWN, PROVENANCE NOT VOUCHED FOR.** All **693** trace to `kaoshock123` (measured, none unresolved, no other author). That is materially better than "unknown origin" — but `kaoshock123` explicitly declined to vouch for the historical sets, so the *generation details* behind them are undocumented |
 | `public/favicon.svg` | 1 | **UNKNOWN** — see below |
 
-A replacement **Sun Wukong** asset set is planned; it is **not yet shipped** and is not
-covered by this record either. When it ships, its provenance gets recorded at the same
-time as the files, not afterwards.
+A replacement **Sun Wukong v4** candidate is included in this change and becomes shipped
+only after this PR is merged and deployed. Its process record is below; open reference-source,
+provider-terms, copyrightability, and similarity questions are not closed by that record.
 
-Total tracked: **870 binary assets** (488 `.png`, 374 `.webp`, 8 `.ogg`) plus
+Total tracked after this change: **946 binary assets** (526 `.png`, 412 `.webp`, 8 `.ogg`) plus
 `public/favicon.svg`.
 
 This file records **origin**. It does **not** carry per-file checksums or a tamper
@@ -131,16 +138,44 @@ worth closing.
 
 ---
 
+## Sun Wukong v4 replacement — process record (2026-08-11)
+
+**Operator:** HetCreep · **Agent / execution seat:** Codex (`/root`, Ring-1 maker) ·
+**Output:** 12 Idle + 6 Normal Attack 1 + 20 Run frames. The 38 PNG build inputs live under
+`assets/raw/characters/monkey-king-v4/`; `npm run build:images` produced the corresponding
+38 WebP files under `public/characters/monkey-king-v4/` at character quality 90.
+
+- **Idle and Normal Attack 1:** generated through Codex's built-in OpenAI image-generation
+  tool during the owner-directed Wukong design session. The accepted Idle design was used as
+  the identity/style reference for the attack set.
+- **Run:** generated through the same OpenAI image-generation tool. The accepted Wukong Idle
+  was the identity/style reference; the owner-supplied `erlang-spritesheet.zip` run sheet was
+  used only as a motion/cadence reference. The earlier Google Flow MP4 was reviewed during the
+  design conversation but is not shipped and was not used as the final frame source.
+- **Post-processing:** Codex used the local `generate2dsprite` workflow for magenta chroma-key
+  removal, frame extraction/alignment, edge checks, and despill. The repository image pipeline
+  then generated WebP derivatives. No Blender or Adobe step was used for this v4 set.
+- **Timing selected by HetCreep:** Idle 300 ms/frame; Run 102 ms/frame (20 frames = 2.04 s,
+  matching the Erlang reference cycle); Lobby Normal Attack 1 at 8 fps. Battle attack rates
+  remain 16/18/14 fps so this art refresh does not change combat timing.
+- **What is not recorded:** no seed or provider-side generation ID is available in the repo;
+  the exact provider model revision and terms snapshot were not archived. The original source
+  and permission basis of the owner-supplied Erlang motion reference are not established here,
+  and no visual-similarity or legal review has been performed. "Process documented" therefore
+  does not mean "rights cleared."
+
+---
+
 ## Directory map
 
 | Directory | Files | Type | Shipped to players? | Role |
 | --- | --- | --- | --- | --- |
-| `public/characters/` (incl. `walk/`, `turnaround/`, `erlang-shen-skill-2-fx/`) | 359 | `.webp` | Yes | AI-produced art — an unknown share may be Blender renders (unknown #10) — cut/cleaned by `tools/` |
+| `public/characters/` (incl. `walk/`, `turnaround/`, `erlang-shen-skill-2-fx/`) | 397 | `.webp` | Yes | AI-produced art — Wukong v4 is documented above; an unknown share of the historical remainder may be Blender renders (unknown #10) — cut/cleaned by `tools/` |
 | `public/ui/thai/`, `public/ui/navigation/` | 14 | `.webp` | Yes | AI-produced art — an unknown share may be Blender renders (unknown #10) |
 | `public/backgrounds/` | 1 | `.webp` | Yes | AI-produced art — an unknown share may be Blender renders (unknown #10) |
 | `public/audio/sfx/` | 8 | `.ogg` | Yes | **Third-party — Kenney.nl, CC0** |
 | `public/favicon.svg` | 1 | `.svg` | Yes | **Unknown origin** |
-| `assets/raw/**` | 355 | `.png` | **No** — build input only | Pre-compression masters of the shipped `public/` art |
+| `assets/raw/**` | 393 | `.png` | **No** — build input only | Pre-compression masters of the shipped `public/` art |
 | `assets/archive/**` | 133 | `.png` | **No** — retained history | Superseded generations, alternate poses/palettes, uncut sheets (`*-source.png`, `*-sheet.png`) |
 
 `assets/raw/` is converted to `public/` WebP by `tools/optimize-images.mjs` (`npm run
@@ -636,7 +671,7 @@ visible.
 
 | # | Unknown | Why it stays open |
 | --- | --- | --- |
-| 1 | **Original source of every reference image** | Owner: *"not currently recorded."* No prompts or seeds survive to reconstruct it, and the retained Claude Code transcripts do not reach the generation step. **A load-bearing unknown**, and a reason this file stays a DRAFT — it blocks any clean claim that the art is free of third-party input. **Joined 2026-08-10 by unknown #10**, which is the same severity and the same shape: an unrecorded third-party input that may travel into the shipped files |
+| 1 | **Original source of every reference image** | Owner: *"not currently recorded."* No prompts or seeds survive for the historical sets. Wukong v4 records which references played which roles, but the original source and permission basis of the owner-supplied Erlang motion sheet remain unknown. **A load-bearing unknown**, and a reason this file stays a DRAFT — it blocks any clean claim that the art is free of third-party input. **Joined 2026-08-10 by unknown #10**, which is the same severity and the same shape: an unrecorded third-party input that may travel into the shipped files |
 | 2 | **Which Adobe product was used in the fitting pass, and through what channel** | Open. The owner reports an agent-carried-out Adobe pass. Most of the fitting work predates the retained transcripts (`16f764b` 2026-08-06, `64a67fd` 2026-08-07, vs transcripts from 2026-08-08), though `ff67fb1`'s 96-file re-crop falls inside the window and shows no Adobe call. The earlier "unresolved discrepancy" framing is **withdrawn** — the empty transcript search covered the wrong machine and the wrong window, and was never in tension with the owner's account. See [The Adobe step](#the-adobe-step-and-why-the-transcript-search-proves-nothing-about-it-2026-08-10) |
 | 3 | **What each provider's terms actually permit** — commercial use, output ownership, whether a right survives cancelling a paid plan, disclosure duties | Tools and paid tiers are now known; the terms are not, and the ones in force at generation time are not recorded. **Adobe stays on this list** — the owner reports an Adobe pass (unknown #2), and Adobe's credit-metering policy is unverified, so its terms cannot be assumed irrelevant. Deliberately not answered here |
 | 4 | **Generation details behind 693 of 870 tracked assets** | **Narrowed 2026-08-10.** The *author* is no longer unknown: all **693** measure to `kaoshock123` (0 unresolved, no other author). What is missing is the generation detail — tools, reference inputs, terms — for sets `kaoshock123` explicitly declined to vouch for. Wukong, Pigsy, Tripitaka, walk/turnaround, UI, background, all of `assets/archive/` |
@@ -663,14 +698,16 @@ From the owner's record:
 
 Added by this seat:
 
-4. **Record provenance for the incoming Sun Wukong set in the same commit as the files** —
-   the replacement set is the first chance to get an asset set right from the start rather
-   than reconstructing it later.
+4. ~~**Record provenance for the incoming Sun Wukong set in the same commit as the files.**~~
+   **Done 2026-08-11:** the Wukong v4 process, reference roles, processing, counts, and open
+   questions are recorded above. This closes the missing-record task, not the reference-source
+   or rights questions.
 5. **Establish the Blender picture** (unknown #10) — **the highest-value open question on
    this list**, because `kaoshock123` can answer both halves directly and nothing in the
    repository can. Which shipped assets are renders, and were the 3D models built from
    scratch or downloaded? If downloaded, record the source and licence per model. Ask before
-   the incoming Wukong set is produced, so the same gap is not created twice.
+   The Wukong v4 set above did not use Blender; this remains open for the unidentified
+   historical assets that may be Blender renders.
 6. **Record which Adobe product and channel the fitting pass used** (unknown #2). No log of
    it survives, so the one remaining source is the **Adobe account's own activity history**,
    which nobody has consulted. Worth checking before any commercial step. *Mis-stated three

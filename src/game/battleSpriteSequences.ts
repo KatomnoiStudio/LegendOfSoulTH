@@ -1,6 +1,6 @@
 import { publicUrl } from '../lib/publicUrl'
 import type { CharacterModelKind } from './characters'
-import type { Direction8 } from './realtimeBattle/types'
+import type { CombatFacing, Direction8 } from './realtimeBattle/types'
 
 /**
  * ชุดเฟรมภาพเฉพาะของห้องต่อสู้ real-time — แยกจาก src/game/spriteSequences.ts โดยตั้งใจ
@@ -67,6 +67,8 @@ export interface BattleAnimation {
   rate: number
   /** เล่นวนหรือเล่นจบแล้วค้างเฟรมสุดท้าย */
   loop: boolean
+  /** ชุดภาพวาดหันขวาเป็นต้นฉบับ จึงกลับแนวนอนเมื่อแกนโจมตีหันซ้าย */
+  mirrorForLeftFacing?: boolean
 }
 
 export type BattleSpriteSet = Record<BattleAnimationId, BattleAnimation>
@@ -96,8 +98,11 @@ function allDirections(urls: string[]): Partial<Record<Direction8, string[]>> {
   return result
 }
 
-const MONKEY_IDLE = frames('monkey-v2-idle', 24)
-const MONKEY_ATTACK = frames('monkey-attack-new', 6, 12)
+const MONKEY_IDLE = frames('monkey-king-v4/idle', 12)
+const MONKEY_ATTACK = frames('monkey-king-v4/attack', 6)
+const MONKEY_RUN = frames('monkey-king-v4/run', 20)
+const MONKEY_LEGACY_IDLE = frames('monkey-v2-idle', 24)
+const MONKEY_LEGACY_ATTACK = frames('monkey-attack-new', 6, 12)
 const MONKEY_ACTION = frames('monkey-v2', 10)
 const MONKEY_VICTORY = Array.from({ length: 4 }, (_, index) =>
   publicUrl(`characters/monkey-pose-${index}-alpha.webp`),
@@ -126,16 +131,71 @@ export const ERLANG_SKILL_2_HOUND_FRAMES = Array.from({ length: 6 }, (_, index) 
 )
 
 const MONKEY_KING_SET: BattleSpriteSet = {
-  idle: { frames: allDirections(MONKEY_IDLE), rate: 8, loop: true },
+  idle: {
+    frames: allDirections(MONKEY_IDLE),
+    rate: 10 / 3,
+    loop: true,
+    mirrorForLeftFacing: true,
+  },
+  walk: {
+    frames: allDirections(MONKEY_RUN),
+    rate: 1000 / 102,
+    loop: true,
+    mirrorForLeftFacing: true,
+  },
+  'attack-1': {
+    frames: allDirections(MONKEY_ATTACK),
+    rate: 16,
+    loop: false,
+    mirrorForLeftFacing: true,
+  },
+  'attack-2': {
+    frames: allDirections(MONKEY_ATTACK),
+    rate: 18,
+    loop: false,
+    mirrorForLeftFacing: true,
+  },
+  'attack-3': {
+    frames: allDirections(MONKEY_ATTACK),
+    rate: 14,
+    loop: false,
+    mirrorForLeftFacing: true,
+  },
+  dash: {
+    frames: allDirections(MONKEY_RUN),
+    rate: 20,
+    loop: false,
+    mirrorForLeftFacing: true,
+  },
+  'skill-1': { frames: allDirections(MONKEY_ACTION), rate: 16, loop: false },
+  'skill-2': { frames: allDirections(MONKEY_ACTION), rate: 16, loop: false },
+  hit: {
+    frames: allDirections([MONKEY_IDLE[0]]),
+    rate: 1,
+    loop: false,
+    mirrorForLeftFacing: true,
+  },
+  death: {
+    frames: allDirections([MONKEY_IDLE[0]]),
+    rate: 1,
+    loop: false,
+    mirrorForLeftFacing: true,
+  },
+  victory: { frames: allDirections(MONKEY_VICTORY), rate: 5, loop: false },
+}
+
+/** Nezha still borrows the previous placeholder set until its own art pass lands. */
+const NEZHA_WARDEN_SET: BattleSpriteSet = {
+  idle: { frames: allDirections(MONKEY_LEGACY_IDLE), rate: 8, loop: true },
   walk: { frames: walkFrames8('monkey-walk'), rate: 12, loop: true },
-  'attack-1': { frames: allDirections(MONKEY_ATTACK), rate: 16, loop: false },
-  'attack-2': { frames: allDirections(MONKEY_ATTACK), rate: 18, loop: false },
-  'attack-3': { frames: allDirections(MONKEY_ATTACK), rate: 14, loop: false },
+  'attack-1': { frames: allDirections(MONKEY_LEGACY_ATTACK), rate: 16, loop: false },
+  'attack-2': { frames: allDirections(MONKEY_LEGACY_ATTACK), rate: 18, loop: false },
+  'attack-3': { frames: allDirections(MONKEY_LEGACY_ATTACK), rate: 14, loop: false },
   dash: { frames: walkFrames8('monkey-walk'), rate: 20, loop: false },
   'skill-1': { frames: allDirections(MONKEY_ACTION), rate: 16, loop: false },
   'skill-2': { frames: allDirections(MONKEY_ACTION), rate: 16, loop: false },
-  hit: { frames: allDirections([MONKEY_IDLE[0]]), rate: 1, loop: false },
-  death: { frames: allDirections([MONKEY_IDLE[0]]), rate: 1, loop: false },
+  hit: { frames: allDirections([MONKEY_LEGACY_IDLE[0]]), rate: 1, loop: false },
+  death: { frames: allDirections([MONKEY_LEGACY_IDLE[0]]), rate: 1, loop: false },
   victory: { frames: allDirections(MONKEY_VICTORY), rate: 5, loop: false },
 }
 
@@ -195,7 +255,7 @@ const BATTLE_SPRITE_SETS: Record<CharacterModelKind, BattleSpriteSet> = {
   'pig-warrior': PIG_WARRIOR_SET,
   'pilgrim-monk': PILGRIM_MONK_SET,
   'celestial-archer': PILGRIM_MONK_SET,
-  'nezha-warden': MONKEY_KING_SET,
+  'nezha-warden': NEZHA_WARDEN_SET,
   'sand-sage': PIG_WARRIOR_SET,
   'spear-warrior': SPEAR_WARRIOR_SET,
 }
@@ -228,6 +288,15 @@ export function resolveBattleFrames(animation: BattleAnimation, facing: Directio
   if (direct && direct.length > 0) return direct
   const fallback = animation.frames[toSpriteDirection(facing)]
   return fallback ?? []
+}
+
+export function resolveBattleSpriteScaleX(
+  animation: BattleAnimation,
+  combatFacing: CombatFacing,
+  baseScaleX: number,
+): number {
+  const magnitude = Math.abs(baseScaleX)
+  return animation.mirrorForLeftFacing && combatFacing === 'left' ? -magnitude : magnitude
 }
 
 function urlsFor(kinds: CharacterModelKind[], animations: BattleAnimationId[]): string[] {

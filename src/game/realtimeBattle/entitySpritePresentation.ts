@@ -59,6 +59,30 @@ const CANONICAL_CANVAS_HEIGHT = 376
 
 const SPRITE_SHEET_CALIBRATIONS: readonly SpriteSheetCalibration[] = [
   {
+    pathFragment: '/characters/monkey-king-v4/idle-',
+    canvasWidth: 640,
+    canvasHeight: 512,
+    // Alpha scan: 390.75px average visible height across 12 frames.
+    pixelsPerCanonicalHeight: 459,
+    bottomInsetPx: 31,
+  },
+  {
+    pathFragment: '/characters/monkey-king-v4/attack-',
+    canvasWidth: 640,
+    canvasHeight: 640,
+    // Alpha scan: 332px average visible height across 6 frames.
+    pixelsPerCanonicalHeight: 390,
+    bottomInsetPx: 20,
+  },
+  {
+    pathFragment: '/characters/monkey-king-v4/run-',
+    canvasWidth: 512,
+    canvasHeight: 512,
+    // Alpha scan: 286.85px average visible height across 20 frames.
+    pixelsPerCanonicalHeight: 337,
+    bottomInsetPx: 113,
+  },
+  {
     pathFragment: '/characters/walk/monkey-walk-',
     canvasWidth: 640,
     canvasHeight: 512,

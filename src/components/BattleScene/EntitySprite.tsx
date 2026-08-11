@@ -5,6 +5,7 @@ import type { Group, Mesh, MeshBasicMaterial } from 'three'
 import {
   getBattleSpriteSet,
   resolveBattleFrames,
+  resolveBattleSpriteScaleX,
   type BattleAnimationId,
 } from '../../game/battleSpriteSequences'
 import type { CharacterModelKind } from '../../game/characters'
@@ -137,7 +138,8 @@ export function EntitySprite({ runtime, entityId, kind, accent }: EntitySpritePr
     if (texture && material.map !== texture) material.map = texture
 
     const presentation = resolveSpriteMeshPresentation(kind, frameUrl)
-    mesh.current.scale.set(presentation.scaleX, presentation.scaleY, 1)
+    const scaleX = resolveBattleSpriteScaleX(animation, entity.combatFacing, presentation.scaleX)
+    mesh.current.scale.set(scaleX, presentation.scaleY, 1)
     mesh.current.position.y = presentation.centerY
 
     // ตายแล้วค่อย ๆ จางหาย, โดนตีแล้ววาบสีแดง — ทั้งสองท่าไม่มีเฟรมภาพของตัวเอง
