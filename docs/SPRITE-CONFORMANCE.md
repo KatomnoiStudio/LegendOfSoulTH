@@ -52,13 +52,35 @@ hypothetical; it already exists, and it is the one that gets this right.
 | consumer                                      | pinned aspect                                 | status                               |
 | --------------------------------------------- | --------------------------------------------- | ------------------------------------ |
 | `AdventureScene/WukongAdventure.tsx`          | none — derived per frame from the calibration | **CLOSED 2026-08-11**                |
-| `CharacterRoster/CharacterPreview.module.css` | `.figure { aspect-ratio: 396 / 376 }`         | correct — matches its art            |
+| `CharacterRoster/CharacterPreview.module.css` | `.figure { aspect-ratio: 396 / 376 }`         | **OPEN** — see below                 |
 | `LobbyScene/CharacterModel.tsx`               | none — derived per frame from the calibration | **CLOSED 2026-08-11**                |
 | `BattleScene/EntitySprite.tsx`                | `ENTITY_SPRITE_ASPECT = 1.2508`               | correct — fed by a calibration table |
 
-**No consumer pins an aspect ratio any more, so `L1` has nothing left to violate.** Both halves are met
-by construction rather than by comment: the aspect comes out of the source canvas (`E3`), so it is right
-for every canvas including ones nobody has drawn yet, and its provenance is the calibration row.
+**Three of the four consumers no longer pin an aspect at all**, so for those three `L1` is met by
+construction rather than by comment: the aspect comes out of the source canvas (`E3`), so it is right for
+every canvas including ones nobody has drawn yet, and its provenance is the calibration row.
+
+**The fourth still pins one, and it is fed art that does not match — `L1` is OPEN, not closed.**
+`CharacterPreview` draws `getSpriteSequence(kind)` (`CharacterPreview.tsx:274-295`) into a box whose
+aspect is pinned at `396 / 376` (`CharacterPreview.module.css:89-93`), with `object-fit: contain` on the
+frame (`:126-137`). The comment at `:80-88` states the pin's provenance honestly — the union rect across
+**three** characters — and `spear-warrior` was added afterwards. Its two sheets ship **640x512**:
+`erlang-shen-v6-idle-*` and `spear-warrior-stop-turn-key-*` (`spriteSequences.ts:101-117`). `L1` requires a
+pinning consumer to be either fed matching art or to carry a comment naming its source canvas; for this
+one character, neither holds.
+
+The consequence is measured, not inferred, and it is `#100`'s own defect class surviving in a consumer
+this record had marked clear. Both sheets are the same canvas, so `contain` scales them identically and
+the difference is purely what the art puts inside: alpha height **370 px** standing against **252 px**
+turning. Open the roster on `spear-warrior` and drag to turn him and the character **shrinks 31.9%**
+mid-drag (equivalently, standing renders **+46.8%** larger than turning) — the same 46.8% this repository
+just closed for that character in the adventure scene. Against the other three he also renders about 28%
+shorter in the same box.
+
+Fixing the roster is a separate topic on the same table — `CharacterPreview` is 2D DOM, so it would take
+`deriveSpriteSize` in CSS px exactly as `WukongAdventure` now does, making it the third consumer to read
+the table rather than the second. What is recorded here is only that the rule is open, because a future
+agent reading a closed `L1` stops looking.
 
 **What was violated, kept for the record.** `CharacterModel` failed both halves at once:
 
@@ -118,19 +140,19 @@ interface SpriteSheetCalibration {
 
 `pixelsPerCanonicalHeight` is Unity's `pixelsPerUnit` and Godot's `pixel_size` under a local name;
 `bottomInsetPx` is `E1`'s foot offset in the same record, as `E3` requires. `ENTITY_SPRITE_HEIGHT = 1.6`
-is the canonical world height each family converts into. **23 families are registered**, every value
+is the canonical world height each family converts into. **20 calibration rows are registered**, covering 21 of the 23 distinct file groups under `public/characters` — `aura` and `hound` are deliberately outside the table, as `spriteContract.test.ts` states at its own exclusion list. (An earlier revision of this paragraph said "18", then "23"; both counted file groups present rather than rows registered, and neither re-derived.) Every value
 alpha-scanned rather than guessed.
 
 **So this project did not copy the convention — it arrived at it independently, and the two vendors
 corroborate the choice.** That is stronger evidence than adoption would have been, and it is why `E3`
 is stated in the lock as a convergence rather than as an import.
 
-| consumer                                      | conforms to `E3` | how                                                                                          |
-| --------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------- |
-| `BattleScene/EntitySprite.tsx`                | **yes**          | reads the calibration table; `ENTITY_SPRITE_ASPECT` is a fallback, not the source of truth   |
-| `CharacterRoster/CharacterPreview.module.css` | **n/a**          | 2D DOM, no world units — its pinned `aspect-ratio` is the DOM equivalent and matches its art |
-| `LobbyScene/CharacterModel.tsx`               | **yes**          | `deriveSpriteSize(url, 3.213)` per family; unit planes scaled from it, at all three sites    |
-| `AdventureScene/WukongAdventure.tsx`          | **yes**          | `deriveSpriteSize(url, 322.83)` per frame → the `<img>` width/height/bottom in CSS px        |
+| consumer                                      | conforms to `E3`                   | how                                                                                                                                                                                 |
+| --------------------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BattleScene/EntitySprite.tsx`                | **yes**                            | reads the calibration table; `ENTITY_SPRITE_ASPECT` is a fallback, not the source of truth                                                                                          |
+| `CharacterRoster/CharacterPreview.module.css` | **n/a** for `E3`, **OPEN** on `L1` | 2D DOM, so `E3`'s "sprite drawn into a 3D scene" does not reach it — but its pinned `aspect-ratio` is the DOM equivalent, and for `spear-warrior` it does NOT match the art (above) |
+| `LobbyScene/CharacterModel.tsx`               | **yes**                            | `deriveSpriteSize(url, 3.213)` per family; unit planes scaled from it, at all three sites                                                                                           |
+| `AdventureScene/WukongAdventure.tsx`          | **yes**                            | `deriveSpriteSize(url, 322.83)` per frame → the `<img>` width/height/bottom in CSS px                                                                                               |
 
 **The scene's own constant is the only number each consumer types**, which is exactly what the lock
 says a project must supply itself (`E3`: "the constant's value depends on the scene's own camera and
@@ -484,7 +506,26 @@ the lobby's 3D side  CharacterModel is R3F; there is no WebGL context in the tes
                      nothing asserts its plane geometry. Only the shared table underneath it is gated.
 a consumer opting    nothing stops a future consumer from typing its own width and height again.
 out entirely         The consumer table above is still the only check on that, and it is a person.
+hand-placed props    the lobby's effects and hitbox are positioned by hand, not derived, so they do
+                     not follow the sprite. See the named consequences immediately below.
 ```
+
+**What moved relative to the sprite when its feet dropped to `y=0`, and did not follow it.** Putting the
+feet on the ground raised the character by **+0.1195 local / +0.0956 world**. Four hand-placed things in
+`CharacterModel.tsx` kept their own coordinates:
+
+```
+:308  palm glow      [0.7, 1.48] — 59.6% -> 55.1% of Tripitaka's body height, a slide of 0.12 local
+:325  the 3 waves    [0.7, 1.48] — same origin, same slide
+:295  the halo       rose only +0.0915, because its bottomInsetPx (50/1317) differs from the body's
+                     (11/376) — a 0.028 relative drop against the character it frames
+:94   the click box  [0, 0.95], height 2.1 — head overshoot grows from ~0.09 to ~0.19 world units,
+                     so the top of the head stops being clickable
+```
+
+All four are cosmetic and none is a regression against a state anyone has seen: this scene has never been
+located on screen in a live session (see the browser gap above). They are recorded so that the first
+person who does open it finds them written down rather than discovers them.
 
 The standing obligations that no test can carry:
 
