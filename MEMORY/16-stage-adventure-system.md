@@ -122,6 +122,7 @@ the very comment written to prevent doc-rot — count fields, don't eyeball them
 **Verify:** typecheck, `oxlint --deny-warnings`, 911 tests (910 baseline + 1), build — all green.
 
 **Process note:** this section had to be written TWICE. The first copy was an uncommitted edit in
-the shared working copy and was wiped by another lane's tree-mutating git action (rule 21's exact
-hazard). Caretaker `MEMORY/` edits made in the shared tree are not safe until committed — hand
+the shared working copy and was wiped by another lane's tree-mutating git action (the hazard rule
+21 was written for, before it was retired 2026-08-12 as unfollowed). Caretaker `MEMORY/` edits
+made in the shared tree are not safe until committed — hand
 them to main in the return rather than assuming they survive.

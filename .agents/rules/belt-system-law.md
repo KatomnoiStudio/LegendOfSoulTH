@@ -33,8 +33,10 @@ binding order: (1) the dispatch prompt, then (2) the seat's own file (`.claude/a
 - **Layer 2's intake rules (rules 1–2) address Ring-1 devs specifically.**
 - **The addressing rule allocates the BELT's layered authorities ONLY. The repo's baseline
   laws (`AGENTS.md` rules 1–22 + `.agents/rules/**`) bind EVERY seat regardless of addressing**
-  (owner ratification 2026-08-09) — rule 22's RLS law, rule 15's CUT/DEFERRED lock, rule 21's
-  workdir lock and their siblings never demote to tier-4 context for any seat.
+  (owner ratification 2026-08-09) — rule 22's RLS law, rule 15's CUT/DEFERRED lock and their
+  siblings never demote to tier-4 context for any seat. (Rule 21's workdir lock stood here too
+  until it was retired 2026-08-12; the numbering was left alone, so 22 and the range above still
+  read correctly.)
 
 ## Layer 1 — laws that command RING 0 (the belt end / main seat, HetCreep's machine)
 
