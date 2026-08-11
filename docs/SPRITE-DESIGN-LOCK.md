@@ -1,7 +1,12 @@
 <!--
   LICENCE NOTICE — THIS FILE ONLY
 
-  Copyright (c) 2026 HetCreep / Katomnoi Studio. All rights reserved.
+  Copyright (c) 2026 HetCreep. All rights reserved.
+
+  This line used to read "HetCreep / Katomnoi Studio", which reads as joint ownership and
+  contradicted the STANDING GRANT twelve lines below it — you do not grant a licence to a
+  co-owner. Corrected 2026-08-11 to the owner's own ruling: HetCreep holds the copyright, the
+  Studio holds a licence.
 
   This file is licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0
   International (CC BY-NC-ND 4.0): https://creativecommons.org/licenses/by-nc-nd/4.0/
@@ -31,7 +36,8 @@
 
 # SPRITE DESIGN LOCK
 
-> **Licence — this file only.** © 2026 HetCreep / Katomnoi Studio.
+> **Licence — this file only.** © 2026 HetCreep. Katomnoi Studio holds a standing licence to use it,
+> not a share of the copyright — see the notice above.
 > Released under [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/), **not** under
 > the MIT licence covering the rest of this repository. Commercial use or adaptation requires a
 > separate written licence. See `LICENSE` for the carve-out, and the comment above for what a lawyer
@@ -39,6 +45,16 @@
 
 **Locked by HetCreep (Ring 0) on 2026-08-11. Binding on both sides of this project: the code that
 renders sprites, and the people who draw them.**
+
+> **This document also exists outside this project.** It was rewritten as a standalone,
+> project-neutral standard — the **Sprite Design Datum** — at
+> [`HetCreep/SpriteDesignDatum`](https://github.com/HetCreep/SpriteDesignDatum), same owner, same
+> CC BY-NC-ND terms. Cite the external one by tag permalink
+> (`blob/v2.0.2/SPRITE-DESIGN-DATUM.md`), never the reading copy on GitBook, which serves none of
+> the rule anchors. The two are kept deliberately separate: the Datum states rules and carries no
+> project data, this file is where those rules bind _this_ repository, and
+> `docs/SPRITE-CONFORMANCE.md` records what this repository actually ships against them. Where the
+> two disagree on a rule's wording, the Datum at its tag is the standard and this file has drifted.
 
 This is a locked decision in the sense of `AGENTS.md` rule 15 — agents do not renegotiate it, and a PR
 that contradicts it is converted at intake, not filed as debt. `docs/MASTER_BLUEPRINT_v3.0.md` remains
