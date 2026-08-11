@@ -2,7 +2,7 @@
 
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `KatomnoiStudio/LegendOfSoulTH`  
-> **RULES_VERSION: 32** (bump on every material rule change — see `.agents/rules/rules-freshness-check.md`)
+> **RULES_VERSION: 33** (bump on every material rule change — see `.agents/rules/rules-freshness-check.md`)
 
 ---
 
@@ -14,7 +14,7 @@
 ## ⚖️ MANDATORY LAW FOR ALL AGENTS
 
 1. **Read `MEMORY.md` First**: Before starting any task, read `MEMORY.md` at the project root.
-2. **Maintain & Synthesize `MEMORY.md`**: Continuously update `MEMORY.md` with past summary, current status, and technical decisions.
+2. **Maintain & Synthesize `MEMORY.md`**: `MEMORY.md` exists so the _next_ session knows how to continue the work, not to log what happened — continuously update it with past summary, current status, and technical decisions toward that end (`.agents/rules/agent-memory-law.md` §2).
 3. **Identity Stamping**: Always stamp edits with Operator (`HetCreep`), Agent Identity/Role, and Timestamp.
    3a. **Always push `MEMORY.md` on every submit** (`.agents/rules/agent-memory-law.md` §4): every commit/push/PR/"ส่งงาน" must include the updated `MEMORY.md` in the same delivery — never leave it only local or only on a fork while upstream gets the code without it.
 4. **Relative Paths Only**: NEVER hardcode machine-specific absolute paths (e.g. `C:\Users\...`). Always use relative repository paths (`MEMORY.md`, `.agents/rules/`, etc.) so the project remains portable for all contributors.

@@ -3,7 +3,8 @@
 > **Target Workspace**: `LegendOfSoulTH` (LegendofSoulTH)  
 > **Operator / Human User Identity**: `HetCreep`  
 > **Scope**: Binding for ALL AI agents, subagents, and automated assistants operating on this codebase.  
-> **Last material change**: 2026-08-10 — §1/§2 describe the file's new index-plus-archive shape (`MEMORY.md` = index, bodies verbatim under `MEMORY/archive/`). Shape only: every obligation in this file is unchanged and still absolute.  
+> **Last material change**: 2026-08-12 — §2's purpose sharpened (HetCreep, mid-redesign of `.agents/` from its first-ever version): `MEMORY.md` exists so the _next_ session knows how to continue, not to log what happened. Same edit: the 2026-08-10 index+archive shape had gone unfollowed for two days — items 203-207 sat as full bodies in root instead of archive+index — swept by hand and byte-verified (item 208). `RULES_VERSION` bump in `AGENTS.md`.  
+> **Prior material change**: 2026-08-10 — §1/§2 describe the file's new index-plus-archive shape (`MEMORY.md` = index, bodies verbatim under `MEMORY/archive/`). Shape only: every obligation in this file is unchanged and still absolute.  
 > **Prior material change**: 2026-08-07 — §4 added (always push `MEMORY.md` with every submit). `RULES_VERSION` bump in `AGENTS.md`.
 
 ---
@@ -34,10 +35,11 @@ What that means in practice:
 
 ### 2. Continuous Memory Updates & Synthesis
 
+- **Purpose test (2026-08-12, HetCreep)**: `MEMORY.md` exists so the _next_ session — a different agent, possibly a different model, on a different machine — knows how to continue the work, without re-deriving what this session already learned. Judge every update against that test: would a stranger picking this up cold know what to do next? "I wrote a summary" is not the bar; "the next session can continue" is.
 - Agents must continuously update and crystallize work state into `MEMORY.md` at the project root (`MEMORY.md`).
-- **Where the writing goes**: a new item's **body** is appended to the newest `MEMORY/archive/NNN-MMM.md` block (a new block starts every 25 items) and its **index line** goes into `MEMORY.md`, in the same commit. Existing bodies are never rewritten to "tidy" them — `tools/verify-memory-archive.mjs` asserts they stay byte-identical to the pre-split file, and `MEMORY/archive/` sits in `.prettierignore` so no formatter can silently reflow them. Header/status edits at the top of `MEMORY.md` are unaffected and still go there directly.
+- **Where the writing goes**: a new item's **body** is appended to the newest `MEMORY/archive/NNN-MMM.md` block (a new block starts every 25 items) and its **index line** goes into `MEMORY.md`, **in the same commit** — root never holds a full body, not even temporarily. This was violated for two days on 2026-08-12 (items 203-207 sat as full bodies in root); see item 208 for the correction and the byte-verification method, since `tools/verify-memory-archive.mjs` cannot currently be trusted to catch this itself (item 110). Existing bodies are never rewritten to "tidy" them — `MEMORY/archive/` sits in `.prettierignore` so no formatter can silently reflow them. Header/status edits at the top of `MEMORY.md` are unaffected and still go there directly.
 - **CRITICAL**: Use relative file paths (`MEMORY.md`, `.agents/rules/...`) only. Do NOT hardcode machine-specific local absolute file paths so the repository remains portable for all contributors.
-- Updates must summarize:
+- Updates must give the next session what continuing needs:
   - **Past Context & History**: High-level timeline of major milestones achieved.
   - **Present Status**: Current working state, active features, and open tasks.
   - **Architectural Learnings & Decisions**: Technical decisions, conventions, and configuration rationale.
