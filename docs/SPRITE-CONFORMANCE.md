@@ -385,10 +385,12 @@ at once.
 
 ---
 
-## Delivery · **MEASURED-LIVE**
+## Delivery · **MEASURED-LIVE, then fixed 2026-08-11**
 
-`WukongAdventure.tsx:81-86` and `:237` — `preload()` is `new Image()` per URL, fired for every frame at
-once, with no batching and no priority hint. The `Image` objects are discarded immediately.
+### What was measured
+
+`WukongAdventure.tsx:81-86` and `:237` — `preload()` was `new Image()` per URL, fired for every frame at
+once, with no batching and no priority hint. The `Image` objects were discarded immediately.
 
 ```
 peak            96 requests inside one second, starting t = 748 ms after navigation
@@ -397,9 +399,44 @@ re-fetch        144 requests for 97 distinct URLs = 1.48x
 per character   96 files, 2.43 MiB on disk, 98.18 MiB decode ceiling
 ```
 
+### What changed
+
+One change per measured number, in the same file. **Nothing here touches which frames exist** — the
+sampling stride and `idleCount` are task #102 and are unchanged.
+
+| was                               | now                                                            |
+| --------------------------------- | -------------------------------------------------------------- |
+| every URL in one tick             | queue, at most **4 in flight**, next starts on load _or_ error |
+| no priority hint                  | `fetchPriority = 'low'` on every preload request               |
+| all 24 idle frames                | the 8 this scene can draw, from `idleFrameIndex`               |
+| a re-run re-requests the same set | module-level requested-set — each URL requested once           |
+| walk first, idle last             | idle → turn → walk, the order the scene actually draws them    |
+
+The sampling expression now lives in **one** function that both the renderer and the preload list call,
+so the set that is fetched cannot drift from the set that is drawn. The 24 idle frames are not dead —
+`CharacterPreview` animates all of them; they are simply not fetched by a scene that reaches 8.
+
+**COMPUTED** from the shipped files — the preload set per character:
+
+```
+monkey-king   96 -> 80 files   2,548,798 -> 2,074,844 B   -462.8 KiB  -18.6%
+pig-warrior   96 -> 80 files   2,687,110 -> 1,915,798 B   -753.2 KiB  -28.7%
+```
+
+monkey-king's 2,548,798 B is the 2.43 MiB quoted above, reproduced to the byte.
+
+**What is NOT claimed.** No memory saving: 98.18 MiB was a decode ceiling and never a measurement, so
+nothing derived from it is one either. The live request timeline has **not** been re-measured — a
+browser session is the only instrument for that. What is verified without a browser is the pattern the
+code emits: how many URLs, which ones, how many concurrently, in what order, and whether a re-run
+re-requests them. `WukongAdventure.test.tsx` pins all five, and each of the three defects was
+re-injected to confirm the test goes red (96-at-once → red, all-24-idle → red, no requested-set → 160
+requests for 80 URLs → red).
+
 **Cache**: shipped frames return `cache-control: max-age=600` — ten minutes — and filenames carry **no
 content hash**, so the lifetime cannot be extended without hashing first. The JS/CSS bundles already get
-hashed names from the build; the character art does not.
+hashed names from the build; the character art does not. **Untouched by the above** — a preloaded frame
+that outlives the TTL is re-fetched exactly as before (#108).
 
 **Compression**: 43 of 359 frames are **VP8L lossless** — 3.55 MiB, **27% of the art payload**, all in
 one family. A rule forbidding lossless would be violated by the repository on the day it was written;
@@ -409,18 +446,22 @@ either the exception is stated or those files are re-encoded.
 
 ## Open violations
 
-| #   | rule            | what                                                                                |
-| --- | --------------- | ----------------------------------------------------------------------------------- |
-| 100 | `L1` / `B`      | standing renders +81.5% larger than walking — two canvases, one box                 |
-| 106 | `E1`            | shadow renders at knee height; foot-to-anchor gap 48.1 px standing, 27.3 px walking |
-| 107 | `L2` / delivery | 96-request preload burst, 1.48× re-fetch, 16 idle frames never drawn                |
-| 108 | delivery        | `max-age=600` on unhashed immutable art                                             |
-| 101 | all             | **nothing in CI asserts any sprite invariant**                                      |
-| —   | `L1`            | `planeGeometry [4.018, 3.213]` has no provenance comment at `:160` or `:164`        |
-| —   | `B3`            | the sampling constant `3` is undocumented                                           |
-| —   | delivery        | 43 lossless frames vs an unwritten no-lossless rule                                 |
+| #   | rule       | what                                                                                |
+| --- | ---------- | ----------------------------------------------------------------------------------- |
+| 100 | `L1` / `B` | standing renders +81.5% larger than walking — two canvases, one box                 |
+| 106 | `E1`       | shadow renders at knee height; foot-to-anchor gap 48.1 px standing, 27.3 px walking |
+| 108 | delivery   | `max-age=600` on unhashed immutable art                                             |
+| 101 | all        | **nothing in CI asserts any sprite invariant**                                      |
+| —   | `L1`       | `planeGeometry [4.018, 3.213]` has no provenance comment at `:160` or `:164`        |
+| —   | `B3`       | the sampling constant `3` is undocumented                                           |
+| —   | delivery   | 43 lossless frames vs an unwritten no-lossless rule                                 |
 
-**All held pending the owner's sprite go-ahead.** The lock ships; conformance does not.
+**The rest are held pending the owner's sprite go-ahead.** The lock ships; conformance does not.
+
+**Closed 2026-08-11 — #107** (`L2` / delivery), the one violation above that was purely the code's own
+scheduling and needed no art decision: the burst, the re-fetch and the 16 undrawn frames are all gone,
+and the policy is pinned by test. See the Delivery section above for what is and is not claimed. It is
+also the reason **#107 no longer carries the 8-vs-12 run-cycle question with it** — see below.
 
 ---
 
@@ -433,3 +474,8 @@ either the exception is stated or those files are re-encoded.
 | RAM in use                                        | never measured; 98.18 MiB is a decode ceiling                 |
 | run-cycle frame count, 8 or 12                    | undecided — `FRAME_COUNT = 8` constrains it internally        |
 | foot-line tolerance band                          | open — no external source exists, so it is a project decision |
+
+The 8-vs-12 row is still undecided, but it is **no longer a delivery argument**. It was being weighed
+partly on what 32 more frames per character would do to the 96-request burst; the burst is now a 4-deep
+queue, so more frames lengthen the queue instead of widening the spike. That removes a reason against
+12 — it supplies no reason for it. What is left is how the walk cycle should look, which is the owner's.
