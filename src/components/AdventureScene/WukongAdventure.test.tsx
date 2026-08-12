@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import { render, cleanup } from '@testing-library/react'
+import { render, cleanup, fireEvent, screen } from '@testing-library/react'
 import { ROSTER } from '../../game/characters'
 import { getWalkKit } from '../../game/walkKits'
 
@@ -64,6 +64,11 @@ async function mountScene() {
   vi.resetModules()
   const { WukongAdventure } = await import('./WukongAdventure')
   return render(<WukongAdventure characters={[ROSTER[0]]} mode="moonlight" />)
+}
+
+async function loadComponent() {
+  vi.resetModules()
+  return (await import('./WukongAdventure')).WukongAdventure
 }
 
 describe('WukongAdventure — นโยบายโหลดเฟรมล่วงหน้า', () => {
@@ -141,7 +146,7 @@ describe('WukongAdventure — นโยบายโหลดเฟรมล่�
     เป็น px จริง และอัตราส่วนต้องเท่ากับชีตที่กำลังแสดง
 
     396/376 เขียนตายตัวโดยตั้งใจ ไม่ได้เรียกตารางเทียบพิกเซลมาคำนวณซ้ำ — ถ้าคำนวณจากตาราง
-    เดียวกับที่โค้ดใช้ เทสต์จะพิสูจน์แค่ว่าเลขคณิตตรงกับตัวเอง เลขนี้มาจากไฟล์จริง
+    เดียวกับที่โค้ดใช้ เทสต์จะพิสูจน์แค่ว่าเลขนี้ตรงกับตัวเอง เลขนี้มาจากไฟล์จริง
     (ดู "Frame inventory" ใน docs/SPRITE-CONFORMANCE.md — ชีตยืน/หันทิศของซุนหงอคง)
   */
   test('ขนาดภาพมาจากชีต ไม่ใช่จากกล่อง — และได้อัตราส่วนของชีตนั้นจริง (#100)', async () => {
@@ -171,5 +176,68 @@ describe('WukongAdventure — นโยบายโหลดเฟรมล่�
 
     expect(firstMount).toBeGreaterThan(0)
     expect(requested).toHaveLength(firstMount)
+  })
+})
+
+describe('WukongAdventure — scene behavior', () => {
+  beforeEach(() => {
+    vi.stubGlobal('Image', FakeImage)
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    )
+  })
+
+  afterEach(() => {
+    cleanup()
+    vi.unstubAllGlobals()
+  })
+
+  test('โหมด trial แสดง HUD ของฉากและเรียก onExit เมื่อกดกลับ', async () => {
+    const WukongAdventure = await loadComponent()
+    const onExit = vi.fn()
+
+    render(<WukongAdventure characters={[ROSTER[0]]} onExit={onExit} mode="trial" />)
+
+    expect(screen.getByRole('region', { name: /ลานฝึกวายุ — ควบคุม/ })).toBeInTheDocument()
+    expect(screen.getAllByText('ลานฝึกวายุ')).toHaveLength(2)
+    expect(screen.getByText('WIND TRIAL COURT')).toBeInTheDocument()
+    expect(screen.getByText('WASD')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /กลับลานประลอง/ }))
+    expect(onExit).toHaveBeenCalledTimes(1)
+  })
+
+  test('โหมด moonlight ซ่อน HUD การควบคุมและยังแสดงตัวละครที่กำลังเดิน', async () => {
+    const WukongAdventure = await loadComponent()
+
+    render(<WukongAdventure characters={[ROSTER[0]]} mode="moonlight" />)
+
+    expect(screen.getByRole('region', { name: /เดินชมจันทร์ — ควบคุม/ })).toBeInTheDocument()
+    expect(screen.getByText('ลานพระจันทร์')).toBeInTheDocument()
+    expect(screen.queryByText('WASD')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /กลับลานประลอง/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('img', { name: ROSTER[0].name })).toBeInTheDocument()
+  })
+
+  test('ตัวละครที่ยังไม่มีชุดเดิน แสดงทางออกใน trial แต่ไม่ render ฉาก moonlight', async () => {
+    const WukongAdventure = await loadComponent()
+    const unavailable = ROSTER.find((character) => getWalkKit(character.model.kind).walkPrefix === null)!
+    const onExit = vi.fn()
+
+    const { rerender } = render(
+      <WukongAdventure characters={[unavailable]} onExit={onExit} mode="trial" />,
+    )
+
+    expect(screen.getByText('ยังไม่มีขุนพลที่ออกเดินได้')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'กลับลานประลอง' }))
+    expect(onExit).toHaveBeenCalledTimes(1)
+
+    rerender(<WukongAdventure characters={[unavailable]} mode="moonlight" />)
+    expect(screen.queryByText('ยังไม่มีขุนพลที่ออกเดินได้')).not.toBeInTheDocument()
+    expect(screen.queryByRole('region')).not.toBeInTheDocument()
   })
 })
