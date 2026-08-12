@@ -1,0 +1,16 @@
+<!--
+  Copy this to CLAUDE.md on your own machine. CLAUDE.md itself is gitignored: it is the
+  LOAD layer, and what a machine loads is that machine's business.
+
+      cp CLAUDE.md.example CLAUDE.md
+
+  The line below is the only thing every machine needs — it pulls in the shared law.
+  Everything you add under it is yours: your agent tooling, your local procedures, the
+  roles this particular machine plays. None of it should ever end up in AGENTS.md, and
+  none of it costs anyone else a single token to read.
+
+  AGENTS.md is the shared half. If a rule belongs to every dev on every machine, it goes
+  there. If it only works where your tools are installed, it goes here.
+-->
+
+@AGENTS.md

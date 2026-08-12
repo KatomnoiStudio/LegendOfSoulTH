@@ -33,6 +33,11 @@ scripts/
 .claude/launch.json
 .claude/settings.local.json
 
+# The LOAD layer is per machine. AGENTS.md is the shared law; CLAUDE.md is whatever this
+# machine loads on top of it — local tooling, local roles, local procedures. Start from
+# CLAUDE.md.example (tracked, one line) and add your own below it.
+CLAUDE.md
+
 # The belt system — installed per machine from docs/BELT-PORT.md, never shared.
 # It only functions where Claude Code loads .claude/agents/, and AGENT_REGISTRY.md holds
 # live session ids that mean nothing on any other machine. The repo keeps the INSTALLER

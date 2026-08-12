@@ -40,7 +40,7 @@ Anything whose cost is real or whose benefit is a guess:
 - Work measured in days rather than minutes, however obviously good.
 - Adding a dependency, a build step, or a new layer.
 - A change that alters how the game behaves for a player.
-- Anything that reverses a decision already recorded with reasoning — that is an ask-CB,
+- Anything that reverses a decision already recorded with reasoning — that is a blind-review question,
   not a judgment call (see `reportError.ts`'s header for a live example).
 
 For these: state the cost, state what it buys, recommend one, and proceed unless told

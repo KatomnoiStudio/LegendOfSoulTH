@@ -2,7 +2,7 @@
 
 # Security Doc Sync Law
 
-> **Scope**: Binding for every dev/agent. Found via `/gold-standard` AUDIT, 2026-08-07 (Security+Compatibility scout, item S14): `SECURITY.md` still described a "no backend, client-only, nothing to protect" trust model 8+ hours after Supabase Auth+RLS went live in `useAuth.ts` — a vulnerability reporter reading it that day would have scoped their report against a trust model that no longer existed.
+> **Scope**: Binding for every dev/agent. Found via a standards audit, 2026-08-07 (Security+Compatibility scout, item S14): `SECURITY.md` still described a "no backend, client-only, nothing to protect" trust model 8+ hours after Supabase Auth+RLS went live in `useAuth.ts` — a vulnerability reporter reading it that day would have scoped their report against a trust model that no longer existed.
 
 ## The rule
 
