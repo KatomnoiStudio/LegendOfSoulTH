@@ -29,7 +29,7 @@ interface ErrorBoundaryState {
  * ให้ไม่ได้ในจังหวะที่ผู้เล่นเชื่อมันที่สุด จอนี้จึงบอกความจริงแทน: ความคืบหน้าอยู่บนเซิร์ฟเวอร์แล้ว
  *
  * จะเอาปุ่มกลับมาได้ก็ต่อเมื่อ `accountRepository.supabase.ts` มี export จริง (ไม่ใช่ stub) —
- * ไฟล์นั้นเป็นของ persistence lane ดูรายละเอียด HOLD ใน MEMORY/27-error-observability-system.md
+ * ไฟล์นั้นเป็นของ persistence lane จนกว่าจะถึงตอนนั้น ปุ่มยัง HOLD ไว้
  */
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = { error: null }
@@ -52,8 +52,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <h1 className={styles.title}>เกิดข้อผิดพลาด</h1>
             <p className={styles.message}>
               เกมพบปัญหาที่ไม่คาดคิด ความคืบหน้าของคุณถูกบันทึกไว้บนเซิร์ฟเวอร์แล้ว
-              ไม่ได้อยู่แค่ในเบราว์เซอร์นี้ กดโหลดใหม่เพื่อเล่นต่อได้เลย
-              หากพังซ้ำทุกครั้ง ให้แจ้งปัญหาพร้อมรหัสด้านล่าง
+              ไม่ได้อยู่แค่ในเบราว์เซอร์นี้ กดโหลดใหม่เพื่อเล่นต่อได้เลย หากพังซ้ำทุกครั้ง
+              ให้แจ้งปัญหาพร้อมรหัสด้านล่าง
             </p>
             <ErrorCodeTag code="BOUNDARY_RENDER_CRASH" />
             <div className={styles.actions}>

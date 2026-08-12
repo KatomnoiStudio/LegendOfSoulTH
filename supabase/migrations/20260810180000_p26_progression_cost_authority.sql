@@ -183,9 +183,9 @@ grant select on public.progression_spend_ledger to authenticated;
 -- 20260809073000:132, carried forward verbatim by 20260810100000:47). Gold has been credit-only
 -- since 0001. A spend needs `(currency='gold' and source='upgrade' and amount<0)`.
 --
--- ⚠ EVERY EXISTING BRANCH IS CARRIED FORWARD VERBATIM. This project's own memory records the
--- trap (MEMORY/22-currency-system.md): a constraint rewrite that drops the gem/gacha negative
--- branch breaks gacha the moment someone pulls. The three lines below are byte-for-byte
+-- ⚠ EVERY EXISTING BRANCH IS CARRIED FORWARD VERBATIM. The trap, pinned by a test in
+-- progressionCostAuthority.integration.test.ts: a constraint rewrite that drops the gem/gacha
+-- negative branch breaks gacha the moment someone pulls. The three lines below are byte-for-byte
 -- 20260810100000:45-47 plus one new line.
 --
 -- 'upgrade' is NOT excluded from the guest-inactivity signal in 20260810160000's cleanup

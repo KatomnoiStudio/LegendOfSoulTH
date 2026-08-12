@@ -467,8 +467,8 @@ describe('spend_progression_upgrade — the cost side is server-authoritative', 
 
   it('the gem/gacha debit row stays legal — the constraint rewrite carried it forward', async () => {
     /*
-      MEMORY/22-currency-system.md records this trap by name: a constraint rewrite that forgets
-      the gem/gacha negative branch breaks gacha the moment someone pulls. Prove it survived.
+      The trap this pins by name: a constraint rewrite that forgets the gem/gacha negative
+      branch breaks gacha the moment someone pulls, silently. Prove it survived the rewrite.
     */
     await db.exec(
       `insert into public.currency_transactions (profile_id, currency, source, amount)

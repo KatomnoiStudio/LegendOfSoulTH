@@ -22,12 +22,13 @@ written up in `.agents/rules/agent-memory-law.md` §1a):
 
 - **`MEMORY/archive/NNN-MMM.md`** — *these files*. The bodies behind root `MEMORY.md`'s index.
   Scope: **every machine, every dev.** Part of the shared project record.
-- **`MEMORY/<system>.md`** (e.g. `MEMORY/25-backend-server-authority-system.md`) — the working
-  memory of whoever holds that one system. Scope: **that system only**; useful to anyone
-  picking it up, and not part of the shared project record.
+- **`MEMORY/<system>.md`** — the working notes of whoever holds one system. **Gitignored since
+  2026-08-12**: those notes are theirs, not the project's, and a dev who never touches that
+  system should not pay to load them. They are not part of the shared record and a clone will
+  not have them.
 
-Whoever holds a system writes its `MEMORY/<system>.md`; whoever merges composes the root index
-entry. Everyone still reads root `MEMORY.md` first — that never changed.
+Whoever merges composes the root index entry. Everyone still reads root `MEMORY.md` first, and
+opens the archive file an index line names when it bears on their task — that never changed.
 
 **Line endings**: these files are LF in the repository. On Windows with `core.autocrlf=true`
 a checkout rewrites them to CRLF in your working tree; that is a checkout artifact, not drift.

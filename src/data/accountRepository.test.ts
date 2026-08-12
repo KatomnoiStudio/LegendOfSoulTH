@@ -137,8 +137,8 @@ const CREDENTIAL_KEY = /pass|secret|token|auth|jwt|cookie|salt|hash|credential|a
   ข้อยกเว้นเดียว ระบุเป็น "เส้นทางเต็ม" ไม่ใช่ชื่อคีย์ — email ที่ตำแหน่งอื่นยังถือว่ารั่ว
 
   importSave() ใช้ account.email เป็นคีย์เขียนบัญชีกลับ (normalizeEmail(account.email)) ตัดออก
-  แล้วนำเข้าไม่ได้เลย และมันเป็นอีเมลของเจ้าของไฟล์เอง ไม่ใช่ของคนอื่น — ดูเหตุผลเต็มใน
-  MEMORY/27-error-observability-system.md
+  แล้วนำเข้าไม่ได้เลย และมันเป็นอีเมลของเจ้าของไฟล์เอง ไม่ใช่ของคนอื่น — ข้อยกเว้นจึงผูกกับ
+  เส้นทางเต็ม "$.account.email" ตำแหน่งเดียว ไม่ใช่ชื่อคีย์ email ทุกที่
 */
 const EXPORT_KEY_ALLOWED = new Set(['$.account.email'])
 

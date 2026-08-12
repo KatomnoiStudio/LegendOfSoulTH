@@ -2,7 +2,7 @@
 
 > **Operator / Human User**: `HetCreep`  
 > **Repository**: `KatomnoiStudio/LegendOfSoulTH`  
-> **RULES_VERSION: 36** (bump on every material rule change — see `.agents/rules/rules-freshness-check.md`)
+> **RULES_VERSION: 37** (bump on every material rule change — see `.agents/rules/rules-freshness-check.md`)
 
 ---
 

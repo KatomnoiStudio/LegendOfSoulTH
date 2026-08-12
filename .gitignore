@@ -54,6 +54,11 @@ CLAUDE.md
 # (never goes in the shared, mandatory-read MEMORY.md)
 MEMORY.local.md
 
+# Per-system working memory — whoever holds a system keeps their own notes here, and those
+# notes are theirs, not the project's. The SHARED record is root MEMORY.md plus the bodies
+# under MEMORY/archive/, both tracked; this pattern is depth-1 only and never touches them.
+MEMORY/*.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

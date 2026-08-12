@@ -21,15 +21,15 @@
 
 Two different things now live under `MEMORY/`. They are split by **audience**, not by who happens to write them:
 
-| file                                                  | scope                                 | binds                                                                     |
-| ----------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------- |
-| **root `MEMORY.md`** (+ its `MEMORY/archive/` bodies) | **every machine, every dev**          | everyone — reading it is rule 1, above, and is absolute                   |
-| **`MEMORY/<system>.md`**                              | **one system, whoever is working it** | the agent or dev holding that system right now — optional for anyone else |
+| file                                                  | scope                                 | binds                                                      |
+| ----------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------- |
+| **root `MEMORY.md`** (+ its `MEMORY/archive/` bodies) | **every machine, every dev**          | everyone — reading it is rule 1, above, and is absolute    |
+| **`MEMORY/<system>.md`** (gitignored)                 | **one system, whoever is working it** | nobody but its holder — a clone does not have these at all |
 
 What that means in practice:
 
-- **Working on one system? Write your notes in that system's own `MEMORY/<system>.md`.** That discharges the duty in full — you do not also append to root `MEMORY.md`, and should not: one file per system means two people working two systems in parallel cannot collide in the shared record.
-- **The root index entry is composed at merge** by whoever merges, and root `MEMORY.md` stays their own memory file. Root has to work for a dev with no per-system file at all, which is exactly why it cannot be one.
+- **Working on one system? Keep your running notes in that system's own `MEMORY/<system>.md`.** That is yours, not the project's — **gitignored since 2026-08-12**, so a dev who never touches that system never loads it, and two people working two systems in parallel cannot collide. Nothing obliges you to keep one; it is a place, not a duty.
+- **What the project keeps is the root index entry**, composed at merge, with its body in `MEMORY/archive/`. That pair is the shared record and it is tracked. If a finding matters to anyone but you, it belongs there — a note that only ever lives in a gitignored per-system file has not been delivered.
 - **Rule 1 is untouched by this.** Every agent still reads root `MEMORY.md` first, every session. This says where you WRITE, never whether you READ.
 - This resolved a real contradiction: parallel work was being told "do not touch root `MEMORY.md`" while §2 below (and `AGENTS.md` rules 2/3a) told everyone to maintain it. Whoever obeyed one looked like they broke the other, and with several lanes running at once every lane appending to one file guaranteed conflicts in the record whose whole job is to be reliable. Note that `SECURITY.md` (rule 19) and `TASKS.md` (rule 20) are NOT covered by this split — those still ride along in the same commit as the change that triggers them.
 
