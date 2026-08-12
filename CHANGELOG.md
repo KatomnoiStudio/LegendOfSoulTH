@@ -9,6 +9,93 @@ Versioning follows [Semantic Versioning 2.0.0](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-08-13
+
+A release about tests that could not fail. The last one gave the art a compiler;
+this one turns the same question on the checks themselves — a gate nobody has ever
+attacked is not known to hold. Running that check found two live bugs and rejected
+a PR that measured well and shipped the wrong numbers.
+
+### Added
+
+- **A gacha rate standard, derived rather than picked** (`docs/GACHA-RATE-DESIGN-LOCK.md`).
+  Band rate, per-character split, pity, cost, duplicate shards and the star ladder are
+  now one base×scale rule instead of numbers someone chose. Every value traces to nine
+  real games measured with sourced odds, and every decision was ratified against its
+  derivation rather than its headline. Two of them were rebuilt mid-derivation when the
+  method turned out to be wrong: the price was first computed against minimum wage,
+  which is 18-26% of the average wage in China against 47-66% here — the same word
+  meaning different fractions of real income in two economies — and the duplicate-shard
+  table was un-derived and frozen once a formula tie meant re-ratifying the band rate
+  would silently reprice the whole shard economy, a coupling no surveyed game has.
+  Deliberately not published outside the repo: it is priced for one market.
+- **Rule 24, the mutation-verified fix law** (`.agents/rules/mutation-verified-fix-law.md`).
+  A PR that claims to fix a defect must ship a test **proven to fail against the
+  pre-fix source** — checked out and run, not asserted. "A test exists and is green" is
+  a different claim. Modelled on `spriteContract.test.ts`, which opens the real `.webp`
+  rather than trusting the calibration table that declares it.
+- **Coverage for ten components and one dungeon path** — Toast, LobbyScene, ErrorCodeTag,
+  GameViewport, LoadingScreen, AdventureScene, SideActions, StartAdventure, plus survival
+  `enemyHpScale` propagation from orchestrator to every spawned enemy. Reviewed by asking
+  each `it` block to name the concrete change it would catch; three that could not answer
+  were fixed before merge. 121 → 128 test files, 1119 → 1144 tests.
+
+### Fixed
+
+- **An evicted toast could not be re-shown for up to 2.46 seconds.** A fourth toast
+  pushes the oldest off screen, but the duplicate guard read from a separate set that
+  was only cleaned by the evicted toast's own timer. In that window the message was
+  swallowed silently — no toast, no sound, and nothing on screen to say why the button
+  did nothing. The guard now reads the rendered list, so eviction clears it by
+  construction; there is no second copy left to drift.
+- **The lobby replayed its reward recovery on every rerender.** `LobbyPage` passed an
+  inline-recreated `onExit`, so each render looked like a new session and re-fired
+  `onGetPendingRewards` — three calls where one was correct.
+- **Three sites in the reward pipeline computed the same flag merge twice**, once inline
+  and once through `withFlags`. Byte-identical today, which is exactly why no black-box
+  test could ever turn red on it; pinned with a structural test instead, since the thing
+  that breaks it is a future edit touching one site and not the other.
+
+### Changed
+
+- `docs/MASTER_BLUEPRINT_v3.0.md` §7.1 named Genshin's soft/hard pity ramp as the shape
+  to build. Every formula this project actually locked has been flat-rate — FGO-shaped —
+  since the first invariant. Reconciled the document to the math rather than rebuilding
+  four locked invariants and a calibrated ladder to match one sentence.
+- `docs/README.md` indexes the new rate lock and states what is still open in it: the
+  schema is not applied, and the banner is blocked on the sprite gate and on a
+  `common`-rarity character existing at all.
+
+### Removed
+
+- `src/game/heroes/gachaPool.ts` — dead since it was written, zero production importers,
+  and carrying Genshin's exact numbers (`softPityAt: 74`, `hardPityAt: 90`, `costGems: 160`)
+  as though they were this project's.
+
+### Rejected
+
+- **PR #127** (image loading dimensions) — measured before merging, and four of the
+  declared sizes are wrong against the shipped files: `walk/` is 640×512 across all 128
+  frames and Erlang Shen's idle sheet is 640×512, both declared 396×376; the UI icons are
+  256×256, declared 68×68 and 32×32. The stated benefit is also unreachable — every one
+  of the nine call sites already pins both axes in CSS, and one sets an `aspect-ratio`
+  that contradicts the declared ratio outright. Left open with the repair path: read from
+  `SPRITE_SHEET_CALIBRATIONS`, which already holds these numbers and is the documented
+  source of truth for them.
+
+### Credits
+
+- **nustanakritwithai** — thirteen pull requests this cycle. Ten merged (component and
+  dungeon coverage, the reward-pipeline and lobby-rerender fixes, an aria simplification),
+  one rejected with measurements, and the batch was strong enough that the usual failure
+  mode of generated coverage — render and assert nothing — appeared exactly once across
+  eight PRs. Two of them show deliberate mutation-thinking: #121's second test exists
+  specifically to kill the hardcode its first test would survive, and #123's second kills
+  the "simplify the conditional spread" mutation its source comment warns about.
+- **mehvetero** — a second round of security work: an RLS/RPC surface audit (7 findings)
+  and a live DB probe covering concurrency, input validation and access control. Reports
+  rather than patches, which is the harder half.
+
 ## [0.19.0] - 2026-08-11
 
 A release about art that nothing could check. The sprite pipeline had no compiler:
@@ -888,7 +975,7 @@ Blueprint v3.0 รับเป็น Product Baseline เดียว (รวม
 - ภาพทั้งหมดแปลงเป็น WebP ผ่าน pipeline `assets/raw/` → `npm run build:images`
 - Governance: `AGENTS.md`, `MEMORY.md`, `.agents/rules/**`, `SECURITY.md`
 
-[Unreleased]: https://github.com/KatomnoiStudio/LegendOfSoulTH/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/KatomnoiStudio/LegendOfSoulTH/compare/v0.20.0...HEAD
 [0.5.0]: https://github.com/KatomnoiStudio/LegendOfSoulTH/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/KatomnoiStudio/LegendOfSoulTH/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/KatomnoiStudio/LegendOfSoulTH/compare/v0.3.1...v0.3.2
