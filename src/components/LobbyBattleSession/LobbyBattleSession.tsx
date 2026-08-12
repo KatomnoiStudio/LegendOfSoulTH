@@ -78,7 +78,7 @@ export function LobbyBattleSession({
   /** แถวรางวัลค้างของรอบนี้ที่เขียนไปแล้ว (หรือกำลังเขียน) — คีย์คือรหัสรายการ */
   const recordedRef = useRef<{ txId: string; write: Promise<boolean> } | null>(null)
   /** กู้แถวค้างครั้งเดียวต่อการ mount — ป้องกัน effect ที่ rerun จากการบันทึกซ้ำ */
-  const recoveryStartedRef = useRef(false)
+  const recoveryRunRef = useRef<{ cancelled: boolean } | null>(null)
 
   /*
     เขียนแถวรางวัลค้างครั้งเดียวต่อการต่อสู้หนึ่งครั้ง
@@ -164,15 +164,24 @@ export function LobbyBattleSession({
   )
 
   useEffect(() => {
-    if (recoveryStartedRef.current) return
-    recoveryStartedRef.current = true
+    const existingRun = recoveryRunRef.current
+    if (existingRun) {
+      // React StrictMode runs mount effects as setup → cleanup → setup. Reuse the same
+      // recovery instead of starting it twice, while allowing the first setup to continue.
+      existingRun.cancelled = false
+      return () => {
+        existingRun.cancelled = true
+      }
+    }
 
-    let cancelled = false
+    const run = { cancelled: false }
+    recoveryRunRef.current = run
     void (async () => {
       const pending = await onGetPendingRewards()
-      if (cancelled || pending.length === 0 || savedRef.current) return
+      if (run.cancelled || pending.length === 0 || savedRef.current) return
 
       for (const row of pending) {
+        if (run.cancelled) return
         const result = pendingLobbyRewardToResult(row)
         const pipeline = await finalizeLobbyBattleRewards(
           result,
@@ -186,7 +195,7 @@ export function LobbyBattleSession({
     })()
 
     return () => {
-      cancelled = true
+      run.cancelled = true
     }
   }, [buildRewardDeps, onGetPendingRewards])
 

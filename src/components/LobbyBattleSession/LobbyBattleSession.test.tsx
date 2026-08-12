@@ -1,3 +1,4 @@
+import { StrictMode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { setErrorSink, type ErrorReport } from '../../lib/errors/reportError'
@@ -499,14 +500,16 @@ describe('LobbyBattleSession', () => {
     }))
 
     const { rerender } = render(
-      <LobbyBattleSession
-        player={makePlayer()}
-        onPlayerChange={onPlayerChange}
-        onEarnGold={onEarnGold}
-        onGrantItem={onGrantItem}
-        {...mocks}
-        onExit={onExit}
-      />,
+      <StrictMode>
+        <LobbyBattleSession
+          player={makePlayer()}
+          onPlayerChange={onPlayerChange}
+          onEarnGold={onEarnGold}
+          onGrantItem={onGrantItem}
+          {...mocks}
+          onExit={onExit}
+        />
+      </StrictMode>,
     )
 
     await waitFor(() => {
@@ -515,14 +518,16 @@ describe('LobbyBattleSession', () => {
 
     // LobbyPage passes an inline onExit; a parent rerender must not restart recovery.
     rerender(
-      <LobbyBattleSession
-        player={makePlayer()}
-        onPlayerChange={onPlayerChange}
-        onEarnGold={onEarnGold}
-        onGrantItem={onGrantItem}
-        {...mocks}
-        onExit={vi.fn()}
-      />,
+      <StrictMode>
+        <LobbyBattleSession
+          player={makePlayer()}
+          onPlayerChange={onPlayerChange}
+          onEarnGold={onEarnGold}
+          onGrantItem={onGrantItem}
+          {...mocks}
+          onExit={vi.fn()}
+        />
+      </StrictMode>,
     )
 
     expect(onGetPendingRewards).toHaveBeenCalledTimes(1)
