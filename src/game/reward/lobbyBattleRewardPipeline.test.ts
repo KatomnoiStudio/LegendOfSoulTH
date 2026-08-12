@@ -315,7 +315,9 @@ describe('F8: pending row is cleared on the alreadyComplete path', () => {
     player.progress.flags[rewardTransactionFlagKey(txId)] = true
     const onClearPending = vi.fn(async () => true)
 
-    const out = await finalizeLobbyBattleRewards(result, player, { ...baseDeps({ onClearPending }) })
+    const out = await finalizeLobbyBattleRewards(result, player, {
+      ...baseDeps({ onClearPending }),
+    })
 
     expect(out.alreadyComplete).toBe(true)
     // Old code returned here without ever reaching a clear — the row could never be removed.
@@ -395,5 +397,32 @@ describe('F7: transaction id carried through the reload-resume path', () => {
     // Re-deriving would miss the flag and hand out the whole reward a second time.
     expect(out.alreadyComplete).toBe(true)
     expect(onEarnGold).not.toHaveBeenCalled()
+  })
+})
+
+describe('finalizeLobbyBattleRewards — single write path for progress.flags (task #73)', () => {
+  // task #73 named THREE sites where a flag key was written twice: once into the local
+  // `flags` guard variable via an inline spread, and independently into `next` via
+  // `withFlags`. Both computations use the same merge shape and run synchronously with no
+  // state change between them, so the two never actually disagree in a running process
+  // today — this is a duplication/maintainability defect (two sources of truth for one
+  // fact), not a live behavioural bug, and no black-box input/output test can turn red
+  // against it for that reason. What protects against it is a future edit touching one
+  // write site and not the other; the adversary here is a person, not an input. The test
+  // that catches THAT is structural — it reads the source itself.
+  it('never assigns a flag key into the `flags` variable directly — only withFlags() may set one', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const path = join(process.cwd(), 'src/game/reward/lobbyBattleRewardPipeline.ts')
+    const source = readFileSync(path, 'utf8')
+
+    // Matches the exact pattern task #73 found duplicated three times:
+    //   flags = { ...next.progress.flags, [someKey]: true }
+    // A bare read-back (`flags = { ...next.progress.flags }`, no bracketed key) is fine —
+    // that's the fixed shape. Only a key being injected directly into `flags` is the smell.
+    const duplicateWritePattern = /\bflags\s*=\s*\{\s*\.\.\.(?:next|flags)\.progress\.flags,\s*\[/g
+    const matches = source.match(duplicateWritePattern) ?? []
+
+    expect(matches).toEqual([])
   })
 })

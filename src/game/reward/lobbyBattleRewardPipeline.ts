@@ -201,8 +201,8 @@ export async function finalizeLobbyBattleRewards(
       return { ok: false, player: next, failure: 'gold_grant' }
     }
     next = gold.player
-    flags = { ...next.progress.flags, [lobbyBattleGoldFlagKey(txId)]: true }
     next = withFlags(next, { [lobbyBattleGoldFlagKey(txId)]: true })
+    flags = { ...next.progress.flags }
 
     const saved = await deps.onPlayerChange(next)
     if (!saved) {
@@ -220,8 +220,8 @@ export async function finalizeLobbyBattleRewards(
       return { ok: false, player: next, failure: 'item_grant' }
     }
     next = granted.player
-    flags = { ...next.progress.flags, [itemKey]: true }
     next = withFlags(next, { [itemKey]: true })
+    flags = { ...next.progress.flags }
 
     const saved = await deps.onPlayerChange(next)
     if (!saved) {
@@ -230,8 +230,8 @@ export async function finalizeLobbyBattleRewards(
   }
 
   if (!hasRewardTransaction(flags, txId)) {
-    flags = { ...flags, [rewardTransactionFlagKey(txId)]: true }
     next = withFlags(next, { [rewardTransactionFlagKey(txId)]: true })
+    flags = { ...next.progress.flags }
     const saved = await deps.onPlayerChange(next)
     if (!saved) {
       return { ok: false, player: next, failure: 'progression_save' }
