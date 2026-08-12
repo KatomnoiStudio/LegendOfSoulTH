@@ -472,6 +472,63 @@ describe('LobbyBattleSession', () => {
     expect(screen.getByRole('dialog', { name: 'เลือกด่าน' })).toBeInTheDocument()
   })
 
+  it('ไม่กู้รางวัลซ้ำเมื่อ parent สร้าง onExit ใหม่ระหว่างบันทึกผล', async () => {
+    const pendingRow = {
+      transactionId: 'lobby:trial-01:2026-01-01T00:00:00.000Z',
+      stageId: 'trial-01',
+      stageName: 'ลานฝึกหน้าวิหาร',
+      outcome: 'victory' as const,
+      earnedExp: 200,
+      earnedGold: 100,
+      droppedItems: [] as { itemId: string; quantity: number }[],
+      durationMs: 5000,
+      finishedAt: '2026-01-01T00:00:00.000Z',
+    }
+    const onGetPendingRewards = vi.fn(async () => [pendingRow])
+    const onEarnGold = vi.fn(async (_s, amount): Promise<CurrencyResult> => ({
+      ok: true as const,
+      player: makePlayer(),
+      amount,
+    }))
+    const onExit = vi.fn()
+    const mocks = rewardMocks({ onGetPendingRewards })
+    const onPlayerChange = mockOnPlayerChange()
+    const onGrantItem = vi.fn(async (): Promise<ItemResult> => ({
+      ok: true as const,
+      player: makePlayer(),
+    }))
+
+    const { rerender } = render(
+      <LobbyBattleSession
+        player={makePlayer()}
+        onPlayerChange={onPlayerChange}
+        onEarnGold={onEarnGold}
+        onGrantItem={onGrantItem}
+        {...mocks}
+        onExit={onExit}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(onEarnGold).toHaveBeenCalledTimes(1)
+    })
+
+    // LobbyPage passes an inline onExit; a parent rerender must not restart recovery.
+    rerender(
+      <LobbyBattleSession
+        player={makePlayer()}
+        onPlayerChange={onPlayerChange}
+        onEarnGold={onEarnGold}
+        onGrantItem={onGrantItem}
+        {...mocks}
+        onExit={vi.fn()}
+      />,
+    )
+
+    expect(onGetPendingRewards).toHaveBeenCalledTimes(1)
+    expect(onEarnGold).toHaveBeenCalledTimes(1)
+  })
+
   it('Done-criterion 6: LobbyBattleSession save sequence fires exactly once even under duplicate onComplete calls', async () => {
     const onEarnGold = vi.fn(async (_s, amount): Promise<CurrencyResult> => ({
       ok: true as const,

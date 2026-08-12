@@ -77,6 +77,8 @@ export function LobbyBattleSession({
 
   /** แถวรางวัลค้างของรอบนี้ที่เขียนไปแล้ว (หรือกำลังเขียน) — คีย์คือรหัสรายการ */
   const recordedRef = useRef<{ txId: string; write: Promise<boolean> } | null>(null)
+  /** กู้แถวค้างครั้งเดียวต่อการ mount — ป้องกัน effect ที่ rerun จากการบันทึกซ้ำ */
+  const recoveryStartedRef = useRef(false)
 
   /*
     เขียนแถวรางวัลค้างครั้งเดียวต่อการต่อสู้หนึ่งครั้ง
@@ -162,6 +164,9 @@ export function LobbyBattleSession({
   )
 
   useEffect(() => {
+    if (recoveryStartedRef.current) return
+    recoveryStartedRef.current = true
+
     let cancelled = false
     void (async () => {
       const pending = await onGetPendingRewards()
@@ -183,7 +188,7 @@ export function LobbyBattleSession({
     return () => {
       cancelled = true
     }
-  }, [buildRewardDeps, onExit, onGetPendingRewards])
+  }, [buildRewardDeps, onGetPendingRewards])
 
   const handleSelectStage = useCallback(
     (id: string) => {
