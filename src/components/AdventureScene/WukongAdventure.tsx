@@ -31,6 +31,9 @@ const FRAME_COUNT = 8
 const WALK_SPEED = 215
 const RUN_SPEED = 345
 
+const FALLBACK_WALKABLE_CHARACTER: Character =
+  ROSTER.find((entry) => getWalkKit(entry.model.kind).walkPrefix !== null) ?? ROSTER[0]
+
 /**
  * เพดาน commit ของ React state (ไม่ใช่เพดาน physics) — 60fps เป็นค่ามาตรฐานสากลที่ยึดได้จริง
  * (baseline ของงานภาพเคลื่อนไหว/เกมทั่วไป, ตรงกับสมมติฐานพื้นฐานของ requestAnimationFrame เอง)
@@ -228,9 +231,9 @@ export function WukongAdventure({
   activeCharacterId,
 }: WukongAdventureProps) {
   const copy = MODE_COPY[mode]
-  // Migrating local accounts can briefly have no owned characters. This is
-  // Wukong's trial, so keep a safe playable fallback instead of crashing.
-  const ownedOrFallback = characters.length > 0 ? characters : [ROSTER[0]]
+  // Migrating local accounts can briefly have no owned characters. Keep a
+  // safe playable (and walkable) fallback instead of crashing.
+  const ownedOrFallback = characters.length > 0 ? characters : [FALLBACK_WALKABLE_CHARACTER]
 
   /*
      แสดงเฉพาะตัวที่มีชุดเฟรมเดินจริง
@@ -253,9 +256,11 @@ export function WukongAdventure({
   const active: Character | undefined =
     availableCharacters.find((entry) => entry.id === activeId) ?? availableCharacters[0]
 
-  // ใช้ชุดเฟรมของซุนหงอคงเป็นตัวยืนพื้น เพื่อให้ hook ด้านล่างมีค่าคงที่เสมอ
-  const kit = getWalkKit((active ?? ROSTER[0]).model.kind)
-  const walkPrefix = kit.walkPrefix ?? getWalkKit(ROSTER[0].model.kind).walkPrefix!
+  // Use a walkable fallback so hooks remain stable when the active roster has no walk kit.
+  const kit = getWalkKit((active ?? FALLBACK_WALKABLE_CHARACTER).model.kind)
+  const walkPrefix = kit.walkPrefix ?? getWalkKit(FALLBACK_WALKABLE_CHARACTER.model.kind).walkPrefix!
+  const isSideView = kit.animationMode === 'side-view'
+  const animationFrameCount = isSideView ? (kit.walkFrameCount ?? FRAME_COUNT) : FRAME_COUNT
   const sceneRef = useRef<HTMLElement>(null)
   const pressedRef = useRef(new Set<string>())
   const virtualRef = useRef(new Set<string>())
@@ -263,7 +268,10 @@ export function WukongAdventure({
   const velocityRef = useRef<Point>({ x: 0, y: 0 })
   const targetRef = useRef<Point | null>(null)
   const directionRef = useRef<Direction>('down')
+  const facingRef = useRef<'left' | 'right'>('right')
   const frameRef = useRef(0)
+  const animationFrameCountRef = useRef(animationFrameCount)
+  animationFrameCountRef.current = animationFrameCount
   const distanceRef = useRef(0)
   const lastTimeRef = useRef<number | null>(null)
   const lastCommitRef = useRef(0)
@@ -271,6 +279,7 @@ export function WukongAdventure({
     x: 800,
     y: 650,
     direction: 'down' as Direction,
+    facing: 'right' as 'left' | 'right',
     frame: 0,
     moving: false,
     running: false,
@@ -316,20 +325,24 @@ export function WukongAdventure({
       Array.from({ length: FRAME_COUNT }, (_, frame) => idleFrameIndex(frame, kit.idleCount)),
     )
     const idle = [...idleIndexes].map((index) => `${kit.idlePrefix}-${index}.webp`)
-    const turn = Array.from(
-      { length: FRAME_COUNT },
-      (_, frame) => `${kit.turnPrefix}-${frame}.webp`,
-    )
+    const turn = isSideView
+      ? []
+      : Array.from({ length: FRAME_COUNT }, (_, frame) => `${kit.turnPrefix}-${frame}.webp`)
     const walk = kit.walkPrefix
-      ? DIRECTIONS.flatMap((direction) =>
-          Array.from(
-            { length: FRAME_COUNT },
-            (_, frame) => `${kit.walkPrefix}-${direction}-${frame}.webp`,
-          ),
-        )
+      ? isSideView
+        ? Array.from(
+            { length: animationFrameCount },
+            (_, frame) => `${kit.walkPrefix}-${frame}.webp`,
+          )
+        : DIRECTIONS.flatMap((direction) =>
+            Array.from(
+              { length: FRAME_COUNT },
+              (_, frame) => `${kit.walkPrefix}-${direction}-${frame}.webp`,
+            ),
+          )
       : []
     return [...idle, ...turn, ...walk]
-  }, [kit])
+  }, [animationFrameCount, isSideView, kit])
 
   useEffect(() => preload(drawableFrames), [drawableFrames])
 
@@ -454,12 +467,14 @@ export function WukongAdventure({
 
       if (magnitude > 0) {
         directionRef.current = directionFromVector(inputX, inputY)
+        if (Math.abs(inputX) > 0.001) facingRef.current = inputX < 0 ? 'left' : 'right'
       }
 
       if (moving) {
         distanceRef.current += travelled
         const stride = running ? 28 : 34
-        frameRef.current = Math.floor(distanceRef.current / stride) % FRAME_COUNT
+        frameRef.current =
+          Math.floor(distanceRef.current / stride) % animationFrameCountRef.current
       } else {
         frameRef.current = Math.floor(time / 170) % FRAME_COUNT
       }
@@ -480,6 +495,7 @@ export function WukongAdventure({
             x: position.x,
             y: position.y,
             direction: directionRef.current,
+            facing: facingRef.current,
             frame: frameRef.current,
             moving,
             running,
@@ -488,6 +504,7 @@ export function WukongAdventure({
             previousView.x === next.x &&
             previousView.y === next.y &&
             previousView.direction === next.direction &&
+            previousView.facing === next.facing &&
             previousView.frame === next.frame &&
             previousView.moving === next.moving &&
             previousView.running === next.running
@@ -548,15 +565,18 @@ export function WukongAdventure({
 
   const depthProgress = Math.min(1, Math.max(0, (view.y - DEPTH_TOP) / (DEPTH_BOTTOM - DEPTH_TOP)))
   const perspectiveScale = 0.8 + depthProgress * 0.24
-  const turnUrl = `${kit.turnPrefix}-${TURN_INDEX[view.direction]}.webp`
-  const idleFrame = view.direction === 'down' ? idleFrameIndex(view.frame, kit.idleCount) : null
+  const turnUrl = isSideView ? null : `${kit.turnPrefix}-${TURN_INDEX[view.direction]}.webp`
+  const idleFrame = isSideView || view.direction === 'down' ? idleFrameIndex(view.frame, kit.idleCount) : null
 
-  // เดิน = เฟรมเดินตามทิศ, ยืนหันหน้า = เฟรม idle, ยืนหันทิศอื่น = เฟรมหันทิศ
-  const spriteUrl = view.moving
-    ? `${walkPrefix}-${view.direction}-${view.frame}.webp`
-    : idleFrame !== null
-      ? `${kit.idlePrefix}-${idleFrame}.webp`
-      : turnUrl
+  const spriteUrl = isSideView
+    ? view.moving
+      ? `${walkPrefix}-${view.frame % animationFrameCount}.webp`
+      : `${kit.idlePrefix}-${idleFrame}.webp`
+    : view.moving
+      ? `${walkPrefix}-${view.direction}-${view.frame % FRAME_COUNT}.webp`
+      : idleFrame !== null
+        ? `${kit.idlePrefix}-${idleFrame}.webp`
+        : turnUrl!
 
   /*
      ขนาดและตำแหน่งของภาพเฟรมนี้ — คำนวณจากพิกเซลจริงของชีต (E3) ไม่ใช่ให้กล่องเป็นคนตัดสิน
@@ -569,6 +589,9 @@ export function WukongAdventure({
     width: `${spriteSize.width}px`,
     height: `${spriteSize.height}px`,
     bottom: `${ACTOR_BOX_HEIGHT_PX - ACTOR_FOOT_ANCHOR_PX - spriteSize.footInset}px`,
+    transform: isSideView
+      ? `translateX(-50%) scaleX(${view.facing === 'left' ? -1 : 1})`
+      : 'translateX(-50%)',
   }
 
   const actorScreenPos = worldToScreen(view)

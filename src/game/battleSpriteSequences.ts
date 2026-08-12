@@ -96,10 +96,13 @@ function allDirections(urls: string[]): Partial<Record<Direction8, string[]>> {
   return result
 }
 
-const MONKEY_IDLE = frames('monkey-v2-idle', 24)
-const MONKEY_ATTACK = frames('monkey-attack-new', 6, 12)
-const MONKEY_ACTION = frames('monkey-v2', 10)
-const MONKEY_VICTORY = Array.from({ length: 4 }, (_, index) =>
+const MONKEY_IDLE = frames('wukong-flat-idle', 25)
+const MONKEY_RUN = frames('wukong-flat-run', 25)
+const MONKEY_ATTACK = frames('wukong-flat-attack', 25)
+const NEZHA_PLACEHOLDER_IDLE = frames('monkey-v2-idle', 24)
+const NEZHA_PLACEHOLDER_ATTACK = frames('monkey-attack-new', 6, 12)
+const NEZHA_PLACEHOLDER_ACTION = frames('monkey-v2', 10)
+const NEZHA_PLACEHOLDER_VICTORY = Array.from({ length: 4 }, (_, index) =>
   publicUrl(`characters/monkey-pose-${index}-alpha.webp`),
 )
 const PIGSY_IDLE = frames('pigsy-idle', 24)
@@ -126,17 +129,31 @@ export const ERLANG_SKILL_2_HOUND_FRAMES = Array.from({ length: 6 }, (_, index) 
 )
 
 const MONKEY_KING_SET: BattleSpriteSet = {
-  idle: { frames: allDirections(MONKEY_IDLE), rate: 8, loop: true },
-  walk: { frames: walkFrames8('monkey-walk'), rate: 12, loop: true },
-  'attack-1': { frames: allDirections(MONKEY_ATTACK), rate: 16, loop: false },
-  'attack-2': { frames: allDirections(MONKEY_ATTACK), rate: 18, loop: false },
-  'attack-3': { frames: allDirections(MONKEY_ATTACK), rate: 14, loop: false },
-  dash: { frames: walkFrames8('monkey-walk'), rate: 20, loop: false },
-  'skill-1': { frames: allDirections(MONKEY_ACTION), rate: 16, loop: false },
-  'skill-2': { frames: allDirections(MONKEY_ACTION), rate: 16, loop: false },
+  idle: { frames: allDirections(MONKEY_IDLE), rate: 10, loop: true },
+  walk: { frames: allDirections(MONKEY_RUN), rate: 20, loop: true },
+  'attack-1': { frames: allDirections(MONKEY_ATTACK), rate: 20, loop: false },
+  'attack-2': { frames: allDirections(MONKEY_ATTACK), rate: 22, loop: false },
+  'attack-3': { frames: allDirections(MONKEY_ATTACK), rate: 18, loop: false },
+  dash: { frames: allDirections(MONKEY_RUN), rate: 24, loop: false },
+  'skill-1': { frames: allDirections(MONKEY_ATTACK), rate: 20, loop: false },
+  'skill-2': { frames: allDirections(MONKEY_ATTACK), rate: 20, loop: false },
   hit: { frames: allDirections([MONKEY_IDLE[0]]), rate: 1, loop: false },
   death: { frames: allDirections([MONKEY_IDLE[0]]), rate: 1, loop: false },
-  victory: { frames: allDirections(MONKEY_VICTORY), rate: 5, loop: false },
+  victory: { frames: allDirections(MONKEY_ATTACK), rate: 8, loop: false },
+}
+
+const NEZHA_WARDEN_SET: BattleSpriteSet = {
+  idle: { frames: allDirections(NEZHA_PLACEHOLDER_IDLE), rate: 8, loop: true },
+  walk: { frames: walkFrames8('monkey-walk'), rate: 12, loop: true },
+  'attack-1': { frames: allDirections(NEZHA_PLACEHOLDER_ATTACK), rate: 16, loop: false },
+  'attack-2': { frames: allDirections(NEZHA_PLACEHOLDER_ATTACK), rate: 18, loop: false },
+  'attack-3': { frames: allDirections(NEZHA_PLACEHOLDER_ATTACK), rate: 14, loop: false },
+  dash: { frames: walkFrames8('monkey-walk'), rate: 20, loop: false },
+  'skill-1': { frames: allDirections(NEZHA_PLACEHOLDER_ACTION), rate: 16, loop: false },
+  'skill-2': { frames: allDirections(NEZHA_PLACEHOLDER_ACTION), rate: 16, loop: false },
+  hit: { frames: allDirections([NEZHA_PLACEHOLDER_IDLE[0]]), rate: 1, loop: false },
+  death: { frames: allDirections([NEZHA_PLACEHOLDER_IDLE[0]]), rate: 1, loop: false },
+  victory: { frames: allDirections(NEZHA_PLACEHOLDER_VICTORY), rate: 5, loop: false },
 }
 
 const PIG_WARRIOR_SET: BattleSpriteSet = {
@@ -195,7 +212,7 @@ const BATTLE_SPRITE_SETS: Record<CharacterModelKind, BattleSpriteSet> = {
   'pig-warrior': PIG_WARRIOR_SET,
   'pilgrim-monk': PILGRIM_MONK_SET,
   'celestial-archer': PILGRIM_MONK_SET,
-  'nezha-warden': MONKEY_KING_SET,
+  'nezha-warden': NEZHA_WARDEN_SET,
   'sand-sage': PIG_WARRIOR_SET,
   'spear-warrior': SPEAR_WARRIOR_SET,
 }

@@ -246,6 +246,27 @@ export const SPRITE_SHEET_CALIBRATIONS: readonly SpriteSheetCalibration[] = [
     pixelsPerCanonicalHeight: 1317,
     bottomInsetPx: 50,
   },
+  {
+    pathFragment: '/characters/wukong-flat-idle-',
+    canvasWidth: 256,
+    canvasHeight: 256,
+    pixelsPerCanonicalHeight: 376,
+    bottomInsetPx: 6,
+  },
+  {
+    pathFragment: '/characters/wukong-flat-run-',
+    canvasWidth: 256,
+    canvasHeight: 256,
+    pixelsPerCanonicalHeight: 364,
+    bottomInsetPx: 12,
+  },
+  {
+    pathFragment: '/characters/wukong-flat-attack-',
+    canvasWidth: 256,
+    canvasHeight: 256,
+    pixelsPerCanonicalHeight: 352,
+    bottomInsetPx: 11,
+  },
 ] as const
 
 const DEFAULT_SHEET_CALIBRATION: SpriteSheetCalibration = {

@@ -45,12 +45,12 @@ function turnFrames(prefix: string): string[] {
  */
 const SEQUENCES: Record<CharacterModelKind, SpriteSequence> = {
   'monkey-king': {
-    idleUrls: frames('monkey-v2-idle', 24),
-    actionUrls: frames('monkey-v2', 10),
-    turnUrls: turnFrames('monkey-turn'),
-    actionOrder: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
-    idleRate: 8,
-    actionRate: 8,
+    idleUrls: frames('wukong-flat-idle', 25),
+    actionUrls: frames('wukong-flat-attack', 25),
+    turnUrls: [frames('wukong-flat-idle', 25)[0]],
+    actionOrder: Array.from({ length: 25 }, (_, index) => index),
+    idleRate: 10,
+    actionRate: 20,
     autoPeriod: 11.4,
   },
   'pig-warrior': {
