@@ -80,3 +80,70 @@ SCOPE AND LIMITS OF THIS CARVE-OUT — read before relying on it
   4. This carve-out was drafted by an AI assistant at the owner's direction and
      has NOT been reviewed by a lawyer. It is not legal advice. If anything of
      value depends on it, have a lawyer settle points 1 to 3 first.
+
+-------------------------------------------------------------------------------
+
+CARVE-OUT — docs/GACHA-RATE-DESIGN-LOCK.md
+
+Copyright (c) 2026 HetCreep. All rights reserved.
+
+The MIT grant above does NOT apply to docs/GACHA-RATE-DESIGN-LOCK.md. That file
+is licensed separately under Creative Commons Attribution-NonCommercial-NoDerivatives
+4.0 International (CC BY-NC-ND 4.0), same terms as the SPRITE-DESIGN-LOCK.md
+carve-out above:
+
+    https://creativecommons.org/licenses/by-nc-nd/4.0/
+
+You may read it, quote it with attribution, and share it unchanged for
+non-commercial purposes. You may not use it commercially, and you may not
+distribute a modified version, without a separate written licence from the
+copyright holder.
+
+STANDING GRANT — Katomnoi Studio (github.com/KatomnoiStudio)
+
+Katomnoi Studio is granted a perpetual, irrevocable, royalty-free licence to
+use, reproduce, modify, and create derivative works from
+docs/GACHA-RATE-DESIGN-LOCK.md, and to apply it in the Studio's own products
+and services, including commercially. This grant does NOT include the right
+to sublicense that file, or to distribute it or substantial portions of it to
+third parties — the Studio may freely ship whatever it BUILDS from the
+document (the migration, the config, the game itself); the document itself
+remains the copyright holder's to license.
+
+SCOPE AND LIMITS OF THIS CARVE-OUT — read before relying on it
+
+  1. It applies from the commit that introduces it onward, same as the
+     SPRITE-DESIGN-LOCK.md carve-out.
+
+  2. "LegendofSoulTH" in the MIT notice above is a project name, not a legal
+     person — unsettled, same open point as the sprite carve-out above.
+
+  3. This file is unusually fact-heavy even for a design lock: real drop rates,
+     pity thresholds, and prices pulled from six live games (with source URLs
+     in the file itself), Thai and comparator-country minimum/average wage
+     figures, and formulas derived mechanically from those inputs. None of
+     that is copyrightable — facts and formulas are not protected subject
+     matter in most jurisdictions, regardless of how much work went into
+     finding them. What this carve-out protects is the specific SELECTION of
+     which exemplars to compare, the ARRANGEMENT of the derivation (band
+     splits, pity formulas, the shard-freeze decision, the final ratified
+     numbers for this project), and the EXPRESSION — not the underlying facts,
+     and not the numbers a reader could independently derive from the same
+     public sources.
+
+  4. The document's core price derivation (§11.8, `c`) is anchored to
+     Thailand's own minimum and average wage data specifically — burden
+     measured against a Thai day's wage, not a converted foreign price. The
+     work of producing this document was commissioned and ratified inside
+     Thailand, for a Thai-market game, at Thai labour cost. That anchoring is
+     part of why this is licensed as a standalone Thai-market economic
+     artefact rather than folded into the repository's general MIT grant or
+     published as a general engineering standard the way SPRITE-DESIGN-LOCK.md
+     was — it is not written to generalise past this project's own market.
+
+  5. This carve-out was drafted by an AI assistant at the owner's direction and
+     has NOT been reviewed by a lawyer. It is not legal advice. If anything of
+     value depends on it — in particular whether the "selection and
+     arrangement" of publicly-sourced game economy data clears the originality
+     bar in the relevant jurisdiction — have a lawyer settle that before
+     relying on this carve-out.

@@ -1,6 +1,8 @@
 # 23. Gacha System
 
 > Category: Economy · Generated via gold-standard FILL + adversarial CB-lite verify (2 seats), 2026-08-07 · **revised after verify flagged an issue**.
+>
+> **⚠️ Rate/pity/cost numbers below are stale.** `docs/GACHA-RATE-DESIGN-LOCK.md` (2026-08-13) is now the source of truth for the whole rate domain — `5%/25%/70%`, `pity threshold 30`, `cost 100/900`, and the "hard/soft pity, Genshin-shaped" world-class bar below are all superseded (flat-rate + hard pity, FGO-shaped; see that doc §7.1 reconciliation and §11 for every derived number). This contract's own text has not been re-synced to it yet.
 
 ### Scope
 

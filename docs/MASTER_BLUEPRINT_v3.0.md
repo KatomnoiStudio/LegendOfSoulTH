@@ -494,9 +494,9 @@ Same 2.5D movement + L/R attack + 3 skills + ultimate as PvE.
 - **Must not:** sell best power primarily via direct purchase
 - Premium one-time purchase model: **SUPERSEDED** (v1.0)
 
-## 7.1 Gacha pity — LOCKED skeleton, numbers deferred to P9 (HetCreep, 2026-08-08)
+## 7.1 Gacha pity — LOCKED, flat-rate + hard pity (HetCreep, 2026-08-08; amended 2026-08-13)
 
-Soft/hard pity, same shape as Genshin Impact's wish system (the exemplar this project's own gold-standard audit already cited for this exact gap) — a guaranteed top-rarity hero within a bounded pull count, pity counter persists per banner, resets on a top-rarity hit. **Deferred to P9, business-model call**: exact pity threshold, soft-pity ramp curve, per-pull cost, whether the pity counter is player-visible. This line locks _that a fairness floor exists_, not what the floor's number is — implementing the counter/reset mechanism doesn't commit to a specific rate.
+Flat-rate + hard pity, same shape as Fate/Grand Order's summoning system — a guaranteed top-rarity hero within a bounded pull count, pity counter persists per banner, resets on a top-rarity hit. **Amended 2026-08-13**: the original text named Genshin Impact's soft/hard pity (a ramping probability curve) as the shape to match; the P9 gacha rate design lock (`GACHA-RATE-DESIGN-LOCK.md`) derived every formula — `reach`, `E`, invariants I9/I18 — on a flat-rate assumption instead, matching FGO's model rather than Genshin's ramp. Reconciled here rather than rebuilding the already-locked math: this project ships flat-rate + hard pity, not soft/hard. `B`, `P`, `c`, and the rest of the P9 numbers are locked in the design-lock doc, not here.
 
 ---
 

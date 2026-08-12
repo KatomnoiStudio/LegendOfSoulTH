@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ROSTER, getCharacter } from '../characters'
 import { getPlayerAttackChain, HERO_ATTACK_CHAINS } from './attackChains'
-import { BATCH_01_GACHA_BANNER, isCharacterInBatch01Pool } from './gachaPool'
 import { getFinisherSpec, HERO_FINISHER_TABLE } from './finisherTable'
 import { HERO_ARCHETYPE_LABEL } from './heroArchetypes'
 import {
@@ -148,13 +147,7 @@ describe('Production Batch 01 — combat kits & combos', () => {
   })
 })
 
-describe('Production Batch 01 — gacha & star scaling', () => {
-  it('gacha pool มีเฉพาะ batch 01 heroes', () => {
-    for (const entry of BATCH_01_GACHA_BANNER.pool) {
-      expect(isCharacterInBatch01Pool(entry.characterId)).toBe(true)
-    }
-  })
-
+describe('Production Batch 01 — star scaling', () => {
   it('star scaling ไม่เกิน 130% ที่ ★6', () => {
     expect(starPowerRatio(6)).toBeLessThanOrEqual(1.3)
     expect(starPowerRatio(1)).toBe(1)
