@@ -1,4 +1,4 @@
-# MEMORY/22 — Currency System (caretaker)
+# MEMORY/22 — Currency System (system owner)
 
 Contract: `docs/agent-blueprint/22-currency-system.md`. Sensitive throughout: opus floor on
 ledger/RPC/migration work, no delegate-down, QC runs `resilience-audit` + `drift-canary` +
@@ -48,7 +48,7 @@ ref_id is not null` makes both idempotent at the DB layer for free.
 
 ## Working notes
 
-- Migrations are WRITE-ONLY for me. Production apply is the owner relay through the belt end.
+- Migrations are WRITE-ONLY for me. Production apply is the owner relay.
 - Constraint rewrites must carry `(currency='gem' and source='gacha' and amount<0)` forward
   verbatim — gacha's debit row is the one negative amount the ledger allows, and it is #23's.
 - PGLite harness pattern: stub `auth.users` **with `raw_user_meta_data jsonb`** if the test needs

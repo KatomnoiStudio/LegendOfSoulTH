@@ -1,4 +1,4 @@
-# 06 — hit-reaction-system (caretaker memory)
+# 06 — hit-reaction-system (system-owner memory)
 
 ## Scope (from contract)
 

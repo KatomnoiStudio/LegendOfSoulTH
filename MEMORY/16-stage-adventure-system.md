@@ -1,11 +1,11 @@
 # MEMORY/16-stage-adventure-system.md
 
-Caretaker memory for system 16 (stage/adventure). Own: `REALTIME_STAGES` data catalog +
+Owner memory for system 16 (stage/adventure). Own: `REALTIME_STAGES` data catalog +
 `RealtimeBattleStage`/`BossTemplate`/`ELITE_STAT_MULTIPLIER` symbols hosted in `stageConfig.ts`,
 chapter/gating logic (`isStageUnlocked`, `getOrderedStages`, `getAdventureChapters`), `adventure/`
 energy system, `StageSelect.tsx`. Never touch: combat resolution, `StageVariationSystem.ts` (#17),
 `RewardSystem.ts` (#18) — sibling consumers of the same host file. QC'd by a spawned opus·xhigh seat
-per `AGENT_REGISTRY.md` row 16.
+per the standing seat roster.
 
 ## 2026-08-10 — onboarding + first dispatch (design-lock 2.b, citation rot 11.a)
 
@@ -50,7 +50,7 @@ added naming the flag and the reason it's off.
 **Verify:** touched tests green (6 files, 57 tests — extra +1 from the new pinning test), `npx tsc
 -b` clean, `npx oxlint --deny-warnings` clean.
 
-**Open for the owner:** §5.1's stamina-vs-clear-gate-only decision is still unmade — this caretaker
+**Open for the owner:** §5.1's stamina-vs-clear-gate-only decision is still unmade — this system owner
 cannot make it (per contract's own Stay-current note, this is explicitly HetCreep's call, not a
 default an agent picks). Flag stays off until that lands.
 
@@ -63,7 +63,7 @@ level was fine (unedited file) but `LobbyBattleSession.tsx:176`→`182`, `StageS
 both drifted by exactly the lines I inserted. Separately, the `trial_cleared_${stageId}` WRITE
 citation was flat wrong — pointed at `LobbyBattleSession.tsx` (zero occurrences) instead of the
 real writer, `lobbyBattleRewardPipeline.ts:130` (system #18's file). Fixed by main as emergency
-fallback while this caretaker was down; verified line-by-line against current source 2026-08-10,
+fallback while this system owner was down; verified line-by-line against current source 2026-08-10,
 all 4 correct — adopted as-is.
 
 **Lessons:**
@@ -81,7 +81,7 @@ all 4 correct — adopted as-is.
 ## 2026-08-10 — Task #33: #104 dead-sprite regression test (QC-bounced once, then passed)
 
 Wave-scoped, NOT this system's own file territory — `useDungeonStageBattle.ts` (P5 dungeon
-orchestration) and `combatCameraConfig.ts` (presentation-only). Picked up per the belt's
+orchestration) and `combatCameraConfig.ts` (presentation-only). Picked up per the
 deepest-knowledge routing, not because either file is in my owned Scope. Branch
 `test/33-dungeon-dead-sprite-regression`, final `2ae8db7` (first attempt `4ce3d79` was bounced).
 
@@ -123,6 +123,6 @@ the very comment written to prevent doc-rot — count fields, don't eyeball them
 
 **Process note:** this section had to be written TWICE. The first copy was an uncommitted edit in
 the shared working copy and was wiped by another lane's tree-mutating git action (the hazard rule
-21 was written for, before it was retired 2026-08-12 as unfollowed). Caretaker `MEMORY/` edits
+21 was written for, before it was retired 2026-08-12 as unfollowed). System owner `MEMORY/` edits
 made in the shared tree are not safe until committed — hand
 them to main in the return rather than assuming they survive.

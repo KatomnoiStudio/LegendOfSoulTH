@@ -1,23 +1,21 @@
-# MEMORY/ — per-caretaker memory (ของใครของมัน)
+# MEMORY/ — per-system memory (ของใครของมัน)
 
-> Owner ruling 2026-08-09. Memory layout for the belt (docs/BELT-PORT.md):
+> Owner ruling 2026-08-09. Two memory surfaces, split by audience:
 >
-> - **Root `MEMORY.md` + `MEMORY.local.md`** — main (belt end) and OUTSIDE devs. Unchanged
->   regime: AGENTS.md rules 2/3 (maintain + push with every submit) and 9 (personal content
->   goes to the gitignored `MEMORY.local.md`).
-> - **This directory** — one file per system caretaker: `NN-<system>.md` (same `NN` as
->   `docs/agent-blueprint/`). Each seat's own memory, nobody else's.
+> - **Root `MEMORY.md` + `MEMORY.local.md`** — everyone, every machine. Unchanged regime:
+>   AGENTS.md rules 2/3 (maintain + push with every submit) and 9 (personal content goes to
+>   the gitignored `MEMORY.local.md`).
+> - **This directory** — one file per system: `NN-<system>.md` (same `NN` as
+>   `docs/agent-blueprint/`). The working memory of whoever holds that system.
 
 ## Rules
 
-- **LAZY** — a file is born at the caretaker's FIRST WORK dispatch, never pre-created. 28
-  systems ≠ 28 upfront files. (The registry's caretaker ROWS were pre-created at install with
-  hired sids — an owner-ratified supersession of the row-side lazy rule; the FILE-side lazy
-  rule here still stands: hiring a caretaker does not birth its memory file, its first real
-  work does.)
-- **ของใครของมัน** — only the owning caretaker WRITES its file. The belt end may READ all
-  (dispatch needs context); writing another seat's file is a boundary violation, same class
-  as editing another system's owned code.
+- **LAZY** — a file is born at that system's FIRST WORK, never pre-created. 28 systems ≠ 28
+  upfront files. Being assigned a system does not birth its memory file; its first real work
+  does.
+- **ของใครของมัน** — only whoever holds a system WRITES its file. Anyone may READ all of them
+  (context needs it); writing someone else's file is a boundary violation, same class as
+  editing another system's owned code.
 - **Lifecycle (owner ruling 2026-08-09): woken → LOAD your file first. Return → CRYSTALLIZE
   (lessons, decisions, live state — never transcript) + COMPRESS (rewrite in place, dedupe,
   tighten) + UPDATE everything stale. Cut aggressively — the file may shrink to near-nothing:

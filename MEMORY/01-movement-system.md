@@ -1,4 +1,4 @@
-# 01 — movement-system (caretaker memory)
+# 01 — movement-system (system-owner memory)
 
 ## Scope (from contract)
 

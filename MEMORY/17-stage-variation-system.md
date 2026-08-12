@@ -1,6 +1,6 @@
-# Caretaker memory — System 17: Stage Variation
+# Owner memory — System 17: Stage Variation
 
-Owner: caretaker of `src/game/realtimeBattle/StageVariationSystem.ts` and the `stageType`/params slice of `stageConfig.ts`'s `RealtimeBattleStage`. Never touch: `EnemyAISystem.ts` AI behavior, `RewardSystem.ts` payout math, inter-stage gating/stamina (open, HetCreep call), numeric difficulty tuning.
+Owner: system owner of `src/game/realtimeBattle/StageVariationSystem.ts` and the `stageType`/params slice of `stageConfig.ts`'s `RealtimeBattleStage`. Never touch: `EnemyAISystem.ts` AI behavior, `RewardSystem.ts` payout math, inter-stage gating/stamina (open, HetCreep call), numeric difficulty tuning.
 
 ## Status
 

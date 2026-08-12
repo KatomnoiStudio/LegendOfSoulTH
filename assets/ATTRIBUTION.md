@@ -525,7 +525,7 @@ work, where it can still be met.
 
 **One evidence source does exist, and an earlier version of this file wrongly said none
 did**: **Claude Code session transcripts** are retained — the live session store plus the
-belt's session archive. They are not a nothing: searching them — 1,727 `.jsonl` files across
+agent session archive. They are not a nothing: searching them — 1,727 `.jsonl` files across
 every location under `~/.claude` — is what established that **no agent-mediated Adobe call is
 recorded anywhere** — a true statement about a window and a machine that, as it turns out,
 do not contain the work in question. Their evidentiary value for provenance is close to nil;

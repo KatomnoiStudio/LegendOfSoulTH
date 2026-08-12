@@ -1,6 +1,6 @@
 # 16. Stage / Adventure System
 
-> Category: Adventure · Generated via gold-standard FILL + adversarial CB-lite verify (2 seats), 2026-08-07 · **revised after verify flagged an issue** · **corrected 2026-08-10 (design-lock 2.b, first work dispatch) — the "Gap"/Done-criteria section below described the pre-belt state; chapter grouping, gating, and the stage-select surface shipped since 2026-08-07 and are BLESSED retroactively (docs follow code). Only the energy/stamina piece stayed genuinely open — see the Energy section below.**
+> Category: Adventure · Generated via gold-standard FILL + adversarial CB-lite verify (2 seats), 2026-08-07 · **revised after verify flagged an issue** · **corrected 2026-08-10 (design-lock 2.b, first work dispatch) — the "Gap"/Done-criteria section below described the earlier state; chapter grouping, gating, and the stage-select surface shipped since 2026-08-07 and are BLESSED retroactively (docs follow code). Only the energy/stamina piece stayed genuinely open — see the Energy section below.**
 
 ### Scope
 

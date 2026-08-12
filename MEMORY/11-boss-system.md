@@ -1,4 +1,4 @@
-# 11 — boss-system (caretaker memory)
+# 11 — boss-system (system-owner memory)
 
 ## Scope (from contract)
 
@@ -8,7 +8,7 @@ Co-tenant files, no own source file: name owned symbols when dispatched, not jus
 
 ## Live state
 
-- System graduated 100% before this caretaker's first dispatch (TASKS.md row 16 / DF16, PR #57, 2026-08-08). This dispatch was citation-rot-only (design-lock 11.a), no design/scope edits.
+- System graduated 100% before this system owner's first dispatch (TASKS.md row 16 / DF16, PR #57, 2026-08-08). This dispatch was citation-rot-only (design-lock 11.a), no design/scope edits.
 - 6 stale citations fixed 2026-08-10, all off-by-a-few-lines drift, none a fabricated quote or wrong symbol:
   - `docs/MASTER_BLUEPRINT_v3.0.md:217` → `:218` ("Boss/enemy attacks additionally define" clause, §3.6.7).
   - `docs/MASTER_BLUEPRINT_v3.0.md:270` → `:271` ("Heavy 3D telegraph VFX (markers + tint first)", §3.6.10).
@@ -21,7 +21,7 @@ Co-tenant files, no own source file: name owned symbols when dispatched, not jus
 
 - Dependencies section (contract, "Enemy AI System (#9)" bullet): "The `Telegraph` state referenced in §3.6.8 doesn't exist in `EnemyAISystem.ts` yet — Boss System is what has to add it." Present tense reads as still-pending, but the system graduated 100% (PR #57) and `telegraph` has been a live `EnemyAIState` union member since — this line was written pre-ship and never updated post-graduation. Citation-accuracy-only scope for this dispatch; flagging for the next design-lock/status pass rather than editing prose myself.
 
-## Scars to hold (from contract, real-precedent, not yet stress-tested by this caretaker)
+## Scars to hold (from contract, real-precedent, not yet stress-tested by this system owner)
 
 - AI-inactive spawn window (Dark Souls "AFK glitch" / trigger-skip) — probe the gap between boss entity spawn and its first `stepEnemyAI` tick for free/unanswerable damage.
 - Telegraph-cancel race (Super Ornstein phase-2) — `selectedAttack` is latched at Telegraph entry specifically to close this; verify a state re-entry or second HP-threshold crossing can't swap the executed attack away from what the ground-marker/cast-bar told the player.

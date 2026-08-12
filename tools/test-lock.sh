@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Serialise heavy verify runs across concurrently-dispatched agents.
 #
-# Several belt lanes run in parallel, but each one ends with `npm test` (~50s, CPU-bound).
+# Several parallel lanes run in parallel, but each one ends with `npm test` (~50s, CPU-bound).
 # Six of those at once on one machine thrash and produce FALSE failures, which is worse than
-# slow: the belt end cannot tell a real regression from resource starvation. This lock lets the
+# slow: main cannot tell a real regression from resource starvation. This lock lets the
 # lanes write code in parallel and take turns only for the expensive part.
 #
 # Usage (from the repo root or any worktree):

@@ -1,4 +1,4 @@
-# 02 — combat-facing-system (caretaker memory)
+# 02 — combat-facing-system (system-owner memory)
 
 ## Scope (from contract)
 

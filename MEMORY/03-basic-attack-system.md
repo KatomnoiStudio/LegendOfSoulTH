@@ -1,4 +1,4 @@
-# 03 — basic-attack-system (caretaker memory)
+# 03 — basic-attack-system (system-owner memory)
 
 ## Scope (from contract)
 
@@ -23,9 +23,9 @@ None outstanding.
 
 ## Lesson — 2026-08-10, reclaim after quota-death fallback
 
-This caretaker's session died on account quota mid-dispatch (transient). Main executed the
+This system owner's session died on account quota mid-dispatch (transient). Main executed the
 dead-code-removal + citation-fix bounce as emergency fallback. Owner ruled that wrong — fallback
-execution isn't a substitute for the owning caretaker's verify, even when main's diff turns out
+execution isn't a substitute for the owning system owner's verify, even when main's diff turns out
 correct. On resume: re-verified both changes from scratch (not trust-the-diff) — read
 `stepCombo`'s line-130 `if (!combo.attack) return` guard to confirm the removed `else` branch was
 truly unreachable, diffed `interruptPlayerCombo()` (`combatInterrupt.ts:42-52`) against the old

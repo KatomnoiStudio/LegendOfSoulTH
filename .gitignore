@@ -38,12 +38,11 @@ scripts/
 # CLAUDE.md.example (tracked, one line) and add your own below it.
 CLAUDE.md
 
-# The belt system — installed per machine from docs/BELT-PORT.md, never shared.
-# It only functions where Claude Code loads .claude/agents/, and AGENT_REGISTRY.md holds
-# live session ids that mean nothing on any other machine. The repo keeps the INSTALLER
-# (docs/BELT-PORT.md) and nothing else; run it, and these appear locally.
-.claude/belt/
-.claude/agents/belt-*.md
+# Whatever this machine runs to organize its own agents — never shared. It only works where
+# the local tooling is installed, and it holds live session ids that mean nothing anywhere
+# else. Documented in this machine's own CLAUDE.md, which is gitignored above.
+.claude/local/
+.claude/agents/
 
 # Cursor IDE local config — machine/cloud-agent only, not project config
 .cursor/

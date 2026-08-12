@@ -1,4 +1,4 @@
-# 05 — per-move-property-schema (caretaker memory)
+# 05 — per-move-property-schema (system-owner memory)
 
 ## Scope (from contract)
 

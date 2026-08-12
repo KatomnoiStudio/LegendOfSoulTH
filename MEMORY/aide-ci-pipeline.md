@@ -3,7 +3,7 @@
 Owns `.github/workflows/{ci,deploy}.yml`, `tools/check-bundle-size.mjs`,
 `tools/check-blueprint-citations.mjs`, `supabase/functions/pvp-authority/deno.{json,lock}`.
 Never touches root `MEMORY.md`, `SECURITY.md`, `TASKS.md`, `CHANGELOG.md`,
-`package.json`, `src/game/data/gameInfo.ts`, `.claude/belt/AGENT_REGISTRY.md` — main folds
+`package.json`, `src/game/data/gameInfo.ts`, the local seat roster — main folds
 those from this lane's dispatch returns.
 
 ## Branch `ci/audit-wave1-pipeline` — status DONE, awaiting main's merge

@@ -1,6 +1,6 @@
 # MEMORY/25 — Backend / Server-Authority System
 
-Caretaker memory. Working knowledge only — git log holds history.
+Owner memory. Working knowledge only — git log holds history.
 
 ## What I own (contract: `docs/agent-blueprint/25-backend-server-authority-system.md`)
 
@@ -19,7 +19,7 @@ I write migration files, I never apply them.
   `AccountRepositorySubset` (`accountRepository.shared.ts:156`), which deliberately excludes
   `importSave`/`exportSave` (the one genuine asymmetry between them).
 - **`accountRepository.supabase.ts` is a HOST file** — 5+ systems' RPC wrappers live in it.
-  Editing near a foreign function is seam work: belt end's, not mine.
+  Editing near a foreign function is seam work: main's, not mine.
 - **The central lesson this schema keeps re-teaching: RLS is row-scoped, never value-scoped.**
   A `for all using (auth.uid() = profile_id)` policy says _which rows_ a client may write, and
   says nothing at all about _what values_ may go into them. Every integrity defect found in this
@@ -83,7 +83,7 @@ _before_ applying `0001_init.sql`, so `handle_new_user()` never runs.
   the shared-interface work as pending, but `AccountRepositorySubset` shipped. Its `file:line`
   citations for `importSave` (says :548, is :497) and `exportSave` (says :333, is :761) have
   drifted too. Flagged to main at onboarding; awaiting the call on who edits the contract
-  (contract edits are security-grade per BELT-PORT §6).
+  (contract edits are security-grade).
 - Delivered this dispatch: `20260810101000_security_team_slots_ownership.sql` — **written, NOT
   applied.** Production apply is owed through the owner relay. Both triggers guarded with
   `drop trigger if exists` before `create trigger` (repo precedent: 20260809064000:370-371) —
@@ -125,7 +125,7 @@ _before_ applying `0001_init.sql`, so `handle_new_user()` never runs.
   helper, whose ceiling is CALLER-SUPPLIED — reachable over PostgREST it disables its own
   throttle. And the PGlite harness was **structurally blind** to the whole class: bare
   `create role` inherits only via PUBLIC. The fixture now runs the same `alter default
-  privileges`, so `has_function_privilege` assertions actually bite (proven: stripping
+privileges`, so `has_function_privilege` assertions actually bite (proven: stripping
   `authenticated` from any revoke now fails a test; before, it passed).
   (4) **Never state a grounding claim you did not recount.** v1's seed comment said "the complete
   ITEMS record (7 ids)" and listed two ids that exist nowhere in the repo — I had trusted a
@@ -155,7 +155,7 @@ _before_ applying `0001_init.sql`, so `handle_new_user()` never runs.
   if that dependency shipped in a commit the relay never reached.**
 - **Why the two cleanup jobs do NOT share a predicate helper** (decided, not defaulted): the
   guest job reaps DORMANCY (`no battle in 30 days`) and this one reaps NEVER-ENGAGED (`no battle
-  EVER`) — 0014's header draws that line explicitly and cites Kakao's 3-YEAR window for dormant
+EVER`) — 0014's header draws that line explicitly and cites Kakao's 3-YEAR window for dormant
   registered accounts. Sharing the predicate would silently widen this job to every player who
   ever stopped playing. And the drift was never caused by duplication: the guards existed in the
   repo and never reached prod, so a shared helper would have drifted identically. The guard SET

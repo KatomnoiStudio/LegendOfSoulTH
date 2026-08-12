@@ -1,4 +1,4 @@
-# 04 — skill-cast-system (caretaker memory)
+# 04 — skill-cast-system (system-owner memory)
 
 ## Scope (from contract)
 

@@ -21,17 +21,17 @@
 
 Two different things now live under `MEMORY/`. They are split by **audience**, not by who happens to write them:
 
-| file                                                  | scope                             | binds                                                                                                                                                     |
-| ----------------------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **root `MEMORY.md`** (+ its `MEMORY/archive/` bodies) | **every machine, every dev**      | everyone — reading it is rule 1, above, and is absolute                                                                                                   |
-| **`MEMORY/<system>.md`**                              | **this machine, the belt system** | the belt's own seats (the caretaker/aide roster in `.claude/belt/AGENT_REGISTRY.md`, installed per machine from `docs/BELT-PORT.md`) — mandatory for them |
+| file                                                  | scope                                 | binds                                                                     |
+| ----------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------- |
+| **root `MEMORY.md`** (+ its `MEMORY/archive/` bodies) | **every machine, every dev**          | everyone — reading it is rule 1, above, and is absolute                   |
+| **`MEMORY/<system>.md`**                              | **one system, whoever is working it** | the agent or dev holding that system right now — optional for anyone else |
 
 What that means in practice:
 
-- **A belt seat discharges its memory duty in its own `MEMORY/<system>.md`.** That is complete — a seat does not also have to append to root `MEMORY.md`, and should not: one seat owns one file, so parallel dispatches cannot collide in the shared record.
-- **The belt end (main) composes the root index entry** on the seats' behalf at merge, and keeps root `MEMORY.md` as its own memory file. Root has to work for a dev who has no belt at all, which is exactly why it cannot be a belt artifact.
+- **Working on one system? Write your notes in that system's own `MEMORY/<system>.md`.** That discharges the duty in full — you do not also append to root `MEMORY.md`, and should not: one file per system means two people working two systems in parallel cannot collide in the shared record.
+- **The root index entry is composed at merge** by whoever merges, and root `MEMORY.md` stays their own memory file. Root has to work for a dev with no per-system file at all, which is exactly why it cannot be one.
 - **Rule 1 is untouched by this.** Every agent still reads root `MEMORY.md` first, every session. This says where you WRITE, never whether you READ.
-- This resolved a real contradiction: dispatches were telling seats "do not touch root `MEMORY.md`" while §2 below (and `AGENTS.md` rules 2/3a) told every seat to maintain it. A seat that obeyed the law looked like it broke a rule, and with several lanes running at once every lane appending to one file guaranteed conflicts in the record whose whole job is to be reliable. Note that `SECURITY.md` (rule 19) and `TASKS.md` (rule 20) are NOT covered by this split — those still ride along in the same commit as the change that triggers them.
+- This resolved a real contradiction: parallel work was being told "do not touch root `MEMORY.md`" while §2 below (and `AGENTS.md` rules 2/3a) told everyone to maintain it. Whoever obeyed one looked like they broke the other, and with several lanes running at once every lane appending to one file guaranteed conflicts in the record whose whole job is to be reliable. Note that `SECURITY.md` (rule 19) and `TASKS.md` (rule 20) are NOT covered by this split — those still ride along in the same commit as the change that triggers them.
 
 ### 2. Continuous Memory Updates & Synthesis
 

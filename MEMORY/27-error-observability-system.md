@@ -1,6 +1,6 @@
 # MEMORY/27 — Error / Observability System
 
-Caretaker memory. Working knowledge only — git log holds history.
+Owner memory. Working knowledge only — git log holds history.
 
 ## What I own (contract: `docs/agent-blueprint/27-error-observability-system.md`)
 
@@ -173,7 +173,7 @@ removed two sessions ago, predating this branch entirely. `docs/agent-blueprint/
 DIFFERENT system's contract — not mine to edit, contract walls apply) and
 `docs/BLUEPRINT-CHECK-HOLD.md` (an owner-level HELD design doc) carry the same stale stub
 citation. Recommend a citation-refresh pass across `docs/agent-blueprint/**` the next time any
-caretaker touches their own contract file — a mechanical checker over this class of drift was
+system owner touches their own contract file — a mechanical checker over this class of drift was
 already proposed as task #24 (see `MEMORY.md` item 183) and would have caught this for free.
 
 ## HOLD — the crash screen cannot back up a player's data, and no code I own can fix it

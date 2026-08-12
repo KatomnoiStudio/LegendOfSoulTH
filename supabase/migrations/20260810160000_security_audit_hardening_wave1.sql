@@ -1,6 +1,6 @@
 -- Security audit hardening, wave 1 — findings F1-F8 from the 2026-08-10 repo-wide audit
 -- (12 agents: 7 CoalMine canaries + a 5-seat CoalBoard at nasa rigor; consolidated by the
--- system-25 caretaker). ONE migration on purpose: these are all server-authority fixes and
+-- system-25 owner). ONE migration on purpose: these are all server-authority fixes and
 -- the owner pastes migrations by hand — fewer pastes, fewer ordering mistakes.
 --
 -- ── HOW THIS IS DEPLOYED ────────────────────────────────────────────────────────────────────

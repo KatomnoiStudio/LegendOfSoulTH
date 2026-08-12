@@ -178,8 +178,7 @@ row level security` targets a platform-owned table; it fails on ownership and
 
 ### Credits
 
-- **nustanakritwithai** — external PRs #107 and #109, both taken in through the
-  belt. #109 is also the standing evidence for a gap no local test can cover: the
+- **nustanakritwithai** — external PRs #107 and #109, both taken in through review. #109 is also the standing evidence for a gap no local test can cover: the
   Realtime ownership error is a property of Supabase's hosted schema at runtime,
   and it was found by running the migration against a real project, not by reading
   it
@@ -188,7 +187,7 @@ row level security` targets a platform-owned table; it fails on ownership and
 
 No new toys. This release swaps the material of an existing skeleton. All of it
 traces to one 12-agent audit (MEMORY.md item 189) that returned 52 findings,
-worked off across nine belt lanes, each cleared by a QC gate spawned fresh.
+worked off across nine parallel lanes, each cleared by a QC gate spawned fresh.
 **Every lane was bounced at least once, and nearly every blocking finding was the
 same species: correct code with nothing pinning it there.**
 
@@ -299,13 +298,13 @@ same species: correct code with nothing pinning it there.**
 - **kaoshock123** — author of **849 of the 870** shipped art assets, confirmed
   against git history, and the questionnaire respondent whose first-hand answers
   put the provenance record on testimony instead of inference
-- **nustanakritwithai** — external PRs taken in through the belt, plus 20 committed
+- **nustanakritwithai** — external PRs taken in through review, plus 20 committed
   image files (moves and format conversions rather than authorship — recorded
   separately in the attribution file, because crediting the wrong person is a
   different failure from counting wrong)
 - **mehvetero** — security reports that remain the origin of this release's
   economy-side work
-- **TheColliery's belt** — a handoff on resource contention during parallel test
+- **TheColliery** — a handoff on resource contention during parallel test
   runs; every claim was checked against this repository before being adopted as
   TASKS row 31, with four documented departures from theirs
 
@@ -316,7 +315,7 @@ same species: correct code with nothing pinning it there.**
 - **Erlang Shen (`spear-warrior`), the 7th playable hero.** A three-hit spear chain, the
   Three-Hound Assault skill (three hound projectiles), and a distinct `assassin` archetype. The
   external PR that proposed him re-skinned every enemy to his sprite and 404'd his walk sheet; the
-  belt salvaged the verified-correct kit + hound effect and redid the breakage, and along the way
+  we salvaged the verified-correct kit + hound effect and redid the breakage, and along the way
   fixed a repo-wide gap where every hero's `attack-2/3` frames were dead (a hard-forced `attack-1`).
 
 ### Fixed
@@ -350,7 +349,7 @@ same species: correct code with nothing pinning it there.**
   client-writable-progression findings) and twelve live probes on an isolated test instance that
   cross-checked the fixes.
 - **nustanakritwithai** — the battle stage/camera/dungeon PR and the Erlang Shen, stage-objective,
-  and gacha-freeze PRs, each reworked and landed through the belt rather than merged as-is.
+  and gacha-freeze PRs, each reworked and landed through review rather than merged as-is.
 
 ## [0.15.2] - 2026-08-10
 

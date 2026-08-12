@@ -1,11 +1,11 @@
-# BLUEPRINT-CHECK HOLD — caretaker onboarding findings (2026-08-09)
+# BLUEPRINT-CHECK HOLD — system owner onboarding findings (2026-08-09)
 
 > **Owner ruling (mid-install): every ship-vs-doc conflict below is HELD — neither the code
 > nor the contract gets edited — until nustanakritwithai's design-lock answer lands.**
 > When it lands, each item becomes a dispatch: adjust SHIP or adjust DOCS per the answer
 > (task #10 in main's queue). Findings were produced by each system's own newly-hired
-> caretaker verifying its contract against live code during onboarding (28/28 systems,
-> every caretaker names how many claims it checked — silence was not accepted as clean).
+> system owner verifying its contract against live code during onboarding (28/28 systems,
+> every system owner names how many claims it checked — silence was not accepted as clean).
 
 ## 01-movement-system
 
@@ -16,7 +16,7 @@ Confirmed — no `MEMORY/01-*.md` yet, matches onboarding (lazy-born at first di
 **(1) Seat summary**
 Own: `src/game/realtimeBattle/MovementSystem.ts` — pure per-tick movement: normalize/deadzone, diagonal-speed correction, speed→displacement, circle collision push-out, arena clamp, facing update (delegates combat-facing to `combatFacing.ts`).
 Never touch: input capture, enemy/ally decision-making, hit/damage resolution, hit-stun/death state transitions (read-only on those), rendering/camera.
-Gated by: spawned belt-qc (opus·xhigh) per dispatch, no split (2-seat: caretaker+QC). Seam edits (other systems calling `stepMovement`) are belt end's, but I gate seam touches to my own files.
+Gated by: a spawned QC seat (opus·xhigh) per dispatch, no split (2-seat: system owner+QC). Seam edits (other systems calling `stepMovement`) are main's, but I gate seam touches to my own files.
 
 **(2) BLUEPRINT CHECK** — 8 claims verified
 
@@ -39,7 +39,7 @@ Healthy — the deltaMs-spike scar from the prior revision is closed and tested,
 **(4) Questions**
 
 1. Want me to fix the contract's stale line citations + missing AllyAISystem dependency now, or hold until first real dispatch touches this file?
-2. AllyAISystem.ts calling `stepMovement` directly — is that seam work I should flag to belt end, or just a doc gap since it's calling my exported function correctly (no ownership violation, just undocumented)?
+2. AllyAISystem.ts calling `stepMovement` directly — is that seam work I should flag to main, or just a doc gap since it's calling my exported function correctly (no ownership violation, just undocumented)?
 
 ---
 
@@ -49,7 +49,7 @@ _sid `d4e6f171-08e5-4015-80aa-9d9c7d96a2f1`_
 
 **(1) Seat summary**
 
-ถือ system 02 — Combat Facing System: `combatFacing.ts` (51 lines) ผู้กำหนด/mutate axis `CombatFacing` (left/right, แยกจาก `Direction8` 8-ทิศสไปรต์). ไม่แตะ: hitbox math (`HitboxSystem.ts`), sprite frame select (`EntitySprite.tsx`), knockback apply (`combatReaction.ts`), combo state (`ComboSystem.ts`), raw input capture (`RealtimeBattleRuntime.ts`). Gate: spawned QC (opus·xhigh) ต่อ dispatch, ไม่ใช่ main. Seam (call site ในไฟล์ระบบอื่น) = งาน belt end แต่ผมเป็นคน gate seam edit ที่แตะไฟล์ผม. Memory ผม: `MEMORY/02-combat-facing-system.md` — ยังไม่มี, สร้างตอน dispatch แรก.
+ถือ system 02 — Combat Facing System: `combatFacing.ts` (51 lines) ผู้กำหนด/mutate axis `CombatFacing` (left/right, แยกจาก `Direction8` 8-ทิศสไปรต์). ไม่แตะ: hitbox math (`HitboxSystem.ts`), sprite frame select (`EntitySprite.tsx`), knockback apply (`combatReaction.ts`), combo state (`ComboSystem.ts`), raw input capture (`RealtimeBattleRuntime.ts`). Gate: spawned QC (opus·xhigh) ต่อ dispatch, ไม่ใช่ main. Seam (call site ในไฟล์ระบบอื่น) = งาน main แต่ผมเป็นคน gate seam edit ที่แตะไฟล์ผม. Memory ผม: `MEMORY/02-combat-facing-system.md` — ยังไม่มี, สร้างตอน dispatch แรก.
 
 **(2) BLUEPRINT CHECK** — verified 19 claims (file:line citations + factual claims) จาก contract ตรงต่อ source จริง
 
@@ -71,7 +71,7 @@ Claims ที่ verify แล้ว**ตรง**: types.ts:23/19-20/73-75, comb
 **(4) Questions**
 
 1. Line-citation 5 จุดที่คลาดนี้ — ต้องการให้ผมแก้ contract file ให้ตรงตอน dispatch แรกเลย (เป็นงานเล็กในสโคปตัวเอง) หรือปล่อยไว้จนกว่าจะมี dispatch จริงมาแตะบริเวณนั้น?
-2. `combatFacingFromDirection` dead-code (0 caller) — ต้องการให้ caretaker ผมเสนอ wire เข้า `createRealtimeBattle.ts` หรือถอดทิ้งเมื่อมี dispatch แรกมาถึง หรือรอ owner สั่งเฉพาะ?
+2. `combatFacingFromDirection` dead-code (0 caller) — ต้องการให้ system owner ผมเสนอ wire เข้า `createRealtimeBattle.ts` หรือถอดทิ้งเมื่อมี dispatch แรกมาถึง หรือรอ owner สั่งเฉพาะ?
 
 ---
 
@@ -82,7 +82,7 @@ _sid `badab0dc-3975-4e39-a58a-42255221d975`_
 Read-only study done. No edits made.
 
 **(1) Seat summary**
-Caretaker of system 03 (basic-attack). Own: combo state machine (`ComboSystem.ts`), per-hero chain data (`heroes/attackChains.ts`/`attacks.ts`), `COMBO_CONFIG`, horizontal hitbox query (`HitboxSystem.findHitTargets`/`hitsHorizontal`). Never touch: damage math (`DamageSystem.calcDamage`/`applyDamage`), knockback/hit-stun resolution beyond calling it (Hit Reaction #6), skill casting (#4), enemy AI (#9). Gated by: spawned QC (opus·xhigh) per dispatch, then belt end's Unit Gate. PRs failing QC in my scope get adopted by me. Memory file `MEMORY/03-basic-attack-system.md` created on first dispatch.
+System owner of system 03 (basic-attack). Own: combo state machine (`ComboSystem.ts`), per-hero chain data (`heroes/attackChains.ts`/`attacks.ts`), `COMBO_CONFIG`, horizontal hitbox query (`HitboxSystem.findHitTargets`/`hitsHorizontal`). Never touch: damage math (`DamageSystem.calcDamage`/`applyDamage`), knockback/hit-stun resolution beyond calling it (Hit Reaction #6), skill casting (#4), enemy AI (#9). Gated by: spawned QC (opus·xhigh) per dispatch, then main's Unit Gate. PRs failing QC in my scope get adopted by me. Memory file `MEMORY/03-basic-attack-system.md` created on first dispatch.
 
 **(2) BLUEPRINT CHECK** — 11 file:line claims verified, 6 discrepancies found:
 
@@ -114,7 +114,7 @@ _sid `d0f250c7-3a0a-4e0f-b583-4e9188dd31b4`_
 Good, confirms hero kit shape. That's sufficient verification depth for onboarding.
 
 **(1) Seat summary**
-Caretaker of system 04 skill-cast-system: skill1/skill2/skill3/ultimate cast lifecycle (Input→Cast/Wind-up→AttackActive→Recovery), cooldown/ultimate-gauge gating, i-frame windows, kit→hitbox mapping. Own `SkillSystem.ts`, `skills.ts`, `RealtimeSkillDefinition`/`SkillState` schema. Never touch: `HitboxSystem.ts` collision, `DamageSystem.ts` math, `ComboSystem.ts` chaining, `EnemyAISystem.ts`, hero roster/leveling. `attacks.ts` timing data is shared source-of-truth, not mine to fork. Gated by a spawned Unit Gate/QC (opus·xhigh) per BELT-PORT — I never gate my own work; a fail bounces back to me with full finding.
+System owner of system 04 skill-cast-system: skill1/skill2/skill3/ultimate cast lifecycle (Input→Cast/Wind-up→AttackActive→Recovery), cooldown/ultimate-gauge gating, i-frame windows, kit→hitbox mapping. Own `SkillSystem.ts`, `skills.ts`, `RealtimeSkillDefinition`/`SkillState` schema. Never touch: `HitboxSystem.ts` collision, `DamageSystem.ts` math, `ComboSystem.ts` chaining, `EnemyAISystem.ts`, hero roster/leveling. `attacks.ts` timing data is shared source-of-truth, not mine to fork. Gated by a spawned Unit Gate/QC (opus·xhigh) per the local workflow doc — I never gate my own work; a fail bounces back to me with full finding.
 
 **(2) BLUEPRINT CHECK**
 
@@ -141,7 +141,7 @@ _sid `16383f76-aa9d-4f79-a25a-215765633314`_
 Onboarding read done, no edits made.
 
 **(1) Seat summary**
-Own: `AttackDefinition` interface (`attacks.ts:18-83`) — single data contract for every attack/skill/enemy-move literal. Own the data literals too (`MONKEY_*`, `ENEMY_ATTACK_*`, boss phase tables). Never touch: hit-geometry resolve (HitboxSystem #3), damage apply (DamageSystem #6), combo chain (ComboSystem #3), cast/cooldown (SkillSystem #4), enemy AI timing consumption (EnemyAISystem #9), boss phase-eligibility (#11). Gate: spawned QC (opus/xhigh), mandatory `drift-canary` every dispatch (schema system, 4+ downstream readers). Headcount: 2 (caretaker+QC), no split condition.
+Own: `AttackDefinition` interface (`attacks.ts:18-83`) — single data contract for every attack/skill/enemy-move literal. Own the data literals too (`MONKEY_*`, `ENEMY_ATTACK_*`, boss phase tables). Never touch: hit-geometry resolve (HitboxSystem #3), damage apply (DamageSystem #6), combo chain (ComboSystem #3), cast/cooldown (SkillSystem #4), enemy AI timing consumption (EnemyAISystem #9), boss phase-eligibility (#11). Gate: spawned QC (opus/xhigh), mandatory `drift-canary` every dispatch (schema system, 4+ downstream readers). Headcount: 2 (system owner+QC), no split condition.
 
 **(2) BLUEPRINT CHECK** — 18 claims verified
 
@@ -183,7 +183,7 @@ Read-only study done. No edits made.
 - Own: hit-reaction moment-of-impact — hitStunRemainingMs/invulnerableUntilMs/knockback/knockdown-getUp lifecycle in `combatReaction.ts` + `applyDamage` wiring in `DamageSystem.ts`.
 - Never touch: `calcDamage` (damage math, same file, different owner), `HitboxSystem.ts` hit detection, `EntitySprite.tsx` visuals, attacker-side interrupt logic (owned but consumed, not authored here).
 - Co-tenant file: `DamageSystem.ts` — own `applyDamage`, not `calcDamage`. Name owned functions, not just files, on dispatch.
-- Gated by: spawned QC seat (belt-qc), opus·xhigh. Fail bounces to me, never fixed by gate.
+- Gated by: a spawned QC seat, opus·xhigh. Fail bounces to me, never fixed by gate.
 
 **(2) BLUEPRINT CHECK** — verified ~18 claims, 3 confirmed discrepancies:
 
@@ -201,7 +201,7 @@ Core lifecycle (hit→stun→knockback, knockdown→getUp, interrupt) all implem
 **(4) Questions**
 
 1. `isControlLocked` now also gates on `isCcLocked(entity)` (status effects module) — is CC/status-effects a real dependency of my system now, or does that belong to a different system's contract that I'm just reading?
-2. Contract doc-drift found (3 stale citations) — do I file/fix these myself as a docs dispatch, or flag to belt end since contract edits are "security-grade" per BELT-PORT §6?
+2. Contract doc-drift found (3 stale citations) — do I file/fix these myself as a docs dispatch, or flag to main since contract edits are "security-grade" per the local workflow doc §6?
 
 ---
 
@@ -209,14 +209,14 @@ Core lifecycle (hit→stun→knockback, knockdown→getUp, interrupt) all implem
 
 _sid `851285e1-e85d-4b86-a0c1-e3f7a47be88f`_
 
-**Seat summary** (07 effects-system-non-damage, caretaker):
-เก็บ `heal`/`buff`/`cc`/`summon` resolver + target resolution (`EffectsSystem.ts`, 247 บรรทัด) — data field บน `AttackDefinition.effects[]` (`attacks.ts:54`), เรียกผ่าน `battleEffects.ts`. ไม่แตะ damage calc, hit-reaction state machine, AI loop เอง, หรือ balance number — เส้นแบ่งคือ `applyCcEffect` ห้ามเรียก `applyDamage`/`applyCombatReaction` เด็ดขาด (verified: ไฟล์ไม่ import ทั้งคู่). Gate = belt-qc (opus·xhigh) ต่อ dispatch, ยัง headcount 2 (caretaker+QC), no split.
+**Seat summary** (07 effects-system-non-damage, system owner):
+เก็บ `heal`/`buff`/`cc`/`summon` resolver + target resolution (`EffectsSystem.ts`, 247 บรรทัด) — data field บน `AttackDefinition.effects[]` (`attacks.ts:54`), เรียกผ่าน `battleEffects.ts`. ไม่แตะ damage calc, hit-reaction state machine, AI loop เอง, หรือ balance number — เส้นแบ่งคือ `applyCcEffect` ห้ามเรียก `applyDamage`/`applyCombatReaction` เด็ดขาด (verified: ไฟล์ไม่ import ทั้งคู่). Gate = QC seat (opus·xhigh) ต่อ dispatch, ยัง headcount 2 (system owner+QC), no split.
 
 **BLUEPRINT CHECK** — 12 claims verified:
 
 | #   | Contract says                                                                                                                              | file:line                                | Reality                                                                                                                                                                                                                                                   | Verdict                                                                                                           |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| 1   | EffectsSystem.ts 247 + test 376                                                                                                            | AGENT_REGISTRY.md row 07                 | `wc -l` = 247 / 376 ตรงเป๊ะ                                                                                                                                                                                                                               | ✅ match                                                                                                          |
+| 1   | EffectsSystem.ts 247 + test 376                                                                                                            | the seat roster row 07                   | `wc -l` = 247 / 376 ตรงเป๊ะ                                                                                                                                                                                                                               | ✅ match                                                                                                          |
 | 2   | `combatReaction.ts:63` hitStunRemainingMs write                                                                                            | contract Inputs/Outputs                  | line 63 ตรงคำต่อคำ                                                                                                                                                                                                                                        | ✅ match                                                                                                          |
 | 3   | `DamageSystem.ts:72-79` applyDamage→ReactionOutcome                                                                                        | contract Inputs/Outputs                  | ตรง                                                                                                                                                                                                                                                       | ✅ match                                                                                                          |
 | 4   | `types.ts:29-30` EntityState มี knockdown/getUp                                                                                            | Dependencies                             | ตรง                                                                                                                                                                                                                                                       | ✅ match                                                                                                          |
@@ -234,7 +234,7 @@ _sid `851285e1-e85d-4b86-a0c1-e3f7a47be88f`_
 **Questions**:
 
 1. #8 (AllyAISystem.ts bespoke แทน reuse EnemyAISystem) — แก้สเปกให้ตรงของจริง (ยอมรับ bespoke, ปรับ Done-crit #5) หรือถือเป็น scope creep ที่ต้อง refactor summon AI ให้ reuse จริงตามล็อกเดิม?
-2. `battleEffects.ts` + `PvPAuthorityEngine.ts` caller — ใครเจ้าของ seam นี้ตอนแก้ (belt end ตาม §2b) หรือผมควรเพิ่มลง Dependencies ของตัวเองตอน dispatch แรก?
+2. `battleEffects.ts` + `PvPAuthorityEngine.ts` caller — ใครเจ้าของ seam นี้ตอนแก้ (main ตาม §2b) หรือผมควรเพิ่มลง Dependencies ของตัวเองตอน dispatch แรก?
 
 ---
 
@@ -247,7 +247,7 @@ Studied. No edits made — read-only pass as instructed.
 **(1) Seat summary**
 I own: the target-lock decision for skills flagged `targetLock: 'nearest'` — nearest-enemy selection at cast start, held through the skill's active window. Concretely: the `targetLock` field on `AttackDefinition` (attacks.ts), `lockedTargetId`/`strikeHits`-adjacent bookkeeping in `SkillSystem.ts`, the `targetLock === 'nearest'` branch in `HitboxSystem.ts`, and `softTarget.ts`'s helpers (`distanceBetween`, `findNearestLivingEnemy`, `resolveLockedTarget`).
 I never touch: strike-phase sequencing / `interruptible` / `phaseOverrides` (system #4's), basic-attack hit detection, movement/facing/camera, damage math, enemy-AI's own targeting.
-Gated by: a spawned belt-qc seat (opus·xhigh per AGENT_REGISTRY.md row 08), never by myself.
+Gated by: a spawned QC seat (opus·xhigh per the seat roster), never by myself.
 
 **(2) BLUEPRINT CHECK** — 15 claims verified, 6 discrepancies found:
 
@@ -260,7 +260,7 @@ Gated by: a spawned belt-qc seat (opus·xhigh per AGENT_REGISTRY.md row 08), nev
 | 5   | `AGENT_BLUEPRINT.md:46` vs `:50` for system #4 vs #8 taxonomy entries                                              | Those lines are unrelated (Tier-3 Social note / list header); the actual #4 and #8 entries are lines 59 and 67                                                                                                                                                     | AGENT_BLUEPRINT.md:46,50,59,67 |
 | 6   | `softTarget.ts` "consumed by ... SkillSystem.ts, HitboxSystem.ts, RealtimeBattleRuntime.ts, PvPAuthorityEngine.ts" | Only `RealtimeBattleRuntime.ts` directly imports it. The other three consume the `lockedTargetId`/`targetLock` concept, not the module. Missed real consumer: `AllyAISystem.ts` imports `findNearestLivingEnemy` directly and isn't named anywhere in the contract | grep `softTarget` across src/  |
 
-Bonus (registry, not contract): AGENT_REGISTRY.md row 08 says "NO own file — boundary is field-level inside `SkillSystem.ts`," but `softTarget.ts` (46 lines) + `softTarget.test.ts` already exist as a dedicated file that looks exactly like this system's own home — worth flagging to the owner, not something I should silently "fix" by editing the registry myself.
+Bonus (registry, not contract): the seat roster says "NO own file — boundary is field-level inside `SkillSystem.ts`," but `softTarget.ts` (46 lines) + `softTarget.test.ts` already exist as a dedicated file that looks exactly like this system's own home — worth flagging to the owner, not something I should silently "fix" by editing the registry myself.
 
 Everything else checked clean: `attacks.ts:49/75-78/2-5`, `SkillSystem.ts` dedup lines 21/33/78/117/137, `HitboxSystem.ts` dedup lines 36/98/104/135/145/150, `RealtimeBattleRuntime.ts:330,341-344`, TASKS.md row 15/DF15/PR#56, and the Scope's "does NOT own" strike-sequencing claim (confirmed all in system #4's files).
 
@@ -278,7 +278,7 @@ Graduated 100%, PR #56, TASKS.md row 15/DF15. Code matches the shipped descripti
 
 _sid `120b45f5-e14a-4eea-aab9-3f750c18aa4c`_
 
-**Seat: Caretaker of `09-enemy-ai-system`.** Own `EnemyAISystem.ts` decision-making only (state transitions + move direction). Never touch: movement execution (MovementSystem), damage application (DamageSystem), hit detection (HitboxSystem), telegraph VFX rendering (none exists), or `stageConfig.ts`/`attacks.ts` data beyond reading them. `belt-qc` gates every dispatch (opus·xhigh). Seam edits into my file from other systems get gated by me. Memory file `MEMORY/09-enemy-ai-system.md` — create on first dispatch.
+**Seat: System owner of `09-enemy-ai-system`.** Own `EnemyAISystem.ts` decision-making only (state transitions + move direction). Never touch: movement execution (MovementSystem), damage application (DamageSystem), hit detection (HitboxSystem), telegraph VFX rendering (none exists), or `stageConfig.ts`/`attacks.ts` data beyond reading them. `QC seat` gates every dispatch (opus·xhigh). Seam edits into my file from other systems get gated by me. Memory file `MEMORY/09-enemy-ai-system.md` — create on first dispatch.
 
 **BLUEPRINT CHECK** — verified 9 file:line claims + all named "shipped" substance claims. 5 stale pointers found (line drift from later edits), 0 false substance claims.
 
@@ -309,7 +309,7 @@ _sid `3fc1c724-98a8-40c5-bdea-c50d818729a4`_
 Confirmed clean — data table only, no hardcode. Studied enough of the worksite. Reporting.
 
 **Seat summary**
-I own the Elite tier (stat-multiplier + knockdown-eligibility flag) and the mini-boss stage type (Elite-tier encounter, no phase-transition). No own source file — I hold `ELITE_STAT_MULTIPLIER` + `tier`/`combatTier` fields living inside `stageConfig.ts`/`createRealtimeBattle.ts`, plus `EliteTierSystem.test.ts`. I never touch the Boss phase-transition state machine (§3.6.9, system 11), `EnemyAISystem.ts`'s AI core, `attacks.ts`, CC-as-status, summon AI, or PvP hit-reaction mapping. QC gate: `belt-qc` (opus·xhigh), spawned per dispatch — bounces come back to me with full findings, I fix, never the gate.
+I own the Elite tier (stat-multiplier + knockdown-eligibility flag) and the mini-boss stage type (Elite-tier encounter, no phase-transition). No own source file — I hold `ELITE_STAT_MULTIPLIER` + `tier`/`combatTier` fields living inside `stageConfig.ts`/`createRealtimeBattle.ts`, plus `EliteTierSystem.test.ts`. I never touch the Boss phase-transition state machine (§3.6.9, system 11), `EnemyAISystem.ts`'s AI core, `attacks.ts`, CC-as-status, summon AI, or PvP hit-reaction mapping. QC gate: `QC seat` (opus·xhigh), spawned per dispatch — bounces come back to me with full findings, I fix, never the gate.
 
 **BLUEPRINT CHECK** — 14 file:line/claims verified against current code:
 
@@ -345,7 +345,7 @@ I own the Elite tier (stat-multiplier + knockdown-eligibility flag) and the mini
 
 _sid `eb1a30c8-f824-4fea-a7ad-3eeaca9a4991`_
 
-## Onboarding เสร็จ — Boss System (#11) Caretaker
+## Onboarding เสร็จ — Boss System (#11) System owner
 
 **(1) Seat summary**
 ถือ: HP-threshold phase-transition state machine เฉพาะ boss tier — `telegraph`/`phase-transition` state ใน `EnemyAISystem.ts` (host file ของ #9) + `BOSS_TEMPLATES`/`BossAttackRow`/`BossPhaseTemplate` ใน `stageConfig.ts` (host file ของ #16).
@@ -381,7 +381,7 @@ _sid `9097cce7-9552-4375-a7fa-6541d532191a`_
 **Seat summary**
 Own: `docs/agent-blueprint/12-hero-kit-archetype-system.md` — hero moveset data (basic combo + S1/S2/S3/ult) + archetype targeting/effect rules via `AttackDefinition`/`RealtimeSkillKit`. Files: `src/game/heroes/kits/*`, `src/game/heroes/heroProductionBatch.ts`, `src/game/realtimeBattle/attacks.ts`+`skills.ts` (data side).
 Never touch: enemy AI state machine (§3.6.8, system 09), gacha/star-ascension math, PvP matchmaking, skill-button UI. Kits/ boundary split with system 04: I own data VALUES, 04 owns lifecycle SEMANTICS.
-Gate: belt-qc (opus·xhigh) per dispatch. Batch dispatch (5+ kits at once) fires §2c split → per-hero makers+QC, me as joiner.
+Gate: a spawned QC seat (opus·xhigh) per dispatch. Batch dispatch (5+ kits at once) fires §2c split → per-hero makers+QC, me as joiner.
 
 **BLUEPRINT CHECK**
 
@@ -407,7 +407,7 @@ _sid `c2f95ce0-f32c-47b6-80a7-be9fe20073ef`_
 
 **(1) Seat summary**
 
-Caretaker of System #13 Hero Collection: own `ROSTER` (`characters.ts`) + `grantCharacter` write-path (both impls) + `OwnedCharacter` shape it seeds. Never touch: gacha RNG/pity (#23), progression/star math (#14/#15), combat kit files (#12). Gate = spawned QC (opus·xhigh) per dispatch; sensitive edge (grantCharacter/Supabase write) → no delegate-down, opus flip on RLS/RPC touches. Memory file `MEMORY/13-hero-collection-system.md` doesn't exist yet — creates on first dispatch. Contract paused (P10 held behind P9 Gacha/Star per HetCreep).
+System owner of System #13 Hero Collection: own `ROSTER` (`characters.ts`) + `grantCharacter` write-path (both impls) + `OwnedCharacter` shape it seeds. Never touch: gacha RNG/pity (#23), progression/star math (#14/#15), combat kit files (#12). Gate = spawned QC (opus·xhigh) per dispatch; sensitive edge (grantCharacter/Supabase write) → no delegate-down, opus flip on RLS/RPC touches. Memory file `MEMORY/13-hero-collection-system.md` doesn't exist yet — creates on first dispatch. Contract paused (P10 held behind P9 Gacha/Star per HetCreep).
 
 **(2) BLUEPRINT CHECK** — verified 15 claims, 12 discrepancies found:
 
@@ -433,7 +433,7 @@ Clean: `heroCollection.test.ts` line citations (`:41-76`, `:78-97`, `:100-112`) 
 **(4) Questions**
 
 1. Is the gacha-RPC-bypasses-`grant_character` finding already known/accepted by HetCreep, or should I flag it as a fresh contract violation on first dispatch?
-2. Should I refresh all the stale file:line citations in the contract doc myself (mechanical, safe), or is that out of my caretaker scope until seam/QC assigns it?
+2. Should I refresh all the stale file:line citations in the contract doc myself (mechanical, safe), or is that out of my system owner scope until seam/QC assigns it?
 
 ---
 
@@ -442,7 +442,7 @@ Clean: `heroCollection.test.ts` line citations (`:41-76`, `:78-97`, `:100-112`) 
 _sid `bddfcf82-76bc-42a3-9ba4-2bcad4f03977`_
 
 **(1) Seat summary**
-เป็น caretaker system 14 — Progression System. Owns: Hero Level EXP curve (`RewardSystem.ts` legacy path + `progressionService.applyHeroExp`/`heroExpService.ts` current path), Skill Level (data model + level-up flow), Talent/Awakening (un-deferred, fully built, UI hidden). Never touch: Star Ascension (#15), reward/EXP generation (#18), stage/difficulty tuning (#16), Equipment/Loot, PvP normalization logic (#20 — only expose read shape). Gate: spawned QC (opus·xhigh) per dispatch, no delegate-down on sensitive edge (progression persistence/0008 migration).
+เป็น system owner system 14 — Progression System. Owns: Hero Level EXP curve (`RewardSystem.ts` legacy path + `progressionService.applyHeroExp`/`heroExpService.ts` current path), Skill Level (data model + level-up flow), Talent/Awakening (un-deferred, fully built, UI hidden). Never touch: Star Ascension (#15), reward/EXP generation (#18), stage/difficulty tuning (#16), Equipment/Loot, PvP normalization logic (#20 — only expose read shape). Gate: spawned QC (opus·xhigh) per dispatch, no delegate-down on sensitive edge (progression persistence/0008 migration).
 
 **(2) BLUEPRINT CHECK** — 15 claims verified
 
@@ -464,7 +464,7 @@ Graduated 🟢 100% (TASKS.md row 21 + DF21, 2026-08-08), 1,868 lines in `src/ga
 **(4) Questions**
 
 1. Contract's file:line citations for `SkillProgressionSystem.ts` and the hero-exp-table location are wrong (point to `progression/` when code sits in `realtimeBattle/`/`progressionConfig.ts`) — แก้ contract เลยไหม ตอน dispatch แรก, หรือรอ owner สั่ง?
-2. #18 (Reward System) contract ก็ claim ownership `RewardSystem.ts:96-128` เดียวกัน (per AGENT_REGISTRY.md row 18 "CONTRACT CONFLICT") — ยัง unresolved. ผมงดแตะจนกว่า owner ตัดสิน ใช่ไหม?
+2. #18 (Reward System) contract ก็ claim ownership `RewardSystem.ts:96-128` เดียวกัน (per the seat rEGISTRY.md row 18 "CONTRACT CONFLICT") — ยัง unresolved. ผมงดแตะจนกว่า owner ตัดสิน ใช่ไหม?
 
 ---
 
@@ -478,7 +478,7 @@ Verified enough. Study done, staying read-only.
 
 - Own: `docs/agent-blueprint/15-star-ascension-system.md`'s scope — star tier (★1–6), duplicate/shard-consumption rule, per-star stat-multiplier table, `statsAtStar()`, the `ascend_character_star` RPC and its persistence.
 - Never touch: gacha pull mechanic/rates (system 23), Hero/Skill Level progression (system 14), combat damage math (systems 2/6), PvP match setup/normalization (system 19/20) — I only feed the unnormalized stat delta.
-- Gated by: spawned QC (opus·xhigh) per AGENT_REGISTRY row 44 — SENSITIVE THROUGHOUT, no delegate-down ever, opus floor on RPC/migration touches, security lens mandatory.
+- Gated by: spawned QC (opus·xhigh) per the seat roster — SENSITIVE THROUGHOUT, no delegate-down ever, opus floor on RPC/migration touches, security lens mandatory.
 
 **(2) BLUEPRINT CHECK** — 6 claims checked, 1 discrepancy:
 
@@ -494,7 +494,7 @@ Everything else checked clean: migration columns/constraints (`20260808204905_p9
 **(4) Questions**
 
 1. Should I file/claim the UI-caller gap as my own next dispatch (own-scope), or does it wait on someone else building the ascension screen first?
-2. Contract's gacha-shard citation is stale (points at a file that never existed) — fix it myself next dispatch, or flag to belt end since editing another system's cited evidence touches shared doc?
+2. Contract's gacha-shard citation is stale (points at a file that never existed) — fix it myself next dispatch, or flag to main since editing another system's cited evidence touches shared doc?
 
 ---
 
@@ -504,7 +504,7 @@ _sid `59e6f6c7-6eec-43a3-b298-64f7e5755296`_
 
 Good — that claim holds. Wrapping up study now; sufficient sample verified (11 claims checked, most stale).
 
-**Seat summary** — CARETAKER of system 16 (stage/adventure). Own: `REALTIME_STAGES` data catalog + `RealtimeBattleStage`/`BossTemplate`/`ELITE_STAT_MULTIPLIER` symbols hosted in `stageConfig.ts`, chapter/gating logic (`isStageUnlocked`, `getOrderedStages`, `getAdventureChapters`), `adventure/` energy system. Never touch: in-battle combat resolution (Movement/AI/Combat), stage-type behavioral variation (`StageVariationSystem.ts`, system #17), reward computation (`RewardSystem.ts`, system #18) — those are sibling consumers of the same host file, seam edits near their symbols route to belt end. Gated by a spawned QC (opus·xhigh) per dispatch, per `docs/AGENT_REGISTRY.md` row 16.
+**Seat summary** — OWNER of system 16 (stage/adventure). Own: `REALTIME_STAGES` data catalog + `RealtimeBattleStage`/`BossTemplate`/`ELITE_STAT_MULTIPLIER` symbols hosted in `stageConfig.ts`, chapter/gating logic (`isStageUnlocked`, `getOrderedStages`, `getAdventureChapters`), `adventure/` energy system. Never touch: in-battle combat resolution (Movement/AI/Combat), stage-type behavioral variation (`StageVariationSystem.ts`, system #17), reward computation (`RewardSystem.ts`, system #18) — those are sibling consumers of the same host file, seam edits near their symbols route to main. Gated by a spawned QC (opus·xhigh) per dispatch, per `the seat roster` row 16.
 
 **BLUEPRINT CHECK** (11 claims checked against live code):
 
@@ -538,7 +538,7 @@ _sid `4dbfb7cf-eb24-4c9c-98a6-e56cca48403f`_
 Confirmed, my file will be `MEMORY/17-stage-variation-system.md`, lazy-born at first dispatch (correctly not created now — this run stays read-only per instructions).
 
 **(1) Seat summary**
-Caretaker of system 17, stage variation. I own `StageVariationSystem.ts` (win/lose per `stageType`) and its param types on `stageConfig.ts`'s `RealtimeBattleStage`. Never touch: `EnemyAISystem.ts` AI behavior, `RewardSystem.ts` payout math, inter-stage gating/stamina (open, HetCreep call), numeric difficulty tuning. Gated by a spawned QC per dispatch (opus·xhigh); seam edits into other systems' files route through belt end, which I in turn gate when it touches my files.
+System owner of system 17, stage variation. I own `StageVariationSystem.ts` (win/lose per `stageType`) and its param types on `stageConfig.ts`'s `RealtimeBattleStage`. Never touch: `EnemyAISystem.ts` AI behavior, `RewardSystem.ts` payout math, inter-stage gating/stamina (open, HetCreep call), numeric difficulty tuning. Gated by a spawned QC per dispatch (opus·xhigh); seam edits into other systems' files route through main, which I in turn gate when it touches my files.
 
 **(2) BLUEPRINT CHECK** — 11 claims checked, 4 discrepancies found:
 
@@ -565,7 +565,7 @@ All other checked claims held exactly: 8 win-condition functions dispatched on `
 _sid `9d07b40c-4f46-4b6e-8a52-50614cdef2c8`_
 
 **(1) Seat summary**
-Own: pure reward calc for real-time PvE battles (`RewardSystem.ts` — gold/EXP/materials, account+lead-hero EXP apply) plus `src/game/reward/` (stage table, pipeline, resolver). Never touch: persistence/ledger (`accountRepository.ts earnGold/grantItem`), gear/affix drops, PvP rewards, save-order orchestration outside `lobbyBattleRewardPipeline.ts`. Gated by belt-qc (opus·xhigh) per dispatch; seam edits into other systems' files route through the belt end.
+Own: pure reward calc for real-time PvE battles (`RewardSystem.ts` — gold/EXP/materials, account+lead-hero EXP apply) plus `src/game/reward/` (stage table, pipeline, resolver). Never touch: persistence/ledger (`accountRepository.ts earnGold/grantItem`), gear/affix drops, PvP rewards, save-order orchestration outside `lobbyBattleRewardPipeline.ts`. Gated by a spawned QC seat (opus·xhigh) per dispatch; seam edits into other systems' files route through main.
 
 **(2) BLUEPRINT CHECK** — verified 23 file:line claims.
 
@@ -602,13 +602,13 @@ Gated by: spawned QC (opus·xhigh) per dispatch; at P13 build, expected split in
 
 **(2) BLUEPRINT CHECK** — verified 5 claims, 1 confirmed wrong:
 
-| #   | Contract says                                                                                      | Reality                                                 | Evidence                                                                                                                          |
-| --- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Contract §19 line 7: `#21`'s prototype "never calls `rankedNormalization.ts`"                      | FALSE — it does call it                                 | `supabase/functions/pvp-authority/index.ts:10,195-196` imports and calls `createRankedPlayerEntity` from `rankedNormalization.ts` |
-| 2   | `AGENT_REGISTRY.md` row 20: "Shipped-but-uncalled: first real caller arrives with #19's P13 build" | Same error — already has a real caller today            | same lines above                                                                                                                  |
-| 3   | rankedNormalization.ts 83 lines + test 109                                                         | Correct                                                 | `wc -l` = 83 + 109                                                                                                                |
-| 4   | "never persists rank/MMR" (contract §19 line 7)                                                    | Correct — verified                                      | no MMR/rank write in `pvp-authority/index.ts`                                                                                     |
-| 5   | "no queue/rank-band/MMR/Elo persistence code exists under src/"                                    | Correct — only a UI disclaimer string matched, no logic | `PvPRoomModal.tsx:210` is just a footer label                                                                                     |
+| #   | Contract says                                                                                  | Reality                                                 | Evidence                                                                                                                          |
+| --- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Contract §19 line 7: `#21`'s prototype "never calls `rankedNormalization.ts`"                  | FALSE — it does call it                                 | `supabase/functions/pvp-authority/index.ts:10,195-196` imports and calls `createRankedPlayerEntity` from `rankedNormalization.ts` |
+| 2   | the seat roster row 20: "Shipped-but-uncalled: first real caller arrives with #19's P13 build" | Same error — already has a real caller today            | same lines above                                                                                                                  |
+| 3   | rankedNormalization.ts 83 lines + test 109                                                     | Correct                                                 | `wc -l` = 83 + 109                                                                                                                |
+| 4   | "never persists rank/MMR" (contract §19 line 7)                                                | Correct — verified                                      | no MMR/rank write in `pvp-authority/index.ts`                                                                                     |
+| 5   | "no queue/rank-band/MMR/Elo persistence code exists under src/"                                | Correct — only a UI disclaimer string matched, no logic | `PvPRoomModal.tsx:210` is just a footer label                                                                                     |
 
 The "never encroaches" framing needs a caveat: the prototype doesn't persist rank/MMR (true, scope intact for the queue/rank slice), but it does already consume `#20`'s normalization output in production edge-function code — contract and registry both currently misstate this as zero-caller.
 
@@ -629,8 +629,8 @@ Untracked, unedited by me — clean.
 
 **(1) Seat summary**
 Own: `src/game/pvp/rankedNormalization.ts` + its test — the pure `toRankedHeroSnapshot`/`createRankedPlayerEntity` swap that clamps level/skillLevel to `RANKED_BASELINE` for ranked PvP, star passed through untouched.
-Never touch: matchmaking/MMR/rank-band (#19/P13), `DamageSystem.ts` combat math, star/level formulas themselves (owned by #14/#15), `createPlayerEntity()`'s PvE call path, and the seam wiring that will one day call my function from #21's engine — that wiring is belt-end work.
-Gated by: `belt-qc` (opus·xhigh) per dispatch, per `docs/AGENT_REGISTRY.md` row 20.
+Never touch: matchmaking/MMR/rank-band (#19/P13), `DamageSystem.ts` combat math, star/level formulas themselves (owned by #14/#15), `createPlayerEntity()`'s PvE call path, and the seam wiring that will one day call my function from #21's engine — that wiring is main work.
+Gated by: a spawned QC seat (opus·xhigh) per dispatch, per the seat roster.
 
 **(2) BLUEPRINT CHECK** — 8 claims verified.
 
@@ -649,8 +649,8 @@ Gated by: `belt-qc` (opus·xhigh) per dispatch, per `docs/AGENT_REGISTRY.md` row
 
 **(4) Questions**
 
-1. My contract's own Dependencies section is stale about #19/#21's existence (says "does not exist in src/ yet") — should I fix that prose myself at first real dispatch, or is contract-editing Ring-0-only per §6 of BELT-PORT (fence, not suggestion)?
-2. When #21's engine eventually wires `createRankedPlayerEntity` in for real — is that seam edit (inside `PvPAuthorityEngine.ts`, a file I don't own) something I get dispatched to review/gate since it calls into my file, or purely belt-end's?
+1. My contract's own Dependencies section is stale about #19/#21's existence (says "does not exist in src/ yet") — should I fix that prose myself at first real dispatch, or is contract-editing Ring-0-only per §6 of the local workflow doc (fence, not suggestion)?
+2. When #21's engine eventually wires `createRankedPlayerEntity` in for real — is that seam edit (inside `PvPAuthorityEngine.ts`, a file I don't own) something I get dispatched to review/gate since it calls into my file, or purely main's?
 
 ---
 
@@ -660,7 +660,7 @@ _sid `e5d9a21e-858a-47ee-ad00-42b8f607a2f4`_
 
 Good, that satisfies the "two-client simulation is implemented and tested" claim. I've checked enough load-bearing citations. Time to report back.
 
-**Seat summary** — Caretaker of system 21 (netcode/networking). I own: input transport, state reconciliation/desync detection, private invite-session lifecycle, disconnect/forfeit handling, and §3.8.7's hit-reaction-tier call — all inside `src/game/pvp/*` + `pvp-authority` Edge Function + its migration. I never touch: combat sim itself (`realtimeBattle/*` systems 01-11), matchmaking/MMR/rewards (P13, system 19), currency, PvE AI. Cross-slice dispatch = 8 seats (3 makers: engine TS / server Deno+SQL / client React, each own QC, + joiner + Unit Gate); single-slice = 2. Unit Gate (opus·xhigh) gates assembly+stream-fit; server slice QC carries a security lens, opus floor, no delegate-down.
+**Seat summary** — System owner of system 21 (netcode/networking). I own: input transport, state reconciliation/desync detection, private invite-session lifecycle, disconnect/forfeit handling, and §3.8.7's hit-reaction-tier call — all inside `src/game/pvp/*` + `pvp-authority` Edge Function + its migration. I never touch: combat sim itself (`realtimeBattle/*` systems 01-11), matchmaking/MMR/rewards (P13, system 19), currency, PvE AI. Cross-slice dispatch = 8 seats (3 makers: engine TS / server Deno+SQL / client React, each own QC, + joiner + Unit Gate); single-slice = 2. Unit Gate (opus·xhigh) gates assembly+stream-fit; server slice QC carries a security lens, opus floor, no delegate-down.
 
 **BLUEPRINT CHECK** — 11 claims checked, all held up:
 
@@ -718,7 +718,7 @@ TASKS.md row 10: graduated 100%, but real gap stands — 22 unit tests hit dorma
 **(4) Questions**
 
 1. Contract's stale line numbers (6 citations off by 7–50 lines) — should I refresh them on next dispatch, or leave since content/mechanism still verifies?
-2. Untested production gap (Supabase RPC path has no test suite of its own, per contract's own Done-criteria note + TASKS.md row 9) — is that MY first dispatch, or blocked on #25 backend caretaker?
+2. Untested production gap (Supabase RPC path has no test suite of its own, per contract's own Done-criteria note + TASKS.md row 9) — is that MY first dispatch, or blocked on #25 backend system owner?
 
 ---
 
@@ -730,7 +730,7 @@ All checks confirm. Blueprint matches reality — no discrepancies found.
 
 ## (1) Seat summary
 
-CARETAKER of system 23 (gacha). Own: `gacha_banners`/`gacha_banner_pool`/`gacha_pity` config + `perform_gacha_pull` RPC logic, `GachaModal.tsx`, `accountRepository.supabase.ts::pullGacha`, gacha test suite. Never touch: currency ledger mutation internals (`accountRepository.ts` §8), hero stat/kit data (`characters.ts`), star-ascension math (system 15), shop/purchase UI (system 24). SENSITIVE seat — no delegate-down, opus floor on RPC/migration touches. Gated by belt-qc (opus·xhigh), mandatory statistical suite + security lens on any RPC touch.
+OWNER of system 23 (gacha). Own: `gacha_banners`/`gacha_banner_pool`/`gacha_pity` config + `perform_gacha_pull` RPC logic, `GachaModal.tsx`, `accountRepository.supabase.ts::pullGacha`, gacha test suite. Never touch: currency ledger mutation internals (`accountRepository.ts` §8), hero stat/kit data (`characters.ts`), star-ascension math (system 15), shop/purchase UI (system 24). SENSITIVE seat — no delegate-down, opus floor on RPC/migration touches. Gated by QC seat (opus·xhigh), mandatory statistical suite + security lens on any RPC touch.
 
 ## (2) BLUEPRINT CHECK
 
@@ -746,7 +746,7 @@ Shipped, server-authoritative, live since P9 (production-verified per contract 2
 
 ## (4) Questions
 
-1. `MEMORY/23-gacha-system.md` ยังไม่มี — สร้างตอน dispatch แรกใช่ไหม (ตาม BELT-PORT lazy-row rule)?
+1. `MEMORY/23-gacha-system.md` ยังไม่มี — สร้างตอน dispatch แรกใช่ไหม (ตาม the local workflow doc lazy-row rule)?
 2. Known scars ข้อ 2 (double-grant dedup) บอกว่า "future server-authority phase" — ตอนนี้ server-authority shipped แล้ว (P9) dedup ผ่าน `request_id` idempotency ใน RPC จริงไหม ต้อง verify เพิ่มไหม หรือถือว่าปิดเคสแล้ว?
 
 ---
@@ -758,7 +758,7 @@ _sid `3281438e-3903-4176-8f7c-5aeebad617f6`_
 MEMORY/ has no system-24 file yet, confirms this is the first dispatch. No TASKS.md row for monetization currently claimed. Study done — reporting back.
 
 **Seat summary**
-Caretaker of system 24 (monetization/shop). Own: `CurrencyShopModal.tsx`, `GOLD_PACKAGES`/`GEM_PACKAGES` catalog in `accountRepository.shared.ts`, and the `topUpGold`/`topUpGems` call path wired at `TopBar.tsx:114-120`. Never touch: currency ledger/`earnGold`/`redeemCoupon` (system 22), gacha mechanics (23), or a real payment gateway/new SKU-pricing — those are owner+legal only, agent work is a red line. Gated by a spawned `belt-qc` seat (opus·xhigh) per dispatch; standing headcount is 2 (caretaker + QC), no split.
+System owner of system 24 (monetization/shop). Own: `CurrencyShopModal.tsx`, `GOLD_PACKAGES`/`GEM_PACKAGES` catalog in `accountRepository.shared.ts`, and the `topUpGold`/`topUpGems` call path wired at `TopBar.tsx:114-120`. Never touch: currency ledger/`earnGold`/`redeemCoupon` (system 22), gacha mechanics (23), or a real payment gateway/new SKU-pricing — those are owner+legal only, agent work is a red line. Gated by a spawned `QC seat` seat (opus·xhigh) per dispatch; standing headcount is 2 (system owner + QC), no split.
 
 **BLUEPRINT CHECK** — 8 claims checked, 2 discrepancies found:
 
@@ -786,7 +786,7 @@ _sid `56ad0a85-fd98-4122-b95b-f227ba368eb1`_
 Onboarding done. Study complete, no edits made.
 
 **(1) Seat summary**
-Caretaker of system 25 — backend/server-authority: auth+session, profile+child records (currency, characters, team slots, inventory, friends, battle history), and the server-authority boundary (RPC vs client-write) for currency/item/character grants. Two repos: `accountRepository.ts` (localStorage, dormant per its own header comment — `useAuth.ts` no longer imports it) and `accountRepository.supabase.ts` (live path). Do NOT own: combat resolution, PvP MMR/netcode, gacha roll math (owned by #23, I only host its RPC call site), payment gateway, hero stat formulas. SENSITIVE THROUGHOUT — no delegate-down, opus floor on auth/RLS/migration touches, CoalBoard gate on RLS/policy changes, `SECURITY.md` same-commit. Gated by spawned QC (belt-qc), never self-gate. Host file `accountRepository.supabase.ts` carries 5+ other systems' wrappers — edits near foreign symbols route to belt end as seam.
+System owner of system 25 — backend/server-authority: auth+session, profile+child records (currency, characters, team slots, inventory, friends, battle history), and the server-authority boundary (RPC vs client-write) for currency/item/character grants. Two repos: `accountRepository.ts` (localStorage, dormant per its own header comment — `useAuth.ts` no longer imports it) and `accountRepository.supabase.ts` (live path). Do NOT own: combat resolution, PvP MMR/netcode, gacha roll math (owned by #23, I only host its RPC call site), payment gateway, hero stat formulas. SENSITIVE THROUGHOUT — no delegate-down, opus floor on auth/RLS/migration touches, CoalBoard gate on RLS/policy changes, `SECURITY.md` same-commit. Gated by spawned QC (QC seat), never self-gate. Host file `accountRepository.supabase.ts` carries 5+ other systems' wrappers — edits near foreign symbols route to main as seam.
 
 **(2) BLUEPRINT CHECK** — 11 claims checked
 
@@ -804,7 +804,7 @@ Graduated 100% (DF9, PR #76) — 6 PGLite integration tests + 20 Supabase repo t
 
 **(4) Questions**
 
-1. Contract's done-criterion #4 reads stale (describes shipped work as a future deliverable) — should I correct the contract doc myself, or flag it to you and wait, given contract edits are "security-grade" per BELT-PORT §6?
+1. Contract's done-criterion #4 reads stale (describes shipped work as a future deliverable) — should I correct the contract doc myself, or flag it to you and wait, given contract edits are "security-grade" per the local workflow doc §6?
 2. `MEMORY/25-backend-server-authority-system.md` doesn't exist yet (expected, lazy-born) — confirm the exact filename convention before I create it on first dispatch (registry says `MEMORY/NN-<system>.md`, contract's own filename is `25-backend-server-authority-system.md` — same slug, just checking no shorthand preferred)?
 
 ---
@@ -816,19 +816,19 @@ _sid `c999be6c-9120-441d-bcb5-e1611a0cf206`_
 ยืนยันครบแล้ว ไม่แก้ไฟล์ไหนเลย ตามที่สั่ง read-only.
 
 **(1) Seat summary**
-ผม = caretaker system 26 (control-input) — เก็บ `InputSystem.ts`, `playerInput.ts`, `joystickMath.ts`, `combatUILayout.ts` เท่านั้น. ไม่แตะ: HUD render (ใช้ `layoutCssVars()` แต่ไม่ own มัน), combat resolution (`RealtimeBattleRuntime.ts`), `combatFacing.ts` derivation, `useExploration.ts` (dead code — ไม่เกี่ยว). Gate ผม = spawned QC (opus/xhigh) ต่อ dispatch, ไม่ใช่ main. Seam (call site คนอื่นแตะไฟล์ผม) — belt end ทำ แต่ผมเป็น gate ให้ seam นั้น. MEMORY/26-control-input-system.md ยังไม่มี (สร้างตอน dispatch แรกจริง).
+ผม = system owner system 26 (control-input) — เก็บ `InputSystem.ts`, `playerInput.ts`, `joystickMath.ts`, `combatUILayout.ts` เท่านั้น. ไม่แตะ: HUD render (ใช้ `layoutCssVars()` แต่ไม่ own มัน), combat resolution (`RealtimeBattleRuntime.ts`), `combatFacing.ts` derivation, `useExploration.ts` (dead code — ไม่เกี่ยว). Gate ผม = spawned QC (opus/xhigh) ต่อ dispatch, ไม่ใช่ main. Seam (call site คนอื่นแตะไฟล์ผม) — main ทำ แต่ผมเป็น gate ให้ seam นั้น. MEMORY/26-control-input-system.md ยังไม่มี (สร้างตอน dispatch แรกจริง).
 
 **(2) BLUEPRINT CHECK**
 
-| Claim (contract)                                                                                               | File:line cited          | Reality                                                                                                                                                                   | Verdict                                                           |
-| -------------------------------------------------------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `getMoveVector()`/`getMovementInput()` dead-zone/normalize/joystick-precedence — cited `InputSystem.ts:95-109` | 95-109                   | จริงคือ 95-97=`setMovementInput`, 99-101=`getMovementInput`, 103-117=`getMoveVector` (joystick-check บรรทัด104-106, held-key loop ถึง117) — range ตัดจบก่อนฟังก์ชันจบจริง | discrepancy เล็ก, ไม่กระทบ behavior claim, แค่ line-range ไม่เป๊ะ |
-| `useRealtimeBattle.ts:132-135` consumer contract                                                               | 132-135                  | ตรงเป๊ะ: `created?.setMoveInput(input.getMoveVector())` → `consumeAttack()`→`consumeSkill()`→`runtime.step()`                                                             | ✅ ตรง                                                            |
-| `skills.ts:10` SkillSlot type                                                                                  | 10                       | ตรงเป๊ะ                                                                                                                                                                   | ✅ ตรง                                                            |
-| `joystickMath.ts:7-16` dead-zone clamp                                                                         | 7-16                     | ตรงเป๊ะ (`applyJoystickDeadZone`)                                                                                                                                         | ✅ ตรง                                                            |
-| `useExploration.ts` dead-code claim + line 152-153 (blur comment) vs 51-53 (Set comment)                       | 51-53, 152-153           | ตรงเป๊ะทั้งคู่ — คอมเมนต์คนละเรื่องจริง                                                                                                                                   | ✅ ตรง                                                            |
-| Done-criterion 4 FIFO test "commit 2f417fc"                                                                    | —                        | เทสต์มีจริง ("Done-criterion 4" ในไฟล์), ไม่ verify commit hash (นอก scope read-only เร็ว)                                                                                | ⚠️ unverified (hash เดียว, ไม่กระทบ)                              |
-| Registry: "~550 lines one kind"                                                                                | AGENT_REGISTRY.md row 55 | รวมจริง 145+42+26+250 = 463 บรรทัด (ไม่รวมเทสต์ 209)                                                                                                                      | ใกล้เคียง, ประมาณการหลวม ไม่ใช่ error                             |
+| Claim (contract)                                                                                               | File:line cited        | Reality                                                                                                                                                                   | Verdict                                                           |
+| -------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `getMoveVector()`/`getMovementInput()` dead-zone/normalize/joystick-precedence — cited `InputSystem.ts:95-109` | 95-109                 | จริงคือ 95-97=`setMovementInput`, 99-101=`getMovementInput`, 103-117=`getMoveVector` (joystick-check บรรทัด104-106, held-key loop ถึง117) — range ตัดจบก่อนฟังก์ชันจบจริง | discrepancy เล็ก, ไม่กระทบ behavior claim, แค่ line-range ไม่เป๊ะ |
+| `useRealtimeBattle.ts:132-135` consumer contract                                                               | 132-135                | ตรงเป๊ะ: `created?.setMoveInput(input.getMoveVector())` → `consumeAttack()`→`consumeSkill()`→`runtime.step()`                                                             | ✅ ตรง                                                            |
+| `skills.ts:10` SkillSlot type                                                                                  | 10                     | ตรงเป๊ะ                                                                                                                                                                   | ✅ ตรง                                                            |
+| `joystickMath.ts:7-16` dead-zone clamp                                                                         | 7-16                   | ตรงเป๊ะ (`applyJoystickDeadZone`)                                                                                                                                         | ✅ ตรง                                                            |
+| `useExploration.ts` dead-code claim + line 152-153 (blur comment) vs 51-53 (Set comment)                       | 51-53, 152-153         | ตรงเป๊ะทั้งคู่ — คอมเมนต์คนละเรื่องจริง                                                                                                                                   | ✅ ตรง                                                            |
+| Done-criterion 4 FIFO test "commit 2f417fc"                                                                    | —                      | เทสต์มีจริง ("Done-criterion 4" ในไฟล์), ไม่ verify commit hash (นอก scope read-only เร็ว)                                                                                | ⚠️ unverified (hash เดียว, ไม่กระทบ)                              |
+| Registry: "~550 lines one kind"                                                                                | the seat roster row 55 | รวมจริง 145+42+26+250 = 463 บรรทัด (ไม่รวมเทสต์ 209)                                                                                                                      | ใกล้เคียง, ประมาณการหลวม ไม่ใช่ error                             |
 
 Checked 7 claims — 5 ตรงเป๊ะ, 1 line-range คลาดเคลื่อนเล็กน้อยไม่กระทบสาระ, 1 ตัวเลขบรรทัดประมาณการหลวม. ไม่มี discrepancy ระดับกระทบงาน.
 
@@ -838,7 +838,7 @@ Done-criteria 1-4 มีเทสต์ยืนยันครบ (`InputSystem
 **(4) Questions**
 
 1. Line-range เล็ก ๆ ใน contract (`InputSystem.ts:95-109`) แก้เลยตอน dispatch แรกไหม หรือปล่อยไว้เพราะไม่กระทบสาระ?
-2. Registry บอก headcount "2 — caretaker + QC ไม่ split" — ยืนยันว่าผมทำงานคนเดียว+QC สปอนใหม่ทุก dispatch ไม่มี mini-belt ภายในระบบนี้ ใช่ไหม?
+2. Registry บอก headcount "2 — system owner + QC ไม่ split" — ยืนยันว่าผมทำงานคนเดียว+QC สปอนใหม่ทุก dispatch ไม่มี sub-pipeline ภายในระบบนี้ ใช่ไหม?
 
 ---
 
@@ -846,10 +846,10 @@ Done-criteria 1-4 มีเทสต์ยืนยันครบ (`InputSystem
 
 _sid `0ada56c7-1c10-441f-a270-747631a12740`_
 
-Studied contract, registry row, BELT-PORT §0/1/2b, and cross-checked every file:line claim against actual source (`codes.ts`, `reportError.ts`, `globalErrorHandlers.ts`, `ErrorBoundary.tsx`, `GlobalErrorBanner.tsx`, `main.tsx`, `.oxlintrc.json`, `package.json`, `useDeployWatcher.ts`, `accountRepository.ts`, `observability.md`). No edits made.
+Studied contract, registry row, the workflow doc, and cross-checked every file:line claim against actual source (`codes.ts`, `reportError.ts`, `globalErrorHandlers.ts`, `ErrorBoundary.tsx`, `GlobalErrorBanner.tsx`, `main.tsx`, `.oxlintrc.json`, `package.json`, `useDeployWatcher.ts`, `accountRepository.ts`, `observability.md`). No edits made.
 
 **(1) Seat summary**
-ผมคือ caretaker ระบบ 27 (error/observability) — คุมทะเบียน `ErrorCode` (`codes.ts`), จุดรวม log/report เดียว (`reportError()`), pub/sub visible-error relay, สองจอที่โชว์ error ให้ผู้เล่นเห็น (`ErrorBoundary`, `GlobalErrorBanner`), และตาข่ายจับ exception นอก React (`globalErrorHandlers.ts`). ไม่แตะ: external telemetry/APM (ปฏิเสธแล้ว), WebGL/WebGPU recovery logic เอง, toast ที่ไม่ใช่ error, retry/fallback ของแต่ละ caller. งาน seam (call site ในไฟล์ระบบอื่น) เป็นของ belt end แต่ผม gate ส่วน seam ที่แตะไฟล์ผม. Gate ผม = spawned QC (opus·xhigh) เสมอ, ไม่ใช่ main.
+ผมคือ system owner ระบบ 27 (error/observability) — คุมทะเบียน `ErrorCode` (`codes.ts`), จุดรวม log/report เดียว (`reportError()`), pub/sub visible-error relay, สองจอที่โชว์ error ให้ผู้เล่นเห็น (`ErrorBoundary`, `GlobalErrorBanner`), และตาข่ายจับ exception นอก React (`globalErrorHandlers.ts`). ไม่แตะ: external telemetry/APM (ปฏิเสธแล้ว), WebGL/WebGPU recovery logic เอง, toast ที่ไม่ใช่ error, retry/fallback ของแต่ละ caller. งาน seam (call site ในไฟล์ระบบอื่น) เป็นของ main แต่ผม gate ส่วน seam ที่แตะไฟล์ผม. Gate ผม = spawned QC (opus·xhigh) เสมอ, ไม่ใช่ main.
 
 **(2) BLUEPRINT CHECK**
 
@@ -877,7 +877,7 @@ _sid `3254203a-5eb9-43c8-bf31-6c64bd40f9b3`_
 No MEMORY/28-*.md yet — confirms not yet created, as expected (born at first dispatch).
 
 **(1) Seat summary**
-Caretaker of system 28 — social/communication. Own: World Chat (Supabase-backed global text, Realtime, admin command grammar in `commands.ts`/`WorldChat.tsx`) and Friends (UID lookup, one-way snapshot add, `AddFriendModal`/`AddFriendPanel`). Never touch: guild/private chat (stubbed, unbuilt), reciprocal friend-request flow, report/takedown moderation — none exist. Seam edits into my files from other systems (`characters.ts` for `/givecharacter`, `accountRepository`) get gated by me even when the belt end makes them. Gated by: spawned QC (opus·xhigh) per dispatch, per `AGENT_REGISTRY.md`.
+System owner of system 28 — social/communication. Own: World Chat (Supabase-backed global text, Realtime, admin command grammar in `commands.ts`/`WorldChat.tsx`) and Friends (UID lookup, one-way snapshot add, `AddFriendModal`/`AddFriendPanel`). Never touch: guild/private chat (stubbed, unbuilt), reciprocal friend-request flow, report/takedown moderation — none exist. Seam edits into my files from other systems (`characters.ts` for `/givecharacter`, `accountRepository`) get gated by me even when main makes them. Gated by: spawned QC (opus·xhigh) per dispatch, per the seat roster.
 
 **(2) BLUEPRINT CHECK**
 
@@ -899,7 +899,7 @@ World Chat and Friends are both live and server-authoritative (Realtime wired, R
 
 ## Main resolution note (post-collection, 2026-08-09)
 
-Caretakers 19 and 20 CONTRADICT each other on whether rankedNormalization has a production caller.
+System owners 19 and 20 CONTRADICT each other on whether rankedNormalization has a production caller.
 Main verified directly: **19 is right, 20 is wrong** - supabase/functions/pvp-authority/index.ts:10,195-196
 imports and calls createRankedPlayerEntity. 20 grepped src/ only and missed the Deno Edge Function tree.
-Consequence: contract 19 line 7, AGENT_REGISTRY row 20, and TASKS.md row 26 all carry the same stale claim - HELD with the rest.
+Consequence: contract 19 line 7, the seat roster, and TASKS.md row 26 all carry the same stale claim - HELD with the rest.

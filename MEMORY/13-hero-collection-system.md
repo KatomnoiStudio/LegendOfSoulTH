@@ -1,4 +1,4 @@
-# MEMORY/13 — Hero Collection System (caretaker)
+# MEMORY/13 — Hero Collection System (system owner)
 
 Contract: `docs/agent-blueprint/13-hero-collection-system.md`. Sensitive-adjacent: `grantCharacter`
 write-path (both impls) touches account ledger shape (`OwnedCharacter`) — opus flip on RLS/RPC

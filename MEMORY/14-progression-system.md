@@ -1,4 +1,4 @@
-# MEMORY/14 — Progression System (caretaker)
+# MEMORY/14 — Progression System (system owner)
 
 Contract: `docs/agent-blueprint/14-progression-system.md`. Owns: Hero Level EXP curve
 (legacy `applyBattleExp` in `RewardSystem.ts` + current `progressionService.applyHeroExp`/

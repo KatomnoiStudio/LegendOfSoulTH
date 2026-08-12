@@ -1,4 +1,4 @@
-# 10 — elite-mini-boss-tier-system (caretaker memory)
+# 10 — elite-mini-boss-tier-system (system-owner memory)
 
 ## Scope (from contract)
 

@@ -1,4 +1,4 @@
-# MEMORY/18 — Reward System (caretaker)
+# MEMORY/18 — Reward System (system owner)
 
 Contract: `docs/agent-blueprint/18-reward-system.md`. Own: pure reward calc
 (`src/game/realtimeBattle/RewardSystem.ts`) + `src/game/reward/` (stage table, resolver, lobby

@@ -1,6 +1,6 @@
 # Open findings — 2026-08-12
 
-> **Operator**: HetCreep · **Agent**: Claude Code (belt-end main) · **Date**: 2026-08-12
+> **Operator**: HetCreep · **Agent**: Claude Code (main) · **Date**: 2026-08-12
 >
 > These findings were produced during the 2026-08-12 session and existed **only in that
 > session's local task list** until this file was written. A session list is not a repo

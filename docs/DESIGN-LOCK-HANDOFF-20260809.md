@@ -1,11 +1,11 @@
 # Design-lock handoff #2 — ship vs เอกสาร (2026-08-09)
 
-> ที่มา: caretaker ทั้ง 28 ระบบตรวจพิมพ์เขียวของตัวเองกับโค้ดจริงตอน onboarding (หลักฐานเต็มราย
+> ที่มา: system owner ทั้ง 28 ระบบตรวจพิมพ์เขียวของตัวเองกับโค้ดจริงตอน onboarding (หลักฐานเต็มราย
 > ระบบอยู่ `docs/BLUEPRINT-CHECK-HOLD.md`) — 10 เรื่องข้างล่างคือจุดที่ **ship กับเอกสารเล่าคนละ
 > เรื่อง** ทุกเรื่อง HOLD อยู่ ยังไม่มีใครแตะทั้งสองฝั่ง จนกว่าจะได้คำตอบล็อกจากดีไซน์
 >
 > **วิธีตอบ: เลือกตัวอักษรต่อข้อ เช่น `1.a 2.c 3.a ...`** — ล็อกแล้วงานต่อคือ "ปรับ ship" หรือ
-> "ปรับเอกสาร" ตามคำตอบ ส่งเข้า caretaker เจ้าของระบบรายข้อ
+> "ปรับเอกสาร" ตามคำตอบ ส่งเข้า system owner เจ้าของระบบรายข้อ
 
 ---
 
@@ -14,7 +14,7 @@
 - **Ship**: Edge Function ของ private-room prototype import + เรียก `createRankedPlayerEntity`
   จริง (`supabase/functions/pvp-authority/index.ts:10,195-196`) — คู่ต่อสู้ทั้งสองฝั่งถูก
   normalize Level/SkillLevel เป็น ranked baseline แล้วใน P12
-- **เอกสาร**: contract 19 ("prototype never calls `rankedNormalization.ts`"), AGENT_REGISTRY
+- **เอกสาร**: contract 19 ("prototype never calls `rankedNormalization.ts`"), the seat roster
   row 20 ("shipped-but-uncalled"), TASKS.md row 26 — ทั้งสามว่าไม่มี production caller
 - **a.** ล็อก ship — prototype ใช้ normalization ถูกต้องแล้ว (แฟร์ทั้งสองฝั่งตั้งแต่ P12) →
   แก้เอกสาร 3 ที่ให้ตรงความจริง
@@ -69,7 +69,7 @@
 - **Ship**: `ComboSystem.ts:152-158` (else-branch reset) unreachable — guard
   `if (!combo.attack) return` ด้านบนการันตี `combo.attack` truthy เสมอ ณ จุดนั้น
   (reset จริงวิ่งผ่าน `interruptPlayerCombo()` ที่ `combatInterrupt.ts:44`)
-- **a.** ลบ dead branch (dispatch เล็กให้ caretaker 03 + QC ปกติ) **← แนะนำ**
+- **a.** ลบ dead branch (dispatch เล็กให้ system owner 03 + QC ปกติ) **← แนะนำ**
 - **b.** เก็บไว้ + เอกสารอธิบายเหตุผล (ไม่เห็นเหตุผลที่ต้องเก็บ)
 
 ## 7. AllyAISystem เรียก stepMovement ตรง — contract 01 ไม่รู้จัก caller นี้ — แนะนำ a
@@ -101,7 +101,7 @@
 
 - ไฟล์โต/ย้าย/refactor แล้วเลข `file:line` ในเอกสารไม่ขยับตาม (หนักสุด: 02, 09, 13, 16, 22, 25)
   — ไม่มีข้อไหนเป็นความขัดแย้งเชิงดีไซน์ รายการเต็มอยู่ใน BLUEPRINT-CHECK-HOLD.md
-- **a.** เปิด batch dispatch แก้เอกสารทั้งหมด — caretaker แต่ละระบบแก้ของตัวเอง + QC ปกติ **← แนะนำ**
+- **a.** เปิด batch dispatch แก้เอกสารทั้งหมด — system owner แต่ละระบบแก้ของตัวเอง + QC ปกติ **← แนะนำ**
 - **b.** ปล่อยไว้ก่อน
 
 ## 12. Contract 14 กับ 18 อ้างสิทธิ์ทับกันที่ RewardSystem.ts (จากคิวเดิม task #3)
@@ -112,5 +112,5 @@
 
 ---
 
-_จัดทำโดย main (belt end) จากผลตรวจของ caretaker 28 ที่นั่ง · ยังไม่ส่งไปที่ไหน — HetCreep เป็น
+_จัดทำโดย main (main) จากผลตรวจของ system owner 28 ที่นั่ง · ยังไม่ส่งไปที่ไหน — HetCreep เป็น
 ผู้ relay · ตอบกลับรูปแบบ `1.a 2.c ...` แล้วงานจะถูกเปิดเป็น dispatch รายข้อทันที_

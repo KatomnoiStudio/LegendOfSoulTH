@@ -1,13 +1,13 @@
 # MEMORY/19-pvp-ranked-system.md
 
-Caretaker memory for system 19 (PvP / ranked). Own: ranked 1v1 loop end-to-end — hero select,
+Owner memory for system 19 (PvP / ranked). Own: ranked 1v1 loop end-to-end — hero select,
 matchmaking queue (rank/MMR band matching + expansion), win/lose resolution, rank/MMR update.
 Currently unbuilt (P13), design/docs only. Never touch: combat tick/hit/damage engine
 (`src/game/realtimeBattle/*`), hero/star math, `accountRepository.ts` persistence pattern, PvE
 stage content, `#20`'s normalization delivery (`rankedNormalization.ts` — consumed, not owned),
 `#21`'s private-room netcode (`PvPAuthorityEngine.ts`/`PvPAuthorityService.ts`/
 `pvpRoomRepository.supabase.ts`, gated `PVP_BACKEND_DEPLOYED=false`). QC'd by a spawned opus·xhigh
-seat per `AGENT_REGISTRY.md` row 19; ~7 seats expected at P13 build.
+seat per the standing roster; ~7 seats expected at P13 build.
 
 ## 2026-08-10 — onboarding + first dispatch (design-lock 1.a, citation correction)
 
