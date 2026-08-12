@@ -17,35 +17,43 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([])
   const nextId = useRef(0)
   const timers = useRef(new Set<ReturnType<typeof setTimeout>>())
-  /** กันการกดปุ่มเดิมรัว ๆ แล้วข้อความเดียวกันกองทับหลายชั้น */
-  const activeMessages = useRef(new Set<string>())
+  /**
+   * กระจกของรายการที่ render อยู่จริง — และเป็น "แหล่งเดียว" ของการกันข้อความซ้ำด้วย
+   *
+   * เคยแยกเป็น Set ของข้อความต่างหาก แล้วเพี้ยน: `.slice(-MAX_VISIBLE)` เบียด toast เก่า
+   * ตกจอทันที แต่ชื่อมันยังค้างใน Set จนกว่า timer ของตัวเองจะหมด (สูงสุด 2460ms) —
+   * ระหว่างนั้นกดเรียกข้อความเดิมจะถูกกลืนเงียบ ๆ ไม่มี toast ไม่มีเสียง ไม่มีอะไรบอกผู้ใช้
+   * ว่าทำไมปุ่มไม่ทำงาน อ่านจากรายการที่ render จริงแทน จึงไม่มีสองแหล่งให้เพี้ยนอีก
+   */
+  const live = useRef<ToastItem[]>([])
 
   useEffect(() => {
     const pending = timers.current
-    const messages = activeMessages.current
     return () => {
       pending.forEach(clearTimeout)
       pending.clear()
-      messages.clear()
+      live.current = []
     }
   }, [])
 
   const showToast = useCallback(
     (message: string, variant: 'success' | 'error' | 'currency' = 'success') => {
-      if (activeMessages.current.has(message)) return
-      activeMessages.current.add(message)
+      /** กันการกดปุ่มเดิมรัว ๆ แล้วข้อความเดียวกันกองทับหลายชั้น — เฉพาะตัวที่ยังอยู่บนจอ */
+      if (live.current.some((t) => t.message === message)) return
       void playSfx(
         variant === 'error' ? 'error' : variant === 'currency' ? 'currencyGain' : 'notification',
       )
 
       const id = nextId.current++
-      setToasts((prev) => [...prev, { id, message, leaving: false }].slice(-MAX_VISIBLE))
+      live.current = [...live.current, { id, message, leaving: false }].slice(-MAX_VISIBLE)
+      setToasts(live.current)
 
       const fade = setTimeout(() => {
-        setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, leaving: true } : t)))
+        live.current = live.current.map((t) => (t.id === id ? { ...t, leaving: true } : t))
+        setToasts(live.current)
         const drop = setTimeout(() => {
-          setToasts((prev) => prev.filter((t) => t.id !== id))
-          activeMessages.current.delete(message)
+          live.current = live.current.filter((t) => t.id !== id)
+          setToasts(live.current)
           timers.current.delete(drop)
         }, LEAVE_MS)
         timers.current.add(drop)

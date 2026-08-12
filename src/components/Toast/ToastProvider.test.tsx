@@ -96,4 +96,25 @@ describe('ToastProvider', () => {
     expect(liveRegion).toHaveTextContent('สี่')
     expect(liveRegion.querySelectorAll('[data-leaving]').length).toBe(3)
   })
+
+  test('toast ที่ถูกเบียดตกจอ แสดงใหม่ได้ทันที ไม่ต้องรอ timer ของตัวเอง', () => {
+    vi.useFakeTimers()
+    renderToast()
+
+    // Push 'หนึ่ง' off the visible stack by overflowing MAX_VISIBLE.
+    for (const label of ['one', 'two', 'three', 'four']) {
+      fireEvent.click(screen.getByRole('button', { name: label }))
+    }
+    expect(screen.getByRole('status')).not.toHaveTextContent('หนึ่ง')
+    expect(playSfx).toHaveBeenCalledTimes(4)
+
+    // It is off screen, so nothing is "already showing" — asking for it again must show it.
+    // The duplicate guard exists to stop a message stacking on top of ITSELF while visible;
+    // once evicted there is nothing to stack on. Swallowing it here is a silent dead end:
+    // no toast, no sound, and nothing on screen explaining why the button did nothing.
+    fireEvent.click(screen.getByRole('button', { name: 'one' }))
+
+    expect(screen.getByRole('status')).toHaveTextContent('หนึ่ง')
+    expect(playSfx).toHaveBeenCalledTimes(5)
+  })
 })
