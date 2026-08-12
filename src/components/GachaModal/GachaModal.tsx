@@ -100,7 +100,15 @@ export function GachaModal({ player, onPull, onClose }: GachaModalProps) {
             if (!character) return null
             return (
               <article key={entry.characterId} className={styles.poolCard}>
-                <img src={character.model.spriteUrl} alt="" draggable={false} />
+                <img
+                  src={character.model.spriteUrl}
+                  alt=""
+                  width={396}
+                  height={376}
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                />
                 <div>
                   <strong>{character.name}</strong>
                   <span>{character.role}</span>

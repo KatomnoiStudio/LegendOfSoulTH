@@ -86,6 +86,10 @@ export function TopBar({ player, onOpenProfile, onTopUpGold, onTopUpGems }: TopB
               className={styles.currencyIcon}
               src={publicUrl('ui/thai/gold-ingot.webp')}
               alt=""
+              width={32}
+              height={32}
+              loading="eager"
+              decoding="async"
               draggable={false}
             />
           }
@@ -101,6 +105,10 @@ export function TopBar({ player, onOpenProfile, onTopUpGold, onTopUpGems }: TopB
               className={styles.currencyIcon}
               src={publicUrl('ui/thai/jade.webp')}
               alt=""
+              width={32}
+              height={32}
+              loading="eager"
+              decoding="async"
               draggable={false}
             />
           }

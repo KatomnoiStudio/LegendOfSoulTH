@@ -278,6 +278,10 @@ export function CharacterPreview({ character }: CharacterPreviewProps) {
             data-active={!showingTurnaround && index === frame}
             src={url}
             alt={index === 0 ? `ภาพของ${shown.name}` : ''}
+            width={396}
+            height={376}
+            loading={index === 0 ? 'eager' : 'lazy'}
+            decoding="async"
             aria-hidden={index !== 0}
             draggable={false}
           />
@@ -289,6 +293,10 @@ export function CharacterPreview({ character }: CharacterPreviewProps) {
             data-active={showingTurnaround && index === turnIndex}
             src={url}
             alt=""
+            width={396}
+            height={376}
+            loading="lazy"
+            decoding="async"
             aria-hidden="true"
             draggable={false}
           />

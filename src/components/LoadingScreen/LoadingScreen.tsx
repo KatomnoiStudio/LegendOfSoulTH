@@ -38,7 +38,15 @@ export function LoadingScreen({ label, children, background = 'opaque' }: Loadin
       {children ?? (
         <div className={styles.visual}>
           {DEFAULT_LOADING_IMAGE_SRC ? (
-            <img src={DEFAULT_LOADING_IMAGE_SRC} alt="" draggable={false} />
+            <img
+              src={DEFAULT_LOADING_IMAGE_SRC}
+              alt=""
+              width={96}
+              height={96}
+              loading="eager"
+              decoding="async"
+              draggable={false}
+            />
           ) : (
             <div className={styles.seal} aria-hidden="true">
               <span className={styles.sealOrbit} />

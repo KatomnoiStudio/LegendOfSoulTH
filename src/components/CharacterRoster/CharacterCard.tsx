@@ -30,7 +30,15 @@ export function CharacterCard({ character, selected, onSelect }: CharacterCardPr
       onClick={() => onSelect(character.id)}
     >
       <span className={styles.portrait}>
-        <img src={character.model.spriteUrl} alt="" draggable={false} />
+        <img
+          src={character.model.spriteUrl}
+          alt=""
+          width={396}
+          height={376}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+        />
         <span className={styles.rarityPip} />
       </span>
 

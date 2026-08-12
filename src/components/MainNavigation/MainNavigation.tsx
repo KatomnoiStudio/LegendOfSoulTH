@@ -126,7 +126,19 @@ export function MainNavigation({
             onClick={() => handleSelect(item.id, item.label)}
           >
             <span className={styles.art}>
-              {item.image ? <img src={item.image} alt="" draggable={false} /> : item.icon}
+              {item.image ? (
+                <img
+                  src={item.image}
+                  alt=""
+                  width={68}
+                  height={68}
+                  loading="eager"
+                  decoding="async"
+                  draggable={false}
+                />
+              ) : (
+                item.icon
+              )}
             </span>
             <span className={styles.label}>{item.label}</span>
           </button>

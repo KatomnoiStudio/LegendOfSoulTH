@@ -670,6 +670,10 @@ export function WukongAdventure({
           style={spriteStyle}
           src={spriteUrl}
           alt={active.name}
+          width={396}
+          height={376}
+          loading="eager"
+          decoding="async"
           draggable={false}
         />
         {mode === 'moonlight' ? null : (

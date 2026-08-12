@@ -313,7 +313,15 @@ function WalkPicker({
             aria-pressed={character.id === activeId}
             onClick={() => onSelect(character.id)}
           >
-            <img src={character.model.spriteUrl} alt="" draggable={false} />
+            <img
+              src={character.model.spriteUrl}
+              alt=""
+              width={34}
+              height={34}
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+            />
             <span>{character.name}</span>
           </button>
         ))}

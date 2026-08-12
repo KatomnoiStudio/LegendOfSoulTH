@@ -23,10 +23,10 @@ interface SideAction {
 export function SideActions({ badges, onOpenSettings, onOpenAddFriend }: SideActionsProps) {
   const { comingSoon } = useToast()
   const actions: SideAction[] = [
-    { id: 'settings', label: 'ตั้งค่า', icon: <img src={publicUrl('ui/thai/settings.webp')} alt="" draggable={false} />, onClick: onOpenSettings },
-    { id: 'mail', label: 'จดหมาย', icon: <img src={publicUrl('ui/thai/mail.webp')} alt="" draggable={false} />, count: badges.mail, onClick: () => comingSoon('จดหมาย') },
-    { id: 'mission', label: 'ภารกิจ', icon: <img src={publicUrl('ui/thai/mission.webp')} alt="" draggable={false} />, count: badges.mission, onClick: () => comingSoon('ภารกิจ') },
-    { id: 'add-friend', label: 'เพิ่มเพื่อน', icon: <img src={publicUrl('ui/thai/add-friend.webp')} alt="" draggable={false} />, onClick: onOpenAddFriend },
+    { id: 'settings', label: 'ตั้งค่า', icon: <img src={publicUrl('ui/thai/settings.webp')} alt="" width={38} height={38} loading="eager" decoding="async" draggable={false} />, onClick: onOpenSettings },
+    { id: 'mail', label: 'จดหมาย', icon: <img src={publicUrl('ui/thai/mail.webp')} alt="" width={38} height={38} loading="eager" decoding="async" draggable={false} />, count: badges.mail, onClick: () => comingSoon('จดหมาย') },
+    { id: 'mission', label: 'ภารกิจ', icon: <img src={publicUrl('ui/thai/mission.webp')} alt="" width={38} height={38} loading="eager" decoding="async" draggable={false} />, count: badges.mission, onClick: () => comingSoon('ภารกิจ') },
+    { id: 'add-friend', label: 'เพิ่มเพื่อน', icon: <img src={publicUrl('ui/thai/add-friend.webp')} alt="" width={38} height={38} loading="eager" decoding="async" draggable={false} />, onClick: onOpenAddFriend },
   ]
 
   return (
