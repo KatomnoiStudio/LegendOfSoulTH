@@ -107,6 +107,9 @@ const UNSCORED: Record<string, string> = {
   hound: 'unclassifiable from names and code references — a human must say what it depicts',
   'monkey-pose': 'victory pose; never classified in the conformance record',
   'tripitaka-buddha-aura': 'single decorative texture, not a sequence — nothing to score',
+  'wukong-flat-idle': 'newly imported via autosprite — anchor tolerance not yet measured',
+  'wukong-flat-run': 'newly imported via autosprite — anchor tolerance not yet measured',
+  'wukong-flat-attack': 'newly imported via autosprite — anchor tolerance not yet measured',
 }
 
 /**

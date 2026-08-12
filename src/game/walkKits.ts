@@ -27,6 +27,8 @@ export interface WalkKit {
    * ทุกพาธในไฟล์นี้ผ่าน publicUrl() แล้ว (ดู src/lib/publicUrl.ts) ผู้เรียกจึงต่อท้ายได้เลย
    */
   walkPrefix: string | null
+  animationMode?: 'eight-direction' | 'side-view'
+  walkFrameCount?: number
   /** พาธนำหน้าไฟล์หันทิศ 8 ทิศ (มีครบทุกตัว) */
   turnPrefix: string
   /** พาธนำหน้าไฟล์ยืนเฉย ๆ */
@@ -36,10 +38,12 @@ export interface WalkKit {
 
 const WALK_KITS: Record<CharacterModelKind, WalkKit> = {
   'monkey-king': {
-    walkPrefix: publicUrl('characters/walk/monkey-walk'),
-    turnPrefix: publicUrl('characters/turnaround/monkey-turn'),
-    idlePrefix: publicUrl('characters/monkey-v2-idle'),
-    idleCount: 24,
+    walkPrefix: publicUrl('characters/wukong-flat-run'),
+    animationMode: 'side-view',
+    walkFrameCount: 25,
+    turnPrefix: publicUrl('characters/wukong-flat-idle'),
+    idlePrefix: publicUrl('characters/wukong-flat-idle'),
+    idleCount: 25,
   },
   'pig-warrior': {
     walkPrefix: publicUrl('characters/walk/pigsy-walk'),

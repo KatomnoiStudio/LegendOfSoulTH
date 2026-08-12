@@ -19,7 +19,9 @@ import { getWalkKit } from '../../game/walkKits'
   ไม่งั้นเทสต์ที่สองจะเห็นคิวว่างเปล่าเพราะเทสต์แรกสั่งโหลดไปหมดแล้ว
 */
 
-const KIT = getWalkKit(ROSTER[0].model.kind)
+const WUKONG = ROSTER[0]
+const KIT = getWalkKit(WUKONG.model.kind)
+const WALK_FRAME_COUNT = KIT.walkFrameCount ?? 8
 
 /*
   เฟรม idle ที่ฉากนี้วาดถึงจริง — เขียนตายตัวโดยตั้งใจ ไม่ได้เรียกสูตรเดิมในซอร์สมาคำนวณซ้ำ
@@ -63,7 +65,7 @@ function drainAll() {
 async function mountScene() {
   vi.resetModules()
   const { WukongAdventure } = await import('./WukongAdventure')
-  return render(<WukongAdventure characters={[ROSTER[0]]} mode="moonlight" />)
+  return render(<WukongAdventure characters={[WUKONG]} mode="moonlight" />)
 }
 
 describe('WukongAdventure — นโยบายโหลดเฟรมล่วงหน้า', () => {
@@ -112,7 +114,7 @@ describe('WukongAdventure — นโยบายโหลดเฟรมล่�
       .map((url) => Number(url.slice(KIT.idlePrefix.length + 1, -'.webp'.length)))
 
     expect(idleRequested.toSorted((a, b) => a - b)).toEqual(REACHABLE_IDLE_INDEXES)
-    expect(KIT.idleCount - REACHABLE_IDLE_INDEXES.length).toBe(16)
+    expect(KIT.idleCount - REACHABLE_IDLE_INDEXES.length).toBe(17)
   })
 
   test('เฟรมที่ฉากวาดได้ต้องโหลดครบ — ไม่ให้แก้ปัญหายิงพรวดด้วยการเลิกพรีโหลด', async () => {
@@ -120,11 +122,16 @@ describe('WukongAdventure — นโยบายโหลดเฟรมล่�
     drainAll()
 
     const walk = requested.filter((url) => url.startsWith(`${KIT.walkPrefix}-`))
-    const turn = requested.filter((url) => url.startsWith(`${KIT.turnPrefix}-`))
+    const turn = requested.filter((url) => {
+      if (!url.startsWith(`${KIT.turnPrefix}-`)) return false
+      const index = Number(url.slice(KIT.turnPrefix.length + 1, -'.webp'.length))
+      return !REACHABLE_IDLE_INDEXES.includes(index)
+    })
 
-    expect(walk).toHaveLength(64) // 8 ทิศ x 8 เฟรม
-    expect(turn).toHaveLength(8)
-    expect(requested).toHaveLength(64 + 8 + REACHABLE_IDLE_INDEXES.length)
+    expect(walk).toHaveLength(WALK_FRAME_COUNT)
+    expect(walk.every((url) => /wukong-flat-run-\d+\.webp$/.test(url))).toBe(true)
+    expect(turn).toHaveLength(0)
+    expect(requested).toHaveLength(WALK_FRAME_COUNT + REACHABLE_IDLE_INDEXES.length)
   })
 
   test('เฟรมที่เห็นก่อนต้องได้คิวก่อน — ยืนหันหน้ามาก่อนเฟรมเดิน', async () => {
@@ -154,7 +161,7 @@ describe('WukongAdventure — นโยบายโหลดเฟรมล่�
 
     const width = Number.parseFloat(sprite.style.width)
     const height = Number.parseFloat(sprite.style.height)
-    expect(width / height).toBeCloseTo(396 / 376, 4)
+    expect(width / height).toBeCloseTo(1, 4)
   })
 
   test('mount ใหม่ไม่ยิงชุดเดิมซ้ำ (ต้นเหตุอัตราซ้ำ 1.48 เท่า)', async () => {
