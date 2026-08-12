@@ -71,17 +71,18 @@ A push with no version bump exits early at the cheap `gate` job — no full buil
 
 ## Governance & further reading
 
-| Doc                                                                         | What it's for                                                                  |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| [`AGENTS.md`](AGENTS.md)                                                    | Binding law for any agent working this repo — read this first, not this README |
-| [`.agents/rules/`](.agents/rules)                                           | The actual rule bodies AGENTS.md's numbered list points at                     |
-| [`docs/MASTER_BLUEPRINT_v3.0.md`](docs/MASTER_BLUEPRINT_v3.0.md)            | Locked product decisions — the design "why"                                    |
-| [`AGENT_BLUEPRINT.md`](AGENT_BLUEPRINT.md)                                  | Per-system index into the 28 work contracts under `docs/agent-blueprint/`      |
-| [`TASKS.md`](TASKS.md)                                                      | Live ownership/claim ledger — the real current status of every system          |
-| [`MEMORY.md`](MEMORY.md)                                                    | Chronological decision log — why something is the way it is                    |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md)                                        | PR process, branch hygiene                                                     |
-| [`SECURITY.md`](SECURITY.md)                                                | Vulnerability reporting, current trust-boundary scope                          |
-| [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) · [`CHANGELOG.md`](CHANGELOG.md) | Standard                                                                       |
+| Doc                                                                         | What it's for                                                                    |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| [`AGENTS.md`](AGENTS.md)                                                    | Binding law for any agent working this repo — read this first, not this README   |
+| [`.agents/rules/`](.agents/rules)                                           | The actual rule bodies AGENTS.md's numbered list points at                       |
+| [`docs/README.md`](docs/README.md)                                          | Index of `docs/` — which documents still govern work, which are finished records |
+| [`docs/MASTER_BLUEPRINT_v3.0.md`](docs/MASTER_BLUEPRINT_v3.0.md)            | Locked product decisions — the design "why"                                      |
+| [`AGENT_BLUEPRINT.md`](AGENT_BLUEPRINT.md)                                  | Per-system index into the 28 work contracts under `docs/agent-blueprint/`        |
+| [`TASKS.md`](TASKS.md)                                                      | Live ownership/claim ledger — the real current status of every system            |
+| [`MEMORY.md`](MEMORY.md)                                                    | Chronological decision log — why something is the way it is                      |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md)                                        | PR process, branch hygiene                                                       |
+| [`SECURITY.md`](SECURITY.md)                                                | Vulnerability reporting, current trust-boundary scope                            |
+| [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) · [`CHANGELOG.md`](CHANGELOG.md) | Standard                                                                         |
 
 ## 3D lobby scene
 
