@@ -18,7 +18,7 @@ interface CharacterRosterModalProps {
   player: Player
   onClose: () => void
   onPlayerChange: (next: Player) => Promise<boolean>
-  /** ยิง RPC อัปเกรด — ส่งต่อให้ HeroProgressionPanel เท่านั้น (task #26/#35) */
+  /** ยิง RPC อัปเกรด — ส่งต่อให้ HeroProgressionPanel เท่านั้น — เซิร์ฟเวอร์เป็นคนหักทอง */
   onUpgrade: (request: ProgressionUpgradeRequest) => Promise<{ ok: boolean; error?: string }>
 }
 

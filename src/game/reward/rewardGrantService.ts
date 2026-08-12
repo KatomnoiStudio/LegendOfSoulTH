@@ -122,7 +122,7 @@ export async function grantDungeonRewards(
     commits through the `commit_lobby_battle_progression` RPC), the dungeon path has no RPC of
     its own — whatever it produces reaches the backend through `savePlayer`, and `savePlayer`
     no longer sends those six columns: the migration
-    `supabase/migrations/20260810130000_security_harden_lobby_progression_rpc.sql` (task #25,
+    `supabase/migrations/20260810130000_security_harden_lobby_progression_rpc.sql` (
     CoalBoard scope B) revoked client UPDATE on them, so the RPC is now the ONLY writer.
 
     Harmless today only because DungeonSession is never rendered — nothing calls this with

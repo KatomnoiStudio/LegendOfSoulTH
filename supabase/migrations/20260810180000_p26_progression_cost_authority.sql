@@ -1,4 +1,4 @@
--- Task #26 / #35 — the economy half: make the COST side of a hero upgrade server-authoritative.
+-- The economy half: make the COST side of a hero upgrade server-authoritative.
 --
 -- ── THE DEFECT THIS CLOSES ──────────────────────────────────────────────────────────────────
 -- `savePlayer` writes skill_levels / talent_state / awakening_state, and CANNOT write gold or
@@ -15,7 +15,7 @@
 -- an upgrade on its own.
 --
 -- 20260810130000:49-50 predicted this exact file: "skill_levels / talent_state / awakening_state
--- stay client-writable on purpose: that is F2, task #26's topic, not this one."
+-- stay client-writable on purpose: that is F2, a different topic from this one."
 --
 -- ── HOW THIS IS DEPLOYED ────────────────────────────────────────────────────────────────────
 -- Applied by the OWNER via the Supabase SQL Editor (migration relay), NEVER `supabase db push`.

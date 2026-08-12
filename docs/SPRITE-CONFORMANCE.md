@@ -614,7 +614,7 @@ per character   96 files, 2.43 MiB on disk, 98.18 MiB decode ceiling
 ### What changed
 
 One change per measured number, in the same file. **Nothing here touches which frames exist** — the
-sampling stride and `idleCount` are task #102 and are unchanged.
+sampling stride and `idleCount` are a separate open defect and are unchanged.
 
 | was                               | now                                                            |
 | --------------------------------- | -------------------------------------------------------------- |

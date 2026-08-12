@@ -48,7 +48,7 @@ interface LobbyPageProps {
   /** บันทึกความคืบหน้ากลับลงฐานข้อมูล */
   /** คืน true เมื่อบันทึกลงที่เก็บข้อมูลจริง — false แปลว่าหน้าจอถูกย้อนกลับแล้ว */
   onPlayerChange: (next: Player) => Promise<boolean>
-  /** ยิง RPC อัปเกรดสกิล/พรสวรรค์/ปลุกพลัง — หักทองฝั่งเซิร์ฟเวอร์ (task #26/#35) */
+  /** ยิง RPC อัปเกรดสกิล/พรสวรรค์/ปลุกพลัง — หักทองฝั่งเซิร์ฟเวอร์ */
   onUpgrade: (
     request: import('../data/accountRepository.supabase').ProgressionUpgradeRequest,
   ) => Promise<{ ok: boolean; error?: string }>

@@ -104,7 +104,7 @@
 - **a.** เปิด batch dispatch แก้เอกสารทั้งหมด — system owner แต่ละระบบแก้ของตัวเอง + QC ปกติ **← แนะนำ**
 - **b.** ปล่อยไว้ก่อน
 
-## 12. Contract 14 กับ 18 อ้างสิทธิ์ทับกันที่ RewardSystem.ts (จากคิวเดิม task #3)
+## 12. Contract 14 กับ 18 อ้างสิทธิ์ทับกันที่ RewardSystem.ts (จากคิวเดิม)
 
 - contract 14 (progression) ว่าตัวเองถือ `applyBattleExp` (`RewardSystem.ts` ช่วง EXP-apply)
 - contract 18 (reward) scope ว่าถือ "applying earned EXP to the account level" ช่วงเดียวกัน

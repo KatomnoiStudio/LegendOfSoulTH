@@ -149,7 +149,7 @@ revoke execute on function public.cleanup_dead_unplayed_accounts() from public, 
 -- 4. PRE-ARM PROJECTION — which accounts this job takes, and on what date. An inventory, not a
 --    gate. Read it BEFORE any cron.schedule, and read everything under it as well
 -- ════════════════════════════════════════════════════════════════════════════════════════════
--- ⚠ WHAT WAS HERE BEFORE, AND WHY IT WAS A TRAP (task #92)
+-- ⚠ WHAT WAS HERE BEFORE, AND WHY IT WAS A TRAP
 -- Until 2026-08-11 this section held the predicate above with `count(*)` in place of `delete`,
 -- and one line of instruction: a returned 0 was the stated precondition for `cron.schedule`.
 -- It was relayed to the owner in exactly those terms and believed. It bounds nothing.
@@ -216,7 +216,7 @@ revoke execute on function public.cleanup_dead_unplayed_accounts() from public, 
 --     last_sign_in_at, so a returning player can sit in this list looking untouched.
 --     `cleanup_exempt_profiles` is the escape hatch, and it only helps for a name someone read.
 --   * Whether "signed up and never played" is a fair reason to delete a person's account at all.
---     That is task #95, and it is the owner's call — not this file's, and not an agent's.
+--     That is an unsettled policy question, and it is the owner's call — not this file's, and not an agent's.
 --
 -- THIS SECTION IS NOT A GATE. No output of this query authorises anything, and there is no
 -- number that makes arming the job a formality. Arming is a decision taken about named accounts

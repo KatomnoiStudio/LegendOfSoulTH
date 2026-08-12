@@ -420,7 +420,7 @@ select cron.schedule('cleanup-dead-unplayed-accounts', '30 3 * * *', $$select 1;
 })
 
 /*
-  Task #92. The dead-account migration shipped a PRE-ARM CHECK: the deletion predicate with
+  The dead-account migration shipped a PRE-ARM CHECK: the deletion predicate with
   `count(*)` in place of `delete`, under the instruction that a returned 0 cleared `cron.schedule`.
   It was relayed to the owner in those terms and believed.
 

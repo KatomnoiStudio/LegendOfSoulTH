@@ -93,7 +93,7 @@ export interface AuthState {
   pullGacha: (bannerId: string, pullCount: 1 | 10, requestId: string) => Promise<GachaPullResult>
   /**
    * อัปเกรดสกิล/พรสวรรค์/ปลุกพลัง — หักทองและเขียนผลใน transaction เดียวฝั่งเซิร์ฟเวอร์
-   * (task #26/#35) Client ไม่มีสิทธิ์เขียน owned_characters หรือ profiles.gold เองอีกแล้ว
+   * Client ไม่มีสิทธิ์เขียน owned_characters หรือ profiles.gold เองอีกแล้ว
    */
   spendProgressionUpgrade: (
     request: accounts.ProgressionUpgradeRequest,

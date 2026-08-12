@@ -213,8 +213,8 @@ authenticated` with no re-grant, and the removal of the three progression parame
   eligible set, and evaluated forward against the current population it returns 0 on 2026-09-06,
   1 on 09-07, and 12 on 09-08. Anyone arming on a `0` reading would still lose real accounts
   within two days. A forward projection over the whole arming window is required, not a single
-  reading, and the correct criterion for that projection is unsettled — tracked as task #95.
-- **Account enumeration on the login path (task #93, decided 2026-08-11)**: `login()` now maps
+  reading, and the correct criterion for that projection is unsettled, and it is the owner's call; both jobs stay unscheduled until it is decided.
+- **Account enumeration on the login path (decided 2026-08-11)**: `login()` now maps
   GoTrue error codes to messages that match the real cause, instead of answering every failure
   with one "wrong password" string (`describeSignInError`, `src/data/accountRepository.supabase.ts`).
   A distinct message is only safe for a code that fires **regardless of whether the address has an
@@ -241,7 +241,7 @@ authenticated` with no re-grant, and the removal of the three progression parame
 
 - **No custom SMTP — all email-based account recovery is blocked (2026-08-11)**: the project's
   `smtp_host` is null, so Supabase's built-in mailer refuses every address not on the project team
-  and caps sends at 2 per hour **project-wide**. A password-recovery form was written for task #93
+  and caps sends at 2 per hour **project-wide**. A password-recovery form was written
   and **deliberately not shipped** on that finding: with that mailer an existing address hits the
   mailer's 400 and renders a red error, while a non-existent address returns 200 and renders the
   "if an account exists we sent a link" notice — two visibly different outcomes, no password

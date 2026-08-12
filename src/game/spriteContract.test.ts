@@ -10,7 +10,7 @@ import { getSpriteSequence } from './spriteSequences'
 import { getWalkKit } from './walkKits'
 
 /**
- * The sprite compiler this domain never had — task #101 in `docs/SPRITE-CONFORMANCE.md`.
+ * The sprite compiler this domain never had — measurements in `docs/SPRITE-CONFORMANCE.md`.
  *
  * Every number in that conformance record came from a person deciding to measure. Asset defects
  * are silent by nature: a frame on the wrong canvas renders fine and is merely 81.5% too big, a

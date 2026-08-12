@@ -591,7 +591,7 @@ export async function savePlayer(player: Player): Promise<boolean> {
 
     เดิมบล็อกนี้เขียน skill_levels/talent_state/awakening_state ซึ่งเป็น "ผล" ของการอัปเกรด
     ส่วน "ค่าใช้จ่าย" (ทอง/ไอเทม) เขียนไม่ได้เลยเพราะคอลัมน์ถูกล็อก ผลคืออัปเกรดฟรีไม่จำกัด
-    (task #26/#35) ทางแก้ไม่ใช่เปิดสิทธิ์เขียนทอง แต่คือย้าย "ผล" ไปอยู่ฝั่งเซิร์ฟเวอร์ให้
+    ทางแก้ไม่ใช่เปิดสิทธิ์เขียนทอง แต่คือย้าย "ผล" ไปอยู่ฝั่งเซิร์ฟเวอร์ให้
     commit พร้อมกับการหักทองใน transaction เดียว — RPC `spend_progression_upgrade`
     (supabase/migrations/20260810180000_p26_progression_cost_authority.sql)
 

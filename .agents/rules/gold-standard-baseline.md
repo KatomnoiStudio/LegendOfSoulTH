@@ -66,7 +66,7 @@ stay closed, not as an open checklist). 6 remains the one open gap.
 
 <!-- coalmine: verified 2026-08-07 · exemplar OpenSSF Scorecard (18 checks) / Excalidraw / vitejs/vite / pmndrs/react-three-fiber / Keep a Changelog 2.0.0 / OWASP Password Storage Cheat Sheet / Signal Desktop (privacy-first error surfacing) · revalidate 90d -->
 
-## 2026-08-07 FINAL AUDIT — closing task #14 ("เติมให้ 100%")
+## 2026-08-07 FINAL AUDIT — closing the "เติมให้ 100%" gap sweep
 
 RE-VALIDATE pass on items 1–6 above: all still valid, no rewrites/tombstones needed —
 item 6 narrowed per its own update above. This section is the FULL re-run, 6 parallel

@@ -4,7 +4,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 /*
-  Task #26/#35 — the test that would have caught the free-upgrade bug.
+  The test that would have caught the free-upgrade bug.
 
   THE BUG, exactly: `savePlayer` wrote skill_levels/talent_state/awakening_state (the EFFECT of
   an upgrade) and could not write profiles.gold (the COST), because gold has been column-locked
@@ -709,7 +709,7 @@ describe('spend_progression_upgrade — the cost side is server-authoritative', 
   })
 
   /*
-    Task #91. The whole-chain replay above is the only place in this repo where "what does a
+    The cron disarm. The whole-chain replay above is the only place in this repo where "what does a
     FRESH environment end up with" is observable, which is why this assertion lives here rather
     than in a cron-shaped file of its own. 0006 and 0014 schedule the two account-deletion jobs
     earlier in this very chain; production disarmed them by hand on 2026-08-10 and every
@@ -741,7 +741,7 @@ describe('spend_progression_upgrade — the cost side is server-authoritative', 
   })
 
   /*
-    Task #92. Section 4 of the dead-account migration used to hold that job's own predicate with
+    Section 4 of the dead-account migration used to hold that job's own predicate with
     `count(*)` in place of `delete`, under one line of instruction: a returned 0 was the stated
     precondition for `cron.schedule`. It was relayed to the owner in those terms and believed.
 

@@ -25,7 +25,7 @@
 -- every `npm test`, and asserts the end state instead of trusting a header comment.
 --
 -- ── WHAT IS AT STAKE IF THEY COME BACK ──────────────────────────────────────────────────────
--- Measured for task #91 against the population as it stands, each job's own predicate projected
+-- Measured against the population as it stands, each job's own predicate projected
 -- forward to its own thresholds (figures carried here so the next reader does not have to
 -- rediscover them; the author of this file has no production access and did not re-derive them):
 --   * guest job — deletes 21 of 24 guest accounts on 2026-09-08, and all 24 by 09-09.
@@ -44,7 +44,7 @@
 -- migrations; they stay exactly as they are, so that arming either job is one deliberate
 -- `cron.schedule(...)` on the day the owner decides to.
 --
--- And that day has not come, because the POLICY IS NOT SETTLED — task #95, and it is the
+-- And that day has not come, because the POLICY IS NOT SETTLED — and it is the
 -- owner's call, not an agent's. Is "never played a match" even the right criterion? Is 30 days
 -- defensible when Kakao uses 3 years and Google uses 2? Nothing in this file answers either
 -- question, and nothing in this file should be read as an answer. It guarantees only that the

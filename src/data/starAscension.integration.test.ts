@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const TEST_USER = '11111111-1111-1111-1111-111111111111'
 const MIGRATION = '20260808204905_p9_star_ascension_server_authority.sql'
-/** Task #25 (CoalBoard scope B) — narrows p9's allowlist and hardens the progression RPC. */
+/** Narrows p9's allowlist and hardens the progression RPC. */
 const HARDENING = '20260810130000_security_harden_lobby_progression_rpc.sql'
 /** 2026-08-10 audit wave 1 (F1-F8) — guest-cleanup inactivity, EXECUTE sweep, item catalog. */
 const WAVE1 = '20260810160000_security_audit_hardening_wave1.sql'
@@ -279,7 +279,7 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
 
     await applyMigration(db, DEAD_RECONCILE)
     /*
-      Task #26/#35 (system-22 lane). Applied here because it REPLACES
+      The server-authoritative cost migration (system-22 lane). Applied here because it REPLACES
       commit_lobby_battle_progression: the three progression-column parameters are dropped, so a
       chain that stopped at WAVE1 would keep asserting a 21-argument function that production no
       longer has. Its own properties are covered in progressionCostAuthority.integration.test.ts;
@@ -337,7 +337,7 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
     expect(security.rows[0]).toEqual({
       audit_rls: true,
       can_update_star: false,
-      // p9 kept level client-writable; task #25's HARDENING migration revoked it — the RPC is
+      // p9 kept level client-writable; the HARDENING migration revoked it — the RPC is
       // the only writer now. Flipping this back to true means the F1/F4 hole is open again.
       can_update_level: false,
       can_insert_star: false,
@@ -349,7 +349,7 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
 
   it('client save path never touches the roster table at all', () => {
     /*
-      ⚠ STRENGTHENED 2026-08-10 by task #26/#35 (system-22 lane), not weakened.
+      ⚠ STRENGTHENED 2026-08-10 by the server-authoritative cost migration (system-22 lane), not weakened.
 
       This used to assert savePlayer UPDATEs owned_characters and never upserts it — the point
       being that a client must not be able to create a roster row and skip Gacha/Star authority.
@@ -494,8 +494,8 @@ describe('P9 Star Ascension server authority (isolated Postgres via PGLite)', ()
       profile_name: true,
       profile_flags: true,
       /*
-        Was `true` with the comment "stays client-writable on purpose — that is F2 / task #26,
-        not this topic." Task #26 landed (20260810180000): the client holds NO writable column on
+        Was `true` with the comment "stays client-writable on purpose — that is F2,
+        not this topic." That landed as 20260810180000: the client holds NO writable column on
         owned_characters any more, and the commit RPC no longer takes the three progression
         columns as parameters either. Flipping this back to true reopens the free upgrade.
       */

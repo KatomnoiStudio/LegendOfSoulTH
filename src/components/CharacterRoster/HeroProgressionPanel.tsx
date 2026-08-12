@@ -19,7 +19,7 @@ interface HeroProgressionPanelProps {
    *
    * เดิมพร็อพนี้เป็น `onPlayerChange` แล้วไฟล์นี้คำนวณผลอัปเกรดเองในหน่วยความจำ ก่อนส่งไป
    * savePlayer — ซึ่งเขียน "ผล" ลงได้แต่เขียน "ค่าใช้จ่าย" ไม่ได้ (ทองถูก column-lock) จึงกลาย
-   * เป็นอัปเกรดฟรีไม่จำกัด (task #26/#35) ตอนนี้ทั้งสองฝั่งอยู่ใน transaction เดียวของเซิร์ฟเวอร์
+   * เป็นอัปเกรดฟรีไม่จำกัด ตอนนี้ทั้งสองฝั่งอยู่ใน transaction เดียวของเซิร์ฟเวอร์
    */
   onUpgrade: (request: ProgressionUpgradeRequest) => Promise<{ ok: boolean; error?: string }>
 }

@@ -47,7 +47,7 @@
 --   profiles          — 0009_economy_integrity_fixes.sql:103-105
 --   owned_characters  — 20260808204905_p9_star_ascension_server_authority.sql:53-57
 -- skill_levels / talent_state / awakening_state stay client-writable on purpose: that is F2,
--- task #26's topic, not this one. Narrowing them here would be a second topic in one migration.
+-- the cost-authority migration's topic, not this one. Narrowing them here would be a second topic in one migration.
 
 revoke update on public.profiles from authenticated;
 grant update (name, title, frame_id, flags, defeated_npc_ids)

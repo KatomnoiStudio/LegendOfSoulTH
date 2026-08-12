@@ -3,7 +3,7 @@
 > **Owner ruling (mid-install): every ship-vs-doc conflict below is HELD — neither the code
 > nor the contract gets edited — until nustanakritwithai's design-lock answer lands.**
 > When it lands, each item becomes a dispatch: adjust SHIP or adjust DOCS per the answer
-> (task #10 in main's queue). Findings were produced by each system's own newly-hired
+> (tracked on the owner's side). Findings were produced by each system's own newly-hired
 > system owner verifying its contract against live code during onboarding (28/28 systems,
 > every system owner names how many claims it checked — silence was not accepted as clean).
 

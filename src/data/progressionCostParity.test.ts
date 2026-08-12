@@ -8,7 +8,7 @@ import {
 } from '../game/progression/progressionConfig'
 
 /*
-  Task #26/#35 — the cost catalog lives in TWO places and this test is the only thing stopping
+  The cost catalog lives in TWO places and this test is the only thing stopping
   them from drifting.
 
   The prices are authored in TypeScript (progressionConfig.ts) because that is where the game
