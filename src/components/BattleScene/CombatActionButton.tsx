@@ -75,7 +75,11 @@ export function CombatActionButton({
         .filter(Boolean)
         .join(' ')}
       aria-label={ariaLabel}
-      aria-disabled={state === 'disabled' || state === 'locked' ? true : undefined}
+      aria-disabled={
+        // `|| undefined` is load-bearing: omitted and aria-disabled="false" are different to
+        // a screen reader. Dropping the tail emits "false" on every ready button.
+        state === 'disabled' || state === 'locked' || undefined
+      }
       onPointerDown={(event) => {
         event.preventDefault()
         pressedRef.current = true
