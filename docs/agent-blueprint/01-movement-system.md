@@ -17,6 +17,7 @@ Owns per-tick resolution of movement for any `RealtimeBattleEntity` (player or e
 
 - **Combat (this system)** feeds movement results to combat-facing (`combatFacing.ts`) and is consumed every tick by the realtime-battle runtime (`RealtimeBattleRuntime.ts`), which also drives `DamageSystem`/`HitboxSystem`/`ComboSystem`.
 - **Enemy AI** (`EnemyAISystem.ts`) is upstream: it decides the desired direction vector and hands it to this system rather than moving entities itself — stated explicitly to avoid a second, rule-diverging movement implementation (`EnemyAISystem.ts:12-18`).
+- **Ally AI** (`AllyAISystem.ts`) is upstream the same way and for the same reason: summoned allies also have to walk, and `AllyAISystem.ts:37` calls this system's `stepMovement` rather than integrating its own. Deliberate — allies get a separate _decision_ system because they must not chase their owner or telegraph at the player, but they share one _movement_ implementation with everyone else. Recorded 2026-08-13, answering design-lock item 7.a; this caller had gone unlisted here since the ally system shipped.
 - **Hero system**: player input vector originates from hero/input layer, not owned here.
 - No dependency on adventure/pvp/economy/backend/social systems — this is combat-core only. (Note: `src/game/adventure/movement.ts` and `src/game/exploration/movement.ts` are separate, unrelated movement modules for other game modes — not this system.)
 
