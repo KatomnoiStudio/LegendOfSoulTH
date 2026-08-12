@@ -416,11 +416,13 @@ describe('finalizeLobbyBattleRewards — single write path for progress.flags (t
     const path = join(process.cwd(), 'src/game/reward/lobbyBattleRewardPipeline.ts')
     const source = readFileSync(path, 'utf8')
 
-    // Matches the exact pattern task #73 found duplicated three times:
-    //   flags = { ...next.progress.flags, [someKey]: true }
+    // Matches the two shapes task #73 found duplicated across its three sites:
+    //   flags = { ...next.progress.flags, [someKey]: true }   (gold, item sites)
+    //   flags = { ...flags, [someKey]: true }                 (transaction site)
     // A bare read-back (`flags = { ...next.progress.flags }`, no bracketed key) is fine —
     // that's the fixed shape. Only a key being injected directly into `flags` is the smell.
-    const duplicateWritePattern = /\bflags\s*=\s*\{\s*\.\.\.(?:next|flags)\.progress\.flags,\s*\[/g
+    const duplicateWritePattern =
+      /\bflags\s*=\s*\{\s*\.\.\.(?:next\.progress\.flags|flags)\s*,\s*\[/g
     const matches = source.match(duplicateWritePattern) ?? []
 
     expect(matches).toEqual([])
