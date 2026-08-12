@@ -23,9 +23,9 @@ tokens on context those agents have no use for and didn't ask to carry.
 
 `MEMORY.local.md` at the repo root — gitignored (see `.gitignore`), never pushed, never
 read as part of the mandatory-memory protocol. Write personal/off-project notes there
-instead of `MEMORY.md`. It's local-only, same pattern as `.agents/ring0.local`
-(`.coalmine.json` was moved to this same local-only model earlier — see `MEMORY.md`
-Past Summary for that precedent).
+instead of `MEMORY.md`. It's local-only, the same pattern `.coalmine.json` already
+follows — machine-local config that no clone ever sees (see `MEMORY.md` Past Summary
+for that precedent).
 
 If `MEMORY.local.md` doesn't exist yet on a given machine, create it — don't ask
 permission first, it's inert until something is written to it, and it's gitignored so
@@ -36,7 +36,7 @@ creating it has no shared-repo effect.
 Anything that actually informs work on this project: decisions, architecture, open
 items, session history, status. The bar is "would a future agent working on
 `LegendOfSoulTH` need this to do its job correctly" — not "did HetCreep say it during
-a `LegendOfSoulTH` session." A personal aside said *during* a project session is still
+a `LegendOfSoulTH` session." A personal aside said _during_ a project session is still
 personal; it doesn't become project-relevant just because of when it was said.
 
 When genuinely unsure which bucket something belongs in, ask rather than guess — a

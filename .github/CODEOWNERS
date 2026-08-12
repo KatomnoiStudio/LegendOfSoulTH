@@ -5,7 +5,7 @@
 # collaborators holding write access could otherwise approve each other's work and land
 # it with the owner never in the loop — the "1 approval" rule alone does not say WHOSE.
 #
-# This encodes AGENTS.md rule 18: Ring 0 is the standing merge controller. Break-glass is
+# This encodes AGENTS.md rule 18: the owner is the standing merge controller. Break-glass is
 # unchanged and deliberate — branch protection keeps `enforce_admins: false`, so a
 # repository admin can still land work directly when HetCreep is unavailable. That path is
 # meant to be logged, not silent (rule 18's break-glass clause).

@@ -2,7 +2,7 @@
 
 # Pre-Push Sync Law
 
-> **Scope**: Binding for every agent, on every machine — Ring 0 and Ring 1 alike. Code correctness isn't a Ring-authority matter; this is baseline hygiene owed regardless of whose repo it is.
+> **Scope**: Binding for every agent, on every machine, no exceptions. Code correctness is not an authority question; this is baseline hygiene owed regardless of whose repo it is.
 
 ## Why this exists
 

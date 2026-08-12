@@ -21,10 +21,10 @@
 
 Two different things now live under `MEMORY/`. They are split by **audience**, not by who happens to write them:
 
-| file                                                  | scope                             | binds                                                                                             |
-| ----------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------- |
-| **root `MEMORY.md`** (+ its `MEMORY/archive/` bodies) | **every machine, every dev**      | everyone — reading it is rule 1, above, and is absolute                                           |
-| **`MEMORY/<system>.md`**                              | **this machine, the belt system** | the belt's own seats (the caretaker/aide roster in `docs/AGENT_REGISTRY.md`) — mandatory for them |
+| file                                                  | scope                             | binds                                                                                                                                                     |
+| ----------------------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **root `MEMORY.md`** (+ its `MEMORY/archive/` bodies) | **every machine, every dev**      | everyone — reading it is rule 1, above, and is absolute                                                                                                   |
+| **`MEMORY/<system>.md`**                              | **this machine, the belt system** | the belt's own seats (the caretaker/aide roster in `.claude/belt/AGENT_REGISTRY.md`, installed per machine from `docs/BELT-PORT.md`) — mandatory for them |
 
 What that means in practice:
 

@@ -15,7 +15,7 @@
 
 ## Who bumps `RULES_VERSION`
 
-Whoever edits `AGENTS.md`, adds/removes/materially changes a file under `.agents/rules/**`, or changes `.agents/rules/ring0-authority.md`'s precedence order increments `RULES_VERSION` by 1 in the same edit. Typo fixes, comment tweaks, and stamp-date-only re-validations do **not** bump it — only changes that could alter what an agent does.
+Whoever edits `AGENTS.md`, adds/removes/materially changes a file under `.agents/rules/**`, or changes the rule-precedence order in `AGENTS.md`'s ⚖️ header increments `RULES_VERSION` by 1 in the same edit. Typo fixes, comment tweaks, and stamp-date-only re-validations do **not** bump it — only changes that could alter what an agent does.
 
 ## The entry gate — what a new rule must carry before it may be written
 

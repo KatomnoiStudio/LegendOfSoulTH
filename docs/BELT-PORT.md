@@ -1,13 +1,76 @@
-# Belt-system port → LegendofSoulTH (draft rule file, 2026-08-09)
+# Belt-system port → LegendofSoulTH — THE INSTALLER
 
 > **THE CORE, owner's own distillation (2026-08-09) — everything in this file is these three lines at some scale:**
 > _"ตอนแรกมันคลุมเครือ จนสุดท้ายกลั่นออกมาเป็นหัวใจหลัก"_
 > **ถือ 1 เรื่อง ต่อ 1 agents · สร้าง → ผ่าน QC → ได้ไปต่อ · สร้าง → ไม่ผ่าน QC → โดนดีดกลับ**
 > A section below that cannot be derived from these three lines does not belong in this file.
 
-> **Deliverable, not installed.** HetCreep places this and decides its rule number / file name / `RULES_VERSION` bump. Written against the repo's actual state, verified at source 2026-08-09: `AGENTS.md` rules 1–22, `.agents/rules/multi-dev-task-queue-law.md`, `ring0-traffic-control-law.md`, `.agents/rules/ecc/common/performance.md`.
+## What this file is (2026-08-12)
+
+**This is the only belt file the repository keeps.** Everything the belt actually runs on is
+installed per machine and gitignored:
+
+| Artifact                              | Where it lives after install | Why it is not in the repo                                                                |
+| ------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------- |
+| `belt-system-law.md`                  | `.claude/belt/`              | commands a seat that exists only where the belt is installed                             |
+| `AGENT_REGISTRY.md`                   | `.claude/belt/`              | holds live session ids — meaningless, and misleading, on any other machine               |
+| `belt-{aide,credits,qc,whats-new}.md` | `.claude/agents/`            | Claude Code agent definitions; no other platform loads them, every one pays to read them |
+
+A dev who is not running the belt now clones a repo with none of it in their context. That was
+the whole reason to move it: **632 lines of machinery for one seat on one machine were being
+auto-loaded into every session on every machine.**
+
+Run this file once per machine. Afterwards it just sits here — it is not read per session, it
+is not a law, and nothing auto-loads it. `AGENTS.md` rule 23 points at it; that is all.
+
+### Install
+
+1. **PRE-INSTALL** — clear the stale session estate (next section). One time, before anything else.
+2. **Read this file end to end**, then order `"สร้างทำเนียบ"` — §2-BOOTSTRAP materializes
+   `.claude/belt/AGENT_REGISTRY.md` from the template it carries.
+3. **Write the law**: `.claude/belt/belt-system-law.md` — the binding distillation of §0–§7 below.
+4. **Write the seats**: `.claude/agents/belt-*.md`, one per standing position that gets its own
+   agent definition (aide, QC, what's-new, credits — see the registry's Standing positions table).
+5. **Verify** with the checklist below before calling it installed.
+
+### Verify the install is complete
+
+```
+ls .claude/belt/belt-system-law.md .claude/belt/AGENT_REGISTRY.md
+ls .claude/agents/belt-*.md
+git check-ignore -v .claude/belt/ .claude/agents/belt-qc.md    # both MUST be ignored
+git ls-files .claude/belt/ .claude/agents/belt-                # MUST print nothing
+```
+
+All four green → installed. Any belt file showing up in `git ls-files` means it is about to be
+committed into the repo again, which is the exact thing this layout exists to prevent.
+
+### Verify the data BEFORE deleting anything
+
+The installed copies are not a mirror of this file. **`AGENT_REGISTRY.md` accumulates state that
+exists nowhere else** — hired persistent session ids, per-system caretaker rows written lazily at
+first dispatch, recorded model/effort flips. Deleting it loses that permanently; this file cannot
+regenerate it, only the empty template.
+
+Before removing any installed belt artifact, answer all three in writing:
+
+1. **What is in the local copy that is not in this file?** Diff the registry's caretaker rows and
+   `Hired staff` section against §2-BOOTSTRAP's template. Anything present locally and absent from
+   the template is real state, not a copy.
+2. **Is any live session id still referenced?** A sid in the registry that a running session still
+   answers to is live infrastructure, not a record.
+3. **Where does that state go instead?** If the answer is "nowhere", stop — that is data loss, and
+   the removal is not ready. Copy it into `MEMORY/` first, where it survives.
+
+Only when all three are answered does the delete become a removal rather than a loss. This is the
+same discipline `agent-memory-law.md` applies to archiving: verify the destination holds the bytes
+**before** the source stops holding them.
+
+---
+
+> **Port shape: a MAPPING, not a copy.** TheColliery is a 9-repo series with a per-repo department head under a human chair. LegendofSoulTH is ONE repo with an owner and outside contributors. The belt collapses cleanly at that scale — that is the point of holding only the core.
 >
-> **Port shape: a MAPPING, not a copy.** TheColliery is a 9-repo series with a per-repo department head under a human chair. LegendofSoulTH is ONE repo with Ring 0 + Ring 1 devs. The belt collapses cleanly at that scale — that is the point of holding only the core.
+> Written against the repo's actual state, verified at source 2026-08-09: `AGENTS.md` rules 1–22, `.agents/rules/multi-dev-task-queue-law.md`, `merge-control-law.md` (then `ring0-traffic-control-law.md`), `.agents/rules/ecc/common/performance.md`. **The Ring 0 / Ring 1 vocabulary this file was written in was retired 2026-08-12** (`AGENTS.md` rule 6) — read "Ring 0" below as the owner and "Ring 1" as an outside contributor; the mechanisms are unchanged.
 
 ## What this repo ALREADY has (verified — do not re-add)
 

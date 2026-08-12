@@ -25,13 +25,20 @@ scripts/
 .claude/coalwash/
 .coalmine.json
 .coalboard/
+# per-machine spend consent (fableConsent) — committing it would hand every clone a
+# standing "yes" to real-money agent spawns that this machine's owner gave, not them
+.claude/.coalboard.json
 
 # Per-machine/per-editor local tool config — not project config, each dev's own setup
 .claude/launch.json
 .claude/settings.local.json
 
-# Working-directory concurrency lock — machine-local, never shared (.agents/rules/workdir-concurrency-lock-law.md)
-.agents/workdir.lock
+# The belt system — installed per machine from docs/BELT-PORT.md, never shared.
+# It only functions where Claude Code loads .claude/agents/, and AGENT_REGISTRY.md holds
+# live session ids that mean nothing on any other machine. The repo keeps the INSTALLER
+# (docs/BELT-PORT.md) and nothing else; run it, and these appear locally.
+.claude/belt/
+.claude/agents/belt-*.md
 
 # Cursor IDE local config — machine/cloud-agent only, not project config
 .cursor/

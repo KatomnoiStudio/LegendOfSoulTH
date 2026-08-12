@@ -1,4 +1,5 @@
 <!-- coalmine: verified 2026-08-07 · exemplar HetCreep's standing instruction, 2026-08-07 · revalidate 90d -->
+
 # Project Law: Proven-good goes in now; everything else gets weighed
 
 > HetCreep's standing instruction, 2026-08-07. This supersedes any earlier rule in this
@@ -48,14 +49,14 @@ is deciding without saying so.**
 
 ## What this rule does NOT license
 
-- It does not license **skipping verification**. Proven-good means the *kind* of change is
+- It does not license **skipping verification**. Proven-good means the _kind_ of change is
   proven, not that this instance is correct. The gate still has to be green, and a claim
   still needs evidence.
 - It does not license **scope creep**. Doing a proven-good thing that was not asked for is
   fine when it is adjacent and small; rewriting a subsystem because it would be better is
   not.
-- It does not override anything in `ring0-authority.md`, the confirm-before-destructive
-  rail, or the requirement to surface a decision that is genuinely the human's.
+- It does not override `AGENTS.md`'s binding rules, the confirm-before-destructive rail,
+  or the requirement to surface a decision that is genuinely the human's.
 
 ## Why this exists
 
