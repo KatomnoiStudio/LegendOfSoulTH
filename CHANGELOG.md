@@ -9,6 +9,87 @@ Versioning follows [Semantic Versioning 2.0.0](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-08-13
+
+The three P1 defects that had been sitting in an audit since 2026-08-12, all
+closed. They had briefly had `TASKS.md` rows, the owner reverted those rows as
+belonging to the wrong table, and then nobody moved them anywhere — so this
+release is as much about the pointers that went stale as the bugs they pointed at.
+
+### Fixed
+
+- **Every Google and guest account was issued a UID that could not be typed in.**
+  The signup trigger fell back to `substr(uuid, 1, 10)` whenever the client sent
+  no UID in its metadata — which `signInAnonymously` and `signInWithOAuth` never
+  did. That yields 8 hex, a hyphen, 1 hex; the contract is 10 digits, and the
+  friend-search box strips non-digits from its input, so the value was not merely
+  unfindable, it was unenterable. `profiles.uid` is `unique not null` with no
+  update path, so an account born malformed stayed permanently unfriendable with
+  nothing on screen to explain it. **101 of 112 live accounts were affected.**
+  Issuance moved to the server, where every sign-in path already converges rather
+  than to the two call sites that forgot — the third path someone adds later would
+  have inherited the same bug in silence. Existing rows were reissued after the
+  count came back, which turned out to be an easy call for an unexpected reason:
+  the usual objection to reissuing an ID is that the player already gave it out,
+  and a UID nobody could type was never given out in any usable form.
+- **A stalled texture load trapped the player on the loading screen.** three's
+  `ImageLoader` has no timeout and sits outside the deadline wrapper that covers
+  the Supabase client, so one hanging request left `phase` at `'loading'`
+  forever — and that branch rendered no exit button, unlike the error branch ten
+  lines above it. A tab reload was the only way out. Now the preload races a
+  deadline and falls through to the existing error branch, and the loading branch
+  carries its own way back for the stalls a timeout cannot see.
+- **Three tools overwrote the file they were reading.** A crash mid-write left the
+  target as neither the old file nor the new one. Closed with one shared helper —
+  write to a temp beside the destination, rename over it — since `rename` on the
+  same filesystem leaves only two possible states. The audit called the raw-PNG
+  case an unrecoverable loss; measured, that was wrong (`assets/raw/` is fully
+  tracked in git), and the real damage was in the image optimizer instead: its
+  skip condition is mtime-only, and a half-written `.webp` has a _newer_ mtime
+  than its source, so every later run skipped the broken file forever with
+  nothing signalling that `--force` was needed. The model builder wrote every
+  `.glb` before validating any, so a failing build replaced the working set and
+  _then_ reported failure.
+
+### Changed
+
+- `docs/agent-blueprint/23-gacha-system.md` was carrying a stale-numbers warning
+  and nothing else — the rates, pity threshold and costs it taught were still the
+  superseded ones, and rule 17 makes it required reading before anyone implements
+  the system. Resynced to the rate lock, including replacing its world-class bar:
+  it named Genshin's soft/hard pity ramp as the pattern to borrow, which is not
+  what this project ever built.
+- `docs/DESIGN-LOCK-HANDOFF-20260809.md` moved out of "finished records". Seven of
+  its twelve questions had been answered two days earlier and dispatched — each
+  answer leaving a marker in the contract it corrected and nowhere else — so both
+  index pages still described all twelve as held. Three more carried a recommended
+  answer and were applied. Items 4 and 12 remain genuinely open, and item 4 grew a
+  second production caller while it sat.
+
+### Known issues
+
+- `AuthModal.test.tsx` failed twice in roughly ten full-suite runs and then passed
+  four in a row when chased. Pre-existing, timeout-shaped, and left unfixed on
+  purpose: raising a timeout without a reproduction moves the threshold and hides
+  the signal.
+- Running the image optimizer with `--force` rewrites 120 files in `public/` with
+  byte differences. Confirmed pre-existing encoder drift by running the pre-fix
+  tool the same way and getting the identical 120 — unrelated to this release's
+  changes, and not yet chased down.
+
+### Credits
+
+No outside contributions merged this cycle — every commit here is in-house. Said
+plainly rather than omitted, because this project credits external help at every
+bump and a silent Credits section is indistinguishable from a forgotten one.
+
+The three defects closed here were not found in-house, though. They came out of
+the multi-instrument audit of 2026-08-12, and the malformed-UID finding in
+particular is the _earlier_ scan's version rather than the board's — the board's
+own lens missed that `signInWithGoogle` falls through the same branch. The audit
+records that attribution itself; repeating it here so the fix does not read as
+though it began with the fix.
+
 ## [0.20.0] - 2026-08-13
 
 A release about tests that could not fail. The last one gave the art a compiler;
