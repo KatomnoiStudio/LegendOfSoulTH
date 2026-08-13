@@ -21,7 +21,7 @@ import * as THREE from 'three'
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { BUILDERS } from './lib/characters.mjs'
-import { tempPathFor } from './lib/atomic-write.mjs'
+import { sweepStaleTemps, tempPathFor } from './lib/atomic-write.mjs'
 
 // GLTFExporter เรียก FileReader ตอน export แบบ binary ซึ่ง Node ไม่มีให้
 // จึง shim เฉพาะเมธอดที่มันใช้จริง (readAsArrayBuffer + onloadend)
@@ -44,6 +44,10 @@ const OUT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'public',
 
 async function main() {
   await mkdir(OUT_DIR, { recursive: true })
+
+  // temp ของรอบที่ถูกฆ่าไปก่อนหน้าจะนอนอยู่ใน OUT_DIR ซึ่ง Vite copy ดิบ ๆ เข้า bundle
+  const swept = await sweepStaleTemps(OUT_DIR)
+  if (swept > 0) console.log(`กวาดไฟล์ชั่วคราวค้างจากรอบก่อน ${swept} ไฟล์`)
 
   const results = []
 
@@ -162,9 +166,30 @@ async function main() {
     return
   }
 
-  for (const result of results) {
-    await rename(result.file, result.finalFile)
+  /*
+    promote ทีละไฟล์ — และตรงนี้ **ไม่ใช่ atomic ข้ามไฟล์** ระบุไว้ตรง ๆ ดีกว่าปล่อยให้คำว่า
+    all-or-nothing ข้างบนคลุมมาถึงด้วย: validate เป็น all-or-nothing จริง แต่ถ้า rename ตัวที่ 2
+    จาก 3 ล้ม (ไฟล์ถูกล็อก ดิสก์เต็ม) จะได้ชุดผสมของใหม่กับของเก่า
+
+    ไม่แก้ด้วยการสลับทั้งโฟลเดอร์ เพราะจะพัง dev server ที่ถือ handle ไฟล์ใน public/ อยู่ และ
+    จำนวนโมเดลมีแค่หลักหน่วย ทางที่เลือกคือ **รายงานให้เห็น** ไม่ใช่แกล้งว่าไม่มีช่องนี้ —
+    exit code จะเป็น 1 พร้อมบอกว่าตัวไหนขึ้นแล้วตัวไหนยัง เพื่อให้รันซ้ำได้อย่างรู้ตัว
+  */
+  const promoted = []
+  try {
+    for (const result of results) {
+      await rename(result.file, result.finalFile)
+      promoted.push(result.id)
+    }
+  } catch (cause) {
+    const pending = results.filter((r) => !promoted.includes(r.id)).map((r) => r.id)
+    await Promise.all(results.map((result) => unlink(result.file).catch(() => {})))
+    console.error(`แทนที่ไฟล์ไม่ครบ — ขึ้นแล้ว: ${promoted.join(', ') || '(ไม่มี)'}`)
+    console.error(`ยังเป็นของเดิม: ${pending.join(', ')}`)
+    console.error('รัน npm run build:models ใหม่เพื่อให้ครบทั้งชุด')
+    throw cause
   }
+
   console.log(`สร้างโมเดลครบ ${results.length} ตัว → public/models/`)
 }
 

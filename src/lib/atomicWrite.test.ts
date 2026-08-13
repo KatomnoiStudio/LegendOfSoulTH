@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 // @ts-expect-error — tools/ is plain .mjs outside the app's tsconfig; imported for its behaviour,
 // not its types. The alternative is duplicating the helper in TS, which is the drift this whole
 // change exists to remove.
-import { produceFileAtomic, tempPathFor, writeFileAtomic } from '../../tools/lib/atomic-write.mjs'
+import { produceFileAtomic, sweepStaleTemps, tempPathFor } from '../../tools/lib/atomic-write.mjs'
 
 // Audit 2026-08-12 §0b.3: three tools overwrote their own target in place, so a process that died
 // mid-write left the destination in a state that was neither the old file nor the new one.
@@ -25,23 +25,25 @@ afterEach(async () => {
   await rm(dir, { recursive: true, force: true })
 })
 
-describe('writeFileAtomic', () => {
-  it('replaces the destination and leaves no temp behind', async () => {
-    const dest = join(dir, 'out.txt')
-    await writeFile(dest, 'old')
+describe('sweepStaleTemps', () => {
+  it('removes temps a killed run left behind, and nothing else', async () => {
+    // The cleanup in produceFileAtomic covers a throw; SIGKILL and power loss skip it, and these
+    // temps sit beside their destination — which for build-models is public/models/, a directory
+    // Vite copies verbatim into the bundle. Left alone they get committed and shipped.
+    await writeFile(join(dir, '.atomic-999-1.tmp'), 'abandoned')
+    await writeFile(join(dir, '.atomic-999-2.tmp'), 'abandoned')
+    await writeFile(join(dir, 'real-model.glb'), 'keep me')
+    await writeFile(join(dir, 'notes.tmp'), 'a temp belonging to something else')
 
-    await writeFileAtomic(dest, 'new')
+    const swept = await sweepStaleTemps(dir)
 
-    expect(await readFile(dest, 'utf8')).toBe('new')
-    expect(await readdir(dir)).toEqual(['out.txt'])
+    expect(swept).toBe(2)
+    // The prefix is what makes this safe to run unattended: an unrelated *.tmp is not ours.
+    expect((await readdir(dir)).toSorted()).toEqual(['notes.tmp', 'real-model.glb'])
   })
 
-  it('creates the destination when it does not exist yet', async () => {
-    const dest = join(dir, 'fresh.txt')
-
-    await writeFileAtomic(dest, 'hello')
-
-    expect(await readFile(dest, 'utf8')).toBe('hello')
+  it('is a no-op on a directory that does not exist', async () => {
+    await expect(sweepStaleTemps(join(dir, 'nope'))).resolves.toBe(0)
   })
 })
 

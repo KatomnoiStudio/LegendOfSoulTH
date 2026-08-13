@@ -22,32 +22,43 @@
  * sequential และปลายทางไม่ซ้ำกัน ข้อจำกัดนี้จึงไม่กระทบใคร แต่บันทึกไว้เพราะคนที่เอาไปใช้ใน
  * Promise.all บนปลายทางเดียวจะเจอ และมันจะดูเหมือนบั๊กของ helper
  */
-import { rename, unlink, writeFile } from 'node:fs/promises'
+import { readdir, rename, unlink } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
+
+const TEMP_PREFIX = '.atomic-'
+const TEMP_SUFFIX = '.tmp'
 
 let counter = 0
 
 /** พาธ temp ข้างปลายทาง — ต่อ pid + counter กันชนเมื่อรันหลายโปรเซสหรือหลายไฟล์พร้อมกัน */
 export function tempPathFor(dest) {
   counter += 1
-  return join(dirname(dest), `.${process.pid}-${counter}.tmp`)
+  return join(dirname(dest), `${TEMP_PREFIX}${process.pid}-${counter}${TEMP_SUFFIX}`)
 }
 
 /**
- * เขียน Buffer/string ลง dest แบบ atomic
+ * กวาด temp ที่ค้างจากรอบก่อนในโฟลเดอร์หนึ่ง
  *
- * @param {string} dest ปลายทางจริง
- * @param {Buffer|string} data
+ * try/catch ในสองฟังก์ชันข้างล่างเก็บกวาดตอน throw แต่ SIGKILL/ไฟดับข้ามมันไป และ temp พวกนี้
+ * นอนอยู่ข้างปลายทาง — ซึ่งสำหรับ build-models คือ `public/models/` ที่ Vite copy ดิบ ๆ เข้า
+ * bundle ผลคือไฟล์ตายถูก commit แล้ว ship ถึงผู้เล่นได้ tool จึงควรเรียกตัวนี้ก่อนเริ่มเขียน
+ *
+ * ไม่ผูกกับ pid: temp ของรอบที่ถูกฆ่าไปแล้วเป็นของโปรเซสอื่นเสมอ การกรองด้วย pid ตัวเองจะทำให้
+ * ไม่มีอะไรถูกกวาดเลย
+ *
+ * @param {string} dir
+ * @returns {Promise<number>} จำนวนไฟล์ที่ลบ
  */
-export async function writeFileAtomic(dest, data) {
-  const temp = tempPathFor(dest)
-  try {
-    await writeFile(temp, data)
-    await rename(temp, dest)
-  } catch (cause) {
-    await unlink(temp).catch(() => {})
-    throw cause
+export async function sweepStaleTemps(dir) {
+  let swept = 0
+  const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
+  for (const entry of entries) {
+    if (!entry.isFile()) continue
+    if (!entry.name.startsWith(TEMP_PREFIX) || !entry.name.endsWith(TEMP_SUFFIX)) continue
+    await unlink(join(dir, entry.name)).catch(() => {})
+    swept += 1
   }
+  return swept
 }
 
 /**

@@ -70,3 +70,7 @@ MEMORY/*.md
 *.sln
 *.sw?
 coverage/
+
+# ไฟล์ชั่วคราวของ tools/lib/atomic-write.mjs — ปกติถูกลบทันทีที่ rename เสร็จ
+# ที่ยังกันไว้เพราะ SIGKILL ข้าม cleanup ได้ และมันนอนอยู่ใน public/ ที่ Vite copy เข้า bundle
+.atomic-*.tmp
