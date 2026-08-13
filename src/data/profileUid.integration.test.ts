@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { UID_LENGTH } from '../game/uid'
 
 // Covers audit 2026-08-12 §0b.1: every Google-OAuth and guest account was issued a malformed
 // public UID, because `handle_new_user` fell back to `substr(new.id::text, 1, 10)` whenever the
@@ -15,10 +16,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const MIGRATION = '20260813000000_fix_malformed_public_uid.sql'
 
-// The contract from src/game/uid.ts — restated here on purpose rather than imported. Importing
-// `isValidUid` would assert the regex against itself; what needs proving is that SQL output
-// satisfies the rule the UI enforces, so the rule is written out independently.
-const UID_CONTRACT = /^[1-9][0-9]{9}$/
+// The contract, rebuilt from `UID_LENGTH` rather than hard-coded, so changing the length in one
+// place does not leave this file asserting the old one and blaming the SQL for it.
+//
+// `isValidUid` itself is deliberately NOT imported: it IS the regex, so asserting SQL output
+// against it would let a loosened validator silently loosen this test too. Reading the length
+// but rebuilding the pattern keeps the drift out without giving up the independent check.
+const UID_CONTRACT = new RegExp(`^[1-9][0-9]{${UID_LENGTH - 1}}$`)
 
 async function applyMigrationFunctionsOnly(db: PGlite): Promise<void> {
   const sql = readFileSync(join(process.cwd(), 'supabase/migrations', MIGRATION), 'utf8')
@@ -28,7 +32,16 @@ async function applyMigrationFunctionsOnly(db: PGlite): Promise<void> {
   // extracted and applied alone — that separation is why it was written as its own function.
   const start = sql.indexOf('create or replace function public.issue_profile_uid()')
   const end = sql.indexOf('comment on function public.issue_profile_uid()')
-  if (start < 0 || end < 0) throw new Error('issue_profile_uid() not found in the migration')
+
+  // Ordering is checked, not just presence. If the comment ever moves above the definition,
+  // slice() returns '' and db.exec('') succeeds silently — every test then fails with
+  // "function does not exist", which points at the SQL instead of at this extraction.
+  if (start < 0 || end < 0 || end <= start) {
+    throw new Error(
+      `could not extract issue_profile_uid() from ${MIGRATION} ` +
+        `(create at ${start}, comment at ${end}) — the definition must precede its comment`,
+    )
+  }
 
   await db.exec(sql.slice(start, end))
 }
@@ -85,10 +98,16 @@ describe('public UID issuance (isolated Postgres via PGlite)', () => {
     )
     const uids = result.rows.map((r) => r.uid)
 
-    // 5000 draws from 9e9: the birthday-collision expectation is ~0.0014, so any duplicate here
-    // is a broken generator, not luck. This is the property the retry loop in handle_new_user
-    // leans on — if draws collided often, 20 attempts would not be enough.
-    expect(new Set(uids).size).toBe(uids.length)
+    // NOT `new Set(uids).size === uids.length`. That reads like the strictest possible check and
+    // is really a coin flip: 5000 draws from 9e9 collide with probability
+    // 1 - exp(-n(n-1)/2N) = 0.1388%, so on a perfectly correct generator it turns CI red about
+    // once every 721 runs — and the failure reads "the generator is broken" when nothing is.
+    //
+    // The property that actually matters is that draws SPREAD, which is what lets
+    // handle_new_user's 20-attempt retry loop terminate. A generator stuck on a small subset
+    // fails this by a mile; ordinary birthday luck cannot.
+    const distinct = new Set(uids).size
+    expect(distinct).toBeGreaterThanOrEqual(uids.length - 5)
 
     // Every leading digit 1-9 should show up across 5000 draws; a generator stuck on a subset
     // would shrink the real space by an order of magnitude without failing anything above.
