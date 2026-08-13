@@ -345,12 +345,34 @@ First vertical-slice kit. Other heroes follow the same **per-hero kit file** pat
 - Ranged basic attack uses the **same** §3.6.7 schema as Monkey King's melee basic — set `lungeDistance` near 0, `range` longer, and `hitShape` to a projectile/line shape instead of the close-range multi-target box.
 - No new per-move property is needed; this is a data/tuning difference per hero kit, not an architecture gap.
 
-### 3.8.3 Summoner archetype — summons reuse the enemy AI core
+### 3.8.3 Summoner archetype — summons reuse the combat rules, not the AI core
 
-Already directionally locked in fork issue #47 ("summon effect → reuse spawn/entity pool — ไม่สร้าง AI core ใหม่"), stated explicitly here for the record:
+**Amended 2026-08-13 by HetCreep decision (design-lock item 4.a).** The upstream lock this section
+cites, fork issue #47 — archived in [`FORK-DESIGN-LOCKS-ARCHIVE.md`](FORK-DESIGN-LOCKS-ARCHIVE.md)
+because it lived only in a departed contributor's personal repository — said only
+_"summon effect → reuse spawn/entity pool — ไม่สร้าง AI core ใหม่"_.
+This section escalated "reuse the entity pool" into "run the same state machine", which is a
+stronger claim than the lock made and one no shipped code has ever satisfied. The amendment
+restores the original scope.
 
-- A summoned unit runs the **same** `Idle → Chase → Telegraph → AttackActive → Recovery` state machine as enemy AI (§3.6.8), flagged as player-ally and targeting the nearest enemy instead of the player.
-- Summons do not get a bespoke AI system.
+- A summoned unit resolves **movement, arena bounds, hit detection, damage, hit-stun, facing and
+  target selection through the same shared functions every other combatant uses** — imported, never
+  reimplemented. That is what "no new AI core" protects: the combat rules exist once.
+- Its **decision loop is its own** and is expected to differ. `stepAllyAI` runs three states
+  (`idle`/`walk`/`attack`) against enemy AI's six, with no telegraph phase — a summon that wound up
+  before every swing would be useless as a helper, which is the opposite of the archetype's point.
+- The duplication this section forbids is duplicated **rules**, not different **decisions**. Dill &
+  Dragert's Modular AI (Game AI Pro 3, ch. 8) builds small components and reuses them "with
+  appropriate customization"; Unreal gives each role its own controller and behaviour tree over a
+  shared task set. Forcing one machine across both roles would be the single-large-behaviour shape
+  modular AI exists to avoid.
+- Enforced by `src/game/realtimeBattle/allyAiSharedPrimitives.test.ts`, which pins the shared
+  imports and pins that no shared rule is handed a constant in place of the real input.
+
+> The earlier wording — "runs the **same** `Idle → Chase → Telegraph → AttackActive → Recovery`
+> state machine as enemy AI", "summons do not get a bespoke AI system" — is kept here as the record
+> of what was superseded, not as a rule. Contracts 04, 07 and 12 cite this section and are corrected
+> to match.
 
 ### 3.8.4 Mini-boss — Elite-tier stats, no phase transition
 

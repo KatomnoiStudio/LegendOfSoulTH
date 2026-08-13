@@ -16,7 +16,7 @@ The Skill/Cast System owns **per-hero active-ability execution**: the skill1/ski
 
 - **hero system** — kit registry keyed by `characterId` (`getRealtimeSkillKit`), pulls hero identity.
 - **combat system** (`HitboxSystem`, `DamageSystem`) — consumes `SkillTick.attack` to resolve hits/damage; skill system feeds it, doesn't call it.
-- **enemy system** (`EnemyAISystem`) — §3.8.3 locks that summon effects (once `effects[]` ships) will reuse the enemy AI state machine rather than a bespoke one; not yet wired since `effects[]` doesn't exist.
+- **enemy system** (`EnemyAISystem`) — §3.8.3 locks that summons reuse the shared combat _rules_ (movement, hit detection, damage, facing, target selection), not the enemy state machine; their decision loop is `stepAllyAI`'s own. **Corrected 2026-08-13 (design-lock 4.a)** — this line used to say "reuse the enemy AI state machine rather than a bespoke one", which §3.8.3 no longer claims.
 - No dependency on economy/backend/social/pvp/adventure systems today.
 
 ### Done-criteria
