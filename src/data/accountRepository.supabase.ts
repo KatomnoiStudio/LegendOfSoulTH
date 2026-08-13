@@ -1,6 +1,5 @@
 import { getSupabase } from '../lib/supabaseClient'
 import { reportError } from '../lib/errors/reportError'
-import { generateUid } from '../game/uid'
 import { TEAM_SIZE } from '../game/team'
 import { migrateOwnedCharacters } from '../game/progression/progressionMigration'
 import { mapOwnedCharacterRow } from './accountRepository.supabase.mapping'
@@ -217,34 +216,34 @@ export async function register(
   const passwordError = validatePassword(password)
   if (passwordError) return { ok: false, error: passwordError }
 
-  // เผื่อชน UNIQUE ที่ trigger ฝั่ง DB — สุ่มใหม่แล้วลองอีกครั้ง (โอกาสชนจริงต่ำมาก ดู src/game/uid.ts)
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const uid = generateUid()
-    const { data, error } = await getSupabase().auth.signUp({
-      email: email.trim(),
-      password,
-      options: { data: { uid }, captchaToken },
-    })
+  // UID ไม่ได้ออกจากฝั่ง client อีกแล้ว — `handle_new_user` ออกให้เอง แล้ว retry กับ unique
+  // constraint ในทรานแซกชันเดียวกับ insert (migration 20260813000000) ก่อนหน้านี้ที่นี่สุ่ม uid
+  // แล้วส่งไปกับ signup metadata พร้อม retry loop 3 รอบเผื่อชน ซึ่งทั้งสองอย่างเป็นงานของ server
+  // ไปแล้ว และการที่ client ยังสุ่มเองอยู่แปลว่ามีแหล่งกำเนิด uid สองที่รอ drift
+  //
+  // การชนตอนนี้ไม่มีทางโผล่มาถึงตรงนี้ได้: server retry 20 ครั้งแล้วถึงจะ raise ซึ่งแปลว่า
+  // generator พังจริง ไม่ใช่เรื่องที่สุ่มใหม่ฝั่ง client จะช่วยได้
+  const { data, error } = await getSupabase().auth.signUp({
+    email: email.trim(),
+    password,
+    options: { captchaToken },
+  })
 
-    if (error) {
-      if (error.message.includes('duplicate') && attempt < 2) continue
-      return {
-        ok: false,
-        error: error.message.includes('already registered')
-          ? 'อีเมลนี้ถูกใช้สมัครไปแล้ว'
-          : 'สมัครไม่สำเร็จด้วยข้อผิดพลาดที่ไม่คาดคิด',
-      }
+  if (error) {
+    return {
+      ok: false,
+      error: error.message.includes('already registered')
+        ? 'อีเมลนี้ถูกใช้สมัครไปแล้ว'
+        : 'สมัครไม่สำเร็จด้วยข้อผิดพลาดที่ไม่คาดคิด',
     }
-    if (!data.user) return { ok: false, error: 'สมัครไม่สำเร็จด้วยข้อผิดพลาดที่ไม่คาดคิด' }
-
-    // trigger handle_new_user() สร้าง profile ให้อัตโนมัติ — อ่านกลับมาประกอบเป็น Player
-    const player = await loadPlayer(data.user.id)
-    if (!player)
-      return { ok: false, error: 'สมัครสำเร็จแต่โหลดข้อมูลผู้เล่นไม่สำเร็จ ลองล็อกอินใหม่' }
-    return { ok: true, player }
   }
+  if (!data.user) return { ok: false, error: 'สมัครไม่สำเร็จด้วยข้อผิดพลาดที่ไม่คาดคิด' }
 
-  return { ok: false, error: 'สมัครไม่สำเร็จ ลองใหม่อีกครั้ง' }
+  // trigger handle_new_user() สร้าง profile ให้อัตโนมัติ — อ่านกลับมาประกอบเป็น Player
+  const player = await loadPlayer(data.user.id)
+  if (!player)
+    return { ok: false, error: 'สมัครสำเร็จแต่โหลดข้อมูลผู้เล่นไม่สำเร็จ ลองล็อกอินใหม่' }
+  return { ok: true, player }
 }
 
 /**
