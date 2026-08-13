@@ -14,13 +14,14 @@
  * เผื่อ migrate ไปโมเดล 3D จริงในอนาคต เก็บไว้ตั้งใจ ไม่ใช่ของค้าง/ลืมลบ
  */
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as THREE from 'three'
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { BUILDERS } from './lib/characters.mjs'
+import { tempPathFor } from './lib/atomic-write.mjs'
 
 // GLTFExporter เรียก FileReader ตอน export แบบ binary ซึ่ง Node ไม่มีให้
 // จึง shim เฉพาะเมธอดที่มันใช้จริง (readAsArrayBuffer + onloadend)
@@ -61,9 +62,17 @@ async function main() {
       onlyVisible: false,
     })
 
+    /*
+      เขียนลง temp ก่อน แล้วค่อย promote ทั้งชุดหลัง validate ผ่านหมด — audit 2026-08-12 §0b.3
+
+      เดิมเขียน .glb ทุกตัวลงปลายทางจริงก่อน แล้วค่อย validate ทีหลัง build ที่ตรวจไม่ผ่านจึง
+      ทับชุดที่ใช้งานได้อยู่แล้วไปเรียบร้อยก่อนจะตั้ง exitCode = 1 — รายงานว่าล้มเหลว แต่ของ
+      บนดิสก์เป็นของเสียไปแล้ว ตัวนี้เป็น all-or-nothing: ทั้งชุดผ่านถึงจะขึ้นแทนที่
+    */
     const file = resolve(OUT_DIR, `${id}.glb`)
-    await writeFile(file, Buffer.from(glb))
-    results.push({ id, file, bytes: glb.byteLength })
+    const temp = tempPathFor(file)
+    await writeFile(temp, Buffer.from(glb))
+    results.push({ id, file: temp, finalFile: file, bytes: glb.byteLength })
   }
 
   // ---- ตรวจสอบผลลัพธ์ด้วยการโหลดไฟล์กลับเข้ามาใหม่ ----
@@ -146,11 +155,27 @@ async function main() {
 
   console.log('')
   if (failures > 0) {
-    console.error(`มีโมเดลที่ตรวจไม่ผ่าน ${failures} ตัว`)
+    // ทิ้ง temp ทั้งชุด ชุดเดิมบน public/models/ ยังอยู่ครบและใช้งานได้เหมือนเดิม
+    await Promise.all(results.map((result) => unlink(result.file).catch(() => {})))
+    console.error(`มีโมเดลที่ตรวจไม่ผ่าน ${failures} ตัว — ไม่ได้แทนที่ไฟล์เดิมใน public/models/`)
     process.exitCode = 1
-  } else {
-    console.log(`สร้างโมเดลครบ ${results.length} ตัว → public/models/`)
+    return
   }
+
+  for (const result of results) {
+    await rename(result.file, result.finalFile)
+  }
+  console.log(`สร้างโมเดลครบ ${results.length} ตัว → public/models/`)
 }
 
-await main()
+/*
+  เดิม `await main()` เปล่า ๆ — throw กลางทาง (export พัง, ดิสก์เต็ม) จะทิ้ง .tmp ค้างไว้ใน
+  public/models/ และจบด้วย unhandled rejection ที่ exit code เอาแน่ไม่ได้ ตอนนี้ temp ถูกเก็บ
+  กวาดเสมอ และ CI เห็น exit 1 ที่ตั้งใจ
+*/
+try {
+  await main()
+} catch (cause) {
+  console.error('สร้างโมเดลไม่สำเร็จ:', cause)
+  process.exitCode = 1
+}

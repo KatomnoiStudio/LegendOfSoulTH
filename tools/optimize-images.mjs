@@ -16,6 +16,7 @@ import { mkdir, readdir, stat } from 'node:fs/promises'
 import { dirname, extname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import sharp from 'sharp'
+import { produceFileAtomic } from './lib/atomic-write.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const RAW_DIR = join(ROOT, 'assets', 'raw')
@@ -89,7 +90,18 @@ async function main() {
     if (maxWidth) pipeline = pipeline.resize({ width: maxWidth, withoutEnlargement: true })
 
     await mkdir(dirname(dest), { recursive: true })
-    await pipeline.webp({ quality }).toFile(dest)
+    /*
+      เขียนลง temp แล้ว rename ทับ ไม่เขียนตรงลง dest
+
+      audit 2026-08-12 §0b.3: เดิมเขียนตรง แล้วเงื่อนไข skip ข้างบนดู mtime อย่างเดียว
+      รวมกันแล้วเป็นกับดัก — โปรเซสตายกลาง toFile ทิ้ง .webp ที่เขียนไม่จบไว้ แต่ mtime ของมัน
+      ใหม่กว่า source เสมอ รอบต่อ ๆ ไปจึง skip ไฟล์เสียนั้น **ตลอดไป** ทางออกมีทางเดียวคือ
+      --force ซึ่งไม่มีอะไรบอกผู้ใช้ว่าต้องใช้ ไฟล์พังจึงค้างอยู่ใน build เงียบ ๆ
+
+      rename เป็น atomic บน filesystem เดียวกัน dest จึงมีได้แค่ "ของเก่าครบ" หรือ "ของใหม่ครบ"
+      ไม่มีสถานะครึ่งให้ mtime โกหกแทนอีก
+    */
+    await produceFileAtomic(dest, (temp) => pipeline.webp({ quality }).toFile(temp))
 
     const [srcStat, destStat] = await Promise.all([stat(src), stat(dest)])
     bytesIn += srcStat.size

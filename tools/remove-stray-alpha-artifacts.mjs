@@ -10,6 +10,7 @@ import { readdir } from 'node:fs/promises'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import sharp from 'sharp'
+import { produceFileAtomic } from './lib/atomic-write.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const TARGET_DIRS = process.argv[2]
@@ -91,7 +92,19 @@ async function fixFile(file) {
   })
   if (removed === 0) return false
 
-  await sharp(data, { raw: { width, height, channels: 4 } }).png().toFile(file)
+  /*
+    เขียนทับต้นฉบับใน assets/raw/ จึงต้อง atomic — audit 2026-08-12 §0b.3
+
+    ข้อควรรู้เรื่องความรุนแรง: audit เขียนว่าไฟล์ที่เสียคือ "unreproducible" ซึ่ง **ไม่ตรงกับ
+    ของจริง** — วัดแล้ว assets/raw/ ถูก track ใน git ครบ (walk 128/128, turnaround 36/36)
+    `git checkout` กู้ได้ทันที ตัวนี้จึงเบากว่า optimize-images ที่ mtime logic ทำให้ไฟล์เสีย
+    ค้างเงียบ ๆ โดย git ช่วยไม่ได้ ถึงอย่างนั้น rename ก็ยังถูกกว่าการต้องรู้ว่าต้อง checkout
+  */
+  await produceFileAtomic(file, (temp) =>
+    sharp(data, { raw: { width, height, channels: 4 } })
+      .png()
+      .toFile(temp),
+  )
   return removed
 }
 
