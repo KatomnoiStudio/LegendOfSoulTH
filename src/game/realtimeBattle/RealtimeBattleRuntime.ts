@@ -437,13 +437,21 @@ export class RealtimeBattleRuntime {
     if (state.allies.length === 0 || livingEnemies.length === 0) return
 
     for (const ally of state.allies) {
-      stepAllyAI(ally, livingEnemies, state.stage, deltaMs, state.elapsedMs, (target, amount) => {
-        state.damageDealt += amount
-        if (target.hp <= 0 && !state.defeatedEnemyIds.includes(target.id)) {
-          state.defeatedEnemyIds.push(target.id)
-        }
-        this.pushDamageEvent(target, amount, false)
-      })
+      stepAllyAI(
+        ally,
+        livingEnemies,
+        state.stage,
+        deltaMs,
+        state.elapsedMs,
+        (target, amount) => {
+          state.damageDealt += amount
+          if (target.hp <= 0 && !state.defeatedEnemyIds.includes(target.id)) {
+            state.defeatedEnemyIds.push(target.id)
+          }
+          this.pushDamageEvent(target, amount, false)
+        },
+        this.random,
+      )
     }
 
     state.allies = state.allies.filter((ally) => ally.state !== 'dead' && ally.hp > 0)

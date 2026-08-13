@@ -30,6 +30,19 @@ export function stepAllyAI(
   deltaMs: number,
   elapsedMs: number,
   onHit: (target: RealtimeBattleEntity, amount: number) => void,
+  /**
+   * แหล่งสุ่มของฝั่งที่เรียก — **caller ต้องส่งของจริงเสมอ**
+   *
+   * เดิมตรงนี้ hardcode `() => 0.5` ไว้ในตัวฟังก์ชัน ซึ่งเป็นการ fork กฎดาเมจที่จุดเรียก:
+   * `calcDamage` เอาค่านี้ไปคิด variance (`1 - 0.1 + 0.5 x 0.2` = `1.0` เป๊ะ ไม่แกว่งเลย) และ
+   * คริต (`0.5 < 0.12` = false ตลอดกาล) — summon จึงตีเท่าเดิมทุกครั้งและ**ไม่มีวันคริต**
+   * ขณะที่ทุกตัวอื่นในสนามสุ่มจริง และใน PvP ที่ server ตัดสิน มันเป็นตัวเดียวที่ดาเมจไม่ได้
+   * มาจาก seeded stream ทำให้ replay ไม่ตรง
+   *
+   * import ของไฟล์นี้ชี้ไป `combatReaction` ที่ถูกต้องอยู่แล้ว การ fork ซ่อนอยู่ใน argument —
+   * เป็นเหตุผลที่ `allyAiSharedPrimitives.test.ts` (ซึ่งดูแค่ import) จับข้อนี้ไม่ได้
+   */
+  random: () => number,
 ): void {
   if (ally.state === 'dead' || ally.hp <= 0) return
 
@@ -74,7 +87,7 @@ export function stepAllyAI(
     target,
     attack: ENEMY_ATTACK_MELEE,
     elapsedMs,
-    random: () => 0.5,
+    random,
   })
   target.position = clampToArena(target.position, target.collisionRadius, stage)
   onHit(target, outcome.amount)

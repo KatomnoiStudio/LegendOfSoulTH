@@ -56,6 +56,20 @@ describe('AllyAISystem shares combat rules with every other combatant', () => {
     expect(localDefinitions).toEqual([])
   })
 
+  it('does not hand a shared rule a constant instead of the real input', () => {
+    // The blind spot this file shipped with, closed. Every assertion above checks that the ally
+    // IMPORTS the shared functions — and they all passed while `applyCombatReaction` was being
+    // called with `random: () => 0.5`, a constant that made `calcDamage` resolve variance to
+    // exactly 1.0 and `0.5 < CRITICAL_CHANCE` permanently false. Summons could not crit and their
+    // damage never rolled, and in server-authoritative PvP they were the one combatant whose
+    // damage did not come from the seeded stream.
+    //
+    // The fork was in the argument, not the import, so importing the right module proved nothing.
+    // `random` is now a parameter every caller must supply.
+    expect(source).not.toMatch(/random:\s*\(\)\s*=>\s*[\d.]+/)
+    expect(source).toMatch(/random:\s*\(\)\s*=>\s*number/)
+  })
+
   it('is a separate decision loop on purpose, and says so where someone will read it', () => {
     // The docstring claimed for months that this used "the same state machine as the enemy",
     // which was false and is exactly how a reader concludes the difference is an oversight worth

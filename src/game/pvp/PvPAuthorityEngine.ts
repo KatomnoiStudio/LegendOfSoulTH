@@ -435,7 +435,16 @@ function stepSummons(state: PvPAuthorityState, deltaMs: number): void {
     const opponent = state.participants[index === 0 ? 1 : 0]
     for (const summon of owner.summons) {
       tickEntityTimers(summon, deltaMs, state.elapsedMs)
-      stepAllyAI(summon, [opponent.entity], stage, deltaMs, state.elapsedMs, () => undefined)
+      // random ต้องมาจาก seeded stream เดียวกับทุกอย่างในห้อง ไม่งั้น replay ฝั่ง server ไม่ตรง
+      stepAllyAI(
+        summon,
+        [opponent.entity],
+        stage,
+        deltaMs,
+        state.elapsedMs,
+        () => undefined,
+        () => nextRandom(state),
+      )
     }
     owner.summons = owner.summons.filter((summon) => summon.state !== 'dead' && summon.hp > 0)
   }
@@ -461,10 +470,7 @@ function finishIfNeeded(state: PvPAuthorityState, nowMs: number): void {
 
 function markSilentParticipantsDisconnected(state: PvPAuthorityState, nowMs: number): void {
   for (const participant of state.participants) {
-    if (
-      participant.connected &&
-      nowMs - participant.lastSeenAtMs >= PVP_LIVENESS_TIMEOUT_MS
-    ) {
+    if (participant.connected && nowMs - participant.lastSeenAtMs >= PVP_LIVENESS_TIMEOUT_MS) {
       participant.connected = false
       participant.disconnectedAtMs = participant.lastSeenAtMs + PVP_LIVENESS_TIMEOUT_MS
     }
