@@ -154,7 +154,14 @@ export function validatePassword(password: string): string | null {
  * ไม่รวม importSave/exportSave เนื่องจากมีความเป็นเอกเทศของแต่ละระบบ
  */
 export interface AccountRepositorySubset {
-  register(email: string, password: string): Promise<AuthResult>
+  // `captchaToken` is part of the contract, not an implementation detail of one backend. It was
+  // missing here while the Supabase implementation took it and `useAuth` passed it, and the
+  // conformance assertion below could not catch that: a function with an extra OPTIONAL
+  // parameter is assignable to a signature without it. Nothing broke only because useAuth
+  // imports the concrete module rather than this interface — route a caller through here, or
+  // swap in the localStorage implementation, and signup would have lost its anti-abuse gate
+  // with a green typecheck.
+  register(email: string, password: string, captchaToken?: string): Promise<AuthResult>
   login(email: string, password: string): Promise<AuthResult>
   logout(): Promise<void>
   getSessionPlayer(): Promise<Player | null>
