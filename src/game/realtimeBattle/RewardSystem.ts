@@ -139,5 +139,24 @@ export function applyAccountExp(player: Player, earnedExp: number): Player {
 export function applyBattleExp(player: Player, earnedExp: number): Player {
   if (earnedExp <= 0) return player
   const withAccount = applyAccountExp(player, earnedExp)
+
+  /*
+    `applyHeroExp` โยน `Unknown hero: <id>` ถ้า teamSlots ชี้ตัวที่ไม่มีใน ownedCharacters — ซึ่ง
+    เกิดได้จริงเมื่อข้อมูลไม่ตรงกัน (grant สำเร็จครึ่งทาง, migration ทำตัวละครหาย) ลูปเดิมที่ถูก
+    แทนที่ไปไม่โยน มันแค่ `.map` ไม่เจอแล้วผ่านไปเงียบ ๆ
+
+    ปล่อยให้โยนไม่ได้: จุดเรียกที่ `lobbyBattleRewardPipeline.ts` ไม่มี try/catch และ effect ที่
+    เรียกต่อใน `LobbyBattleSession.tsx` ก็ไม่มี — exception จะกิน **รางวัลทั้งก้อน รวมทองกับไอเทม**
+    ไม่ใช่แค่ส่วน hero EXP ที่ทำไม่ได้จริง ๆ
+
+    เช็คก่อนเรียกแทนการ catch เพราะกรณีนี้ไม่ใช่ error: hero EXP ไม่มีปลายทางจะลง ก็แค่ไม่ลง —
+    เหมือนพฤติกรรมเดิมเป๊ะ ส่วน error จริงจาก progression (amount ไม่ใช่ตัวเลข ฯลฯ) ยังโยนผ่านตาม
+    เดิม ไม่ถูกกลบ
+  */
+  const leadId = withAccount.teamSlots.find((id): id is string => id !== null) ?? null
+  const ownsLead =
+    leadId !== null && withAccount.ownedCharacters.some((c) => c.characterId === leadId)
+  if (!ownsLead) return withAccount
+
   return applyHeroExpToLeadHero(withAccount, earnedExp).player
 }

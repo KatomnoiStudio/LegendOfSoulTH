@@ -144,6 +144,24 @@ describe('applyBattleExp', () => {
     expect(applyBattleExp(player, 0)).toBe(player)
   })
 
+  test('a lead hero the player does not own skips hero EXP instead of losing the whole reward', () => {
+    // Regression guard for a side effect design-lock 12.a introduced. Routing hero EXP through
+    // progressionService means applyHeroExp's `throw new Error('Unknown hero: ...')` became
+    // reachable from the reward path — and the inline loop it replaced never threw, it just
+    // matched nothing.
+    //
+    // Neither lobbyBattleRewardPipeline nor the LobbyBattleSession effect that drives it catches,
+    // so an account whose teamSlots and ownedCharacters disagree (a half-applied grant, a
+    // migration that dropped a character) would lose gold and items too — not just the hero EXP
+    // that genuinely has nowhere to land.
+    const orphaned: Player = { ...stubPlayer(), ownedCharacters: [] }
+
+    const next = applyBattleExp(orphaned, 100)
+
+    expect(next.level).toBe(2) // account EXP still applied
+    expect(next.ownedCharacters).toEqual([])
+  })
+
   test('Done-criterion 4: applyBattleExp does not write or mutate currency or inventory fields', () => {
     const originalPlayer = stubPlayer()
     const currencyClone = { ...originalPlayer.currency }
