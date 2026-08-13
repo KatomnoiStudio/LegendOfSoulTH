@@ -2,6 +2,7 @@ import { resolveLobbyStageReward } from '../reward/stageRewardResolver'
 import type { Player } from '../../types/player'
 import type { RealtimeBattleState } from './createRealtimeBattle'
 import { getEnemyTemplate } from './stageConfig'
+import { applyHeroExpToLeadHero } from '../progression/progressionService'
 
 /**
  * คำนวณรางวัลจากการต่อสู้ real-time
@@ -120,30 +121,23 @@ export function applyAccountExp(player: Player, earnedExp: number): Player {
 }
 
 /**
- * บวก EXP ให้บัญชีผู้เล่น (และขุนพลตัวนำถ้ามี) — legacy path สำหรับ LobbyBattleSession
+ * บวก EXP ให้บัญชีผู้เล่น (และขุนพลตัวนำถ้ามี) — path สำหรับ LobbyBattleSession
  *
- * Dungeon rewards ใช้ applyAccountExp + progressionService.applyHeroExp แทน
+ * design-lock item 12 (2026-08-13, HetCreep ตัดสิน ก.): เดิมเลเวลขุนพลด้วยลูป `*1.2` ที่เขียนซ้ำ
+ * ในไฟล์นี้เอง คนละสูตรกับที่ Dungeon reward ใช้ (`progressionService.applyHeroExp`, ตาราง
+ * Ring-0-locked P8 balance) — ตัวละครเดียวกันเลเวลไม่เท่ากันจริงถ้าเปลี่ยนโหมดเล่น วัดได้ต่างกัน
+ * 51.5% สะสมถึง level 11 (2,605 ปะทะ 5,370 EXP) ค้นทั่วโลกไม่พบเกม shipped เกมไหนแยกโค้งเลเวลตาม
+ * แหล่งที่มาของ EXP แบบนี้ (Genshin Impact เป็นตัวอย่าง: ทุกแหล่ง EXP เทลง pool เดียว อ่านตาราง
+ * เดียว) เพราะ "เลเวล" ต้องตอบคำถาม "ตัวละครนี้เลเวลเท่าไหร่" ได้คำตอบเดียวเสมอ
+ *
+ * แก้โดยเรียก `applyHeroExpToLeadHero` ตัวเดียวกับที่ `rewardGrantService.ts` (Dungeon) ใช้อยู่แล้ว
+ * แทนเขียนสูตรเอง — ผลข้างเคียงที่ตั้งใจ: ตอนนี้ threshold คำนวณจาก level เสมอ (ตาราง Ring-0)
+ * ไม่อ่านค่า expToNext ที่เก็บไว้บนตัวละครอีกต่อไป ถ้าค่านั้นเพี้ยนไปจากที่ควรเป็นด้วยเหตุใดก็ตาม
+ * โค้งใหม่จะแก้ตัวเองกลับมาถูกทุกครั้งที่มีการเลเวลอัพครั้งถัดไป ไม่สะสมความเพี้ยนต่อไปเรื่อย ๆ
+ * แบบที่ลูปเดิมทำ
  */
 export function applyBattleExp(player: Player, earnedExp: number): Player {
   if (earnedExp <= 0) return player
   const withAccount = applyAccountExp(player, earnedExp)
-  const leadId = player.teamSlots.find((id): id is string => id !== null) ?? null
-  if (!leadId) return withAccount
-
-  const ownedCharacters = withAccount.ownedCharacters.map((slot) => {
-    if (slot.characterId !== leadId) return slot
-    let cLevel = slot.level
-    let cExp = slot.exp + earnedExp
-    let cNext = slot.expToNext
-    let cGuard = 0
-    while (cExp >= cNext && cNext > 0 && cGuard < 20) {
-      cExp -= cNext
-      cLevel += 1
-      cNext = Math.max(1, Math.round(cNext * 1.2))
-      cGuard += 1
-    }
-    return { ...slot, level: cLevel, exp: cExp, expToNext: cNext }
-  })
-
-  return { ...withAccount, ownedCharacters }
+  return applyHeroExpToLeadHero(withAccount, earnedExp).player
 }

@@ -3,6 +3,7 @@ import type { Player } from '../../types/player'
 import { createRealtimeBattle } from './createRealtimeBattle'
 import { applyBattleExp, calculateBattleReward } from './RewardSystem'
 import { createDefaultSkillLevels } from './SkillProgressionSystem'
+import { applyHeroExpToLeadHero } from '../progression/progressionService'
 
 function stubPlayer(): Player {
   return {
@@ -108,7 +109,34 @@ describe('applyBattleExp', () => {
     expect(next.level).toBe(2)
     expect(next.exp).toBe(0)
     expect(next.expToNext).toBe(120)
-    expect(next.ownedCharacters[0]?.exp).toBe(100)
+
+    // design-lock item 12: hero-level EXP now runs through the same locked curve Dungeon
+    // rewards use (progressionConfig.PLACEHOLDER_HERO_EXP_TABLE), not a `*1.2` loop reading
+    // whatever expToNext happens to be stored on the character. stubPlayer()'s monkey-king
+    // is deliberately seeded with expToNext:500 — a value the OLD inline loop trusted and
+    // this test used to level 0 times against. The locked table says level 1 costs 100, so
+    // 100 EXP levels the hero to 2 regardless of what was stored. If this ever regresses to
+    // trusting the stored field again, this assertion is what catches it.
+    expect(next.ownedCharacters[0]?.level).toBe(2)
+    expect(next.ownedCharacters[0]?.exp).toBe(0)
+    expect(next.ownedCharacters[0]?.expToNext).toBe(150)
+  })
+
+  test('hero and account EXP curves agree with the Dungeon reward path for the same amount', () => {
+    // The defect item 12 found: the same "earnedExp" produced two different hero levels
+    // depending on whether it came from a Lobby battle (this function) or a Dungeon battle
+    // (rewardGrantService.ts, via applyHeroExpToLeadHero directly). Proven equal here by
+    // driving both paths with an amount large enough to cross several levels and comparing
+    // the resulting hero level/exp/expToNext, not just asserting against a hand-derived number.
+    const lobbyResult = applyBattleExp(stubPlayer(), 900)
+
+    const dungeonPlayer = stubPlayer()
+    const dungeonResult = applyHeroExpToLeadHero(dungeonPlayer, 900).player
+
+    expect(lobbyResult.ownedCharacters[0]).toEqual(dungeonResult.ownedCharacters[0])
+    // Sanity: this must actually cross a level, or the two paths could agree trivially by
+    // both doing nothing.
+    expect(lobbyResult.ownedCharacters[0]?.level).toBeGreaterThan(1)
   })
 
   test('zero exp is a no-op', () => {

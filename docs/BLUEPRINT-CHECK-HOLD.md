@@ -16,9 +16,12 @@
 > answer lands._ That answer arrived for ten of the twelve items and will not arrive for the
 > remaining two: `nustanakritwithai` left the project on 2026-08-13. Both passed to HetCreep, and
 > **item 4 was decided the same day** — summons share the combat rules, not the state machine;
-> `MASTER_BLUEPRINT_v3.0.md` §3.8.3 amended and contracts 04/07/12 corrected to match. **Only item
-> 12 is still held** (contracts 14 and 18 both claim `applyBattleExp`). The hold on it is real, but
-> waiting on that name is not, and a wait condition that can never be satisfied is worse than no
+> `MASTER_BLUEPRINT_v3.0.md` §3.8.3 amended and contracts 04/07/12 corrected to match. **Item 12
+> closed the same day too** — the overlap between contracts 14 and 18 over `applyBattleExp` turned
+> out to be hiding a real defect: it reimplemented the hero-level curve inline and disagreed with
+> the Dungeon path by 51.5% in cumulative EXP by level 11. **All twelve handoff items are now
+> closed.** The general point stands for anything still held here: a wait condition that can never
+> be satisfied is worse than no
 > condition at all, because it reads as pending rather than as abandoned.
 >
 > **Separately, and not covered by any of that: the 14 per-system onboarding questions inside this
