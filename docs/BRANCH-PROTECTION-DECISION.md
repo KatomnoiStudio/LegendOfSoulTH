@@ -40,7 +40,11 @@ to protect it.
 
 Requiring two reviewers has the same problem one step further out. There are four
 collaborators (`HetCreep` admin, `katomnoistudio-oss` admin, `DemoGODRTX` write,
-`nustanakritwithai` read), but only one of them reviews code today.
+`nustanakritwithai` read), but only one of them reviews code today — and the pool got smaller
+rather than larger the same week this was written: `nustanakritwithai` left the project on
+2026-08-13, their access deliberately kept so the contribution record stays whole. `DemoGODRTX`
+holds write and has open pull requests, so they are the nearest candidate if this is ever to be
+reversed, but reviewing is not something to assume of someone who has not been asked.
 
 ## What the bypass actually skips
 

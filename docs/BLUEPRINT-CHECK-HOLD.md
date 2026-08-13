@@ -10,10 +10,15 @@
 > has two production callers. Read a finding below against the handoff before treating it as
 > live.
 >
-> **Original ruling (mid-install, 2026-08-09): every ship-vs-doc conflict below is HELD —
-> neither the code nor the contract gets edited — until nustanakritwithai's design-lock answer
-> lands.** When it lands, each item becomes a dispatch: adjust SHIP or adjust DOCS per the
-> answer (tracked on the owner's side). Findings were produced by each system's own newly-hired
+> **The original ruling named a person who has since left, so read it as history rather than as a
+> live condition.** As written (mid-install, 2026-08-09) it said: _every ship-vs-doc conflict below
+> is HELD — neither the code nor the contract gets edited — until nustanakritwithai's design-lock
+> answer lands._ That answer arrived for ten of the twelve items and will not arrive for the
+> remaining two: `nustanakritwithai` left the project on 2026-08-13. **Items 4 and 12 are HetCreep's
+> to decide now** — the hold on them is real, but waiting on that name is not, and a wait condition
+> that can never be satisfied is worse than no condition at all, because it reads as pending rather
+> than as abandoned. When either is answered, it becomes a dispatch: adjust SHIP or adjust DOCS per
+> the answer. Findings were produced by each system's own newly-hired
 > system owner verifying its contract against live code during onboarding (28/28 systems,
 > every system owner names how many claims it checked — silence was not accepted as clean).
 
