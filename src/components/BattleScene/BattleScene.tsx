@@ -89,6 +89,15 @@ export function BattleScene({
       <div className={styles.scene}>
         <div className={styles.fallback} aria-live="polite">
           <p>กำลังเตรียมห้องต่อสู้…</p>
+          {/*
+            ปุ่มนี้อยู่ที่นี่เพราะ "รออยู่" กับ "ค้างถาวร" หน้าตาเหมือนกันหมดสำหรับผู้เล่น
+            preload มี timeout แล้ว (BATTLE_TEXTURE_TIMEOUT_MS) แต่ branch นี้ยังเข้าได้ด้วยเหตุอื่น
+            ที่ timeout นั้นไม่ครอบ — `!runtime` หรือ `!snapshot` ที่ไม่มาสักที ก่อนหน้านี้จอนี้
+            ไม่มีปุ่มอะไรเลย ทางออกทางเดียวคือปิดแท็บ
+          */}
+          <button type="button" className={styles.exitBtn} onClick={handleExit}>
+            กลับล็อบบี้
+          </button>
         </div>
       </div>
     )

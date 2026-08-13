@@ -45,9 +45,61 @@ async function loadOne(url: string): Promise<Texture> {
   }
 }
 
-/** โหลดภาพทุกใบที่ห้องต่อสู้ต้องใช้ให้ครบก่อนเริ่มจำลอง */
-export async function preloadBattleTextures(urls: string[]): Promise<void> {
-  await Promise.all(urls.map((url) => loadOne(url)))
+/**
+ * เพดานเวลาของการ preload ทั้งชุด — ไม่ใช่ต่อใบ
+ *
+ * `TextureLoader.loadAsync` ของ three ไม่มี timeout ในตัว และไม่ได้อยู่ใต้ `createDeadlineFetch`
+ * (ตัวนั้นติดไว้เฉพาะ Supabase client) ก่อนหน้านี้ใบเดียวที่ค้างจึงทำให้ `Promise.all` ค้างทั้งชุด
+ * แล้ว `phase` ค้างที่ `'loading'` ตลอดกาล
+ *
+ * 15 วินาทีเลือกจากฝั่งผู้เล่น ไม่ใช่จากฝั่งเครือข่าย: เกินกว่านี้คนกดไปแล้วก็สรุปว่าเกมค้าง
+ * ไม่ว่าจะโหลดเสร็จทีหลังหรือไม่ **ยังไม่ได้วัดกับเน็ตจริงบนเครื่องจริง** — ถ้ามีตัวเลขจากสนาม
+ * เมื่อไหร่ ให้แก้ตรงนี้ที่เดียว ทุกจุดเรียกอ่านค่าเดียวกัน
+ */
+export const BATTLE_TEXTURE_TIMEOUT_MS = 15_000
+
+export class BattleAssetTimeoutError extends Error {
+  readonly timeoutMs: number
+
+  constructor(timeoutMs: number) {
+    super(`เตรียมภาพห้องต่อสู้ไม่เสร็จภายใน ${Math.round(timeoutMs / 1000)} วินาที`)
+    this.name = 'BattleAssetTimeoutError'
+    this.timeoutMs = timeoutMs
+  }
+}
+
+/**
+ * โหลดภาพทุกใบที่ห้องต่อสู้ต้องใช้ให้ครบก่อนเริ่มจำลอง
+ *
+ * timeout เป็นการ **เลิกรอ** ไม่ใช่การยกเลิก — `loadAsync` ยกเลิกไม่ได้ ใบที่ยังวิ่งอยู่ก็ปล่อยให้
+ * วิ่งต่อและลงแคชถ้ามันมาถึง สิ่งที่เปลี่ยนคือมันไม่กั้นผู้เล่นไว้กลางจออีก
+ */
+export async function preloadBattleTextures(
+  urls: string[],
+  timeoutMs: number = BATTLE_TEXTURE_TIMEOUT_MS,
+): Promise<void> {
+  const all = Promise.all(urls.map((url) => loadOne(url)))
+  if (timeoutMs <= 0) {
+    await all
+    return
+  }
+
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => reject(new BattleAssetTimeoutError(timeoutMs)), timeoutMs)
+  })
+
+  try {
+    // ทั้งสองฝั่งถูก race แนบ handler ไว้แล้ว ฝั่งที่แพ้จึงไม่กลายเป็น unhandled rejection
+    await Promise.race([all, deadline])
+  } catch (cause) {
+    if (cause instanceof BattleAssetTimeoutError) {
+      reportError('BATTLE_ASSET_LOAD_TIMEOUT', 'visible', cause, { urls: urls.length, timeoutMs })
+    }
+    throw cause
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 /**

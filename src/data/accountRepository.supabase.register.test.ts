@@ -19,8 +19,13 @@ vi.mock('../lib/errors/reportError', () => ({ reportError: vi.fn() }))
 const { register } = await import('./accountRepository.supabase')
 
 // Every case here stops at or before the signUp result, so `loadPlayer` (module-private, and the
-// only thing past that point) never runs and needs no stub. The success path itself is left to
-// the persistence suite, which already owns the profile-read shape.
+// only thing past that point) never runs and needs no stub.
+//
+// The success path is therefore still UNTESTED — checked, not assumed: `signUp` appears in no
+// other test file, and the only mention of "register" in the persistence suite is inside a
+// comment. Stubbing loadPlayer means mocking the profile read, the owned-characters read and the
+// team-slot read, which is a bigger fixture than this pass is buying; recorded here rather than
+// implied, so nobody reads the file and concludes register() is covered end to end.
 beforeEach(() => {
   signUpMock.mockReset()
 })

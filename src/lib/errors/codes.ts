@@ -102,6 +102,7 @@ export const ERROR_CODES = {
   BATTLE_STAGE_NO_SPAWN: 'ด่านไม่มีจุดเกิดศัตรู', // SILENT — ข้ามศัตรูตัวนั้นไป ต่อสู้ต่อได้
   BATTLE_SUMMON_TEMPLATE_MISSING: 'ไม่พบแม่แบบหน่วยเรียก', // SILENT — เอฟเฟกต์ summon นี้ไม่เกิดหน่วยแค่ตัวเดียว
   BATTLE_ASSET_LOAD_FAIL: 'โหลดภาพตัวละครไม่สำเร็จ', // VISIBLE — โยน error ต่อจริง กระทบผู้เล่นเห็นชัด
+  BATTLE_ASSET_LOAD_TIMEOUT: 'เตรียมห้องต่อสู้นานเกินไป', // VISIBLE — แยกจาก _FAIL เพราะ "ช้า" กับ "พัง" ต้องแก้คนละทาง
   BATTLE_DEFERRED_ASSET_FAIL: 'โหลดเฟรมส่วนที่เหลือไม่ครบ', // SILENT — preload พื้นหลัง ไม่บล็อกการเล่น
   BATTLE_WEBGL_CONTEXT_LOST: 'การ์ดจอขาดการเชื่อมต่อระหว่างต่อสู้', // VISIBLE
   BATTLE_REWARD_FAIL: 'บันทึกรางวัลหลังต่อสู้ไม่สำเร็จ',
