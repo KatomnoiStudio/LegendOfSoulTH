@@ -49,10 +49,15 @@ async function applyMigrationFunctionsOnly(db: PGlite): Promise<void> {
 describe('public UID issuance (isolated Postgres via PGlite)', () => {
   let db: PGlite
 
+  // 20s, matching gachaAuthority.integration.test.ts — booting PGlite is a WASM Postgres cold
+  // start, which clears the 10s default alone but not under a full parallel suite. Written
+  // without this at first and it passed three CI runs before failing on the fourth: the flake
+  // shows up as a hook timeout with zero failing assertions, which reads like an infra problem
+  // rather than a missing argument.
   beforeAll(async () => {
     db = new PGlite()
     await applyMigrationFunctionsOnly(db)
-  })
+  }, 20_000)
 
   afterAll(async () => {
     await db.close()

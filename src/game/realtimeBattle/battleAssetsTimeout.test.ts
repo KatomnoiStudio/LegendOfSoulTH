@@ -11,8 +11,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { loadAsyncMock } = vi.hoisted(() => ({ loadAsyncMock: vi.fn() }))
 
-vi.mock('three', () => ({
-  SRGBColorSpace: 'srgb',
+// Spread the real module rather than listing the two symbols battleAssets happens to import
+// today. An exhaustive-by-accident factory dies with "does not provide an export named ..." the
+// moment a third import appears, and that error names the mock instead of the change that caused
+// it — the same note raised against a react-three-fiber mock in review earlier.
+vi.mock('three', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   TextureLoader: class {
     loadAsync = loadAsyncMock
   },
@@ -95,6 +99,26 @@ describe('preloadBattleTextures — the stall has a deadline', () => {
       expect.anything(),
       expect.objectContaining({ url: '/broken-1.webp' }),
     )
+  })
+
+  it('treats timeoutMs = 0 as "no deadline" — background loads must not raise a visible error', async () => {
+    // The deferred preload (useRealtimeBattle) is not gating anything, and its own catch reports
+    // at 'silent' on purpose. Letting it inherit the blocking path's deadline meant a player who
+    // was already playing got a visible banner 15s later about textures nobody was waiting on.
+    // That regression shipped once; this is what keeps it from shipping twice.
+    loadAsyncMock.mockImplementation(() => neverSettles())
+
+    let settled = false
+    // `finally` rather than a two-armed `then`: either outcome counts as settled, and it keeps
+    // oxlint's promise/always-return rule satisfied without inventing return values.
+    void preloadBattleTextures(['/background-never-settles.webp'], 0).finally(() => {
+      settled = true
+    })
+
+    await vi.advanceTimersByTimeAsync(60_000)
+
+    expect(settled).toBe(false)
+    expect(reportError).not.toHaveBeenCalled()
   })
 
   it('exposes the deadline as one named constant rather than a literal per call site', () => {

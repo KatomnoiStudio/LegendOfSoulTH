@@ -145,7 +145,15 @@ export function useRealtimeBattle({
           (ดู EntitySprite: เปลี่ยน material.map ก็ต่อเมื่อ texture พร้อมแล้วเท่านั้น)
           จึงไม่มีทางเห็นตัวละครหายไปเป็นช่องว่าง
         */
-        preloadBattleTextures(collectDeferredTextureUrls(kinds)).catch((cause: unknown) => {
+        /*
+          timeout = 0 คือ "ไม่มี deadline" และต้องระบุตรงนี้ ไม่ใช่ปล่อยรับค่า default
+
+          deadline ของ preload มีไว้กันผู้เล่นติดหน้า loading ซึ่งเป็นเรื่องของชุด critical
+          เท่านั้น ชุดนี้ไม่กั้นอะไรอยู่แล้ว การให้มันหมดเวลาจึงไม่ได้ปลดใครออกจากที่ไหน
+          แต่จะยิง error ที่ผู้เล่นเห็น เรื่องภาพที่เขาไม่ได้รออยู่ — กลับหัวกับเจตนาของ
+          บรรทัดถัดไปที่จงใจรายงานเป็น silent
+        */
+        preloadBattleTextures(collectDeferredTextureUrls(kinds), 0).catch((cause: unknown) => {
           reportError('BATTLE_DEFERRED_ASSET_FAIL', 'silent', cause)
         })
       } catch (cause: unknown) {
