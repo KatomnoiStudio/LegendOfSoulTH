@@ -4,18 +4,22 @@
 day.** Main never handled a key value and never applied anything to production; every step that
 touched a real key was HetCreep's.
 
-> ## DONE — the client-side rotation is complete
+> ## DONE — every key that ever left this project is revoked
 >
-> **Legacy `anon` is disabled** (verified `disabled: true` via the Management API at 08:44Z). Every
-> build ever published carried that key, and all of them are now inert — which was the entire point
-> of the exercise. The client runs on `sb_publishable_…`, redeployed and verified.
+> **Legacy `anon`: disabled** — verified `disabled: true` through the Management API. That key was
+> embedded in every build ever published, so all of them are now inert, which was the entire point.
+> The client runs on `sb_publishable_…`, redeployed and verified against the live site.
 >
-> **What is left: `service_role`.** It is still enabled. Nothing holds it — see the Edge Function
-> finding below — so rotating it is a single uncoordinated step with nothing to break.
+> **Legacy `service_role`: disabled**, and the unused `sb_secret_` key deleted rather than
+> regenerated. Reported by HetCreep from the dashboard — **not verified by main**, because no tool
+> returns secret-key state and none should. Recorded as testimony, not measurement.
 >
-> The rest of this document is kept as the record of how it was done and what was learned, not as
-> instructions still waiting to be followed. Corrections found while executing are marked inline;
-> they are the useful part.
+> **Nothing was created to replace `service_role`.** Its only consumer is an Edge Function that has
+> never been deployed, so a new secret key would have been a credential that bypasses RLS entirely,
+> sitting unused and unwatched. It gets created on the day the function deploys — see below.
+>
+> The rest of this document is the record of how it went and what it got wrong, not instructions
+> still waiting to be followed. The corrections are the useful part.
 
 ---
 
@@ -206,6 +210,39 @@ Nothing here needs a key value in the clear; each is a behaviour check.
 - Update `.env.local.example` so the next clone is told to use a publishable key, not an anon key.
 - If option B is taken, `supabase/config.toml:2` is the record of that decision and should say why
   in a comment, not just flip to `false`.
+
+---
+
+## The day the Edge Function deploys — what this rotation left for you
+
+Nothing here is owed now. It is written down because it is the moment three separate threads land
+at once, and each of them is easy to discover the hard way.
+
+1. **Create a secret key then, not before.** `sb_secret_…` bypasses RLS entirely. It was
+   deliberately not created during this rotation, because a credential that powerful with no
+   consumer is pure liability — the same reasoning that deleted `los-security-test`.
+2. **It goes in Edge Function secrets** — Dashboard → Edge Functions → Secrets — not in a GitHub
+   secret and not in `.env.local`. Neither of those is read by the function.
+3. **The value must be JSON, not a bare string.** `readDefaultKeySet`
+   (`supabase/functions/pvp-authority/index.ts:93-107`) does `JSON.parse` and takes `.default`:
+
+   ```
+   SUPABASE_SECRET_KEYS = {"default":"sb_secret_..."}
+   ```
+
+   A bare key string parses as invalid, returns `null`, and surfaces as a single
+   `SERVER_CONFIG_MISSING` 500 — indistinguishable from "never set it" except for the log line the
+   function writes on purpose for exactly this case.
+
+4. **Decide `verify_jwt` at that point, and note it is now free.** Supabase documents that Edge
+   Functions only support `verify_jwt` with the legacy JWT keys, and those are gone. With nothing
+   already deployed there is no migration to perform, so option B (`--no-verify-jwt`, relying on the
+   function's own `auth.getUser` check) can simply be taken. `supabase/config.toml` still says
+   `verify_jwt = true` and will need changing. Re-read the analysis above before assuming the
+   limitation still holds — it is the kind that gets fixed.
+5. **`docs/pvp/P12_VERIFICATION_REPORT.md`'s graduation gate unblocks here too.** It has been
+   waiting on "the migration and Edge Function are deployed"; the same deploy answers it and
+   `BLUEPRINT-CHECK-HOLD` question #21.
 
 ---
 
