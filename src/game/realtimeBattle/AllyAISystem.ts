@@ -10,7 +10,18 @@ import type { RealtimeBattleStage } from './stageConfig'
 const ALLY_ATTACK_RANGE = 105
 
 /**
- * AI ขั้นต่ำสำหรับ summon (§3.8.3) — ใช้ state machine เดียวกับศัตรู แต่เล็งศัตรู
+ * AI ขั้นต่ำสำหรับ summon (§3.8.3) — **decision loop ของตัวเอง แต่ใช้กฎการต่อสู้ร่วมกับทุกคน**
+ *
+ * เดิมคอมเมนต์บรรทัดนี้เขียนว่า "ใช้ state machine เดียวกับศัตรู" ซึ่งไม่จริงมาตลอด: ที่นี่มี 3 state
+ * (idle/walk/attack) ส่วน EnemyAISystem มี 6 และที่นี่ไม่มี telegraph เลยสักจุด — summon ที่เงื้อ
+ * ก่อนฟันทุกครั้งจะช้าจนไม่มีประโยชน์ในฐานะตัวช่วย ความต่างนี้ตั้งใจ ไม่ใช่ของค้าง
+ *
+ * สิ่งที่ **ต้อง** ใช้ร่วม คือทุกกฎที่ diverge แล้วเกมจะแตกเป็นสองชุด — การเคลื่อนที่ ขอบสนาม
+ * การหา hit target การรับดาเมจ การหันหน้า และท่าโจมตี ทั้งหมด import มาจากบ้านเดียวกับที่ศัตรูและ
+ * ผู้เล่นใช้ ไม่ได้คัดลอกมา (`allyAiSharedPrimitives.test.ts` เป็นตัวบังคับข้อนี้)
+ *
+ * ตัดสินเป็น design-lock ข้อ 4.a (2026-08-13): การซ้ำที่เป็นปัญหาคือซ้ำ *กฎ* ไม่ใช่ *การตัดสินใจ*
+ * ดู `docs/agent-blueprint/07-effects-system-non-damage.md` สำหรับที่มาและ exemplar
  */
 export function stepAllyAI(
   ally: RealtimeBattleEntity,
