@@ -1,8 +1,70 @@
 # Supabase key rotation — the runbook
 
-**Written 2026-08-13 for HetCreep's decision to revoke every Supabase API key.** This is the
-preparation, not the execution: main never handles a key value, and never applies anything to
-production. Every step that touches a real key is HetCreep's.
+**Written 2026-08-13 for HetCreep's decision to revoke every Supabase API key. Executed the same
+day.** Main never handled a key value and never applied anything to production; every step that
+touched a real key was HetCreep's.
+
+> ## DONE — the client-side rotation is complete
+>
+> **Legacy `anon` is disabled** (verified `disabled: true` via the Management API at 08:44Z). Every
+> build ever published carried that key, and all of them are now inert — which was the entire point
+> of the exercise. The client runs on `sb_publishable_…`, redeployed and verified.
+>
+> **What is left: `service_role`.** It is still enabled. Nothing holds it — see the Edge Function
+> finding below — so rotating it is a single uncoordinated step with nothing to break.
+>
+> The rest of this document is kept as the record of how it was done and what was learned, not as
+> instructions still waiting to be followed. Corrections found while executing are marked inline;
+> they are the useful part.
+
+---
+
+## What was actually done, in order
+
+| when (UTC)   | step                                                                                                                           | evidence                                                                                                                                                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| —            | Deleted `los-security-test`, a leftover project from the 2026-08-09 audit                                                      | It held one probe account and 125 transaction rows, was referenced from nowhere in the repo, and had its own live key set that "revoke everything" would not have touched. Deleting beat revoking: revoking leaves a shell you must keep remembering. |
+| before 08:31 | Publishable key created (and rotated once mid-flight)                                                                          | Two different `sb_publishable_` values were observed 7 minutes apart, which is how the stale-secret risk below was caught.                                                                                                                            |
+| 08:39:33     | GitHub **org** secret `VITE_SUPABASE_ANON_KEY` re-saved with the current value                                                 | Org-level, not repo-level — see the correction below.                                                                                                                                                                                                 |
+| 08:40:34     | `Deploy to GitHub Pages` run via `workflow_dispatch` on `c805e93`, `force: true`                                               | Success. `force` was needed because the version had not changed.                                                                                                                                                                                      |
+| —            | Verified on the live site: signed in, and the `apikey` header on requests to `supabase.co` starts `sb_publishable_`, not `eyJ` | The header check is the direct proof; a page that merely loads proves nothing.                                                                                                                                                                        |
+| ~08:44       | **Legacy `anon` disabled**                                                                                                     | `get_publishable_keys` → `"disabled": true`.                                                                                                                                                                                                          |
+
+---
+
+## Corrections found while executing — the part worth keeping
+
+**1. The GitHub secrets are ORGANIZATION-scoped, not repository-scoped.** The runbook and the first
+link handed over both pointed at the repo's secret page, which holds only
+`VITE_TURNSTILE_SITE_KEY`. `VITE_SUPABASE_ANON_KEY` and `VITE_SUPABASE_URL` live at
+`https://github.com/organizations/KatomnoiStudio/settings/secrets/actions`. Consequence worth
+knowing: any other repo in the org using those names gets the new value too, and a repo-level secret
+of the same name would silently win over the org one.
+
+**2. Rotating a publishable key twice orphans the saved secret.** The key was rotated after the
+GitHub secret had already been saved, so the secret briefly held a dead value. GitHub never lets you
+read a secret back, so this cannot be verified — only re-saved. **Re-pasting is the check.** Every
+publishable rotation means updating two places: the org secret and every `.env.local`.
+
+**3. `VITE_SUPABASE_URL` cannot be revoked and is not a secret.** It is the project address
+(`https://<ref>.supabase.co`), fixed to the project ref, visible in every browser request. It is a
+GitHub secret for convenience, not confidentiality. What protects the data is RLS plus the key's
+privilege level, never the obscurity of the URL.
+
+**4. `VITE_TURNSTILE_SITE_KEY` is Cloudflare's, is public by design, and must be rotated in
+pairs.** The site key is meant to be embedded in the page. Its partner secret lives in Supabase
+Dashboard → Authentication → Attack Protection. Rotating one side alone breaks captcha and therefore
+sign-in entirely.
+
+**5. Rotating a public key is barely a security action on its own.** The publishable key ships in
+the bundle; anyone can read it. What made this rotation mean anything was **disabling the legacy
+key** — until that moment, every old build still worked exactly as before.
+
+**6. The Edge Function has never been deployed.** `list_edge_functions` returns an empty list. This
+answers two things that had been open for days: the `verify_jwt` blocker below did not need
+deciding, and `docs/pvp/P12_VERIFICATION_REPORT.md`'s graduation gate ("until the migration and Edge
+Function are deployed") plus `BLUEPRINT-CHECK-HOLD`'s question #21 ("is the production deploy
+scheduled, or waiting on a go-ahead?") both resolve to: not deployed, nothing scheduled.
 
 > **The one thing that must not happen: do not revoke first.**
 >
@@ -23,7 +85,7 @@ Measured, not assumed — every site found by grep across `src/`, `supabase/`, `
 | --- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | Browser client (`src/lib/supabaseClient.ts:80-81`)                  | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`                                                                                                                        | Passes the string straight into `createClient` with **no format validation**, so a publishable key drops in without a code change. |
 | 2   | Edge Function (`supabase/functions/pvp-authority/index.ts:174-178`) | `SUPABASE_URL`, then `SUPABASE_PUBLISHABLE_KEYS` **falling back to** `SUPABASE_ANON_KEY`, and `SUPABASE_SECRET_KEYS` **falling back to** `SUPABASE_SERVICE_ROLE_KEY` | **Already dual-key aware.** `readDefaultKeySet` parses the JSON key-set env and takes `.default`. This side is ready.              |
-| 3   | GitHub Actions CI (`.github/workflows/ci.yml:67-78`)                | repo secrets `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`                                                                                                           | Falls back to a placeholder when unset, so CI does not break on a missing secret — it builds against a fake.                       |
+| 3   | GitHub Actions CI (`.github/workflows/ci.yml:67-78`)                | **org** secrets `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` — corrected; the runbook first said repo-level and that was wrong                                      | Falls back to a placeholder when unset, so CI does not break on a missing secret — it builds against a fake.                       |
 | 4   | GitHub Actions deploy (`.github/workflows/deploy.yml:167-168`)      | the same two secrets                                                                                                                                                 | This one **does** need the real value; the built bundle ships it.                                                                  |
 | 5   | `.env.local` on each dev machine                                    | the same two                                                                                                                                                         | Not in git. Each machine updates its own.                                                                                          |
 
@@ -32,7 +94,15 @@ run against PGlite, not against the hosted project — they need no key.
 
 ---
 
-## The blocker to decide before starting
+## The blocker that turned out not to be one
+
+> **Resolved 2026-08-13 by measurement, not by choosing.** `list_edge_functions` returns an empty
+> list — `pvp-authority` exists in this repository but has never been deployed. There is no running
+> function to migrate, so nothing had to be decided to finish the rotation.
+>
+> The decision still has to be made **at deploy time**, and it is cheaper then than it looked here:
+> with nothing already running, option B (`--no-verify-jwt` plus the function's own `auth.getUser`
+> check) can be taken without a migration. The analysis below is kept for that day.
 
 **Edge Function JWT verification does not work with the new key types.** Supabase's API-keys guide
 states it plainly: _"Edge Functions only support JWT verification via the `anon` and `service_role`
@@ -73,6 +143,11 @@ exposure and cost, and it is a decision, not a detail.
 
 ## Order of operations
 
+> Steps 1-7 ran on 2026-08-13 and are done for the **`anon` side**. What remains is `service_role`:
+> create an `sb_secret_` key and disable the legacy one. Because nothing is deployed that holds it,
+> that is a single step with no coordination and nothing to break — the sequence below exists for
+> the general case, not for this remaining piece.
+
 Steps marked **[HetCreep]** involve a real key or a production change and are not main's to run.
 
 1. **[HetCreep]** In Dashboard → Settings → API Keys, create a publishable key and (if going with
@@ -96,6 +171,11 @@ Steps marked **[HetCreep]** involve a real key or a production change and are no
 ---
 
 ## Verification checklist — run before step 7
+
+> On the day, the ones that ran were: signed in on the deployed build, and confirmed the `apikey`
+> header on requests to `supabase.co` starts `sb_publishable_` rather than `eyJ`. **The PvP line
+> below was not run and could not be** — the Edge Function is not deployed. Said plainly rather
+> than ticked, since it is the item most likely to be assumed.
 
 Nothing here needs a key value in the clear; each is a behaviour check.
 
@@ -129,9 +209,18 @@ Nothing here needs a key value in the clear; each is a behaviour check.
 
 ---
 
-## What main did not do, deliberately
+## What main did and did not do
 
-Main did not read, request, generate, or write any key value, and did not touch the hosted project.
-The Supabase MCP tools available in this session include one that returns publishable keys; it was
-not called, because the plan does not need a key value to be correct and the owner is going to
-rotate them anyway.
+Main did not generate a key, did not enter one anywhere, did not disable or delete anything, and
+did not apply a migration. Every action with a consequence — creating keys, editing secrets,
+running the deploy, disabling the legacy key, deleting the stale project — was HetCreep's.
+
+**Amended from the original wording**, which claimed no key-returning tool was called. It was:
+`get_publishable_keys` ran three times, to read the enable/disable state that the whole rotation
+turns on. That tool returns **publishable** keys only — values that ship in the browser bundle and
+are public by design — and the values were never echoed into chat or written to a file. No tool
+exists that returns a secret key, and none was sought.
+
+The original sentence was written before the tool was needed and was left standing as though it
+still described what happened. Corrected here rather than deleted, because "the record said one
+thing and the session did another" is the exact failure this project keeps finding elsewhere.
