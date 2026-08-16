@@ -92,7 +92,9 @@ export function LobbyScene({ teamSlots, selectedId, onSelect, qualityOverride }:
     ไฟล์พี่น้อง BattleScene/RealtimeBattleRoom.tsx เจอบั๊กนี้จริงแล้วแก้ด้วยรูปแบบเดียวกันนี้
     ตั้งแต่ก่อนหน้า — ลอบบี้เพิ่งตามมาแก้ทีหลัง
 
-    เส้นทาง WebGL2 (fallback) เท่านั้น — WebGPU ผูก onDeviceLost ไว้ในฟังก์ชัน gl ด้านบนแล้ว
+    เส้นทาง WebGL2 (fallback) เท่านั้น — ฝั่ง WebGPU ผูก onDeviceLost ของตัว renderer เอง
+    ใน createLobbyRenderer.ts (เดิมโค้ดก้อนนั้นเป็น closure อยู่ใน prop gl ของ <Canvas>
+    ไฟล์นี้ ย้ายออกไปตอน 2026-08-16 เพื่อให้เทสต์เส้นทาง fallback ได้ — audit item B27)
     ผูก listener นี้กับ WebGPURenderer ไม่พังอะไร แค่ไม่มี event ให้ยิงเฉย ๆ
   */
   useEffect(() => {
