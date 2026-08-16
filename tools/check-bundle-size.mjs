@@ -55,7 +55,21 @@ const STATIC_VENDOR_PATTERN = /^(vendor-|WebGL-)/
 // token ที่ generic เกินกว่าจะบอกได้ว่า chunk เป็นของ lib — `app`, `client`, `core` ฯลฯ โผล่ใน
 // ชื่อโมดูลของเราเองพอ ๆ กับในชื่อ dependency
 const GENERIC_TOKENS = new Set(['app', 'client', 'core', 'dom', 'lib', 'node', 'web'])
-const BUDGETS_KB_GZIP = { vendor: 300, app: 70 }
+const BUDGETS_KB_GZIP = { vendor: 300, app: 70, css: 40 }
+
+/*
+  CSS มีเพดานของตัวเองตั้งแต่ 2026-08-16 (audit item B13)
+
+  ก่อนหน้านี้สคริปต์กรอง .js อย่างเดียว ทำให้ 30.1 KB gzip ของ CSS อยู่นอกเกตที่นำเสนอ
+  ตัวเองว่าเป็นเพดานที่บังคับจริง — LCP ถูกกำหนดด้วยน้ำหนักไบต์ และ CSS บล็อกการ render
+  จึงนับเข้าเพดานเหมือน JS
+
+  40 KB = ค่าที่วัดได้ 30.1 + เผื่อ ~33% ตามวิธี ratchet เดียวกับ vendor/app ข้างบน
+  (App-*.css คือก้อนใหญ่สุด ที่เหลือรวมกันไม่ถึง 3 KB)
+
+  โฟลเดอร์ public/ (16 MB) ยังอยู่นอกเกตนี้โดยตั้งใจ — ตั้งเลขให้มันต้องวัด byte ต่อ route
+  ก่อน ห้ามเสกตัวเลขขึ้นมา (audit item B24 ยังเปิด)
+*/
 
 // manualChunks ใน vite.config.ts (บรรทัด 71-74) ดึงออกมาเป็น chunk แยกแค่ react เท่านั้น
 // lib ที่เหลือ Rollup จึงตั้งชื่อ chunk ตาม "โมดูลของแอปที่เป็นคนลากมัน entry เข้ามา" —
@@ -108,7 +122,7 @@ function isVendorChunk(file, vendorTokens) {
 async function main() {
   let files
   try {
-    files = (await readdir(ASSETS_DIR)).filter((f) => f.endsWith('.js'))
+    files = (await readdir(ASSETS_DIR)).filter((f) => f.endsWith('.js') || f.endsWith('.css'))
   } catch (cause) {
     // แยกสาเหตุ ไม่ใช่เหมารวมว่า "ยังไม่ได้ build" — permission/I-O error เคยถูกรายงานเป็น
     // ข้อความเดียวกัน คนอ่านก็ไป build ใหม่ซึ่งผ่าน แล้วสคริปต์ก็แดงด้วยข้อความเดิมอีก
@@ -127,7 +141,11 @@ async function main() {
   for (const file of files) {
     const buf = await readFile(join(ASSETS_DIR, file))
     const gzipKB = gzipSync(buf).length / 1024
-    const tier = isVendorChunk(file, vendorTokens) ? 'vendor' : 'app'
+    const tier = file.endsWith('.css')
+      ? 'css'
+      : isVendorChunk(file, vendorTokens)
+        ? 'vendor'
+        : 'app'
     const budget = BUDGETS_KB_GZIP[tier]
     rows.push({ file, tier, gzipKB, budget })
     if (gzipKB > budget) overBudget.push({ file, tier, gzipKB, budget })

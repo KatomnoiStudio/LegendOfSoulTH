@@ -63,6 +63,13 @@ jobs:
 
       - name: เทียบเวอร์ชันเกมกับก่อน push
         id: check
+        # ค่าจาก event context เข้ามาทาง env: ไม่ใช่แทรกกลางสคริปต์ — การแทรกจะถูกแทนที่เป็น
+        # ข้อความดิบก่อน shell เห็น ซึ่งเป็นช่อง script injection blast radius ต่ำที่นี่
+        # (precondition คือ commit บน master ที่ผ่าน PR แล้ว) แต่ repo นี้ใช้รูปที่ปลอดภัย
+        # อยู่แล้วห่างไปสอง job — upstream-skill-watch.yml:92 (audit item B19, 2026-08-16)
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
         run: |
           set -euo pipefail
           GAME_INFO='src/game/gameInfo.ts'
@@ -79,9 +86,22 @@ jobs:
           }
 
           version="$(read_version "$GAME_INFO")"
+
+          # ตรวจรูปก่อนเขียนลง $GITHUB_OUTPUT
+          #
+          # regex ที่ read_version ใช้จับด้วย [^ apostrophe ]+ ซึ่ง "กินขึ้นบรรทัดใหม่ได้"
+          # ค่าที่มีบรรทัดใหม่จะไม่ใช่ค่าเดียวใน output file แต่กลายเป็นคีย์เพิ่มอีกบรรทัด
+          # ตรวจรูปตรงนี้จึงกันทั้งการแทรกและการอ่านผิด (audit item B19, 2026-08-16)
+          case "$version" in
+            "" | *[!0-9.a-zA-Z+-]*)
+              echo "เวอร์ชันผิดรูป (อ่านได้: $version)" >&2
+              exit 1
+              ;;
+          esac
+
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             echo "สั่งด้วยมือ — ปล่อยเลย (v$version)"
             echo "should_deploy=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -93,7 +113,7 @@ jobs:
           # HEAD~1 จะเห็นเลขใหม่ไปแล้วและสรุปว่า "ไม่เปลี่ยน" — พลาดการปล่อยแบบเงียบ ๆ
           # github.event.before คือ SHA ของ ref ก่อน push จึงเป็นจุดเทียบที่ถูกต้อง
           # (เป็นศูนย์ทั้งหมดตอนสร้าง branch ใหม่ กรณีนั้นถือว่าเป็นการปล่อยครั้งแรก)
-          before='${{ github.event.before }}'
+          before="$EVENT_BEFORE"
           prev_file="$(mktemp)"
 
           if [ -n "$before" ] && [ "$before" != "0000000000000000000000000000000000000000" ] \
