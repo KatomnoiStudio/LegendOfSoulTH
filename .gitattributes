@@ -1,0 +1,34 @@
+# Normalise line endings so the committed blob is always LF, whatever the checkout does.
+#
+# This repo is developed on Windows with `core.autocrlf=true`, which rewrites text files to
+# CRLF in the working tree while the blob stays LF. Without this file that arrangement is
+# invisible to git but not to Prettier: `.prettierrc` sets `endOfLine: lf`, so
+# `npm run format:check` read every CRLF working-tree file as a style failure and reported
+# 371 files — of which the overwhelming majority were the checkout, not the content.
+#
+# A checker whose output is mostly noise is a checker nobody runs, and nobody did: that is
+# why `format:check` sits outside `npm run ci` (see .agents/rules/ecc/PROJECT-OVERRIDES.md).
+# `tools/verify-memory-archive.mjs` documents the same trap from the other side — it once
+# reported 387 CRLF failures on a perfectly clean tree.
+#
+# `text=auto eol=lf` tells git to store text as LF and check it out as LF on every platform,
+# so the working tree, the blob and Prettier finally agree.
+* text=auto eol=lf
+
+# Binary — never touched, never diffed as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.glb binary
+*.gltf binary
+*.mp3 binary
+*.ogg binary
+*.wav binary
+*.zip binary
