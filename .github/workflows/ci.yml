@@ -281,8 +281,10 @@ jobs:
       - name: Build with a root base so the static server can resolve every asset
         run: npx vite build --base=/ --outDir dist-lhci --emptyOutDir
 
+      # continue-on-error ถูกถอดออกแล้ว (94dc1ff วัดครบสองรอบ) — lighthouserc.json มีเพดานที่
+      # derive จากผลจริงแล้ว เพดานที่แดงไม่ได้ก็เป็นแค่คอมเมนต์ ตัวเลขตั้งหลวมโดยตั้งใจ:
+      # มันจับ regression ก้อนใหญ่ ไม่ได้จับ drift — เหตุผลเต็มอยู่ใน _how_these_numbers_were_picked
       - name: Run Lighthouse
-        continue-on-error: true
         uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12.6.2
         with:
           configPath: ./lighthouserc.json
