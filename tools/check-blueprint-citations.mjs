@@ -311,12 +311,25 @@ function checkCitation(citationText, spans, idx, text, basenameIndex, docState) 
  */
 function collectTargets() {
   const targets = []
-  const pushDir = (relDir, filter) => {
+  /**
+   * `recursive` is opt-in per call, not the default: `docs/` must stay flat or the
+   * DESIGN-LOCK filter would sweep in every nested doc directory, while `.agents/rules`
+   * has to descend — its `ecc/` subtree holds 32 of the estate's 48 rule files, including
+   * `PROJECT-OVERRIDES.md`, which wins precedence on toolchain conflicts.
+   */
+  const pushDir = (relDir, filter, recursive = false) => {
     const abs = path.join(REPO_ROOT, relDir)
     if (!fs.existsSync(abs)) return
-    for (const f of fs.readdirSync(abs).toSorted()) {
-      if (!filter(f)) continue
-      targets.push({ label: `${relDir}/${f}`, absPath: path.join(abs, f) })
+    for (const entry of fs
+      .readdirSync(abs, { withFileTypes: true })
+      .toSorted((a, b) => a.name.localeCompare(b.name))) {
+      if (entry.isDirectory()) {
+        if (recursive && !SKIP_DIRS.has(entry.name))
+          pushDir(`${relDir}/${entry.name}`, filter, true)
+        continue
+      }
+      if (!filter(entry.name)) continue
+      targets.push({ label: `${relDir}/${entry.name}`, absPath: path.join(abs, entry.name) })
     }
   }
   const pushFile = (rel) => {
@@ -325,7 +338,7 @@ function collectTargets() {
   }
 
   pushDir('docs/agent-blueprint', (f) => /^\d+.*\.md$/.test(f))
-  pushDir('.agents/rules', (f) => f.endsWith('.md'))
+  pushDir('.agents/rules', (f) => f.endsWith('.md'), true)
   pushDir('docs', (f) => f.endsWith('-DESIGN-LOCK.md'))
   pushFile('AGENTS.md')
   pushFile('MEMORY.md')
