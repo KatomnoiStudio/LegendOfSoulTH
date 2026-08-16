@@ -144,6 +144,32 @@ describe('applyBattleExp', () => {
     expect(applyBattleExp(player, 0)).toBe(player)
   })
 
+  test('a boss out-pays the weakest mob — bosses live in their own registry and were missing it', () => {
+    // rewardForTemplate asked getEnemyTemplate only, so spirit-guardian-boss (BOSS_TEMPLATES,
+    // maxHp 1400) matched neither TEMPLATE_REWARD nor the maxHp fallback and landed on DEFAULT
+    // 20 gold / 35 exp — below shadow-soldier's hand-written 22/40 at maxHp 210. The invariant,
+    // not the constants, is what this guards: a 6.7x tougher enemy must not pay less.
+    //
+    // p5-boss-arena is used because it carries the boss and is absent from
+    // STAGE_REWARD_DEFINITIONS, so calculateBattleReward runs the per-enemy loop instead of
+    // short-circuiting on the per-stage table the way every trial-NN stage does.
+    const bossState = createRealtimeBattle('p5-boss-arena', stubPlayer())
+    if (!bossState) throw new Error('expected boss battle state')
+    bossState.defeatedEnemyIds = bossState.enemies.map((e) => e.id)
+    const bossReward = calculateBattleReward(bossState, 'victory')
+
+    const mobState = createRealtimeBattle('p5-elite-arena', stubPlayer())
+    if (!mobState) throw new Error('expected mob battle state')
+    mobState.defeatedEnemyIds = [mobState.enemies[0].id]
+    const oneMobReward = calculateBattleReward(mobState, 'victory')
+
+    expect(bossReward.earnedExp).toBeGreaterThan(oneMobReward.earnedExp)
+    expect(bossReward.earnedGold).toBeGreaterThan(oneMobReward.earnedGold)
+    // maxHp 1400 through the shared fallback: 1400/5 exp and 1400/8 gold, plus one wave clear.
+    expect(bossReward.earnedExp).toBe(280 + 25)
+    expect(bossReward.earnedGold).toBe(175 + 15)
+  })
+
   test('a lead hero the player does not own skips hero EXP instead of losing the whole reward', () => {
     // Regression guard for a side effect design-lock 12.a introduced. Routing hero EXP through
     // progressionService means applyHeroExp's `throw new Error('Unknown hero: ...')` became

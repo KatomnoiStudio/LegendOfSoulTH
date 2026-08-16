@@ -1,7 +1,7 @@
 import { resolveLobbyStageReward } from '../reward/stageRewardResolver'
 import type { Player } from '../../types/player'
 import type { RealtimeBattleState } from './createRealtimeBattle'
-import { getEnemyTemplate } from './stageConfig'
+import { getBossTemplate, getEnemyTemplate } from './stageConfig'
 import { applyHeroExpToLeadHero } from '../progression/progressionService'
 
 /**
@@ -40,7 +40,13 @@ function rewardForTemplate(templateId: string | undefined): { gold: number; exp:
   const table = TEMPLATE_REWARD[templateId]
   if (table) return table
 
-  const template = getEnemyTemplate(templateId)
+  /**
+   * บอสอยู่คนละ registry (`BOSS_TEMPLATES`) — ต้องถามทั้งสองที่ ไม่งั้นบอสพลาดทั้งตารางและ
+   * พลาดทั้ง fallback ตกลงมาที่ DEFAULT: `spirit-guardian-boss` (maxHp 1400) เคยจ่าย 35 EXP
+   * ซึ่งน้อยกว่า `shadow-soldier` (maxHp 210) ที่จ่าย 40 — บอสถูกกันออกจากบันไดที่ศัตรูอื่น
+   * ทุกตัวใช้อยู่แล้ว เพราะ lookup ถามที่เดียว
+   */
+  const template = getEnemyTemplate(templateId) ?? getBossTemplate(templateId)
   if (!template) {
     return { gold: DEFAULT_GOLD_PER_ENEMY, exp: DEFAULT_EXP_PER_ENEMY }
   }
