@@ -213,3 +213,54 @@ jobs:
         with:
           fail-on-severity: high
           comment-summary-in-pr: always
+
+  # Lighthouse CI (audit item B20, 2026-08-16)
+  #
+  # เกตขนาด bundle ที่มีอยู่ (tools/check-bundle-size.mjs) วัด "ไบต์ที่ส่งออกไป" ได้อย่างเดียว
+  # มันไม่รู้ว่าไบต์พวกนั้นแปลว่าอะไรตอน browser จริงเปิดหน้าเว็บ — LCP, blocking time, CLS,
+  # a11y ไม่มีตัวไหนอนุมานจาก KB ได้ job นี้เติมส่วนนั้น
+  #
+  # REPORT-ONLY (`continue-on-error: true`) และ lighthouserc.json **ยังไม่มี assertion สักข้อ**
+  # โดยตั้งใจ — ตัวเลขเพดานที่เขียนก่อนวัดคือตัวเลขที่บรรยายสิ่งที่โค้ดทำอยู่แล้ว ไม่ใช่เพดาน
+  # (บทเรียนเดียวกับ coverage threshold ใน vite.config.ts) รันแรกคือการวัด รอบถัดไปค่อยใส่เลข
+  # ที่ derive จากผลจริง แล้วจึงปิด continue-on-error
+  #
+  # ทำไม build ใหม่แทนที่จะใช้ dist/ ของ job ci: dist/ ถูก build ด้วย base '/LegendOfSoulTH/'
+  # สำหรับ GitHub Pages — LHCI เสิร์ฟ staticDistDir ที่ root ('/') เสมอ ถ้าเอา dist/ ตัวจริงมา
+  # เสิร์ฟ asset ทุกตัวจะ 404 หน้าเปล่า แล้ว Lighthouse จะให้คะแนนหน้าเปล่านั้นโดยไม่ error
+  # — เขียวสนิทและไม่มีความหมาย ไบต์เท่ากันทุกอย่าง ต่างแค่ prefix ของ URL
+  #
+  # ไม่ต้องรัน build:images: public/ commit ไว้ในรีโปอยู่แล้ว สคริปต์นั้นสร้างจาก assets/raw/
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          # audit ไม่ใช่ block — job นี้โหลด Chrome ของ Lighthouse เอง egress จึงกว้างและยัง
+          # ไม่เคย derive (ดู security-scan.yml ที่ block ไปแล้วสองตัว, audit item B17)
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build with a root base so the static server can resolve every asset
+        run: npx vite build --base=/ --outDir dist-lhci --emptyOutDir
+
+      - name: Run Lighthouse
+        continue-on-error: true
+        uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12.6.2
+        with:
+          configPath: ./lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: false

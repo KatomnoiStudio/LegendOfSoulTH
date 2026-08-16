@@ -1,0 +1,14 @@
+{
+  "_comment": "Lighthouse CI (audit item B20, 2026-08-16). NO assertions yet — on purpose. Thresholds go in only after the first CI run has measured this app, because a number written before the measurement is a number that describes whatever the code already does. See .agents/rules/mutation-verified-fix-law.md, 'the coverage floor is a number in the config', and the same discipline applied to vite.config.ts coverage thresholds.",
+  "ci": {
+    "collect": {
+      "staticDistDir": "./dist-lhci",
+      "numberOfRuns": 3,
+      "settings": {
+        "preset": "desktop",
+        "skipAudits": ["uses-http2", "canonical", "is-crawlable", "robots-txt"]
+      }
+    },
+    "upload": { "target": "filesystem", "outputDir": "./reports/lighthouse" }
+  }
+}

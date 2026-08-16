@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# build ชุดที่สองสำหรับ Lighthouse CI — base '/' แทน '/LegendOfSoulTH/' เพราะ LHCI เสิร์ฟ
+# staticDistDir ที่ root (ดู job `lighthouse` ใน .github/workflows/ci.yml)
+dist-lhci
+
+# ผลรันของเครื่องมือรายงาน (Stryker mutation HTML, Lighthouse JSON/HTML) — เป็นผลการวัด
+# ของเครื่องนั้น ๆ ไม่ใช่ artifact ของโปรเจกต์ CI เก็บของตัวเองเป็น workflow artifact
+reports/
+
 # build:models output — nothing in src/ loads .glb yet (game renders 2D sprites),
 # regenerate locally with `npm run build:models` when actually needed; not shipped to deploy
 public/models/
