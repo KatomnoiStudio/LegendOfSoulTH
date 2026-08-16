@@ -107,12 +107,12 @@ function readDefaultKeySet(
   }
 }
 
-function createMatchSeed(): number {
+export function createMatchSeed(): number {
   const seed = crypto.getRandomValues(new Uint32Array(1))[0]
   return seed === 0 ? 1 : seed
 }
 
-function minimalPlayer(profileId: string, heroRow: OwnedCharacterRow): Player {
+export function minimalPlayer(profileId: string, heroRow: OwnedCharacterRow): Player {
   const defaultSkillProgress = { level: 1, exp: 0, expToNext: 200 }
   const hero: OwnedCharacter = {
     characterId: heroRow.character_id,
@@ -149,7 +149,7 @@ function minimalPlayer(profileId: string, heroRow: OwnedCharacterRow): Player {
   }
 }
 
-function isRequestBody(value: unknown): value is RequestBody {
+export function isRequestBody(value: unknown): value is RequestBody {
   if (!value || typeof value !== 'object') return false
   const body = value as Record<string, unknown>
   if (typeof body.roomId !== 'string') return false
@@ -167,8 +167,20 @@ export async function handlePvPAuthorityRequest(request: Request): Promise<Respo
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (request.method !== 'POST') return json({ error: 'METHOD_NOT_ALLOWED' }, 405)
 
-  const authorization = request.headers.get('Authorization')
-  const jwt = authorization?.replace(/^Bearer\s+/i, '')
+  /*
+    จับด้วย match ไม่ใช่ replace — พบ 2026-08-16 ตอนเขียนเทสต์ให้ประตูนี้ (audit item B11)
+
+    ของเดิม `authorization?.replace(/^Bearer\s+/i, '')` ปล่อยสองเคสผ่าน:
+      - `Authorization: Bearer` เปล่า ๆ — Fetch spec ตัดช่องว่างท้ายค่า header ทิ้ง ค่าที่
+        เหลือคือ "Bearer" ซึ่ง `^Bearer\s+` ไม่แมตช์ (ต้องมี whitespace อย่างน้อยหนึ่ง)
+        `replace` จึงคืนสตริงเดิม truthy แล้วผ่านประตูไป
+      - scheme อื่น เช่น `Basic xyz` — ไม่แมตช์เหมือนกัน ส่งทั้งก้อนไปเป็น JWT
+    ทั้งสองเคสจบที่ Supabase ปฏิเสธเอง (AUTH_INVALID) จึง exploit ไม่ได้ **แต่มันเดินเลย
+    การอ่าน env และการสร้าง client ไปแล้ว** ซึ่งขัดกับคำมั่น "ปฏิเสธก่อนแตะ secret"
+    ที่เทสต์ของไฟล์นี้อ้างไว้ตั้งแต่แรก
+  */
+  const bearer = /^Bearer\s+(\S.*)$/i.exec(request.headers.get('Authorization') ?? '')
+  const jwt = bearer?.[1]?.trim()
   if (!jwt) return json({ error: 'AUTH_REQUIRED' }, 401)
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')

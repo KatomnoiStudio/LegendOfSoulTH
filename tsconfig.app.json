@@ -26,6 +26,35 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true
+
+    /*
+      noUncheckedIndexedAccess — วัดแล้วไม่เปิด (2026-08-16, audit item B21)
+
+      เปิดแล้วได้ 491 error · 384 อยู่ในไฟล์เทสต์ที่ index fixture ที่รู้ว่ามีอยู่ ·
+      107 อยู่ใน source จริงกระจาย ~40 ไฟล์
+
+      สุ่มตรวจสามจุดที่ไม่เกี่ยวกันเลย ปลอดภัยพิสูจน์ได้ทั้งสาม:
+        - `PvPAuthorityEngine.ts` — `state.participants` เป็น tuple `[A, B]` อยู่แล้ว
+          type การันตีสองช่อง แต่ index เป็น `number` ที่ narrow ไม่ได้
+        - `movement.ts` — ray-casting point-in-polygon, `index < WALKABLE_AREA.length`
+          และ `previous` ตามหลัง index หนึ่งก้าว ในขอบเขตทั้งคู่ (10 error จากอัลกอริทึม
+          ที่เขียนถูก)
+        - `rewardProgress.ts` — `stageResults[i]` ใน loop ที่ขอบเขตคือ
+          `stageResults.length` เอง
+
+      แฟล็กนี้ฟ้อง "bounded loop indexing" ซึ่ง TypeScript พิสูจน์ไม่ได้แต่โค้ดการันตี
+      เปิดแล้วต้องใส่ `!` หรือ guard ซ้ำซ้อนหลายร้อยจุด — ทำให้โค้ดแย่ลง และกลบ finding
+      จริงที่หายากไว้ใต้ noise **เกตที่ยิงจาก noise แย่กว่าไม่มีเกต** (เหตุผลเดียวกับที่
+      เพดาน coverage ใน vite.config.ts เว้นช่องไว้)
+
+      สิ่งที่แก้ความเห็นนี้ได้: TypeScript narrow index จากขอบเขต loop ได้เมื่อไหร่ หรือ
+      พบ finding จริงที่แฟล็กนี้จับได้แต่วิธีอื่นจับไม่ได้
+
+      **แก้ข้ออ้างของ audit ด้วย**: B21 ระบุว่า `rewardProgress.ts` "dereferences
+      stageResults[i] unguarded while guarding its sibling on the next line" เป็นความไม่
+      สมมาตรที่เป็นข้อบกพร่อง — ไม่ใช่ `stageResults[i]` ถูกขอบเขต loop คุมอยู่ ส่วน
+      `stages[i]` เป็น **คนละอาร์เรย์** ที่สั้นกว่าได้ การ guard อันหลังอันเดียวจึงถูกแล้ว
+    */
   },
   "include": ["src"]
 }
