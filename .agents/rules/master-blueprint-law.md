@@ -80,13 +80,16 @@ this if widened (audit item B4).
 or by an explicit in-file note that it is MIT on purpose — no lock ships with its licensing
 unstated.**
 
-`LICENSE` carries exactly two carve-outs today: the sprite datum and
-`GACHA-RATE-DESIGN-LOCK.md`. **`ECONOMY-DESIGN-LOCK.md` has neither a carve-out nor a
-stated MIT decision**, so 133 KB of ratified THB pricing, exchange-rate derivations and
-drop economics is freely sublicensable and commercially usable — the exact thing the two
-existing carve-outs were written to prevent for siblings of lesser value. No decision is
-recorded either way, which is the defect; the licence itself is **HetCreep's call and is
-not made here** (audit item A3).
+`LICENSE` carries **three** carve-outs: the sprite datum, `GACHA-RATE-DESIGN-LOCK.md`, and —
+since 2026-08-16, HetCreep's ruling — `ECONOMY-DESIGN-LOCK.md`. All three are CC BY-NC-ND 4.0
+with the same standing grant to Katomnoi Studio.
 
-Note the direction of the cost: by `LICENSE`'s own scope-limit clause, every day this stays
-public widens the set of copies a later carve-out cannot reach.
+**The gap this rule was written from, and what it cost.** `ECONOMY-DESIGN-LOCK.md` had
+neither a carve-out nor a stated MIT decision, so 133 KB of ratified THB pricing,
+exchange-rate derivations and drop economics was freely sublicensable and commercially
+usable — the exact thing the two existing carve-outs were written to prevent for siblings of
+lesser value. By `LICENSE`'s own scope-limit clause a carve-out only reaches forward, so
+**every copy taken between the file's first commit and 2026-08-16 stays under MIT
+permanently**. That is the price of a lock shipping with its licensing unstated, and it is
+why this rule is a MUST rather than a nicety. It is written into the new carve-out itself so
+nobody later mistakes the carve-out for retroactive.

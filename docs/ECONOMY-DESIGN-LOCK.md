@@ -1,3 +1,44 @@
+<!--
+  LICENCE NOTICE — THIS FILE ONLY
+
+  Copyright (c) 2026 HetCreep. All rights reserved.
+
+  This file is licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0
+  International (CC BY-NC-ND 4.0): https://creativecommons.org/licenses/by-nc-nd/4.0/
+  It is NOT covered by the MIT licence that governs the rest of this repository. Same terms as the
+  carve-outs for docs/SPRITE-DESIGN-LOCK.md and docs/GACHA-RATE-DESIGN-LOCK.md — see the repository
+  LICENSE file for the full text.
+
+  Commercial use, adaptation, or redistribution as part of a paid product or service requires a
+  separate written licence from the copyright holder.
+
+  STANDING GRANT — Katomnoi Studio (github.com/KatomnoiStudio)
+
+  Katomnoi Studio is granted a perpetual, irrevocable, royalty-free licence to use, reproduce,
+  modify, and create derivative works from this file, and to apply it in the Studio's own products
+  and services, including commercially. This grant does NOT include the right to sublicense the
+  file, or to distribute it or substantial portions of it to third parties. The Studio may ship
+  what it BUILDS from this document (the reward formula, the drop tables, the game itself) freely;
+  the document itself stays the copyright holder's to license.
+
+  ⚠️ NOT RETROACTIVE. Added 2026-08-16, on HetCreep's ruling. This file was public and
+  MIT-licensed from its first commit until that date, and a carve-out only reaches forward — every
+  copy taken before then stays under MIT permanently. Recorded here so the notice is not mistaken
+  for covering the file's whole history.
+
+  ⚠️ DRAFT — NOT LEGAL ADVICE. Written by an AI assistant at the owner's direction and NOT reviewed
+  by a lawyer. Things a lawyer must settle before this is relied on:
+    1. The named holder must be a real legal person or registered entity. "LegendofSoulTH" in the
+       repository MIT notice is a project name, not a legal person.
+    2. This document is measurement-heavy — sixty-plus shipped games surveyed, with energy costs,
+       exchange rates, cap structures and patch dates read from published tables, client data dumps
+       and vendor documentation. Facts and arithmetic derived from them are not copyrightable in
+       most jurisdictions. What the carve-out protects is the SELECTION of which exemplars to
+       measure and which to reject, the ARRANGEMENT of the four principles and the invariants above
+       them, and the EXPRESSION of the reasoning. Whether that clears the originality bar in the
+       relevant jurisdiction is a lawyer's call, not this file's.
+-->
+
 # ECONOMY DESIGN LOCK — สกุลเงิน อัตราแลกเปลี่ยน และการดรอป
 
 **สถานะ: ล็อกทีละหลักการ — ยังไม่ครบ** HetCreep ratify ทีละข้อแบบเดียวกับ

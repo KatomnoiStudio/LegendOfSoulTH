@@ -147,3 +147,69 @@ SCOPE AND LIMITS OF THIS CARVE-OUT — read before relying on it
      arrangement" of publicly-sourced game economy data clears the originality
      bar in the relevant jurisdiction — have a lawyer settle that before
      relying on this carve-out.
+
+-------------------------------------------------------------------------------
+
+CARVE-OUT — docs/ECONOMY-DESIGN-LOCK.md
+
+Copyright (c) 2026 HetCreep. All rights reserved.
+
+The MIT grant above does NOT apply to docs/ECONOMY-DESIGN-LOCK.md. That file is
+licensed separately under Creative Commons Attribution-NonCommercial-NoDerivatives
+4.0 International (CC BY-NC-ND 4.0), same terms as the two carve-outs above:
+
+    https://creativecommons.org/licenses/by-nc-nd/4.0/
+
+You may read it, quote it with attribution, and share it unchanged for
+non-commercial purposes. You may not use it commercially, and you may not
+distribute a modified version, without a separate written licence from the
+copyright holder.
+
+STANDING GRANT — Katomnoi Studio (github.com/KatomnoiStudio)
+
+Katomnoi Studio is granted a perpetual, irrevocable, royalty-free licence to
+use, reproduce, modify, and create derivative works from
+docs/ECONOMY-DESIGN-LOCK.md, and to apply it in the Studio's own products and
+services, including commercially. This grant does NOT include the right to
+sublicense that file, or to distribute it or substantial portions of it to
+third parties — the Studio may freely ship whatever it BUILDS from the document
+(the reward formula, the drop tables, the game itself); the document itself
+remains the copyright holder's to license.
+
+SCOPE AND LIMITS OF THIS CARVE-OUT — read before relying on it
+
+  1. It applies from the commit that introduces it onward, same as the two
+     carve-outs above. Every copy taken before that commit was taken under MIT
+     and stays under MIT — this carve-out cannot reach them. The file was
+     public and unrestricted from its first commit until 2026-08-16, which is
+     the cost of the gap and is recorded here rather than left implied.
+
+  2. "LegendofSoulTH" in the MIT notice above is a project name, not a legal
+     person — unsettled, same open point as the two carve-outs above.
+
+  3. Same fact/expression split as the gacha carve-out, and it matters more
+     here because this document is even more measurement-heavy. Sixty-plus
+     shipped games were surveyed for it: energy costs, exchange rates, cap
+     structures, reward formulas, patch dates, and support windows, most of
+     them read from published tables, client data dumps, or vendor
+     documentation cited in the file itself. None of those facts is
+     copyrightable, and neither is arithmetic derived from them. What this
+     carve-out protects is the SELECTION of which exemplars to measure and
+     which to reject, the ARRANGEMENT of the four principles and the
+     invariants above them, and the EXPRESSION of the reasoning — not the
+     survey data, and not a number a reader could re-derive from the same
+     public sources.
+
+  4. The document is anchored to this project's own market and content in the
+     same way the gacha lock is: gem prices in Thai baht, a Thai-market
+     free-to-play audience, and a reward calibration (`k_exp`, `k_gold`) taken
+     from this game's own level curve and chapter-one enemy set. Detached from
+     that content the derivations do not carry over, which is why it is
+     licensed as a standalone artefact rather than folded into the general MIT
+     grant.
+
+  5. This carve-out was drafted by an AI assistant at the owner's direction and
+     has NOT been reviewed by a lawyer. It is not legal advice. If anything of
+     value depends on it — in particular whether the selection and arrangement
+     of publicly-sourced game economy data clears the originality bar in the
+     relevant jurisdiction — have a lawyer settle that before relying on it.
