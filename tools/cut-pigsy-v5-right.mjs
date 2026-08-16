@@ -134,7 +134,9 @@ function extractCell(data, W, channels, box) {
   // ไม่งั้นเงาเข้มในชุดจะถูกเจาะจนตัวพรุน)
   {
     const isFilledBg = (i) =>
-      !outside[i] && !seed[i] && bgDistance(data, at(i % w, (i / w) | 0), channels) <= FILLED_BG_LIMIT
+      !outside[i] &&
+      !seed[i] &&
+      bgDistance(data, at(i % w, (i / w) | 0), channels) <= FILLED_BG_LIMIT
     const seen = new Uint8Array(w * h)
     for (let i = 0; i < w * h; i++) {
       if (seen[i] || !isFilledBg(i)) continue
@@ -336,14 +338,22 @@ function findSpriteColumns(data, W, channels, y0, y1) {
 }
 
 async function main() {
-  const { data, info } = await sharp(SHEET).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+  const { data, info } = await sharp(SHEET)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
   const { width: W, channels } = info
 
   const cells = []
   for (const [y0, y1] of ROW_BANDS) {
     const columns = findSpriteColumns(data, W, channels, y0, y1)
     for (const [cx0, cx1] of columns) {
-      const cell = extractCell(data, W, channels, { x0: cx0 - 5, y0: y0 - 5, x1: cx1 + 6, y1: y1 + 6 })
+      const cell = extractCell(data, W, channels, {
+        x0: cx0 - 5,
+        y0: y0 - 5,
+        x1: cx1 + 6,
+        y1: y1 + 6,
+      })
       if (cell) {
         cells.push({
           cell,
@@ -379,7 +389,12 @@ async function main() {
       .toBuffer()
 
     await sharp({
-      create: { width: CANVAS_W, height: CANVAS_H, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+      create: {
+        width: CANVAS_W,
+        height: CANVAS_H,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
     })
       .composite([
         {
@@ -408,14 +423,22 @@ async function main() {
     const tiles = []
     for (let frame = 0; frame < FRAME_COUNT; frame++) {
       tiles.push({
-        input: await sharp(join(WALK_DIR, `pigsy-walk-right-${frame}.png`)).resize(240, 192).png().toBuffer(),
+        input: await sharp(join(WALK_DIR, `pigsy-walk-right-${frame}.png`))
+          .resize(240, 192)
+          .png()
+          .toBuffer(),
         left: (frame % 4) * 240,
         top: ((frame / 4) | 0) * 192,
       })
     }
     const previewPath = join(ROOT, 'pigsy-v5-preview.png')
     await sharp({
-      create: { width: 960, height: 384, channels: 4, background: { r: 255, g: 0, b: 255, alpha: 1 } },
+      create: {
+        width: 960,
+        height: 384,
+        channels: 4,
+        background: { r: 255, g: 0, b: 255, alpha: 1 },
+      },
     })
       .composite(tiles)
       .png()

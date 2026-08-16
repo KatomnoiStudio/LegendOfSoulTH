@@ -2,7 +2,7 @@ name: Build, Typecheck and Lint
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
     paths-ignore:
       - '**/*.md'
       - '.agents/**'
@@ -15,7 +15,7 @@ on:
   # = "ไฟล์ที่เปลี่ยนตรงอย่างน้อยหนึ่งไฟล์ก็รัน" ไม่ใช่ "ต้องตรงทุกไฟล์") — workflow นั้นถูกลบทิ้ง
   # แล้ว และชื่อ check นี้มีเจ้าของเดียวคือไฟล์นี้
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 # push ถี่มาก (หลาย dev, หลาย commit ต่อนาที) — push ใหม่ยกเลิกรันเก่าที่ยังไม่จบ
 # แทนที่จะปล่อยให้ build+test+lint เต็มรอบทุก push ที่มีอันใหม่กว่ามาแซงอยู่แล้ว

@@ -101,7 +101,8 @@ export function ItemsModal({ player, onClose }: ItemsModalProps) {
                     <span className={styles.itemQty}>×{formatNumber(slot.quantity)}</span>
                   </span>
                   <span className={styles.itemRarity}>
-                    {ITEM_RARITY_LABEL[definition.rarity]} · {ITEM_CATEGORY_LABEL[definition.category]}
+                    {ITEM_RARITY_LABEL[definition.rarity]} ·{' '}
+                    {ITEM_CATEGORY_LABEL[definition.category]}
                   </span>
                   <p className={styles.itemDesc}>{definition.description}</p>
                 </li>

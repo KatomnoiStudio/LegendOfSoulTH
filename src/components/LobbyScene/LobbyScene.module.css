@@ -59,7 +59,13 @@
   pointer-events: none;
   background:
     radial-gradient(ellipse at 50% 51%, transparent 50%, rgb(4 5 12 / 46%) 100%),
-    linear-gradient(180deg, rgb(3 5 15 / 32%) 0%, transparent 23%, transparent 68%, rgb(4 5 12 / 56%) 100%);
+    linear-gradient(
+      180deg,
+      rgb(3 5 15 / 32%) 0%,
+      transparent 23%,
+      transparent 68%,
+      rgb(4 5 12 / 56%) 100%
+    );
 }
 
 /* สถานะระหว่างรอ WebGL พร้อม */

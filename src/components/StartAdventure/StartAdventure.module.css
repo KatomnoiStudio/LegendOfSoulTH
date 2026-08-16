@@ -27,9 +27,17 @@
   min-width: clamp(270px, 20vw, 330px);
   padding: 14px 30px 13px;
   border: 1px solid #f1cb78;
-  clip-path: polygon(14px 0, calc(100% - 36px) 0, 100% 50%, calc(100% - 36px) 100%, 14px 100%, 0 50%);
+  clip-path: polygon(
+    14px 0,
+    calc(100% - 36px) 0,
+    100% 50%,
+    calc(100% - 36px) 100%,
+    14px 100%,
+    0 50%
+  );
   background:
-    linear-gradient(105deg, transparent 0 38%, rgb(255 243 190 / 32%) 49%, transparent 61%) -190px 0 / 170px 100% no-repeat,
+    linear-gradient(105deg, transparent 0 38%, rgb(255 243 190 / 32%) 49%, transparent 61%) -190px
+      0 / 170px 100% no-repeat,
     linear-gradient(180deg, #eac45e 0%, #bd8226 55%, #795016 100%);
   color: #241604;
   font-family: var(--font-display);
@@ -37,8 +45,15 @@
   font-weight: 900;
   letter-spacing: 0.08em;
   overflow: visible;
-  box-shadow: 0 12px 30px rgb(0 0 0 / 58%), inset 0 2px 0 rgb(255 247 206 / 62%), inset 0 -4px 0 rgb(60 35 5 / 38%), 0 0 22px rgb(220 166 56 / 18%);
-  transition: transform 220ms cubic-bezier(.2,.8,.2,1), filter 220ms ease, background-position 500ms ease;
+  box-shadow:
+    0 12px 30px rgb(0 0 0 / 58%),
+    inset 0 2px 0 rgb(255 247 206 / 62%),
+    inset 0 -4px 0 rgb(60 35 5 / 38%),
+    0 0 22px rgb(220 166 56 / 18%);
+  transition:
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 220ms ease,
+    background-position 500ms ease;
   animation: fade-up 620ms 100ms ease-out both;
 }
 
@@ -64,9 +79,13 @@
   outline: none;
   transform: translateY(-4px);
   filter: brightness(1.12) saturate(1.08);
-  background-position: 220px 0, 0 0;
+  background-position:
+    220px 0,
+    0 0;
 }
-.button:active { transform: translateY(1px) scale(0.97); }
+.button:active {
+  transform: translateY(1px) scale(0.97);
+}
 
 .buttonIcon {
   width: 1.32rem;
@@ -85,9 +104,35 @@
   animation: halo 3s ease-out infinite;
 }
 
-@keyframes halo { 0% { opacity: 0.7; transform: scale(0.98); } 100% { opacity: 0; transform: scale(1.08, 1.25); } }
-@keyframes sway { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
-@keyframes fade-up { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes halo {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.08, 1.25);
+  }
+}
+@keyframes sway {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 /* ราหูอมกรอบปุ่ม — ภาพวาด 2D ไทยแฟนตาซี */
 .button {
@@ -105,21 +150,28 @@
   overflow: visible;
   box-shadow: none;
   filter: drop-shadow(0 12px 10px rgb(0 0 0 / 72%));
-  transition: transform 220ms cubic-bezier(.2,.8,.2,1), filter 220ms ease;
+  transition:
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 220ms ease;
   animation: none;
 }
 .button::before,
-.button::after { display: none; }
+.button::after {
+  display: none;
+}
 .buttonText {
   position: relative;
   z-index: 2;
   font-size: 1.32rem;
-  text-shadow: 0 1px rgb(255 239 174 / 72%), 0 2px 3px rgb(103 56 5 / 20%);
+  text-shadow:
+    0 1px rgb(255 239 174 / 72%),
+    0 2px 3px rgb(103 56 5 / 20%);
 }
 .button:hover,
 .button:focus-visible {
   background-position: center !important;
-  filter: brightness(1.1) saturate(1.08) drop-shadow(0 15px 12px rgb(0 0 0 / 76%)) drop-shadow(0 0 8px rgb(238 181 55 / 42%));
+  filter: brightness(1.1) saturate(1.08) drop-shadow(0 15px 12px rgb(0 0 0 / 76%))
+    drop-shadow(0 0 8px rgb(238 181 55 / 42%));
 }
 .halo {
   inset: 12px 30px 4px;
@@ -135,7 +187,15 @@
   BattleScene.module.css ใช้กันปัญหาเดียวกันไปแล้ว — เตี้ยพอก็ย่อ ไม่ว่ากว้างแค่ไหน
 */
 @media (max-width: 860px), (max-height: 480px) {
-  .tagline { display: none; }
-  .button { width: 290px; min-height: 104px; padding: 46px 58px 8px; }
-  .buttonText { font-size: 1.08rem; }
+  .tagline {
+    display: none;
+  }
+  .button {
+    width: 290px;
+    min-height: 104px;
+    padding: 46px 58px 8px;
+  }
+  .buttonText {
+    font-size: 1.08rem;
+  }
 }

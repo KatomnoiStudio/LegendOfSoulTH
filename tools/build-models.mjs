@@ -125,7 +125,8 @@ async function main() {
       // ต้องมีอย่างน้อย 1 track ที่ค่าเปลี่ยนจริง ไม่ใช่ท่านิ่งค้าง
       const moves = idle.tracks.some((track) => {
         const v = track.values
-        for (let i = 0; i < v.length; i++) if (Math.abs(v[i] - v[i % track.getValueSize()]) > 1e-4) return true
+        for (let i = 0; i < v.length; i++)
+          if (Math.abs(v[i] - v[i % track.getValueSize()]) > 1e-4) return true
         return false
       })
       if (!moves) problems.push('Idle ไม่มีการเคลื่อนไหวจริง')
@@ -152,7 +153,9 @@ async function main() {
     console.log(`        สามเหลี่ยม    ${triangles}`)
     console.log(`        primitive     ${skinnedMeshes.length} (วัสดุ ${materials.size})`)
     console.log(`        กระดูก        ${skinnedMeshes[0]?.skeleton?.bones.length ?? 0}`)
-    console.log(`        Idle          ${idle ? `${idle.duration.toFixed(2)}s / ${idle.tracks.length} tracks` : '—'}`)
+    console.log(
+      `        Idle          ${idle ? `${idle.duration.toFixed(2)}s / ${idle.tracks.length} tracks` : '—'}`,
+    )
     console.log(`        ความสูงรวม    ${height.toFixed(2)} units`)
     for (const problem of problems) console.log(`        ⚠ ${problem}`)
   }

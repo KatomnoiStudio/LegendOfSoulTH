@@ -1,4 +1,5 @@
 <!-- coalmine: verified 2026-08-05 · exemplar affaan-m/ECC rules/README.md + agents.md open spec · revalidate 90d -->
+
 # ECC rule import — structure & precedence
 
 Adapted from [affaan-m/ECC](https://github.com/affaan-m/ECC) `rules/README.md` (MIT, see [LICENSE](LICENSE)). This file exists locally so an agent doesn't have to fetch the upstream repo to understand how these rules layer — the upstream README explains the `common/` vs language-directory split but was not itself copied over during import.

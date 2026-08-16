@@ -106,7 +106,7 @@ describe('WorldChat', () => {
   })
 
   test('เปิดแชทแล้วเห็นแท็บ ช่องพิมพ์ และปุ่มปิด ครบตาม role/label', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderChat()
 
     await user.click(screen.getByRole('button', { name: 'เปิดช่องแชท' }))
@@ -121,7 +121,7 @@ describe('WorldChat', () => {
   })
 
   test('พิมพ์ข้อความแล้วส่ง — ข้อความขึ้นในฟีดพร้อมชื่อผู้เล่น และช่องพิมพ์ถูกล้าง', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderChat()
 
     await user.click(screen.getByRole('button', { name: 'เปิดช่องแชท' }))
@@ -135,7 +135,7 @@ describe('WorldChat', () => {
   })
 
   test('ผู้เล่นทั่วไปพิมพ์ /givecharacter — ไม่เรียก onGiveCharacter ถูกส่งเป็นแชทธรรมดาแทน พร้อมแจ้งเตือนส่วนตัว', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onGiveCharacter = vi.fn()
     renderChat({ onGiveCharacter })
 
@@ -152,7 +152,7 @@ describe('WorldChat', () => {
   })
 
   test('ผู้ดูแลพิมพ์ /givecharacter ตัวละครที่รู้จัก — เรียก onGiveCharacter และแสดงผลลัพธ์เฉพาะฝั่งตัวเอง ไม่โพสต์เข้าแชท', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onGiveCharacter = vi.fn().mockResolvedValue(grantOk('pig-warrior'))
     renderChat({ isAdmin: true, onGiveCharacter })
 
@@ -167,7 +167,7 @@ describe('WorldChat', () => {
   })
 
   test('ผู้ดูแลพิมพ์ /givegold — เรียก onGiveGoldAdmin ด้วยจำนวนที่ถูกต้อง', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onGiveGoldAdmin = vi.fn().mockResolvedValue(currencyOk())
     renderChat({ isAdmin: true, onGiveGoldAdmin })
 
@@ -180,7 +180,7 @@ describe('WorldChat', () => {
   })
 
   test('ผู้เล่นทั่วไปพิมพ์ /givegold — ไม่เรียก onGiveGoldAdmin ถูกส่งเป็นแชทธรรมดาแทน', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onGiveGoldAdmin = vi.fn()
     renderChat({ onGiveGoldAdmin })
 
@@ -193,7 +193,7 @@ describe('WorldChat', () => {
   })
 
   test('ผู้ดูแลพิมพ์ /giveitem — เรียก onGiveItemAdmin ด้วย item_id และจำนวนที่ถูกต้อง', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onGiveItemAdmin = vi.fn().mockResolvedValue(itemOk())
     renderChat({ isAdmin: true, onGiveItemAdmin })
 
@@ -206,7 +206,7 @@ describe('WorldChat', () => {
   })
 
   test('ผู้เล่นทั่วไปพิมพ์ /block — ทำงานได้ปกติ (คำสั่งสาธารณะ ไม่ใช่ความลับ)', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderChat()
 
     await user.click(screen.getByRole('button', { name: 'เปิดช่องแชท' }))
@@ -221,7 +221,7 @@ describe('WorldChat', () => {
   })
 
   test('บล็อกแล้วข้อความจากชื่อนั้นหายจากฟีดทันที (แม้เป็นข้อความเก่าที่มีอยู่แล้ว)', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     chatBackend.messages = [
       { id: '1', authorName: 'ตัวป่วน', text: 'สแปม', createdAt: '2026-01-01T00:00:00.000Z' },
     ]
@@ -237,7 +237,7 @@ describe('WorldChat', () => {
   })
 
   test('/unblock เอาชื่อออกจากบล็อกลิสต์ — ข้อความกลับมาเห็นได้ (re-render/re-post)', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderChat()
 
     await user.click(screen.getByRole('button', { name: 'เปิดช่องแชท' }))
@@ -254,7 +254,7 @@ describe('WorldChat', () => {
   })
 
   test('/blocklist แสดงรายชื่อที่บล็อกไว้', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderChat()
 
     await user.click(screen.getByRole('button', { name: 'เปิดช่องแชท' }))
@@ -267,7 +267,7 @@ describe('WorldChat', () => {
   })
 
   test('สลับไปแท็บแชทส่วนตัว — เห็นข้อความ "เร็ว ๆ นี้" ไม่มีฟอร์มพิมพ์', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderChat()
 
     await user.click(screen.getByRole('button', { name: 'เปิดช่องแชท' }))

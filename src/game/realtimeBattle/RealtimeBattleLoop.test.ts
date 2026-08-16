@@ -1,9 +1,5 @@
 import { describe, expect, test, vi } from 'vitest'
-import {
-  FIXED_STEP_MS,
-  startBattleLoop,
-  type BattleLoopScheduler,
-} from './RealtimeBattleLoop'
+import { FIXED_STEP_MS, startBattleLoop, type BattleLoopScheduler } from './RealtimeBattleLoop'
 
 /*
   ลูปนี้เป็นตัวคุมเวลาของห้องต่อสู้ทั้งระบบ แต่เดิมไม่มีเทสต์เลยสักตัว

@@ -65,5 +65,7 @@
 }
 
 @media (min-width: 900px) {
-  .dpad { opacity: 0.72; }
+  .dpad {
+    opacity: 0.72;
+  }
 }

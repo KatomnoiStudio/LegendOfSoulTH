@@ -38,7 +38,10 @@ function labelComponents(alpha, width, height, threshold) {
     labels[start] = id
     stack.push(start)
     let size = 0
-    let minX = width, maxX = 0, minY = height, maxY = 0
+    let minX = width,
+      maxX = 0,
+      minY = height,
+      maxY = 0
     while (stack.length) {
       const idx = stack.pop()
       size++
@@ -106,9 +109,7 @@ async function main() {
   for (const r of results) {
     console.log(`\n${r.file.replace(ROOT + '\\', '')}`)
     for (const s of r.strays) {
-      console.log(
-        `  stray ${s.size}px at (${s.minX},${s.minY})-(${s.maxX},${s.maxY})`
-      )
+      console.log(`  stray ${s.size}px at (${s.minX},${s.minY})-(${s.maxX},${s.maxY})`)
     }
   }
   console.log(`\nรวม ${results.length} ไฟล์ที่มีจุดลอยหลุด`)

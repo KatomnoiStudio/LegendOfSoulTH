@@ -20,8 +20,7 @@ export interface RankedHeroSnapshot {
 
 function rankedSkillLevel(characterId: string, slot: SkillSlotId): number {
   return (
-    getSkillProgressionDefinition(characterId, slot)?.maxLevel ??
-    RANKED_BASELINE.defaultSkillLevel
+    getSkillProgressionDefinition(characterId, slot)?.maxLevel ?? RANKED_BASELINE.defaultSkillLevel
   )
 }
 

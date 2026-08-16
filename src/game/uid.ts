@@ -74,7 +74,9 @@ function draw(): string {
  *                ตอนนี้ค่าเริ่มต้นเช็คเฉพาะที่เครื่องนี้เคยออกให้
  *                เมื่อมีฐานข้อมูลให้ส่งฟังก์ชันที่ถามฐานข้อมูลจริงเข้ามาแทน
  */
-export function generateUid(isTaken: (uid: string) => boolean = (uid) => issuedUids.has(uid)): string {
+export function generateUid(
+  isTaken: (uid: string) => boolean = (uid) => issuedUids.has(uid),
+): string {
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const uid = draw()
     if (!isTaken(uid)) {

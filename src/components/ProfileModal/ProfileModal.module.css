@@ -24,11 +24,22 @@
   max-height: min(86dvh, 44rem);
   /* แผ่นป้ายทองมุมตัดเฉียง ชุดเดียวกับ CharacterRosterModal/AuthModal/NameModal */
   border: 1px solid rgb(226 183 88 / 52%);
-  clip-path: polygon(20px 0, calc(100% - 20px) 0, 100% 20px, 100% calc(100% - 20px), calc(100% - 20px) 100%, 20px 100%, 0 calc(100% - 20px), 0 20px);
+  clip-path: polygon(
+    20px 0,
+    calc(100% - 20px) 0,
+    100% 20px,
+    100% calc(100% - 20px),
+    calc(100% - 20px) 100%,
+    20px 100%,
+    0 calc(100% - 20px),
+    0 20px
+  );
   background:
     radial-gradient(ellipse 70% 45% at 50% 0%, rgb(112 30 29 / 34%), transparent 64%),
     linear-gradient(165deg, rgb(14 34 46 / 98%), rgb(6 14 27 / 99%));
-  box-shadow: 0 24px 62px rgb(0 0 0 / 72%), inset 0 0 0 3px rgb(3 9 16 / 70%);
+  box-shadow:
+    0 24px 62px rgb(0 0 0 / 72%),
+    inset 0 0 0 3px rgb(3 9 16 / 70%);
   animation: dialog-in var(--dur-mid) var(--ease-bounce) both;
 }
 
@@ -117,7 +128,9 @@
   height: 1.5rem;
   border-radius: 50%;
   color: var(--c-text-dim);
-  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
 }
 
 .uidCopy:hover {
@@ -172,7 +185,9 @@
   color: var(--c-text-dim);
   font-size: 1.3rem;
   line-height: 1;
-  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
 }
 
 .close:hover {
@@ -258,7 +273,10 @@
   color: rgb(226 214 180 / 76%);
   font-size: 0.62rem;
   font-weight: 700;
-  transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-bounce);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-bounce);
 }
 .walkPickerItem:hover,
 .walkPickerItem:focus-visible {
@@ -371,7 +389,8 @@
   padding: var(--sp-7) var(--sp-4);
   border: 1px solid var(--c-border);
   border-radius: var(--r-md);
-  background: radial-gradient(ellipse 90% 120% at 50% 0%, rgb(109 140 255 / 20%), transparent 70%),
+  background:
+    radial-gradient(ellipse 90% 120% at 50% 0%, rgb(109 140 255 / 20%), transparent 70%),
     rgb(255 255 255 / 4%);
   text-align: center;
 }

@@ -42,7 +42,9 @@ export function CharacterCard({ character, selected, onSelect }: CharacterCardPr
 
         {/* บทบาท (นักรบกองหน้า ฯลฯ) ไม่แสดงบนการ์ด — ดูได้จากแผงรายละเอียดด้านขวา */}
         <span className={styles.tags}>
-          <span className={`${styles.tag} ${styles.tagRarity}`}>{RARITY_LABEL[character.rarity]}</span>
+          <span className={`${styles.tag} ${styles.tagRarity}`}>
+            {RARITY_LABEL[character.rarity]}
+          </span>
           <span className={styles.tag}>ธาตุ{character.element}</span>
         </span>
       </span>

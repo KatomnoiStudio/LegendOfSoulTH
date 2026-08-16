@@ -188,7 +188,10 @@ function extractCell(data, W, channels, box) {
     const isFilledWhite = (i) => {
       if (outside[i] || seed[i]) return false
       const index = at(i % w, (i / w) | 0)
-      return whiteDistance(data, index, channels) <= WHITE_TOLERANCE || isPaintedShadow(data, index, channels)
+      return (
+        whiteDistance(data, index, channels) <= WHITE_TOLERANCE ||
+        isPaintedShadow(data, index, channels)
+      )
     }
     const seen = new Uint8Array(w * h)
     for (let i = 0; i < w * h; i++) {
@@ -365,7 +368,10 @@ function measureFeet(rgba, w, h) {
 }
 
 async function main() {
-  const { data, info } = await sharp(SHEET).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+  const { data, info } = await sharp(SHEET)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
   const { width: W, channels } = info
 
   const frames = []
@@ -373,7 +379,12 @@ async function main() {
     const [y0, y1] = band
     const cells = []
     for (const [cx0, cx1] of COLUMNS) {
-      const cell = extractCell(data, W, channels, { x0: cx0 - 4, y0: y0 - 4, x1: cx1 + 5, y1: y1 + 5 })
+      const cell = extractCell(data, W, channels, {
+        x0: cx0 - 4,
+        y0: y0 - 4,
+        x1: cx1 + 5,
+        y1: y1 + 5,
+      })
       if (!cell) continue
       cells.push({
         cell,
@@ -410,7 +421,12 @@ async function main() {
       .toBuffer()
 
     await sharp({
-      create: { width: CANVAS_W, height: CANVAS_H, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+      create: {
+        width: CANVAS_W,
+        height: CANVAS_H,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
     })
       .composite([
         {
@@ -428,7 +444,10 @@ async function main() {
 
   for (const { direction, cells } of frames) {
     for (let frame = 0; frame < FRAME_COUNT; frame++) {
-      await render(cells[frame % cells.length], join(WALK_DIR, `pigsy-walk-${direction}-${frame}.png`))
+      await render(
+        cells[frame % cells.length],
+        join(WALK_DIR, `pigsy-walk-${direction}-${frame}.png`),
+      )
     }
   }
   console.log(`เขียนเฟรมเดินแล้ว ${ROWS.length * FRAME_COUNT} ไฟล์`)

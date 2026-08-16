@@ -163,7 +163,9 @@ function extractCell(data, W, channels, box) {
   // ลบเป็นหย่อม ไม่ใช่รายพิกเซล เพราะจุดดำเล็ก ๆ กระจัดกระจายคือเงาในชุด ลบแล้วตัวจะพรุน
   {
     const isFilledBg = (i) =>
-      !outside[i] && !seed[i] && bgDistance(data, at(i % w, (i / w) | 0), channels) <= FILLED_BG_LIMIT
+      !outside[i] &&
+      !seed[i] &&
+      bgDistance(data, at(i % w, (i / w) | 0), channels) <= FILLED_BG_LIMIT
     const seen = new Uint8Array(w * h)
     for (let i = 0; i < w * h; i++) {
       if (seen[i] || !isFilledBg(i)) continue
@@ -370,7 +372,10 @@ function sampleEvenly(list, n) {
 }
 
 async function main() {
-  const { data, info } = await sharp(SHEET).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+  const { data, info } = await sharp(SHEET)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
   const { width: W, channels } = info
 
   const rows = []
@@ -379,9 +384,15 @@ async function main() {
     const cells = []
     for (const [index, [cx0, cx1]] of COLUMNS.entries()) {
       // คอลัมน์แรกเท่านั้นที่ติดกับป้ายชื่อทิศ จึงต้องหาขอบซ้ายจริงเป็นแถว ๆ ไป
-      const left = index === 0 ? findSpriteLeftEdge(data, W, channels, 82, cx1, y0, y1) - 2 : cx0 - 4
+      const left =
+        index === 0 ? findSpriteLeftEdge(data, W, channels, 82, cx1, y0, y1) - 2 : cx0 - 4
       const cell = extractCell(data, W, channels, { x0: left, y0: y0 - 5, x1: cx1 + 5, y1: y1 + 6 })
-      if (cell) cells.push({ cell, head: measureHead(cell.buffer, cell.width, cell.height), feet: measureFeet(cell.buffer, cell.width, cell.height) })
+      if (cell)
+        cells.push({
+          cell,
+          head: measureHead(cell.buffer, cell.width, cell.height),
+          feet: measureFeet(cell.buffer, cell.width, cell.height),
+        })
     }
     console.log(`${direction.padEnd(11)} ตัดได้ ${cells.length} เฟรม`)
     rows.push({ direction, cells })
@@ -412,7 +423,12 @@ async function main() {
       .toBuffer()
 
     await sharp({
-      create: { width: CANVAS_W, height: CANVAS_H, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+      create: {
+        width: CANVAS_W,
+        height: CANVAS_H,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
     })
       .composite([
         {
@@ -431,7 +447,10 @@ async function main() {
   for (const { direction, cells } of rows) {
     const picked = sampleEvenly(cells, FRAME_COUNT)
     for (let frame = 0; frame < FRAME_COUNT; frame++) {
-      await render(picked[frame % picked.length], join(WALK_DIR, `pigsy-walk-${direction}-${frame}.png`))
+      await render(
+        picked[frame % picked.length],
+        join(WALK_DIR, `pigsy-walk-${direction}-${frame}.png`),
+      )
     }
   }
   console.log(`เขียนเฟรมเดินแล้ว ${ROWS.length * FRAME_COUNT} ไฟล์`)
@@ -454,7 +473,10 @@ async function main() {
     for (const [row, { direction }] of ROWS.entries()) {
       for (let frame = 0; frame < FRAME_COUNT; frame++) {
         tiles.push({
-          input: await sharp(join(WALK_DIR, `pigsy-walk-${direction}-${frame}.png`)).resize(180, 144).png().toBuffer(),
+          input: await sharp(join(WALK_DIR, `pigsy-walk-${direction}-${frame}.png`))
+            .resize(180, 144)
+            .png()
+            .toBuffer(),
           left: frame * 180,
           top: row * 144,
         })
@@ -462,7 +484,12 @@ async function main() {
     }
     const previewPath = join(ROOT, 'pigsy-v4-preview.png')
     await sharp({
-      create: { width: 180 * FRAME_COUNT, height: 144 * ROWS.length, channels: 4, background: { r: 255, g: 0, b: 255, alpha: 1 } },
+      create: {
+        width: 180 * FRAME_COUNT,
+        height: 144 * ROWS.length,
+        channels: 4,
+        background: { r: 255, g: 0, b: 255, alpha: 1 },
+      },
     })
       .composite(tiles)
       .png()

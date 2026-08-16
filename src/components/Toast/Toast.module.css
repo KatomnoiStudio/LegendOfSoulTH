@@ -19,9 +19,10 @@
   padding: var(--sp-3) var(--sp-5);
   border: 1px solid var(--c-border);
   border-radius: var(--r-pill);
-  background:
-    linear-gradient(180deg, rgb(20 60 88 / 92%), rgb(8 32 51 / 96%));
-  box-shadow: var(--shadow-2), inset 0 1px 0 rgb(255 224 138 / 25%);
+  background: linear-gradient(180deg, rgb(20 60 88 / 92%), rgb(8 32 51 / 96%));
+  box-shadow:
+    var(--shadow-2),
+    inset 0 1px 0 rgb(255 224 138 / 25%);
   color: var(--c-text);
   font-size: 0.9rem;
   letter-spacing: 0.2px;

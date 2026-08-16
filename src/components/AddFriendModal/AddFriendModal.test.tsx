@@ -67,7 +67,7 @@ describe('AddFriendModal', () => {
   })
 
   test('ค้นหา UID เจอผู้เล่น แล้วกดเพิ่มเพื่อน — เรียก onPlayerChange พร้อมรายชื่อเพื่อนใหม่', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const player = makePlayer()
     const onSearch = vi.fn().mockResolvedValue(candidate)
     const onPlayerChange = vi.fn().mockResolvedValue(true)
@@ -87,7 +87,7 @@ describe('AddFriendModal', () => {
   })
 
   test('ค้นหา UID ไม่เจอ — แสดงข้อความไม่พบ ไม่เรียก onPlayerChange', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onSearch = vi.fn().mockResolvedValue(null)
     const onPlayerChange = vi.fn()
 
@@ -103,7 +103,7 @@ describe('AddFriendModal', () => {
   })
 
   test('สลับไปแท็บ "รายชื่อเพื่อน" แสดงรายชื่อเพื่อนที่มีอยู่แล้วของผู้เล่น', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderModal({ player: makePlayer({ friends: [candidate] }) })
 
     await user.click(screen.getByRole('tab', { name: 'รายชื่อเพื่อน' }))
@@ -114,7 +114,7 @@ describe('AddFriendModal', () => {
   })
 
   test('กดปุ่มปิด — เรียก onClose', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onClose = vi.fn()
     renderModal({ onClose })
 
@@ -128,7 +128,7 @@ describe('AddFriendModal', () => {
 
 describe('Scar 3: Friend addition failure & capacity error handling (Guardian Tales Sept 2023)', () => {
   test('onPlayerChange failure shows error toast and does not display false success message', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const player = makePlayer()
     const onSearch = vi.fn().mockResolvedValue(candidate)
     const onPlayerChange = vi.fn().mockResolvedValue(false) // จำลองความล้มเหลว (เช่น เกินลิมิตหรือบันทึกไม่ผ่าน)

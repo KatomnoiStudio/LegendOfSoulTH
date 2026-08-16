@@ -110,7 +110,9 @@ export function TitlePage({ onStart }: TitlePageProps) {
 
       <header className={styles.topBar}>
         <span className={styles.chapter}>บทที่ ๑ · การตื่นของตำนาน</span>
-        <span className={styles.topMark} aria-hidden="true">✦</span>
+        <span className={styles.topMark} aria-hidden="true">
+          ✦
+        </span>
         <span className={styles.genre}>MYTHIC REAL-TIME RPG</span>
       </header>
 
@@ -119,7 +121,11 @@ export function TitlePage({ onStart }: TitlePageProps) {
           <span className={styles.sealOrbit} />
           <span className={styles.sealCore}>魂</span>
         </div>
-        <div className={styles.eyebrow}><span /><em>THE JOURNEY BEGINS</em><span /></div>
+        <div className={styles.eyebrow}>
+          <span />
+          <em>THE JOURNEY BEGINS</em>
+          <span />
+        </div>
         <h1 className={styles.title} id="game-title" aria-label="Legend of Soul-TH">
           <span className={styles.legend}>Legend of</span>
           <span className={styles.soul}>Soul</span>
@@ -136,7 +142,9 @@ export function TitlePage({ onStart }: TitlePageProps) {
           <i className={`${styles.frameCorner} ${styles.frameCornerTr}`} aria-hidden="true" />
           <i className={`${styles.frameCorner} ${styles.frameCornerBl}`} aria-hidden="true" />
           <i className={`${styles.frameCorner} ${styles.frameCornerBr}`} aria-hidden="true" />
-          <span className={styles.frameCrown} aria-hidden="true"><b>魂</b></span>
+          <span className={styles.frameCrown} aria-hidden="true">
+            <b>魂</b>
+          </span>
           <button
             type="button"
             className={styles.start}
@@ -144,8 +152,13 @@ export function TitlePage({ onStart }: TitlePageProps) {
             disabled={isOpening}
             aria-busy={isOpening}
           >
-            <span className={styles.buttonRune} aria-hidden="true">◆</span>
-            <span className={styles.buttonCopy}><strong>เข้าสู่ตำนาน</strong><small>BEGIN YOUR JOURNEY</small></span>
+            <span className={styles.buttonRune} aria-hidden="true">
+              ◆
+            </span>
+            <span className={styles.buttonCopy}>
+              <strong>เข้าสู่ตำนาน</strong>
+              <small>BEGIN YOUR JOURNEY</small>
+            </span>
             <BattleIcon className={styles.startIcon} />
           </button>
           <span className={styles.clickBurst} aria-hidden="true" />
@@ -155,11 +168,14 @@ export function TitlePage({ onStart }: TitlePageProps) {
       </div>
 
       <footer className={styles.footer}>
-        <span className={styles.online}><i /> ตำนานพร้อมแล้ว</span>
-        <span className={styles.footerEmblem} aria-hidden="true">◈</span>
+        <span className={styles.online}>
+          <i /> ตำนานพร้อมแล้ว
+        </span>
+        <span className={styles.footerEmblem} aria-hidden="true">
+          ◈
+        </span>
         <span>VERSION {GAME_INFO.version}</span>
       </footer>
-
     </main>
   )
 }

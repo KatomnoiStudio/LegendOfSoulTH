@@ -21,7 +21,9 @@
   background:
     radial-gradient(circle at 80% 5%, rgb(80 220 165 / 18%), transparent 38%),
     linear-gradient(145deg, rgb(18 18 36 / 98%), rgb(7 10 20 / 98%));
-  box-shadow: var(--shadow-3), 0 0 38px rgb(80 220 165 / 12%);
+  box-shadow:
+    var(--shadow-3),
+    0 0 38px rgb(80 220 165 / 12%);
 }
 
 .header {

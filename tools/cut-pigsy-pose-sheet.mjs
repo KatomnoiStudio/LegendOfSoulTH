@@ -42,7 +42,6 @@ const FILE_PREFIX = ANIMATION === 'gesture' ? 'pigsy-team' : 'pigsy-idle'
 const COLUMNS = Number(args.get('columns') ?? 4)
 const PREVIEW = process.argv.includes('--preview')
 
-
 const BG = [0, 0, 0]
 const BG_TOLERANCE = 26
 const EDGE_FULL_DISTANCE = 70
@@ -146,7 +145,9 @@ function extractCell(data, W, channels, box) {
   // ไม่งั้นเงาเข้มในชุดจะถูกเจาะจนตัวพรุน)
   {
     const isFilledBg = (i) =>
-      !outside[i] && !seed[i] && bgDistance(data, at(i % w, (i / w) | 0), channels) <= FILLED_BG_LIMIT
+      !outside[i] &&
+      !seed[i] &&
+      bgDistance(data, at(i % w, (i / w) | 0), channels) <= FILLED_BG_LIMIT
     const seen = new Uint8Array(w * h)
     for (let i = 0; i < w * h; i++) {
       if (seen[i] || !isFilledBg(i)) continue
@@ -338,7 +339,6 @@ function measureFeet(rgba, w, h) {
   return { y: h - 1, centerX: w / 2 }
 }
 
-
 /** หาช่วง x ของตัวละครแต่ละตัวในแถว โดยข้ามหัวเรื่องที่แคบกว่า */
 function findSpriteColumns(data, W, channels, y0, y1) {
   const runs = []
@@ -386,7 +386,11 @@ function findSpriteColumns(data, W, channels, y0, y1) {
     const window = Math.round(step * 0.22)
     let bestX = ideal
     let bestDensity = Infinity
-    for (let x = Math.max(contentStart + 1, ideal - window); x <= Math.min(contentEnd - 1, ideal + window); x++) {
+    for (
+      let x = Math.max(contentStart + 1, ideal - window);
+      x <= Math.min(contentEnd - 1, ideal + window);
+      x++
+    ) {
       if (density[x] < bestDensity) {
         bestDensity = density[x]
         bestX = x
@@ -426,7 +430,10 @@ function findRowBands(data, W, H, channels) {
 }
 
 async function main() {
-  const { data, info } = await sharp(SHEET).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+  const { data, info } = await sharp(SHEET)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
   const { width: W, height: H, channels } = info
 
   const rowBands = findRowBands(data, W, H, channels)
@@ -434,7 +441,12 @@ async function main() {
   for (const [y0, y1] of rowBands) {
     const columns = findSpriteColumns(data, W, channels, y0, y1)
     for (const [cx0, cx1] of columns) {
-      const cell = extractCell(data, W, channels, { x0: cx0 - 5, y0: y0 - 5, x1: cx1 + 6, y1: y1 + 6 })
+      const cell = extractCell(data, W, channels, {
+        x0: cx0 - 5,
+        y0: y0 - 5,
+        x1: cx1 + 6,
+        y1: y1 + 6,
+      })
       if (cell) {
         cells.push({
           cell,
@@ -479,7 +491,12 @@ async function main() {
       .toBuffer()
 
     await sharp({
-      create: { width: CANVAS_W, height: CANVAS_H, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+      create: {
+        width: CANVAS_W,
+        height: CANVAS_H,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
     })
       .composite([
         {
@@ -496,26 +513,34 @@ async function main() {
 
   for (let frame = 0; frame < FRAME_COUNT; frame++) {
     // ยืดต้นฉบับให้เต็มจำนวนช่องแบบเรียงลำดับ (ไม่ใช่สุ่ม/ข้าม) เพื่อให้ลูปหายใจต่อเนื่อง
-    const source = cells[Math.min(cells.length - 1, Math.floor((frame * cells.length) / FRAME_COUNT))]
+    const source =
+      cells[Math.min(cells.length - 1, Math.floor((frame * cells.length) / FRAME_COUNT))]
     await render(source, join(OUT_DIR, `${FILE_PREFIX}-${frame}.png`))
   }
   console.log(
     `เขียนแล้ว ${FRAME_COUNT} ไฟล์: ${FILE_PREFIX}-0..${FRAME_COUNT - 1}.png (จากต้นฉบับ ${cells.length} เฟรม)`,
   )
 
-
   if (PREVIEW) {
     const tiles = []
     for (let frame = 0; frame < FRAME_COUNT; frame++) {
       tiles.push({
-        input: await sharp(join(OUT_DIR, `${FILE_PREFIX}-${frame}.png`)).resize(240, 192).png().toBuffer(),
+        input: await sharp(join(OUT_DIR, `${FILE_PREFIX}-${frame}.png`))
+          .resize(240, 192)
+          .png()
+          .toBuffer(),
         left: (frame % 4) * 240,
         top: ((frame / 4) | 0) * 192,
       })
     }
     const previewPath = join(ROOT, `pigsy-${ANIMATION}-preview.png`)
     await sharp({
-      create: { width: 960, height: 384, channels: 4, background: { r: 255, g: 0, b: 255, alpha: 1 } },
+      create: {
+        width: 960,
+        height: 384,
+        channels: 4,
+        background: { r: 255, g: 0, b: 255, alpha: 1 },
+      },
     })
       .composite(tiles)
       .png()

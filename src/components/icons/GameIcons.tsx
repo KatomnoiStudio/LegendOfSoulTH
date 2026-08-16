@@ -85,8 +85,16 @@ export function GuildIcon(props: IconProps) {
 export function ClashFistsIcon(props: IconProps) {
   return (
     <Svg strokeWidth={1.35} {...props}>
-      <path d="m3.2 14.8 2.2-5.6 2.2-.8 2.5 2.3-1.2 2.1 2.2 1.9-3.8 4.1z" fill="currentColor" fillOpacity="0.32" />
-      <path d="m20.8 14.8-2.2-5.6-2.2-.8-2.5 2.3 1.2 2.1-2.2 1.9 3.8 4.1z" fill="currentColor" fillOpacity="0.32" />
+      <path
+        d="m3.2 14.8 2.2-5.6 2.2-.8 2.5 2.3-1.2 2.1 2.2 1.9-3.8 4.1z"
+        fill="currentColor"
+        fillOpacity="0.32"
+      />
+      <path
+        d="m20.8 14.8-2.2-5.6-2.2-.8-2.5 2.3 1.2 2.1-2.2 1.9 3.8 4.1z"
+        fill="currentColor"
+        fillOpacity="0.32"
+      />
       <path d="m8.8 12.8 2.2-2.1M15.2 12.8 13 10.7M10.2 15.4h3.6" />
       <path d="M12 3v3M5.6 5.2l2.1 2M18.4 5.2l-2.1 2" />
     </Svg>
@@ -97,8 +105,16 @@ export function ClashFistsIcon(props: IconProps) {
 export function WukongHeadIcon(props: IconProps) {
   return (
     <Svg strokeWidth={1.25} {...props}>
-      <path d="M6.2 8.1 4.5 5.2l4 .8L12 2.8 15.5 6l4-.8-1.7 2.9" fill="currentColor" fillOpacity="0.28" />
-      <path d="M6.1 10.2C6.1 6.9 8.7 5 12 5s5.9 1.9 5.9 5.2v4.3c0 3.6-2.6 6.2-5.9 6.2s-5.9-2.6-5.9-6.2z" fill="currentColor" fillOpacity="0.18" />
+      <path
+        d="M6.2 8.1 4.5 5.2l4 .8L12 2.8 15.5 6l4-.8-1.7 2.9"
+        fill="currentColor"
+        fillOpacity="0.28"
+      />
+      <path
+        d="M6.1 10.2C6.1 6.9 8.7 5 12 5s5.9 1.9 5.9 5.2v4.3c0 3.6-2.6 6.2-5.9 6.2s-5.9-2.6-5.9-6.2z"
+        fill="currentColor"
+        fillOpacity="0.18"
+      />
       <path d="M7.2 12.1c1.8-2 3.3-2.2 4.8-.7 1.5-1.5 3-1.3 4.8.7M8.5 14.1l2 1M15.5 14.1l-2 1M10.2 18h3.6" />
       <path d="M5.9 11.2c-2-.5-2.7 2.7.2 3.2M18.1 11.2c2-.5 2.7 2.7-.2 3.2" />
     </Svg>
@@ -110,7 +126,11 @@ export function DumbbellIcon(props: IconProps) {
   return (
     <Svg strokeWidth={1.55} {...props}>
       <path d="M7.2 10.2h9.6v3.6H7.2z" fill="currentColor" fillOpacity="0.2" />
-      <path d="M3.2 8.3h2.3v7.4H3.2zM18.5 8.3h2.3v7.4h-2.3z" fill="currentColor" fillOpacity="0.34" />
+      <path
+        d="M3.2 8.3h2.3v7.4H3.2zM18.5 8.3h2.3v7.4h-2.3z"
+        fill="currentColor"
+        fillOpacity="0.34"
+      />
       <path d="M1.7 10.1h1.5v3.8H1.7zM20.8 10.1h1.5v3.8h-1.5zM5.5 10h1.7v4H5.5zM16.8 10h1.7v4h-1.7z" />
     </Svg>
   )
@@ -132,7 +152,11 @@ export function JadeBiIcon(props: IconProps) {
 export function GuildCrestIcon(props: IconProps) {
   return (
     <Svg strokeWidth={1.25} {...props}>
-      <path d="M12 2.6 20 6v5.7c0 4.8-3.1 7.7-8 9.7-4.9-2-8-4.9-8-9.7V6z" fill="currentColor" fillOpacity="0.18" />
+      <path
+        d="M12 2.6 20 6v5.7c0 4.8-3.1 7.7-8 9.7-4.9-2-8-4.9-8-9.7V6z"
+        fill="currentColor"
+        fillOpacity="0.18"
+      />
       <path d="M8.1 8.2c-2 .7-2.3 3.2-.8 4.5 1.2 1 2.7.2 3.5-1.1M15.9 8.2c2 .7 2.3 3.2.8 4.5-1.2 1-2.7.2-3.5-1.1" />
       <path d="M12 7.1v9.8M8.7 15.2 12 17.5l3.3-2.3M9.3 6.2 12 8l2.7-1.8" />
     </Svg>
@@ -323,7 +347,11 @@ export function MoonWalkIcon(props: IconProps) {
         fill="currentColor"
         fillOpacity="0.25"
       />
-      <path d="m17.4 3.2.85 1.9 1.9.85-1.9.85-.85 1.9-.85-1.9-1.9-.85 1.9-.85z" fill="currentColor" fillOpacity="0.7" />
+      <path
+        d="m17.4 3.2.85 1.9 1.9.85-1.9.85-.85 1.9-.85-1.9-1.9-.85 1.9-.85z"
+        fill="currentColor"
+        fillOpacity="0.7"
+      />
     </Svg>
   )
 }
@@ -341,7 +369,11 @@ export function TeamFormationIcon(props: IconProps) {
       <ellipse cx="19.1" cy="11.9" rx="1.9" ry="1" fill="currentColor" fillOpacity="0.5" />
       {/* หมุดบอกตำแหน่งที่มีคนยืน */}
       <path d="M9.6 9.4v2.6M14.4 9.4v2.6" strokeWidth={1.7} />
-      <path d="m9.6 4.6 1.5 3.1-1.5 1.5-1.5-1.5zM14.4 4.6l1.5 3.1-1.5 1.5-1.5-1.5z" fill="currentColor" fillOpacity="0.6" />
+      <path
+        d="m9.6 4.6 1.5 3.1-1.5 1.5-1.5-1.5zM14.4 4.6l1.5 3.1-1.5 1.5-1.5-1.5z"
+        fill="currentColor"
+        fillOpacity="0.6"
+      />
     </Svg>
   )
 }

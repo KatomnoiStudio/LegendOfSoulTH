@@ -18,14 +18,14 @@ Every `pnpm ...` command in `web/hooks.md`, `common/hooks.md` (if present), etc.
 npm run lint          # oxlint --deny-warnings, config: .oxlintrc.json
 npm run typecheck     # tsc -b && deno check (edge functions)
 npm run format        # prettier --write .
-npm run format:check  # prettier --check .   (NOT in `npm run ci`)
+npm run format:check  # prettier --check .   (IN `npm run ci` since 2026-08-16)
 ```
 
 Do not wire a hook to `eslint`/`stylelint` — they are genuinely absent. **Prettier is a real devDependency (`prettier ^3.9.6`) and already runs on every commit** via `husky` + `lint-staged`, which formats `*.{ts,tsx,json,css,md}` before the commit lands.
 
 > **⚠️ Corrected 2026-08-16.** This section previously read "no ESLint, Prettier, or Stylelint installed" and told agents to add Prettier as a real dependency before assuming it existed. It has been a real dependency and an active pre-commit step the whole time. This file wins precedence on toolchain conflicts, so the false claim was being obeyed — an agent following it would decline to run a formatter that runs anyway. Found by the 2026-08-16 gold-standard audit; four of five scouts caught this file independently.
 >
-> **`format:check` is deliberately not in `npm run ci`** — the tree is not prettier-clean and, without a `.gitattributes`, the check reports hundreds of CRLF-only false failures on Windows. Landing `.gitattributes` first is audit item B3.
+> **`format:check` is now IN `npm run ci` (2026-08-16).** It was excluded because the tree was not prettier-clean and, without a `.gitattributes`, the check reported hundreds of CRLF-only false failures on Windows — 371 files, of which only 114 were real. `.gitattributes` landed (`* text=auto eol=lf`), the tree was renormalised and formatted once, and the count went to zero. Both halves were needed: formatting without `.gitattributes` would have re-broken on the next Windows checkout.
 
 ## Env vars: `import.meta.env`, not `process.env`
 

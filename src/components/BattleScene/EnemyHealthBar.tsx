@@ -27,10 +27,9 @@ export function EnemyHealthBar({
     ...nextWaveEnemies]`) ความยาวของรายการจึงเป็นผลรวมสะสม ถ้ากันช่องไว้แค่เท่าคลื่นที่ใหญ่สุด
     ลูปด้านล่างจะวนถึงแค่ศพของคลื่นก่อน ศัตรูที่ยังมีชีวิตในคลื่นหลังจะไม่มีหลอดเลือดเลย
   */
-  const capacity = runtime.getState().stage.waves.reduce(
-    (total, wave) => total + wave.enemies.length,
-    0,
-  )
+  const capacity = runtime
+    .getState()
+    .stage.waves.reduce((total, wave) => total + wave.enemies.length, 0)
 
   useEffect(() => {
     let frame = 0

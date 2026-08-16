@@ -6,14 +6,7 @@
  */
 
 export type Direction =
-  | 'down'
-  | 'down-right'
-  | 'right'
-  | 'up-right'
-  | 'up'
-  | 'up-left'
-  | 'left'
-  | 'down-left'
+  'down' | 'down-right' | 'right' | 'up-right' | 'up' | 'up-left' | 'left' | 'down-left'
 
 export type Point = { x: number; y: number }
 
@@ -54,7 +47,11 @@ export function directionFromVector(x: number, y: number): Direction {
 
 export function isInsideWalkableArea(point: Point): boolean {
   let inside = false
-  for (let index = 0, previous = WALKABLE_AREA.length - 1; index < WALKABLE_AREA.length; previous = index++) {
+  for (
+    let index = 0, previous = WALKABLE_AREA.length - 1;
+    index < WALKABLE_AREA.length;
+    previous = index++
+  ) {
     const currentPoint = WALKABLE_AREA[index]
     const previousPoint = WALKABLE_AREA[previous]
     const crossesRay =
@@ -75,11 +72,7 @@ export function closestPointOnSegment(point: Point, start: Point, end: Point): P
   if (lengthSquared === 0) return start
   const amount = Math.min(
     1,
-    Math.max(
-      0,
-      ((point.x - start.x) * segmentX + (point.y - start.y) * segmentY) /
-        lengthSquared,
-    ),
+    Math.max(0, ((point.x - start.x) * segmentX + (point.y - start.y) * segmentY) / lengthSquared),
   )
   return { x: start.x + segmentX * amount, y: start.y + segmentY * amount }
 }

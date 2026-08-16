@@ -47,7 +47,7 @@ describe('SettingsModal', () => {
   })
 
   test('กดปุ่มปิด (aria-label="ปิด") เรียก onClose', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const props = renderModal()
 
     await user.click(screen.getByRole('button', { name: 'ปิด' }))
@@ -56,7 +56,7 @@ describe('SettingsModal', () => {
   })
 
   test('สลับไปแท็บเสียง แล้วกดเพิ่มเสียงช่อง master — ค่าที่ส่งออกบวกด้วย VOLUME_STEP', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const props = renderModal()
 
     await user.click(screen.getByRole('tab', { name: /เสียง/ }))
@@ -76,7 +76,7 @@ describe('SettingsModal', () => {
   })
 
   test('ปิดเสียงอยู่แล้วกดเพิ่มเสียง — ต้อง unmute ด้วย (ไม่ใช่แค่เพิ่มค่า)', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const props = renderModal({ audio: { ...DEFAULT_AUDIO_SETTINGS, muted: true } })
 
     await user.click(screen.getByRole('tab', { name: /เสียง/ }))
@@ -89,7 +89,7 @@ describe('SettingsModal', () => {
   })
 
   test('สลับแท็บกราฟิกแล้วเลือกระดับ "สูง" — เรียก onPerformanceOverrideChange ด้วยค่านั้น', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const props = renderModal()
 
     await user.click(screen.getByRole('tab', { name: /กราฟิก/ }))
@@ -99,7 +99,7 @@ describe('SettingsModal', () => {
   })
 
   test('กรอกคูปองแล้วส่ง — โค้ดถูกบังคับเป็นตัวพิมพ์ใหญ่และแลกสำเร็จเคลียร์ช่องกรอก', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onRedeemCoupon = vi.fn().mockResolvedValue({ ok: true, player: {}, amount: 100 })
     renderModal({ onRedeemCoupon })
 
@@ -116,7 +116,7 @@ describe('SettingsModal', () => {
   })
 
   test('โค้ดคูปองสั้นกว่าขั้นต่ำ — ปุ่มแลกรางวัลถูก disable ไม่เรียก onRedeem', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onRedeemCoupon = vi.fn()
     renderModal({ onRedeemCoupon })
 
@@ -128,7 +128,7 @@ describe('SettingsModal', () => {
   })
 
   test('กดออกจากบัญชี เรียก onLogout', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const props = renderModal()
 
     await user.click(screen.getByRole('button', { name: 'ออกจากบัญชี' }))
@@ -137,7 +137,7 @@ describe('SettingsModal', () => {
   })
 
   test('ยังไม่เชื่อม Google — กดปุ่มแล้วเรียก onLinkGoogleAccount', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const props = renderModal({ hasGoogleLinked: false })
 
     const linkButton = screen.getByRole('button', { name: 'เชื่อมบัญชี Google' })
@@ -155,7 +155,7 @@ describe('SettingsModal', () => {
   })
 
   test('onLinkGoogleAccount คืนข้อความ error — โชว์ toast และปุ่มกลับมากดได้', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onLinkGoogleAccount = vi.fn().mockResolvedValue('เชื่อมบัญชี Google ไม่สำเร็จ')
     renderModal({ hasGoogleLinked: false, onLinkGoogleAccount })
 
@@ -167,7 +167,7 @@ describe('SettingsModal', () => {
   })
 
   test('onLinkGoogleAccount reject ไม่ทำให้ปุ่มค้าง disable ถาวร', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onLinkGoogleAccount = vi.fn().mockRejectedValue(new Error('เครือข่ายขัดข้อง'))
     renderModal({ hasGoogleLinked: false, onLinkGoogleAccount })
 

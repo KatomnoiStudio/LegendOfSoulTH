@@ -127,10 +127,12 @@ useFrame(
 ```
 
 **Parameters**:
+
 - `callback` - Function called every frame
 - `renderPriority` - Execution order (default: 0, higher = later)
 
 **State Object**:
+
 ```typescript
 interface RootState {
   gl: WebGLRenderer
@@ -225,6 +227,7 @@ useThree<T = RootState>(
 ```
 
 **Parameters**:
+
 - `selector` - Function to select specific state (optional)
 - `equalityFn` - Custom equality function for optimization
 
@@ -345,14 +348,20 @@ function Scene() {
   const [texture1, texture2, texture3] = useLoader(TextureLoader, [
     '/tex1.jpg',
     '/tex2.jpg',
-    '/tex3.jpg'
+    '/tex3.jpg',
   ])
 
   return (
     <>
-      <mesh><meshStandardMaterial map={texture1} /></mesh>
-      <mesh><meshStandardMaterial map={texture2} /></mesh>
-      <mesh><meshStandardMaterial map={texture3} /></mesh>
+      <mesh>
+        <meshStandardMaterial map={texture1} />
+      </mesh>
+      <mesh>
+        <meshStandardMaterial map={texture2} />
+      </mesh>
+      <mesh>
+        <meshStandardMaterial map={texture3} />
+      </mesh>
     </>
   )
 }
@@ -361,15 +370,11 @@ function Scene() {
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader'
 
 function CompressedModel() {
-  const gltf = useLoader(
-    GLTFLoader,
-    '/compressed.glb',
-    (loader) => {
-      const dracoLoader = new DRACOLoader()
-      dracoLoader.setDecoderPath('/draco/')
-      loader.setDRACOLoader(dracoLoader)
-    }
-  )
+  const gltf = useLoader(GLTFLoader, '/compressed.glb', (loader) => {
+    const dracoLoader = new DRACOLoader()
+    dracoLoader.setDecoderPath('/draco/')
+    loader.setDRACOLoader(dracoLoader)
+  })
 
   return <primitive object={gltf.scene} />
 }
@@ -378,14 +383,9 @@ function CompressedModel() {
 function ModelWithProgress() {
   const [progress, setProgress] = useState(0)
 
-  const gltf = useLoader(
-    GLTFLoader,
-    '/large-model.glb',
-    undefined,
-    (event) => {
-      setProgress((event.loaded / event.total) * 100)
-    }
-  )
+  const gltf = useLoader(GLTFLoader, '/large-model.glb', undefined, (event) => {
+    setProgress((event.loaded / event.total) * 100)
+  })
 
   return <primitive object={gltf.scene} />
 }
@@ -659,7 +659,7 @@ interface OrbitControlsProps {
 ```jsx
 import { OrbitControls } from '@react-three/drei'
 
-<OrbitControls
+;<OrbitControls
   makeDefault
   enableDamping
   dampingFactor={0.05}
@@ -775,18 +775,11 @@ function SelectToZoom() {
 ```jsx
 import { Html } from '@react-three/drei'
 
-<mesh>
+;<mesh>
   <boxGeometry />
   <meshStandardMaterial />
 
-  <Html
-    position={[0, 1, 0]}
-    center
-    distanceFactor={10}
-    occlude
-    transform
-    sprite
-  >
+  <Html position={[0, 1, 0]} center distanceFactor={10} occlude transform sprite>
     <div className="annotation">Label</div>
   </Html>
 </mesh>
@@ -809,7 +802,7 @@ function Scene() {
   return <mesh ref={meshRef}>...</mesh>
 }
 
-<Canvas>
+;<Canvas>
   <ScrollControls pages={3} damping={0.5}>
     <Scroll>
       <Scene />
@@ -826,7 +819,7 @@ function Scene() {
 ```jsx
 import { ContactShadows } from '@react-three/drei'
 
-<ContactShadows
+;<ContactShadows
   position={[0, -0.8, 0]}
   opacity={0.5}
   scale={10}
@@ -842,7 +835,7 @@ import { ContactShadows } from '@react-three/drei'
 ```jsx
 import { Sky } from '@react-three/drei'
 
-<Sky
+;<Sky
   distance={450000}
   sunPosition={[0, 1, 0]}
   inclination={0}
@@ -859,15 +852,7 @@ import { Sky } from '@react-three/drei'
 ```jsx
 import { Stars } from '@react-three/drei'
 
-<Stars
-  radius={100}
-  depth={50}
-  count={5000}
-  factor={4}
-  saturation={0}
-  fade
-  speed={1}
-/>
+;<Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 ```
 
 ---
@@ -879,7 +864,7 @@ import { Stars } from '@react-three/drei'
 ```jsx
 import { AdaptiveDpr } from '@react-three/drei'
 
-<AdaptiveDpr pixelated />
+;<AdaptiveDpr pixelated />
 ```
 
 ### AdaptiveEvents
@@ -887,7 +872,7 @@ import { AdaptiveDpr } from '@react-three/drei'
 ```jsx
 import { AdaptiveEvents } from '@react-three/drei'
 
-<AdaptiveEvents />
+;<AdaptiveEvents />
 ```
 
 ### PerformanceMonitor
@@ -895,7 +880,7 @@ import { AdaptiveEvents } from '@react-three/drei'
 ```jsx
 import { PerformanceMonitor } from '@react-three/drei'
 
-<PerformanceMonitor
+;<PerformanceMonitor
   onIncline={() => console.log('Performance improved')}
   onDecline={() => console.log('Performance degraded')}
   onFallback={() => console.log('Fallback triggered')}
@@ -912,9 +897,9 @@ import { PerformanceMonitor } from '@react-three/drei'
 ```jsx
 import { Preload } from '@react-three/drei'
 
-<Canvas>
+;<Canvas>
   <Scene />
-  <Preload all />  {/* Preload all assets */}
+  <Preload all /> {/* Preload all assets */}
 </Canvas>
 ```
 

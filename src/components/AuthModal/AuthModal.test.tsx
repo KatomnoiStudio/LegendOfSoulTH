@@ -19,7 +19,7 @@ beforeEach(() => {
 
 describe('AuthModal', () => {
   test('onLogin reject ไม่ทำให้ปุ่มค้าง disable ถาวร', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onLogin = vi.fn().mockRejectedValue(new Error('WebCrypto ใช้ไม่ได้'))
 
     render(
@@ -46,7 +46,7 @@ describe('AuthModal', () => {
   })
 
   test('onLogin คืนข้อความ error (ไม่ throw) ก็แสดงข้อความนั้นตรง ๆ และปุ่มกลับมากดได้', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onLogin = vi.fn().mockResolvedValue('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
 
     render(
@@ -69,7 +69,7 @@ describe('AuthModal', () => {
   })
 
   test('สมัครแล้วรหัสผ่านสองช่องไม่ตรงกัน ไม่เรียก onRegister เลย', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onRegister = vi.fn()
 
     render(
@@ -93,7 +93,7 @@ describe('AuthModal', () => {
   })
 
   test('กด Google แล้วเรียก onLoginWithGoogle, ไม่แตะ onRegister/onLogin เลย', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onLoginWithGoogle = vi.fn().mockResolvedValue(null)
     const onRegister = vi.fn()
     const onLogin = vi.fn()
@@ -115,7 +115,7 @@ describe('AuthModal', () => {
   })
 
   test('onLoginWithGoogle คืนข้อความ error ก็แสดงข้อความนั้น และปุ่มกลับมากดได้', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onLoginWithGoogle = vi
       .fn()
       .mockResolvedValue('เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง')
@@ -139,7 +139,7 @@ describe('AuthModal', () => {
   })
 
   test('onLoginWithGoogle reject ไม่ทำให้ปุ่ม Google ค้าง disable ถาวร', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onLoginWithGoogle = vi.fn().mockRejectedValue(new Error('เครือข่ายขัดข้อง'))
 
     render(
@@ -160,7 +160,7 @@ describe('AuthModal', () => {
   })
 
   test('กด "เล่นทันทีแบบไม่สมัคร" แล้วเรียก onLoginAsGuest', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onLoginAsGuest = vi.fn().mockResolvedValue(null)
 
     render(
@@ -178,7 +178,7 @@ describe('AuthModal', () => {
   })
 
   test('onLoginAsGuest reject ไม่ทำให้ปุ่ม guest ค้าง disable ถาวร', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onLoginAsGuest = vi.fn().mockRejectedValue(new Error('เครือข่ายขัดข้อง'))
 
     render(

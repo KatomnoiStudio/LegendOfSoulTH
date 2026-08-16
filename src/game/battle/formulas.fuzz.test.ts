@@ -57,28 +57,20 @@ describe('applyDefense — คุณสมบัติที่ต้องเ�
 describe('calcMaxHp — คุณสมบัติที่ต้องเป็นจริงเสมอ', () => {
   it('level หรือ def สูงขึ้น HP สูงสุดต้องไม่ลดลง (เป็น monotonic)', () => {
     assert(
-      property(
-        integer({ min: 1, max: 999 }),
-        integer({ min: 0, max: 999 }),
-        (level, def) => {
-          expect(calcMaxHp(level + 1, def)).toBeGreaterThanOrEqual(calcMaxHp(level, def))
-          expect(calcMaxHp(level, def + 1)).toBeGreaterThanOrEqual(calcMaxHp(level, def))
-        },
-      ),
+      property(integer({ min: 1, max: 999 }), integer({ min: 0, max: 999 }), (level, def) => {
+        expect(calcMaxHp(level + 1, def)).toBeGreaterThanOrEqual(calcMaxHp(level, def))
+        expect(calcMaxHp(level, def + 1)).toBeGreaterThanOrEqual(calcMaxHp(level, def))
+      }),
     )
   })
 
   it('คืนจำนวนเต็มบวกเสมอในช่วง level/def ที่เป็นไปได้จริง', () => {
     assert(
-      property(
-        integer({ min: 1, max: 999 }),
-        integer({ min: 0, max: 999 }),
-        (level, def) => {
-          const hp = calcMaxHp(level, def)
-          expect(hp).toBeGreaterThan(0)
-          expect(Number.isInteger(hp)).toBe(true)
-        },
-      ),
+      property(integer({ min: 1, max: 999 }), integer({ min: 0, max: 999 }), (level, def) => {
+        const hp = calcMaxHp(level, def)
+        expect(hp).toBeGreaterThan(0)
+        expect(Number.isInteger(hp)).toBe(true)
+      }),
     )
   })
 })

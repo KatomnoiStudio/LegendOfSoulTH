@@ -166,8 +166,10 @@ describe('P12 PvP authoritative simulation', () => {
     const hostClient = new PvPReconciler('host', authority)
     const guestClient = new PvPReconciler('guest', authority)
     const inputTransit: Array<{ deliverAt: number; frame: PvPInputFrame }> = []
-    const hostSnapshots: Array<{ deliverAt: number; version: number; state: PvPAuthorityState }> = []
-    const guestSnapshots: Array<{ deliverAt: number; version: number; state: PvPAuthorityState }> = []
+    const hostSnapshots: Array<{ deliverAt: number; version: number; state: PvPAuthorityState }> =
+      []
+    const guestSnapshots: Array<{ deliverAt: number; version: number; state: PvPAuthorityState }> =
+      []
     let hostCorrections = 0
     let guestCorrections = 0
     let authorityVersion = 0
@@ -276,12 +278,7 @@ describe('P12 PvP authoritative simulation', () => {
   test('force-quit without a disconnect command transitions to reconnecting then forfeits', () => {
     let authority = matchState()
     const reconnectingAt = PVP_LIVENESS_TIMEOUT_MS
-    authority = advancePvPAuthority(
-      authority,
-      [inputFrame('host', 1, 1)],
-      0,
-      reconnectingAt,
-    )
+    authority = advancePvPAuthority(authority, [inputFrame('host', 1, 1)], 0, reconnectingAt)
     expect(authority.status).toBe('reconnecting')
     expect(authority.participants[1]).toMatchObject({
       connected: false,

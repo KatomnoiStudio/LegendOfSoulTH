@@ -3,7 +3,8 @@ import { writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 const EDGE_PATH = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
-const ARTIFACTS_DIR = 'C:\\Users\\zxc59\\.gemini\\antigravity\\brain\\cf6f19f1-9bd4-4170-b55f-aeaeb5dfeb7b'
+const ARTIFACTS_DIR =
+  'C:\\Users\\zxc59\\.gemini\\antigravity\\brain\\cf6f19f1-9bd4-4170-b55f-aeaeb5dfeb7b'
 const CDP_PORT = 9222
 
 async function sleep(ms) {

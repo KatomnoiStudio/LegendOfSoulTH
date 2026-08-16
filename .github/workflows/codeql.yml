@@ -2,13 +2,13 @@ name: CodeQL Analysis
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
     paths-ignore:
       - '**/*.md'
       - '.agents/**'
       - '.coalmine.json'
   pull_request:
-    branches: [ master ]
+    branches: [master]
     paths-ignore:
       - '**/*.md'
       - '.agents/**'
@@ -38,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'javascript-typescript' ]
+        language: ['javascript-typescript']
 
     steps:
       - name: Harden Runner

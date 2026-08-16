@@ -15,7 +15,6 @@ import { ErrorBoundary, SceneCrashFallback } from './ErrorBoundary'
   ของคนเขียนเทสต์ ไม่ได้ยืนยันพฤติกรรมของระบบ
 */
 
-
 function Bomb(): never {
   throw new Error('boom')
 }

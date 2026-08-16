@@ -10,8 +10,7 @@ import { resolveBasePath } from './vite.config.ts'
 */
 
 // ตัวอักษรที่ใช้ได้จริงใน GitHub owner/repo name (ตัดอักขระพิเศษที่ทำให้ regex ใน resolveBasePath งง)
-const segment = stringMatching(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,38}$/)
-  .filter((s) => s.length > 0)
+const segment = stringMatching(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,38}$/).filter((s) => s.length > 0)
 
 describe('resolveBasePath — คุณสมบัติที่ต้องเป็นจริงเสมอ', () => {
   it('GITHUB_REPOSITORY รูปแบบ owner/repo ใด ๆ ให้ base ที่ขึ้นต้นและลงท้ายด้วย / เสมอ', () => {
@@ -35,18 +34,13 @@ describe('resolveBasePath — คุณสมบัติที่ต้อง�
       ออกจากช่วงที่ทดสอบตรงนี้ ไม่ใช่แก้โค้ดให้ตามเทสต์
     */
     assert(
-      property(
-        string({ minLength: 1 }),
-        segment,
-        segment,
-        (basePath, owner, repo) => {
-          const base = resolveBasePath({
-            BASE_PATH: basePath,
-            GITHUB_REPOSITORY: `${owner}/${repo}`,
-          })
-          expect(base).toBe(basePath)
-        },
-      ),
+      property(string({ minLength: 1 }), segment, segment, (basePath, owner, repo) => {
+        const base = resolveBasePath({
+          BASE_PATH: basePath,
+          GITHUB_REPOSITORY: `${owner}/${repo}`,
+        })
+        expect(base).toBe(basePath)
+      }),
     )
   })
 

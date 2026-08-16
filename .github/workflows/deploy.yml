@@ -20,7 +20,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
     paths-ignore:
       - '**/*.md'
       - '.agents/**'
@@ -245,7 +245,7 @@ jobs:
   release:
     name: Publish the GitHub Release for this version
     runs-on: ubuntu-latest
-    needs: [ gate, deploy ]
+    needs: [gate, deploy]
     permissions:
       contents: write # สร้าง tag + release
     steps:

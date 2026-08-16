@@ -39,17 +39,17 @@ export type ExplorationModeClosed = never
 // import { useMemo, useState } from 'react'
 // import type { DialogueSession } from '../../game/dialogue/types'
 // import type { DialogueAction } from '../../game/dialogue/types'
-// 
+//
 // interface GameExplorationSessionProps {
 //   player: Player
 //   /** คืน true เมื่อบันทึกลงที่เก็บข้อมูลจริง — false แปลว่าหน้าจอถูกย้อนกลับแล้ว */
 //   onPlayerChange: (next: Player) => Promise<boolean>
 //   onExit: () => void
 // }
-// 
+//
 // /*
 //   โหลดห้องต่อสู้แบบ lazy — เหตุผลเดียวกับที่ LobbyPage ทำกับ LobbyScene
-// 
+//
 //   ห้องต่อสู้ใหม่ใช้ three.js/R3F ถ้า import ตรง ๆ ตั้งแต่ต้น three จะถูกรวมเข้า chunk หลัก
 //   ทำให้ bundle แรกที่ผู้เล่นต้องโหลดตอนเปิดเกมโตจาก ~318 kB เป็น ~1.2 MB
 //   (วัดจริงตอนทำงานนี้) ทั้งที่ยังไม่ได้เข้าห้องต่อสู้เลย
@@ -57,7 +57,7 @@ export type ExplorationModeClosed = never
 // const BattleScene = lazy(() =>
 //   import('../BattleScene/BattleScene').then((m) => ({ default: m.BattleScene })),
 // )
-// 
+//
 // /**
 //  * ชั้นห้องต่อสู้
 //  *
@@ -82,7 +82,7 @@ export type ExplorationModeClosed = never
 //     </Suspense>
 //   )
 // }
-// 
+//
 // export function GameExplorationSession({
 //   player,
 //   onPlayerChange,
@@ -91,19 +91,19 @@ export type ExplorationModeClosed = never
 //   const gameFlow = useGameFlow({ player, onPlayerChange, onExit })
 //   const mapId = gameFlow.flow.mapId ?? 'village-01'
 //   const movementLocked = gameFlow.flow.mode !== 'exploration'
-// 
+//
 //   const { map, npcs, state, pressDirection, releaseDirection } = useExploration({
 //     mapId,
 //     initialPosition: gameFlow.flow.explorationPosition ?? undefined,
 //     movementLocked,
 //   })
-// 
+//
 //   const [dialogueSession, setDialogueSession] = useState<DialogueSession | null>(null)
-// 
+//
 //   useEffect(() => {
 //     gameFlow.startExploration(mapId)
 //   }, [gameFlow.startExploration, mapId])
-// 
+//
 //   useEffect(() => {
 //     if (gameFlow.flow.mode === 'dialogue' && gameFlow.flow.dialogueNpcId) {
 //       const npc = getNpc(gameFlow.flow.dialogueNpcId)
@@ -116,19 +116,19 @@ export type ExplorationModeClosed = never
 //     }
 //     setDialogueSession(null)
 //   }, [gameFlow.flow.dialogueNpcId, gameFlow.flow.mode, player.progress.flags])
-// 
+//
 //   const currentNode = useMemo(
 //     () => (dialogueSession ? getCurrentNode(dialogueSession, player.progress) : null),
 //     [dialogueSession, player.progress],
 //   )
-// 
+//
 //   const choices = useMemo(
 //     () => (dialogueSession ? getVisibleChoices(dialogueSession, player.progress) : []),
 //     [dialogueSession, player.progress],
 //   )
-// 
+//
 //   const speaker = currentNode ? getNpc(currentNode.speakerId) : null
-// 
+//
 //   const dispatchAction = useCallback(
 //     (action: DialogueAction | null | undefined) => {
 //       if (!action) return
@@ -140,14 +140,14 @@ export type ExplorationModeClosed = never
 //     },
 //     [gameFlow, state.playerPosition],
 //   )
-// 
+//
 //   const onAdvanceDialogue = useCallback(() => {
 //     if (!dialogueSession) return
 //     const result = advanceDialogue(dialogueSession, player.progress)
 //     setDialogueSession(result.session)
 //     dispatchAction(result.action)
 //   }, [dialogueSession, dispatchAction, player.progress])
-// 
+//
 //   const onChoose = useCallback(
 //     (choiceId: string) => {
 //       if (!dialogueSession) return
@@ -157,10 +157,10 @@ export type ExplorationModeClosed = never
 //     },
 //     [dialogueSession, dispatchAction, player.progress],
 //   )
-// 
+//
 //   /*
 //     ผลจากห้องต่อสู้เรียลไทม์ถูกแปลงเป็น contract เดิมก่อนส่งเข้า useGameFlow
-// 
+//
 //     ตั้งใจไม่แก้ useGameFlow ในงานนี้ — เส้นทางบันทึกประวัติ/ธง/การกลับไปสำรวจ
 //     ยังเป็นของเดิมทุกบรรทัด (สเปกข้อ 1 ห้ามรื้อระบบนอกห้องต่อสู้)
 //     การย้ายไปใช้ durationMs จริงจะเกิดในงาน Reward Integration
@@ -171,14 +171,14 @@ export type ExplorationModeClosed = never
 //     },
 //     [gameFlow],
 //   )
-// 
+//
 //   const onTalk = useCallback(() => {
 //     if (!state.nearbyNpcId) return
 //     gameFlow.openNpcDialogue(state.nearbyNpcId)
 //   }, [gameFlow, state.nearbyNpcId])
-// 
+//
 //   if (!map) return null
-// 
+//
 //   return (
 //     <>
 //       <ExplorationScene
@@ -188,7 +188,7 @@ export type ExplorationModeClosed = never
 //         playerSpriteUrl={getPlayerSpriteUrl(player.teamSlots)}
 //         onExit={gameFlow.leaveExploration}
 //       />
-// 
+//
 //       <ExplorationControls
 //         nearbyNpcId={state.nearbyNpcId}
 //         disabled={movementLocked}
@@ -196,7 +196,7 @@ export type ExplorationModeClosed = never
 //         onReleaseDirection={releaseDirection}
 //         onTalk={onTalk}
 //       />
-// 
+//
 //       {gameFlow.flow.mode === 'dialogue' && currentNode ? (
 //         <DialogueBox
 //           speaker={speaker ?? null}
@@ -206,11 +206,11 @@ export type ExplorationModeClosed = never
 //           onChoice={onChoose}
 //         />
 //       ) : null}
-// 
+//
 //       {gameFlow.flow.mode === 'battle_transition' && gameFlow.flow.transitionLabel ? (
 //         <BattleTransition opponentName={gameFlow.flow.transitionLabel} />
 //       ) : null}
-// 
+//
 //       {gameFlow.flow.mode === 'battle' && gameFlow.flow.battleContext ? (
 //         <BattleLayer
 //           player={player}

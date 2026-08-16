@@ -10,6 +10,7 @@ description: Build declarative 3D scenes with React Three Fiber (R3F) - a React 
 React Three Fiber (R3F) is a React renderer for Three.js that brings declarative, component-based 3D development to React applications. Instead of imperatively creating and managing Three.js objects, you build 3D scenes using JSX components that map directly to Three.js objects.
 
 **When to Use This Skill**:
+
 - Building 3D experiences within React applications
 - Creating interactive product configurators or showcases
 - Developing 3D portfolios, galleries, or storytelling experiences
@@ -19,6 +20,7 @@ React Three Fiber (R3F) is a React renderer for Three.js that brings declarative
 - When working with React frameworks (Next.js, Gatsby, Remix)
 
 **Key Benefits**:
+
 - **Declarative**: Write 3D scenes like React components
 - **React Integration**: Full access to hooks, context, state management
 - **Reusability**: Create and share 3D component libraries
@@ -39,11 +41,7 @@ import { Canvas } from '@react-three/fiber'
 
 function App() {
   return (
-    <Canvas
-      camera={{ position: [0, 0, 5], fov: 75 }}
-      gl={{ antialias: true }}
-      dpr={[1, 2]}
-    >
+    <Canvas camera={{ position: [0, 0, 5], fov: 75 }} gl={{ antialias: true }} dpr={[1, 2]}>
       {/* 3D content goes here */}
     </Canvas>
   )
@@ -51,6 +49,7 @@ function App() {
 ```
 
 **Canvas Props**:
+
 - `camera` - Camera configuration (position, fov, near, far)
 - `gl` - WebGL renderer settings
 - `dpr` - Device pixel ratio (default: [1, 2])
@@ -72,6 +71,7 @@ Three.js objects are created using JSX with kebab-case props:
 ```
 
 **Prop Mapping**:
+
 - `position` → `object.position.set(x, y, z)`
 - `rotation` → `object.rotation.set(x, y, z)`
 - `scale` → `object.scale.set(x, y, z)`
@@ -79,6 +79,7 @@ Three.js objects are created using JSX with kebab-case props:
 - `attach` → Attach to parent property (e.g., `attach="material"`)
 
 **Shorthand Notation**:
+
 ```jsx
 // Full notation
 <mesh position={[1, 2, 3]} />
@@ -118,6 +119,7 @@ function RotatingBox() {
 ```
 
 **useFrame Parameters**:
+
 - `state` - Scene state (camera, scene, gl, clock, etc.)
 - `delta` - Time since last frame (for frame-rate independence)
 - `xrFrame` - XR frame data (for VR/AR)
@@ -146,6 +148,7 @@ function CameraInfo() {
 ```
 
 **Available State**:
+
 - `camera` - Default camera
 - `scene` - Three.js scene
 - `gl` - WebGL renderer
@@ -194,15 +197,17 @@ function App() {
 ```
 
 **Loading Multiple Assets**:
+
 ```jsx
 const [texture1, texture2, texture3] = useLoader(TextureLoader, [
   '/tex1.jpg',
   '/tex2.jpg',
-  '/tex3.jpg'
+  '/tex3.jpg',
 ])
 ```
 
 **Loader Extensions**:
+
 ```jsx
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader'
 
@@ -214,6 +219,7 @@ useLoader(GLTFLoader, '/model.glb', (loader) => {
 ```
 
 **Pre-loading**:
+
 ```jsx
 // Pre-load assets before component mounts
 useLoader.preload(GLTFLoader, '/model.glb')
@@ -313,13 +319,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 function Model({ url }) {
   const gltf = useLoader(GLTFLoader, url)
 
-  return (
-    <primitive
-      object={gltf.scene}
-      scale={0.5}
-      position={[0, 0, 0]}
-    />
-  )
+  return <primitive object={gltf.scene} scale={0.5} position={[0, 0, 0]} />
 }
 
 function App() {
@@ -364,12 +364,7 @@ function Lighting() {
       <pointLight position={[-5, 5, -5]} intensity={0.5} color="blue" />
 
       {/* Spot light for focused illumination */}
-      <spotLight
-        position={[10, 10, 10]}
-        angle={0.3}
-        penumbra={1}
-        intensity={1}
-      />
+      <spotLight position={[10, 10, 10]} angle={0.3} penumbra={1} intensity={1} />
     </>
   )
 }
@@ -413,7 +408,7 @@ function Particles({ count = 1000 }) {
       dummy.position.set(
         x + Math.cos((t / 10) * factor) + (Math.sin(t * 1) * factor) / 10,
         y + Math.sin((t / 10) * factor) + (Math.cos(t * 2) * factor) / 10,
-        z + Math.cos((t / 10) * factor) + (Math.sin(t * 3) * factor) / 10
+        z + Math.cos((t / 10) * factor) + (Math.sin(t * 3) * factor) / 10,
       )
       dummy.scale.set(s, s, s)
       dummy.updateMatrix()
@@ -479,14 +474,8 @@ function Robot() {
 ```jsx
 import { OrbitControls } from '@react-three/drei'
 
-<Canvas>
-  <OrbitControls
-    makeDefault
-    enableDamping
-    dampingFactor={0.05}
-    minDistance={3}
-    maxDistance={20}
-  />
+;<Canvas>
+  <OrbitControls makeDefault enableDamping dampingFactor={0.05} minDistance={3} maxDistance={20} />
   <Box />
 </Canvas>
 ```
@@ -496,7 +485,7 @@ import { OrbitControls } from '@react-three/drei'
 ```jsx
 import { Environment, ContactShadows } from '@react-three/drei'
 
-<Canvas>
+;<Canvas>
   {/* HDRI environment map */}
   <Environment preset="sunset" />
 
@@ -504,13 +493,7 @@ import { Environment, ContactShadows } from '@react-three/drei'
   <Environment files="/hdri.hdr" />
 
   {/* Soft contact shadows */}
-  <ContactShadows
-    opacity={0.5}
-    scale={10}
-    blur={1}
-    far={10}
-    resolution={256}
-  />
+  <ContactShadows opacity={0.5} scale={10} blur={1} far={10} resolution={256} />
 
   <Model />
 </Canvas>
@@ -579,18 +562,12 @@ import { Center, Bounds, useBounds } from '@react-three/drei'
 ```jsx
 import { Html } from '@react-three/drei'
 
-<mesh>
+;<mesh>
   <boxGeometry />
   <meshStandardMaterial />
 
-  <Html
-    position={[0, 1, 0]}
-    center
-    distanceFactor={10}
-  >
-    <div className="annotation">
-      This is a box
-    </div>
+  <Html position={[0, 1, 0]} center distanceFactor={10}>
+    <div className="annotation">This is a box</div>
   </Html>
 </mesh>
 ```
@@ -613,7 +590,7 @@ function AnimatedScene() {
   return <mesh ref={meshRef}>...</mesh>
 }
 
-<Canvas>
+;<Canvas>
   <ScrollControls pages={3} damping={0.5}>
     <Scroll>
       <AnimatedScene />
@@ -650,13 +627,16 @@ function AnimatedBox() {
     tl.to(meshRef.current.position, {
       y: 2,
       duration: 1,
-      ease: 'power2.inOut'
-    })
-    .to(meshRef.current.rotation, {
-      y: Math.PI * 2,
-      duration: 2,
-      ease: 'none'
-    }, 0)
+      ease: 'power2.inOut',
+    }).to(
+      meshRef.current.rotation,
+      {
+        y: Math.PI * 2,
+        duration: 2,
+        ease: 'none',
+      },
+      0,
+    )
 
     return () => tl.kill()
   }, [])
@@ -677,11 +657,7 @@ import { motion } from 'framer-motion-3d'
 
 function AnimatedSphere() {
   return (
-    <motion.mesh
-      initial={{ scale: 0 }}
-      animate={{ scale: 1 }}
-      transition={{ duration: 1 }}
-    >
+    <motion.mesh initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 1 }}>
       <sphereGeometry />
       <meshStandardMaterial color="hotpink" />
     </motion.mesh>
@@ -696,7 +672,7 @@ import create from 'zustand'
 
 const useStore = create((set) => ({
   color: 'orange',
-  setColor: (color) => set({ color })
+  setColor: (color) => set({ color }),
 }))
 
 function Box() {
@@ -719,9 +695,7 @@ function Box() {
 ### 1. On-Demand Rendering
 
 ```jsx
-<Canvas frameloop="demand">
-  {/* Only renders when needed */}
-</Canvas>
+;<Canvas frameloop="demand">{/* Only renders when needed */}</Canvas>
 
 // Manually trigger render
 function MyComponent() {
@@ -748,11 +722,7 @@ function Particles({ count = 10000 }) {
     const temp = new THREE.Object3D()
 
     for (let i = 0; i < count; i++) {
-      temp.position.set(
-        Math.random() * 10 - 5,
-        Math.random() * 10 - 5,
-        Math.random() * 10 - 5
-      )
+      temp.position.set(Math.random() * 10 - 5, Math.random() * 10 - 5, Math.random() * 10 - 5)
       temp.updateMatrix()
       meshRef.current.setMatrixAt(i, temp.matrix)
     }
@@ -786,7 +756,7 @@ Objects outside the camera view are automatically culled.
 ```jsx
 import { Detailed } from '@react-three/drei'
 
-<Detailed distances={[0, 10, 20]}>
+;<Detailed distances={[0, 10, 20]}>
   {/* High detail - close to camera */}
   <mesh geometry={highPolyGeometry} />
 
@@ -803,7 +773,7 @@ import { Detailed } from '@react-three/drei'
 ```jsx
 import { AdaptiveDpr, AdaptiveEvents, PerformanceMonitor } from '@react-three/drei'
 
-<Canvas>
+;<Canvas>
   {/* Reduce DPR when performance drops */}
   <AdaptiveDpr pixelated />
 
@@ -904,9 +874,15 @@ function Component() {
 
 ```jsx
 // ❌ BAD: Unmounts and remounts (expensive)
-{stage === 1 && <Stage1 />}
-{stage === 2 && <Stage2 />}
-{stage === 3 && <Stage3 />}
+{
+  stage === 1 && <Stage1 />
+}
+{
+  stage === 2 && <Stage2 />
+}
+{
+  stage === 3 && <Stage3 />
+}
 ```
 
 ✅ **Solution**: Use visibility prop
@@ -1001,7 +977,7 @@ function Scene() {
   )
 }
 
-<Canvas>
+;<Canvas>
   <Scene />
 </Canvas>
 ```
@@ -1059,19 +1035,23 @@ Monitor re-renders and optimize components causing performance issues.
 ## Resources
 
 ### References
+
 - `references/api_reference.md` - Complete R3F & Drei API documentation
 - `references/hooks_guide.md` - Detailed hooks usage and patterns
 - `references/drei_helpers.md` - Comprehensive Drei library guide
 
 ### Scripts
+
 - `scripts/component_generator.py` - Generate R3F component boilerplate
 - `scripts/scene_setup.py` - Initialize R3F scene with common patterns
 
 ### Assets
+
 - `assets/starter_r3f/` - Complete R3F + Vite starter template
 - `assets/examples/` - Real-world R3F component examples
 
 ### External Resources
+
 - [Official Docs](https://docs.pmnd.rs/react-three-fiber)
 - [Drei Docs](https://github.com/pmndrs/drei)
 - [Three.js Docs](https://threejs.org/docs/)

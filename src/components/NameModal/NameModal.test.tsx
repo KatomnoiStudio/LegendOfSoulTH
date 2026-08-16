@@ -27,7 +27,7 @@ describe('NameModal', () => {
   })
 
   test('Tab จากปุ่มยืนยัน (element สุดท้าย) วนกลับไปช่องกรอกชื่อ ไม่หลุดออกนอกกล่อง', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(
       <>
         <button>ปุ่มนอก modal</button>
@@ -49,7 +49,7 @@ describe('NameModal', () => {
   })
 
   test('พิมพ์อักขระต้องห้าม (เช่น !@#) ถูกกรองทิ้งทันทีและมีคำเตือน', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<NameModal onConfirm={vi.fn()} />)
 
     const input = screen.getByLabelText('ชื่อตัวละคร')
@@ -60,7 +60,7 @@ describe('NameModal', () => {
   })
 
   test('กรอกชื่อสั้นเกินไปแล้ว blur — ปุ่มยืนยันยัง disabled และไม่เรียก onConfirm', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onConfirm = vi.fn()
     render(<NameModal onConfirm={onConfirm} />)
 
@@ -73,7 +73,7 @@ describe('NameModal', () => {
   })
 
   test('กรอกชื่อถูกต้องแล้วกดยืนยัน — เรียก onConfirm ด้วยชื่อที่ trim แล้ว', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onConfirm = vi.fn()
     render(<NameModal onConfirm={onConfirm} />)
 

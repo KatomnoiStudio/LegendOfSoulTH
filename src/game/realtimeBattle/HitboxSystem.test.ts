@@ -299,7 +299,6 @@ describe('findHitTargets — targetLock: nearest (ระบบ #8 Skill-Targetin
   })
 })
 
-
 describe('findHitTargets — multiTarget runtime consumer', () => {
   it('true and undefined preserve multi-target sweep behavior', () => {
     const near = entity({ id: 'near', position: { x: 80, y: 0 } })

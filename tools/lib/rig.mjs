@@ -30,8 +30,7 @@ function place(geometry, { pos = [0, 0, 0], rot = [0, 0, 0], scale = [1, 1, 1] }
 export const prim = {
   box: (w, h, d, t) => place(new THREE.BoxGeometry(w, h, d), t),
   /** ทรงกระบอก/กรวยตัด — segments น้อย ๆ เพื่อความ low-poly */
-  cyl: (rTop, rBottom, h, seg, t) =>
-    place(new THREE.CylinderGeometry(rTop, rBottom, h, seg), t),
+  cyl: (rTop, rBottom, h, seg, t) => place(new THREE.CylinderGeometry(rTop, rBottom, h, seg), t),
   cone: (r, h, seg, t) => place(new THREE.ConeGeometry(r, h, seg), t),
   sphere: (r, wSeg, hSeg, t) => place(new THREE.SphereGeometry(r, wSeg, hSeg), t),
   torus: (r, tube, radialSeg, tubularSeg, t) =>
@@ -51,7 +50,11 @@ export const prim = {
       dir.clone().normalize(),
     )
     geometry.applyMatrix4(
-      new THREE.Matrix4().compose(a.clone().add(b).multiplyScalar(0.5), quat, new THREE.Vector3(1, 1, 1)),
+      new THREE.Matrix4().compose(
+        a.clone().add(b).multiplyScalar(0.5),
+        quat,
+        new THREE.Vector3(1, 1, 1),
+      ),
     )
     return geometry
   },
@@ -82,9 +85,21 @@ export function buildSkeleton(p, hasTail) {
     ['R', -1],
   ]) {
     layout.push(
-      { name: `Shoulder_${side}`, parent: 'Chest', world: [sign * p.shoulderX * 0.45, p.shoulderY, 0] },
-      { name: `UpperArm_${side}`, parent: `Shoulder_${side}`, world: [sign * p.shoulderX, p.shoulderY, 0] },
-      { name: `LowerArm_${side}`, parent: `UpperArm_${side}`, world: [sign * p.shoulderX, p.elbowY, 0] },
+      {
+        name: `Shoulder_${side}`,
+        parent: 'Chest',
+        world: [sign * p.shoulderX * 0.45, p.shoulderY, 0],
+      },
+      {
+        name: `UpperArm_${side}`,
+        parent: `Shoulder_${side}`,
+        world: [sign * p.shoulderX, p.shoulderY, 0],
+      },
+      {
+        name: `LowerArm_${side}`,
+        parent: `UpperArm_${side}`,
+        world: [sign * p.shoulderX, p.elbowY, 0],
+      },
       { name: `Hand_${side}`, parent: `LowerArm_${side}`, world: [sign * p.shoulderX, p.handY, 0] },
       { name: `UpperLeg_${side}`, parent: 'Hips', world: [sign * p.hipX, p.hipsY - 0.05, 0] },
       { name: `LowerLeg_${side}`, parent: `UpperLeg_${side}`, world: [sign * p.hipX, p.kneeY, 0] },
@@ -295,7 +310,11 @@ export function buildIdleClip(rig, options = {}) {
 
   // แขนแกว่งเบา ๆ ไม่พร้อมกันซ้าย-ขวา
   rotate('UpperArm_L', (t) => [wave(t, 1, 0.2) * 0.045 * sway, 0, 0.06 + wave(t, 2) * 0.035 * sway])
-  rotate('UpperArm_R', (t) => [wave(t, 1, 0.9) * 0.04 * sway, 0, -0.06 - wave(t, 2, 0.4) * 0.035 * sway])
+  rotate('UpperArm_R', (t) => [
+    wave(t, 1, 0.9) * 0.04 * sway,
+    0,
+    -0.06 - wave(t, 2, 0.4) * 0.035 * sway,
+  ])
   rotate('LowerArm_L', (t) => [wave(t, 1, 0.8) * 0.05 * sway, 0, 0])
   rotate('LowerArm_R', (t) => [wave(t, 1, 1.5) * 0.045 * sway, 0, 0])
 
@@ -305,8 +324,8 @@ export function buildIdleClip(rig, options = {}) {
 
   // หาง: คลื่นไล่จากโคนไปปลาย (หน่วงเฟสทีละข้อ)
   if (tail > 0) {
-    rotate('Tail_1', (t) => [wave(t, 1, 0.0) * 0.10 * tail, wave(t, 1, 0.3) * 0.16 * tail, 0])
-    rotate('Tail_2', (t) => [wave(t, 1, 0.5) * 0.13 * tail, wave(t, 1, 0.8) * 0.20 * tail, 0])
+    rotate('Tail_1', (t) => [wave(t, 1, 0.0) * 0.1 * tail, wave(t, 1, 0.3) * 0.16 * tail, 0])
+    rotate('Tail_2', (t) => [wave(t, 1, 0.5) * 0.13 * tail, wave(t, 1, 0.8) * 0.2 * tail, 0])
     rotate('Tail_3', (t) => [wave(t, 1, 1.0) * 0.16 * tail, wave(t, 1, 1.3) * 0.24 * tail, 0])
   }
 

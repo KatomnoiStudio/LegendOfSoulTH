@@ -96,7 +96,11 @@ export function AddFriendPanel({ onSearch, isFriend, onAddFriend }: AddFriendPan
           ค้นหาได้ด้วยรหัส UID เท่านั้น — ไม่รองรับค้นหาด้วยชื่อ
         </span>
 
-        <button type="submit" className={styles.searchButton} disabled={!isValid || search.status === 'loading'}>
+        <button
+          type="submit"
+          className={styles.searchButton}
+          disabled={!isValid || search.status === 'loading'}
+        >
           {search.status === 'loading' ? 'กำลังค้นหา...' : 'ค้นหา'}
         </button>
       </form>
@@ -110,7 +114,11 @@ export function AddFriendPanel({ onSearch, isFriend, onAddFriend }: AddFriendPan
             </span>
             <span className={styles.resultUid}>UID {formatUid(search.player.uid)}</span>
           </div>
-          <button type="button" className={styles.addButton} onClick={() => handleAdd(search.player)}>
+          <button
+            type="button"
+            className={styles.addButton}
+            onClick={() => handleAdd(search.player)}
+          >
             <AddFriendIcon />
             เพิ่มเพื่อน
           </button>

@@ -175,7 +175,9 @@ function extractCell(data, W, channels, box) {
   // ลบเป็นหย่อม ไม่ใช่รายพิกเซล เพราะจุดดำเล็ก ๆ กระจัดกระจายคือเงาในชุด ลบแล้วตัวจะพรุน
   {
     const isFilledBg = (i) =>
-      !outside[i] && !seed[i] && bgDistance(data, at(i % w, (i / w) | 0), channels) <= FILLED_BG_LIMIT
+      !outside[i] &&
+      !seed[i] &&
+      bgDistance(data, at(i % w, (i / w) | 0), channels) <= FILLED_BG_LIMIT
     const seen = new Uint8Array(w * h)
     for (let i = 0; i < w * h; i++) {
       if (seen[i] || !isFilledBg(i)) continue
@@ -287,7 +289,6 @@ function extractCell(data, W, channels, box) {
   }
 }
 
-
 /** ระดับเท้า + กึ่งกลางเท้า — รอแถวที่กว้างพอเพื่อข้ามปลายด้ามคราด/ชายผ้าคลุมที่บาง */
 function measureFeet(rgba, w, h) {
   for (let y = h - 1; y >= 0; y--) {
@@ -305,7 +306,6 @@ function measureFeet(rgba, w, h) {
   }
   return { y: h - 1, centerX: w / 2 }
 }
-
 
 /** เลือก n เฟรมกระจายทั่ววงจร ไม่ใช่ตัด n ตัวแรก จะได้ครบรอบก้าวขา */
 function sampleEvenly(list, n) {
@@ -358,7 +358,11 @@ function findSpriteColumns(data, W, channels, y0, y1) {
     const window = Math.round(step * 0.22)
     let bestX = ideal
     let bestDensity = Infinity
-    for (let x = Math.max(contentStart + 1, ideal - window); x <= Math.min(contentEnd - 1, ideal + window); x++) {
+    for (
+      let x = Math.max(contentStart + 1, ideal - window);
+      x <= Math.min(contentEnd - 1, ideal + window);
+      x++
+    ) {
       if (density[x] < bestDensity) {
         bestDensity = density[x]
         bestX = x
@@ -411,7 +415,10 @@ function pickPlantedPose(cells) {
 }
 
 async function main() {
-  const { data, info } = await sharp(SHEET).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+  const { data, info } = await sharp(SHEET)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
   const { width: W, channels } = info
 
   const rows = []
@@ -421,7 +428,8 @@ async function main() {
     for (const [cx0, cx1] of findSpriteColumns(data, W, channels, y0, y1)) {
       const boxTop = y0 - 5
       const cell = extractCell(data, W, channels, { x0: cx0, y0: boxTop, x1: cx1 + 1, y1: y1 + 6 })
-      if (cell) cells.push({ cell, boxTop, feet: measureFeet(cell.buffer, cell.width, cell.height) })
+      if (cell)
+        cells.push({ cell, boxTop, feet: measureFeet(cell.buffer, cell.width, cell.height) })
     }
     /*
        เส้นพื้นร่วมของทั้งแถว แทนการวัดเท้าทีละเฟรม
@@ -468,7 +476,12 @@ async function main() {
     const feetCenter = mirror ? scaledW - rawFeetCenter : rawFeetCenter
 
     await sharp({
-      create: { width: CANVAS_W, height: CANVAS_H, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+      create: {
+        width: CANVAS_W,
+        height: CANVAS_H,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
     })
       .composite([
         {
@@ -488,7 +501,9 @@ async function main() {
   /** ทิศนี้เอาภาพจากแถวไหน และต้องพลิกกระจกไหม (ดูเหตุผลที่ MIRROR_FROM) */
   const sourceFor = (direction) => {
     const from = MIRROR_FROM[direction]
-    return from ? { cells: byDirection.get(from), mirror: true } : { cells: byDirection.get(direction), mirror: false }
+    return from
+      ? { cells: byDirection.get(from), mirror: true }
+      : { cells: byDirection.get(direction), mirror: false }
   }
 
   // วนตาม "ทิศปลายทางที่เกมต้องการครบ 8 ทิศ" ไม่ใช่ตามแถวในชีต (ชีตมีแค่ 5 แถว) —
@@ -519,7 +534,10 @@ async function main() {
     for (const [row, { direction }] of ROWS.entries()) {
       for (let frame = 0; frame < FRAME_COUNT; frame++) {
         tiles.push({
-          input: await sharp(join(WALK_DIR, `pigsy-walk-${direction}-${frame}.png`)).resize(180, 144).png().toBuffer(),
+          input: await sharp(join(WALK_DIR, `pigsy-walk-${direction}-${frame}.png`))
+            .resize(180, 144)
+            .png()
+            .toBuffer(),
           left: frame * 180,
           top: row * 144,
         })
@@ -527,7 +545,12 @@ async function main() {
     }
     const previewPath = join(ROOT, 'pigsy-v7-preview.png')
     await sharp({
-      create: { width: 180 * FRAME_COUNT, height: 144 * ROWS.length, channels: 4, background: { r: 255, g: 0, b: 255, alpha: 1 } },
+      create: {
+        width: 180 * FRAME_COUNT,
+        height: 144 * ROWS.length,
+        channels: 4,
+        background: { r: 255, g: 0, b: 255, alpha: 1 },
+      },
     })
       .composite(tiles)
       .png()

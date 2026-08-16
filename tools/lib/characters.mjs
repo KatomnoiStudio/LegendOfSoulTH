@@ -20,35 +20,40 @@ const HALF_PI = Math.PI / 2
 /** แขน ขา และมือ — โครงพื้นฐานที่ทุกตัวมีเหมือนกัน ต่างแค่ความหนา */
 function addLimbs(set, p, { armR, legR, handR, skinKey = 'skin', limbKey = 'primary' }) {
   set.addMirrored(
-    (s) => prim.box(armR * 2, p.shoulderY - p.elbowY, armR * 2, {
-      pos: [s * p.shoulderX, (p.shoulderY + p.elbowY) / 2, 0],
-    }),
+    (s) =>
+      prim.box(armR * 2, p.shoulderY - p.elbowY, armR * 2, {
+        pos: [s * p.shoulderX, (p.shoulderY + p.elbowY) / 2, 0],
+      }),
     'UpperArm_%s',
     limbKey,
   )
   set.addMirrored(
-    (s) => prim.box(armR * 1.8, p.elbowY - p.handY, armR * 1.8, {
-      pos: [s * p.shoulderX, (p.elbowY + p.handY) / 2, 0],
-    }),
+    (s) =>
+      prim.box(armR * 1.8, p.elbowY - p.handY, armR * 1.8, {
+        pos: [s * p.shoulderX, (p.elbowY + p.handY) / 2, 0],
+      }),
     'LowerArm_%s',
     skinKey,
   )
   set.addMirrored(
-    (s) => prim.box(handR * 2, handR * 2, handR * 2.2, { pos: [s * p.shoulderX, p.handY - handR, 0] }),
+    (s) =>
+      prim.box(handR * 2, handR * 2, handR * 2.2, { pos: [s * p.shoulderX, p.handY - handR, 0] }),
     'Hand_%s',
     skinKey,
   )
   set.addMirrored(
-    (s) => prim.box(legR * 2, p.hipsY - p.kneeY, legR * 2, {
-      pos: [s * p.hipX, (p.hipsY - 0.05 + p.kneeY) / 2, 0],
-    }),
+    (s) =>
+      prim.box(legR * 2, p.hipsY - p.kneeY, legR * 2, {
+        pos: [s * p.hipX, (p.hipsY - 0.05 + p.kneeY) / 2, 0],
+      }),
     'UpperLeg_%s',
     limbKey,
   )
   set.addMirrored(
-    (s) => prim.box(legR * 1.8, p.kneeY - p.footY, legR * 1.8, {
-      pos: [s * p.hipX, (p.kneeY + p.footY) / 2, 0],
-    }),
+    (s) =>
+      prim.box(legR * 1.8, p.kneeY - p.footY, legR * 1.8, {
+        pos: [s * p.hipX, (p.kneeY + p.footY) / 2, 0],
+      }),
     'LowerLeg_%s',
     limbKey,
   )
@@ -64,9 +69,18 @@ function addLimbs(set, p, { armR, legR, handR, skinKey = 'skin', limbKey = 'prim
 /* ------------------------------------------------------------------ */
 
 const MONKEY_PROFILE = {
-  hipsY: 0.86, spineY: 1.02, chestY: 1.2, neckY: 1.4, headY: 1.52,
-  shoulderY: 1.35, elbowY: 1.05, handY: 0.78, shoulderX: 0.26,
-  hipX: 0.11, kneeY: 0.44, footY: 0.06,
+  hipsY: 0.86,
+  spineY: 1.02,
+  chestY: 1.2,
+  neckY: 1.4,
+  headY: 1.52,
+  shoulderY: 1.35,
+  elbowY: 1.05,
+  handY: 0.78,
+  shoulderX: 0.26,
+  hipX: 0.11,
+  kneeY: 0.44,
+  footY: 0.06,
 }
 
 function buildMonkeyKing() {
@@ -76,7 +90,12 @@ function buildMonkeyKing() {
     skin: { color: '#c98b5c', roughness: 0.85 },
     primary: { color: '#d44835', roughness: 0.8 },
     secondary: { color: '#f3c64b', roughness: 0.35, metalness: 0.7 },
-    accent: { color: '#ffd765', roughness: 0.25, metalness: 0.85, emissive: { color: '#6b4a08', intensity: 0.45 } },
+    accent: {
+      color: '#ffd765',
+      roughness: 0.25,
+      metalness: 0.85,
+      emissive: { color: '#6b4a08', intensity: 0.45 },
+    },
     boot: { color: '#7a2f22', roughness: 0.7 },
     dark: { color: '#2c1a12', roughness: 0.9 },
   })
@@ -90,7 +109,11 @@ function buildMonkeyKing() {
   set.add(prim.box(0.42, 0.08, 0.28, { pos: [0, p.hipsY + 0.02, 0] }), 'Hips', 'secondary')
   // สนับไหล่
   set.addMirrored(
-    (s) => prim.sphere(0.12, 6, 4, { pos: [s * p.shoulderX, p.shoulderY + 0.02, 0], scale: [1, 0.8, 1] }),
+    (s) =>
+      prim.sphere(0.12, 6, 4, {
+        pos: [s * p.shoulderX, p.shoulderY + 0.02, 0],
+        scale: [1, 0.8, 1],
+      }),
     'Shoulder_%s',
     'secondary',
   )
@@ -113,7 +136,11 @@ function buildMonkeyKing() {
     'dark',
   )
   // แถบคาดหัวทอง — ลักษณะเด่นของตัวละคร
-  set.add(prim.torus(0.135, 0.026, 4, 10, { pos: [0, p.headY + 0.17, 0], rot: [HALF_PI, 0, 0] }), 'Head', 'accent')
+  set.add(
+    prim.torus(0.135, 0.026, 4, 10, { pos: [0, p.headY + 0.17, 0], rot: [HALF_PI, 0, 0] }),
+    'Head',
+    'accent',
+  )
   set.add(prim.box(0.05, 0.05, 0.03, { pos: [0, p.headY + 0.17, 0.13] }), 'Head', 'accent')
 
   // หาง 3 ข้อ ผูกกับกระดูกหางคนละข้อ เพื่อให้สะบัดเป็นคลื่นได้
@@ -131,9 +158,21 @@ function buildMonkeyKing() {
   const staffX = -p.shoulderX
   // ยกด้ามขึ้นเล็กน้อยไม่ให้ปลายล่างจมทะลุพื้นลาน
   const staffY = p.handY + 0.04
-  set.add(prim.cyl(0.032, 0.032, 1.5, 8, { pos: [staffX - 0.02, staffY, 0.09], rot: [0, 0, 0.06] }), 'Hand_R', 'accent')
-  set.add(prim.cyl(0.05, 0.05, 0.1, 8, { pos: [staffX + 0.02, staffY + 0.73, 0.09] }), 'Hand_R', 'secondary')
-  set.add(prim.cyl(0.05, 0.05, 0.1, 8, { pos: [staffX - 0.06, staffY - 0.73, 0.09] }), 'Hand_R', 'secondary')
+  set.add(
+    prim.cyl(0.032, 0.032, 1.5, 8, { pos: [staffX - 0.02, staffY, 0.09], rot: [0, 0, 0.06] }),
+    'Hand_R',
+    'accent',
+  )
+  set.add(
+    prim.cyl(0.05, 0.05, 0.1, 8, { pos: [staffX + 0.02, staffY + 0.73, 0.09] }),
+    'Hand_R',
+    'secondary',
+  )
+  set.add(
+    prim.cyl(0.05, 0.05, 0.1, 8, { pos: [staffX - 0.06, staffY - 0.73, 0.09] }),
+    'Hand_R',
+    'secondary',
+  )
 
   return {
     id: 'monkey-king',
@@ -147,9 +186,18 @@ function buildMonkeyKing() {
 /* ------------------------------------------------------------------ */
 
 const PIG_PROFILE = {
-  hipsY: 0.8, spineY: 0.95, chestY: 1.13, neckY: 1.32, headY: 1.42,
-  shoulderY: 1.28, elbowY: 1.0, handY: 0.74, shoulderX: 0.34,
-  hipX: 0.15, kneeY: 0.4, footY: 0.06,
+  hipsY: 0.8,
+  spineY: 0.95,
+  chestY: 1.13,
+  neckY: 1.32,
+  headY: 1.42,
+  shoulderY: 1.28,
+  elbowY: 1.0,
+  handY: 0.74,
+  shoulderX: 0.34,
+  hipX: 0.15,
+  kneeY: 0.4,
+  footY: 0.06,
 }
 
 function buildPigWarrior() {
@@ -159,7 +207,12 @@ function buildPigWarrior() {
     skin: { color: '#e8a7a4', roughness: 0.85 },
     primary: { color: '#31547a', roughness: 0.65, metalness: 0.3 },
     secondary: { color: '#d9a640', roughness: 0.35, metalness: 0.7 },
-    accent: { color: '#7ee0ff', roughness: 0.3, metalness: 0.4, emissive: { color: '#12414f', intensity: 0.5 } },
+    accent: {
+      color: '#7ee0ff',
+      roughness: 0.3,
+      metalness: 0.4,
+      emissive: { color: '#12414f', intensity: 0.5 },
+    },
     boot: { color: '#243d59', roughness: 0.7 },
     dark: { color: '#2a2018', roughness: 0.9 },
     wood: { color: '#6b4a2c', roughness: 0.9 },
@@ -167,7 +220,11 @@ function buildPigWarrior() {
   })
 
   // พุงใหญ่ — ลักษณะเด่นของตัวละคร
-  set.add(prim.sphere(0.36, 8, 6, { pos: [0, p.spineY - 0.02, 0.02], scale: [1, 0.9, 0.92] }), 'Spine', 'skin')
+  set.add(
+    prim.sphere(0.36, 8, 6, { pos: [0, p.spineY - 0.02, 0.02], scale: [1, 0.9, 0.92] }),
+    'Spine',
+    'skin',
+  )
   set.add(prim.cyl(0.32, 0.3, 0.3, 8, { pos: [0, p.chestY + 0.02, 0] }), 'Chest', 'primary')
   // เกราะอกและเข็มขัดใหญ่
   set.add(prim.box(0.5, 0.14, 0.34, { pos: [0, p.chestY + 0.08, 0.02] }), 'Chest', 'secondary')
@@ -176,7 +233,11 @@ function buildPigWarrior() {
   set.add(prim.cyl(0.3, 0.32, 0.2, 8, { pos: [0, p.hipsY - 0.12, 0] }), 'Hips', 'primary')
   // สนับไหล่หนา
   set.addMirrored(
-    (s) => prim.sphere(0.16, 6, 5, { pos: [s * p.shoulderX, p.shoulderY + 0.03, 0], scale: [1, 0.75, 1] }),
+    (s) =>
+      prim.sphere(0.16, 6, 5, {
+        pos: [s * p.shoulderX, p.shoulderY + 0.03, 0],
+        scale: [1, 0.75, 1],
+      }),
     'Shoulder_%s',
     'secondary',
   )
@@ -186,7 +247,11 @@ function buildPigWarrior() {
   // ศีรษะทรงหมู
   set.add(prim.box(0.3, 0.27, 0.27, { pos: [0, p.headY + 0.11, 0] }), 'Head', 'skin')
   // จมูกหมู — ทรงกระบอกแบนหันหน้าออก พร้อมรูจมูก 2 รู
-  set.add(prim.cyl(0.09, 0.1, 0.11, 8, { pos: [0, p.headY + 0.05, 0.17], rot: [HALF_PI, 0, 0] }), 'Head', 'skin')
+  set.add(
+    prim.cyl(0.09, 0.1, 0.11, 8, { pos: [0, p.headY + 0.05, 0.17], rot: [HALF_PI, 0, 0] }),
+    'Head',
+    'skin',
+  )
   set.addMirrored(
     (s) => prim.box(0.025, 0.04, 0.02, { pos: [s * 0.035, p.headY + 0.05, 0.225] }),
     'Head',
@@ -194,11 +259,12 @@ function buildPigWarrior() {
   )
   // หูหมู — กรวยแบนเอียงห้อยลง
   set.addMirrored(
-    (s) => prim.cone(0.1, 0.22, 4, {
-      pos: [s * 0.17, p.headY + 0.2, -0.01],
-      rot: [0.3, 0, s * 2.5],
-      scale: [1, 1, 0.4],
-    }),
+    (s) =>
+      prim.cone(0.1, 0.22, 4, {
+        pos: [s * 0.17, p.headY + 0.2, -0.01],
+        rot: [0.3, 0, s * 2.5],
+        scale: [1, 1, 0.4],
+      }),
     'Head',
     'skin',
   )
@@ -209,7 +275,8 @@ function buildPigWarrior() {
     'dark',
   )
   set.addMirrored(
-    (s) => prim.cone(0.028, 0.08, 4, { pos: [s * 0.075, p.headY - 0.02, 0.1], rot: [0, 0, Math.PI] }),
+    (s) =>
+      prim.cone(0.028, 0.08, 4, { pos: [s * 0.075, p.headY - 0.02, 0.1], rot: [0, 0, Math.PI] }),
     'Head',
     'metal',
   )
@@ -222,11 +289,7 @@ function buildPigWarrior() {
   set.add(prim.box(0.1, 0.12, 0.09, { pos: [rakeX, rakeY + 0.68, 0.1] }), 'Hand_R', 'secondary')
   for (let i = 0; i < 9; i++) {
     const x = rakeX + (i - 4) * 0.07
-    set.add(
-      prim.cone(0.022, 0.16, 4, { pos: [x, rakeY + 0.86, 0.1] }),
-      'Hand_R',
-      'metal',
-    )
+    set.add(prim.cone(0.022, 0.16, 4, { pos: [x, rakeY + 0.86, 0.1] }), 'Hand_R', 'metal')
   }
 
   return {
@@ -241,9 +304,18 @@ function buildPigWarrior() {
 /* ------------------------------------------------------------------ */
 
 const MONK_PROFILE = {
-  hipsY: 0.92, spineY: 1.09, chestY: 1.28, neckY: 1.5, headY: 1.63,
-  shoulderY: 1.43, elbowY: 1.11, handY: 0.82, shoulderX: 0.24,
-  hipX: 0.1, kneeY: 0.47, footY: 0.06,
+  hipsY: 0.92,
+  spineY: 1.09,
+  chestY: 1.28,
+  neckY: 1.5,
+  headY: 1.63,
+  shoulderY: 1.43,
+  elbowY: 1.11,
+  handY: 0.82,
+  shoulderX: 0.24,
+  hipX: 0.1,
+  kneeY: 0.47,
+  footY: 0.06,
 }
 
 function buildPilgrimMonk() {
@@ -264,7 +336,11 @@ function buildPilgrimMonk() {
   set.add(prim.cyl(0.26, 0.3, 0.26, 8, { pos: [0, p.spineY - 0.06, 0] }), 'Spine', 'primary')
   set.add(prim.cyl(0.3, 0.4, 0.56, 8, { pos: [0, p.hipsY - 0.24, 0] }), 'Hips', 'primary')
   // ผ้าสังฆาฏิพาดเฉียง + ขอบผ้า
-  set.add(prim.box(0.44, 0.13, 0.3, { pos: [0, p.chestY + 0.04, 0.01], rot: [0, 0, 0.42] }), 'Chest', 'accent')
+  set.add(
+    prim.box(0.44, 0.13, 0.3, { pos: [0, p.chestY + 0.04, 0.01], rot: [0, 0, 0.42] }),
+    'Chest',
+    'accent',
+  )
   set.add(prim.cyl(0.31, 0.31, 0.05, 8, { pos: [0, p.hipsY + 0.04, 0] }), 'Hips', 'accent')
   set.add(prim.cyl(0.405, 0.405, 0.06, 8, { pos: [0, p.hipsY - 0.5, 0] }), 'Hips', 'secondary')
 
@@ -272,7 +348,11 @@ function buildPilgrimMonk() {
 
   // ศีรษะโล้น
   set.add(prim.box(0.24, 0.26, 0.24, { pos: [0, p.headY + 0.1, 0] }), 'Head', 'skin')
-  set.add(prim.sphere(0.125, 7, 5, { pos: [0, p.headY + 0.21, 0], scale: [1, 0.75, 1] }), 'Head', 'skin')
+  set.add(
+    prim.sphere(0.125, 7, 5, { pos: [0, p.headY + 0.21, 0], scale: [1, 0.75, 1] }),
+    'Head',
+    'skin',
+  )
   set.addMirrored(
     (s) => prim.box(0.045, 0.03, 0.02, { pos: [s * 0.06, p.headY + 0.13, 0.122] }),
     'Head',
@@ -285,10 +365,18 @@ function buildPilgrimMonk() {
   )
   // หมวกนักแสวงบุญ — ปีกกว้างกันแดด
   set.add(prim.cyl(0.1, 0.3, 0.14, 10, { pos: [0, p.headY + 0.29, 0] }), 'Head', 'secondary')
-  set.add(prim.torus(0.29, 0.02, 4, 10, { pos: [0, p.headY + 0.23, 0], rot: [HALF_PI, 0, 0] }), 'Head', 'accent')
+  set.add(
+    prim.torus(0.29, 0.02, 4, 10, { pos: [0, p.headY + 0.23, 0], rot: [HALF_PI, 0, 0] }),
+    'Head',
+    'accent',
+  )
 
   // ลูกประคำรอบคอ
-  set.add(prim.torus(0.13, 0.022, 4, 9, { pos: [0, p.chestY + 0.1, 0.02], rot: [HALF_PI - 0.25, 0, 0] }), 'Chest', 'dark')
+  set.add(
+    prim.torus(0.13, 0.022, 4, 9, { pos: [0, p.chestY + 0.1, 0.02], rot: [HALF_PI - 0.25, 0, 0] }),
+    'Chest',
+    'dark',
+  )
 
   // ไม้เท้า — ด้ามยาว + หัวห่วงโลหะ + ห่วงเล็ก 3 วง
   const staffX = -p.shoulderX - 0.02

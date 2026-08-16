@@ -4,7 +4,11 @@ import { WebGLRenderer, type PerspectiveCamera } from 'three'
 import WebGL from 'three/addons/capabilities/WebGL.js'
 import { getCharacter } from '../../game/characters'
 import { useDeviceRefreshRate } from '../../hooks/useDeviceRefreshRate'
-import { usePerformanceQuality, type QualityOverride, type QualityTier } from '../../hooks/usePerformanceQuality'
+import {
+  usePerformanceQuality,
+  type QualityOverride,
+  type QualityTier,
+} from '../../hooks/usePerformanceQuality'
 import { reportError } from '../../lib/errors/reportError'
 import type { ErrorCode } from '../../lib/errors/codes'
 import { TEMPLE_LOBBY_BG } from '../../game/backgroundAssets'
@@ -125,14 +129,17 @@ export function LobbyScene({ teamSlots, selectedId, onSelect, qualityOverride }:
    * เดียวกันถ้าไม่มี tier มาช่วยแยก)
    */
   const refreshRateDprMax = refreshRate >= 120 ? 1.5 : 2
-  const dprMax = tier === 'low' ? 1 : tier === 'medium' ? Math.min(refreshRateDprMax, 1.5) : refreshRateDprMax
+  const dprMax =
+    tier === 'low' ? 1 : tier === 'medium' ? Math.min(refreshRateDprMax, 1.5) : refreshRateDprMax
   // งบเวลาต่อเฟรม (มิลลิวินาที) ที่ usePerformanceQuality ใช้ตัดสินว่าเฟรมไหน "หนักเกินงบ"
   const budgetMs = 1000 / refreshRate
 
   if (!webglAvailable) {
     return (
       <div className={styles.scene} style={BG_TEMPLE_STYLE}>
-        <div className={styles.fallback}>เบราว์เซอร์นี้ไม่รองรับ WebGL2 — ไม่สามารถแสดงฉาก 3D ได้</div>
+        <div className={styles.fallback}>
+          เบราว์เซอร์นี้ไม่รองรับ WebGL2 — ไม่สามารถแสดงฉาก 3D ได้
+        </div>
       </div>
     )
   }
@@ -162,9 +169,15 @@ export function LobbyScene({ teamSlots, selectedId, onSelect, qualityOverride }:
           // rendering) — cast ตรงนี้จุดเดียวเพื่อเลี่ยง type ของ R3F เอง (OffscreenCanvas แบบย่อ)
           // ชนกับ type ของ three/webgpu (OffscreenCanvas เต็มจาก DOM lib) ซึ่งเข้มกว่า
           const canvas = defaultProps.canvas as HTMLCanvasElement
-          const rendererProps = { ...defaultProps, canvas, antialias: true, powerPreference: 'high-performance' as const }
+          const rendererProps = {
+            ...defaultProps,
+            canvas,
+            antialias: true,
+            powerPreference: 'high-performance' as const,
+          }
           if (typeof navigator !== 'undefined' && 'gpu' in navigator) {
-            let renderer: InstanceType<Awaited<typeof import('three/webgpu')>['WebGPURenderer']> | undefined
+            let renderer:
+              InstanceType<Awaited<typeof import('three/webgpu')>['WebGPURenderer']> | undefined
             try {
               const { WebGPURenderer } = await import('three/webgpu')
               renderer = new WebGPURenderer(rendererProps)
@@ -179,7 +192,10 @@ export function LobbyScene({ teamSlots, selectedId, onSelect, qualityOverride }:
                 await Promise.race([
                   renderer.init(),
                   new Promise((_resolve, reject) => {
-                    timeoutId = setTimeout(() => reject(new Error('WebGPU renderer.init() timed out')), INIT_TIMEOUT_MS)
+                    timeoutId = setTimeout(
+                      () => reject(new Error('WebGPU renderer.init() timed out')),
+                      INIT_TIMEOUT_MS,
+                    )
                   }),
                 ])
               } finally {
@@ -209,35 +225,40 @@ export function LobbyScene({ teamSlots, selectedId, onSelect, qualityOverride }:
         onCreated={({ gl }) => setCanvasElement(gl.domElement)}
       >
         <Suspense fallback={null}>
-          <PerformanceMonitor budgetMs={budgetMs} override={qualityOverride} onTierChange={setTier} />
+          <PerformanceMonitor
+            budgetMs={budgetMs}
+            override={qualityOverride}
+            onTierChange={setTier}
+          />
           <CameraRig />
           <Lighting castShadow={tier !== 'low'} />
           {/*
             วนจากช่องทั้ง 4 ไม่ใช่จากรายชื่อตัวละครทั้งเกม
             วงแหวนจึงขึ้นครบ 4 วงเสมอ ส่วนโมเดลขึ้นเฉพาะช่องที่ผู้เล่นจัดไว้
           */}
-          {SHOW_ARENA_SLOTS && SLOT_INDEXES.map((index) => {
-            const transform = SLOT_TRANSFORM[index]
-            const character = getCharacter(team[index])
+          {SHOW_ARENA_SLOTS &&
+            SLOT_INDEXES.map((index) => {
+              const transform = SLOT_TRANSFORM[index]
+              const character = getCharacter(team[index])
 
-            return (
-              <group key={index}>
-                <ArenaSlotRing
-                  transform={transform}
-                  filled={character !== null}
-                  phase={index * 1.6}
-                />
-                {character ? (
-                  <CharacterModel
-                    character={character}
+              return (
+                <group key={index}>
+                  <ArenaSlotRing
                     transform={transform}
-                    isSelected={selectedId === character.id}
-                    onSelect={onSelect}
+                    filled={character !== null}
+                    phase={index * 1.6}
                   />
-                ) : null}
-              </group>
-            )
-          })}
+                  {character ? (
+                    <CharacterModel
+                      character={character}
+                      transform={transform}
+                      isSelected={selectedId === character.id}
+                      onSelect={onSelect}
+                    />
+                  ) : null}
+                </group>
+              )
+            })}
         </Suspense>
       </Canvas>
 
@@ -263,8 +284,7 @@ export function LobbyScene({ teamSlots, selectedId, onSelect, qualityOverride }:
 function CameraRig() {
   const { camera, size } = useThree()
   const reduced = useRef(
-    typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   )
 
   useFrame((state, delta) => {

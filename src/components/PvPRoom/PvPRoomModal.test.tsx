@@ -67,7 +67,7 @@ describe('PvPRoomModal', () => {
   beforeEach(() => mocks.usePvPRoom.mockReset())
 
   test('creates a selected-Hero room and normalizes a typed invite code before joining', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const roomController = controller()
     mocks.usePvPRoom.mockReturnValue(roomController)
     render(<PvPRoomModal player={player('host')} onClose={vi.fn()} />)

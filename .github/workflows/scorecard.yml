@@ -14,7 +14,7 @@ on:
   schedule:
     - cron: '0 4 * * 1' # ทุกวันจันทร์ 04:00 UTC (คนละชั่วโมงกับ upstream-skill-watch)
   push:
-    branches: [ master ]
+    branches: [master]
     paths:
       # รันเฉพาะตอนแตะของที่ Scorecard ตรวจจริง ๆ ไม่ใช่ทุก commit
       #
