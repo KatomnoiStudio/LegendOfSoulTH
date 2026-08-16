@@ -31,7 +31,7 @@ if (!WebGL.isWebGL2Available()) {
 
 ## Minimum support floor
 
-**The enforced floor is `build.target` in `vite.config.ts`** — currently `chrome111 · edge111 · firefox114 · safari16.4 · ios16.4` (Vite's `baseline-widely-available`, written out explicitly so a Vite upgrade cannot move it silently).
+**The enforced floor is `build.target` in `vite.config.ts`** — currently `chrome111 · edge111 · firefox115 · safari16.4 · ios16.4` (firefox ยกจาก 114 เมื่อ 2026-08-16 — ดูหัวข้อท้ายไฟล์) (Vite's `baseline-widely-available`, written out explicitly so a Vite upgrade cannot move it silently).
 
 **`browserslist` in `package.json` enforces nothing.** Verified 2026-08-07: no `@vitejs/plugin-legacy`, no `autoprefixer`, no `postcss` config, no Babel — nothing in this build reads that field. It records intent; treat it as a comment. `tsconfig.app.json`'s `target` is a third value that never reaches output (`noEmit: true`).
 
@@ -66,12 +66,19 @@ invisible to build, typecheck, lint and every CI workflow.
 **Before using an array/object/string built-in that is newer than the floor, check its
 support version and either raise the floor deliberately or use the older form.**
 
-**The live instance this is written from.** `build.target` declares `firefox114`.
-`Array.prototype.toSorted` and `toReversed` require **Firefox 115** (caniuse, verified
-live 2026-08-16). Eleven shipped call sites exist — six in `src/game/pvp/PvPAuthorityEngine.ts`,
-two in `stageConfig.ts`, one each in `WorldChat.tsx`, `chatStorage.ts` and
-`combatCameraFraming.ts` — so every Firefox 114 user, a version this project publicly
-declares supported, gets a TypeError rather than a degraded experience.
+**The live instance this is written from — CLOSED the same day (2026-08-16).** `build.target`
+declared `firefox114` while `Array.prototype.toSorted`/`toReversed` require **Firefox 115**
+(caniuse, verified live). Eleven shipped call sites — six in
+`src/game/pvp/PvPAuthorityEngine.ts`, two in `stageConfig.ts`, one each in `WorldChat.tsx`,
+`chatStorage.ts` and `combatCameraFraming.ts` — so a Firefox 114 user got a TypeError, not a
+degraded experience, on a version the project publicly declared supported.
+
+**HetCreep ruled: raise the floor.** It dropped nobody. Firefox 114 shipped 6 June 2023 and
+went out of support **4 July 2023**, the day 115 arrived — roughly one month of patches, and
+none since. **115 is the ESR line**, the last version supporting Windows 7/8/8.1 and macOS
+10.12–10.14, still patched (115.38.0, 21 July 2026). Anyone on a legacy OS is on 115 by
+definition; nobody is deliberately on 114. The floor had been set **below the range Mozilla
+supports**, so this was a correction rather than a reduction in what the game runs on.
 
 **And the linter is pushing the codebase past its own floor.** `oxlint`'s
 `unicorn/no-array-sort` rule flags `.sort()` and recommends `.toSorted()`; it fired during
@@ -79,9 +86,9 @@ the 2026-08-16 session and the suggested fix was taken. **The lint gate and the 
 disagree, and the lint gate wins because it is enforced while the floor is never checked
 against built-ins.**
 
-The resolution — raise the floor to `firefox115`, or stop using the newer built-ins — is a
-**supported-matrix decision for HetCreep**, not a mechanical fix, and is recorded as audit
-item B1 rather than applied here.
+The rule that outlives that instance: **the floor states which built-in set it clears, and
+using one newer than the floor means raising the floor deliberately — not discovering it
+when a player hits a TypeError.**
 
 **Enforcement**: ADVISORY. Deliberately not proposed as a rule with a check — "verify every
 new built-in against the floor" has no enforcer and would fail this estate's own entry gate.

@@ -247,7 +247,7 @@ found months later by a person squinting at a screen saying something looks off.
 - **Browser support was read, not assumed, and the sources disagree.** caniuse gives AVIF as
   Chrome 85 / Edge 121 / Firefox 93 / Safari 16.4 / iOS Safari 16.0; MDN gives Safari 16.1. Either
   way AVIF sits inside this project's own build floor (`vite.config.ts:53` targets
-  `chrome111, edge111, firefox114, safari16.4, ios16.4`), so support is not what rules it out here
+  `chrome111, edge111, firefox115, safari16.4, ios16.4`), so support is not what rules it out here
   — decode time and the alpha drift are.
 
 ---
