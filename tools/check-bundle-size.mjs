@@ -67,8 +67,29 @@ const BUDGETS_KB_GZIP = { vendor: 300, app: 70, css: 40 }
   40 KB = ค่าที่วัดได้ 30.1 + เผื่อ ~33% ตามวิธี ratchet เดียวกับ vendor/app ข้างบน
   (App-*.css คือก้อนใหญ่สุด ที่เหลือรวมกันไม่ถึง 3 KB)
 
-  โฟลเดอร์ public/ (16 MB) ยังอยู่นอกเกตนี้โดยตั้งใจ — ตั้งเลขให้มันต้องวัด byte ต่อ route
-  ก่อน ห้ามเสกตัวเลขขึ้นมา (audit item B24 ยังเปิด)
+  โฟลเดอร์ public/ (16 MB, 383 ไฟล์) ยังอยู่นอกเกตนี้โดยตั้งใจ — ตั้งเลขให้มันต้องวัด byte
+  ต่อ route ก่อน ห้ามเสกตัวเลขขึ้นมา
+
+  B24 (fingerprint public/) — วัดแล้วไม่ทำ 2026-08-16
+  ------------------------------------------------
+  audit เสนอให้ย้าย public/ เข้า bundle เพื่อให้ได้ content hash แล้วแคชแบบ immutable
+  ประโยชน์ข้อนั้น "ไม่มีอยู่จริงบน host ปัจจุบัน" — วัดจากไซต์จริง ไม่ใช่จากความจำ:
+
+    curl -D - https://katomnoistudio.github.io/LegendOfSoulTH/assets/index-B7awM7O2.js
+    → Cache-Control: max-age=600
+
+  ไฟล์ที่ "มี hash อยู่แล้ว" ก็ได้ 600 วินาทีเท่ากับ favicon.svg กับ index.html เป๊ะ ๆ
+  GitHub Pages ส่ง max-age=600 กับทุกอย่างและไม่เปิดให้ตั้ง header เอง — hash จึงไม่ปลดล็อก
+  immutable ที่นี่ ได้ hash มาก็ยังโดน revalidate ทุก 10 นาทีอยู่ดี
+
+  ราคาของการย้ายไม่ใช่เหตุผลที่ไม่ทำ — วัดแล้วถูกกว่าที่เดา: publicUrl() เป็นทางผ่านจุดเดียว
+  ของ asset ทั้งหมดอยู่แล้ว (src/lib/publicUrl.ts) เปลี่ยนเป็น lookup ของ import.meta.glob
+  ที่ eager ได้ตรง ๆ และ map 383 เส้นทางนั้นหนัก 40.8 KB ดิบ แต่ gzip เหลือ 2.7 KB
+  (path ซ้ำกันเยอะ) — ใน budget app 70 KB ถือว่าจ่ายไหว
+
+  เปิดใหม่เมื่อ: ย้ายไป host ที่ตั้ง Cache-Control เองได้ (Cloudflare Pages, Netlify, S3+
+  CloudFront) ตอนนั้น hash จะได้ immutable จริงและ 16 MB นี้จะเลิก revalidate ทุก 10 นาที
+  เงื่อนไขคือ "host เปลี่ยน" ไม่ใช่ "asset โตขึ้น" — ขนาดไม่เคยเป็นประเด็นของข้อนี้
 */
 
 // manualChunks ใน vite.config.ts (บรรทัด 71-74) ดึงออกมาเป็น chunk แยกแค่ react เท่านั้น

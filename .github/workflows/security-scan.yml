@@ -76,7 +76,29 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
         with:
-          egress-policy: audit
+          # Same derivation as the gitleaks job above, which went green on its first block run
+          # (40866bf) with EgressPolicy:block confirmed in the agent log — not silently degraded.
+          # This job adds exactly one endpoint over that list:
+          #   registry.npmjs.org   npm audit posts the dependency tree to the advisory endpoint
+          # nodejs.org is deliberately absent: setup-node resolves node 22 from the runner's own
+          # tool cache, and falls back to the actions/node-versions RELEASE assets on github.com,
+          # which is already listed. If a runner image ever ships without node 22 cached, that
+          # fallback is the path that runs — not a direct nodejs.org fetch.
+          #
+          # `cache: 'npm'` needs the Actions cache host, which is NOT listed here on purpose:
+          # harden-runner adds it itself ("Adding cacheHost: productionresultssa3.blob.core
+          # .windows.net:443 to allowed-endpoints" appeared in the gitleaks run). Hardcoding a
+          # regional blob host would rot the day GitHub moves it.
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            objects.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
+            pipelines.actions.githubusercontent.com:443
+            results-receiver.actions.githubusercontent.com:443
+            registry.npmjs.org:443
+            agent.api.stepsecurity.io:443
 
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
