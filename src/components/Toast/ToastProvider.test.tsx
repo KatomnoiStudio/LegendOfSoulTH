@@ -97,6 +97,22 @@ describe('ToastProvider', () => {
     expect(liveRegion.querySelectorAll('[data-leaving]').length).toBe(3)
   })
 
+  test('timer ของ toast ที่ถูกเบียดตกจอ ถูกยกเลิก ไม่ทิ้งไว้ให้ยิง render เปล่า', () => {
+    vi.useFakeTimers()
+    renderToast()
+
+    for (const label of ['one', 'two', 'three']) {
+      fireEvent.click(screen.getByRole('button', { name: label }))
+    }
+    const atCapacity = vi.getTimerCount()
+
+    // ตัวที่สี่เบียดตัวแรกตกจอ: +1 timer ของตัวใหม่ −1 ของตัวที่ถูกเตะ = เท่าเดิม
+    // ก่อนแก้ Set เก็บ timer ไว้โดยไม่รู้ว่าเจ้าของหลุดจอไปแล้ว ตัวเลขจึงขึ้นเป็น 4
+    fireEvent.click(screen.getByRole('button', { name: 'four' }))
+
+    expect(vi.getTimerCount()).toBe(atCapacity)
+  })
+
   test('toast ที่ถูกเบียดตกจอ แสดงใหม่ได้ทันที ไม่ต้องรอ timer ของตัวเอง', () => {
     vi.useFakeTimers()
     renderToast()
