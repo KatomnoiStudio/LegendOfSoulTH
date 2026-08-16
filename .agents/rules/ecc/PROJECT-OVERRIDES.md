@@ -1,4 +1,4 @@
-<!-- coalmine: verified 2026-08-06 · exemplar package.json (this repo, ground truth) · revalidate 30d -->
+<!-- coalmine: verified 2026-08-16 · exemplar package.json + vite.config.ts + supabase/functions/ (this repo, ground truth) · re-proved by: npm run ci · revalidate 30d -->
 
 # Project overrides — where imported ECC rules don't match this repo
 
@@ -43,9 +43,15 @@ Anything without the `VITE_` prefix in `.env` stays server/build-time only and i
 
 `common/agents.md` lists `planner`, `architect`, `tdd-guide`, `code-reviewer`, `security-reviewer`, `build-error-resolver`, `e2e-runner`, `refactor-cleaner`, `doc-updater`, `rust-reviewer`, `harmonyos-app-resolver` as available under `~/.claude/agents/`. As of this audit, only `memory-keeper` exists as an actual configured subagent in this environment. Treat every other name in that file (and the `security-reviewer`/`react-reviewer`/`tdd-guide`/`e2e-runner`/`build-error-resolver` mentions scattered through `security.md`/`testing.md` files) as **aspirational, not actionable** — check what's actually available (the harness surfaces a live agent-type list each session) before invoking one by name.
 
-## Testing stack: partially installed, coverage not measured
+## Testing stack: measured and gated. No E2E framework (corrected 2026-08-16)
 
-`vitest` + `jsdom` are real devDependencies (`package.json`) with a working `"test": "vitest run"` script, but coverage is limited: as of this audit, only `src/lib/format.test.ts` (pure functions) exists — zero component/hook/integration tests across `src/components`, `src/hooks`, `src/game`. `common/testing.md`'s 80% coverage bar has no coverage-measuring tool configured (`vite.config.ts`'s `test` block sets no `coverage` provider), so it cannot currently be checked mechanically. `typescript/testing.md`/`web/testing.md`'s Playwright prescription is **not installed** — no E2E framework exists in this repo. Treat the coverage/E2E bar as target state, not current practice; expanding test coverage is a CONFORM-track change requiring separate approval (see `MEMORY.md`).
+`vitest` + `jsdom` are real devDependencies. **Coverage is measured and enforced**: `@vitest/coverage-v8` is installed, `vite.config.ts`'s `test.coverage` block sets `provider: 'v8'` **and `thresholds`**, and `npm run ci` runs `test:coverage`, so a coverage regression fails the build. Measured 2026-08-16: **1,185 tests across 135 files**, statements 71.6 · branches 60.2 · functions 72.8 · lines 74.4, with **34 component test files against 66 components**.
+
+`common/testing.md`'s 80% bar is still above the measured floor, so treat 80% as target state — but the floor itself is now a real number in the config, not an unchecked sentence.
+
+`typescript/testing.md`/`web/testing.md`'s Playwright prescription remains **not installed** — no E2E framework exists in this repo, and adopting one is a framework decision for HetCreep, not a CONFORM fix.
+
+> **⚠️ Corrected 2026-08-16.** This section read "only `src/lib/format.test.ts` exists — zero component/hook/integration tests" and "no coverage-measuring tool configured". Both were false by a wide margin and this file wins precedence, so an agent checking whether the repo had tests was being told no.
 
 ## `common/performance.md` is about LLM agent cost, not app runtime performance
 
@@ -53,7 +59,9 @@ Despite the filename, that file's content (model tier selection, context window 
 
 ## Validation/logging libraries prescribed, not installed
 
-`typescript/coding-style.md` prescribes Zod for schema validation and "proper logging libraries instead of console" — neither is a dependency here. This repo's actual pattern: no runtime schema validation library (TypeScript's static types cover the trust boundaries that exist; there's no server accepting untrusted payloads to validate), and `web/observability.md`'s own explicit rule for this repo is `console.error` before every swallowed catch, not a logging library (no backend to ship structured logs to). Follow `web/observability.md` over `typescript/coding-style.md` on logging where they conflict, per this file's own precedence rule.
+`typescript/coding-style.md` prescribes Zod for schema validation and "proper logging libraries instead of console" — neither is a dependency here. This repo's actual pattern: no runtime schema validation library, and `web/observability.md`'s own explicit rule for this repo is `console.error` before every swallowed catch, not a logging library. Follow `web/observability.md` over `typescript/coding-style.md` on logging where they conflict, per this file's own precedence rule.
+
+> **⚠️ Corrected 2026-08-16.** This section used to justify the absence of schema validation with "there's no server accepting untrusted payloads to validate". **There is one**: `supabase/functions/pvp-authority/index.ts` is a Deno edge function that parses a request body, and `supabase/migrations/` carries 50 `SECURITY DEFINER` RPCs reachable from a client session. The absence of a validation library is a real choice — hand-written guards plus Postgres constraints do the work — but the reason recorded here was not true, and a reason that is not true stops being a reason the next time someone leans on it.
 
 ## Browser-support baseline: see `web/compatibility.md`, not this file
 

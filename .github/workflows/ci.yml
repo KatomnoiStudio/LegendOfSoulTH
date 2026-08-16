@@ -188,7 +188,7 @@ jobs:
         with:
           node-version: 24
 
-      - name: Check citations in docs/agent-blueprint
+      - name: Check citations in every mandatory-read document
         continue-on-error: true
         run: node tools/check-blueprint-citations.mjs
 
