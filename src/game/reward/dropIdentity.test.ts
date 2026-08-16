@@ -12,7 +12,16 @@ import { REALTIME_STAGES } from '../realtimeBattle/stageConfig'
  * แล้วกันไม่ให้ลดลงเมื่อเพิ่ม content — และตอนพัง ต้องบอกว่าด่านไหนยุบเข้าหากัน ไม่ใช่แค่ว่าเลขตก
  */
 
-/** ขอบเขต tier ตาม P1.10 — `dm < 1.04` → 1 · `1.04 ≤ dm < 1.11` → 2 · `dm ≥ 1.11` → 3 */
+/**
+ * ขอบเขต tier ตาม P1.10 — `dm < 1.04` → 1 · `1.04 ≤ dm < 1.11` → 2 · `dm ≥ 1.11` → 3
+ *
+ * **วันนี้นี่คือบ้านเดียวของขอบเขตนี้ในโค้ด** (`grep 1.04|1.11` เจอแค่ที่นี่ กับ `damageScale`
+ * ที่ไม่เกี่ยวกันใน `progressionConfig.ts`) เพราะ `drops[ศัตรู][tier]` ยังไม่ถูก implement
+ *
+ * **ตอน implement ต้องย้ายสองตัวนี้ไปอยู่กับ implementation แล้วให้เทสต์ import กลับ — ห้าม
+ * พิมพ์ `1.04/1.11` ซ้ำที่นั่น** P1.1 เขียนไว้ตรง ๆ ว่ามีเลขซ้ำเมื่อไหร่ = มีแหล่งความจริงที่สอง
+ * และเคสนี้พังแบบเงียบ: จูนขอบเขตแล้วขยับแค่ก๊อบปี้เดียว build check จะยังเขียวโดยวัดของเก่า
+ */
 const TIER_CUTS = [1.04, 1.11] as const
 
 /**
@@ -36,7 +45,7 @@ interface DropIdentity {
   stageIds: string[]
 }
 
-export function dropIdentitiesOf(chapterId: string): DropIdentity[] {
+function dropIdentitiesOf(chapterId: string): DropIdentity[] {
   const byKey = new Map<string, string[]>()
 
   for (const stage of Object.values(REALTIME_STAGES)) {
