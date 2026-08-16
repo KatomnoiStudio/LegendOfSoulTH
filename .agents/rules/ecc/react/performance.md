@@ -39,4 +39,10 @@ paths:
 
 ## Bundle budget
 
+> **CLOSED 2026-08-16.** `tools/check-bundle-size.mjs` enforces per-file gzip ceilings
+> (app 70 KB, vendor 300 KB), sets `process.exitCode = 1` on a breach, and runs inside
+> `npm run ci`. The bullet below was written before it existed and stayed inside its 90-day
+> window while the code moved — an agent obeying it would have concluded a gate was missing
+> and built a second one. History:
+
 - `vite.config.ts` currently raises `chunkSizeWarningLimit` to silence the Three.js chunk warning rather than budgeting it. If bundle size matters going forward, add `rollup-plugin-visualizer` or `size-limit` to `npm run ci` instead of suppressing the warning — a raised limit hides regressions, it doesn't fix them.

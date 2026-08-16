@@ -46,6 +46,8 @@ Binding consequences:
 
 ## Mobile / touch
 
+**CLOSED 2026-08-16** — touch controls shipped (`WukongAdventure.module.css:697-708`). This section and the 2026-08-07 gold-standard baseline both still described it as open; the code had moved and the rules had not. History below.
+
 `index.html`'s viewport meta (`width=device-width`, `viewport-fit=cover`) signals mobile is a target, but `WukongAdventure`'s on-screen hint documents WASD/arrow-key controls only. A `onPointerDown` floor-click handler already exists — either surface it as a visible on-screen control for touch devices, or explicitly scope mobile out in the HUD/README so the mismatch is a decision, not an oversight.
 
 ## GPU tiering (nice-to-have)

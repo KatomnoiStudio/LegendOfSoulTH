@@ -28,9 +28,20 @@
   place-items: center;
 }
 
+/*
+  width/height, not max-width/max-height — the box must exist before the image loads.
+
+  LoadingScreen is the Suspense fallback shown while the lobby chunk downloads, so its
+  image is the one a first-time player is looking at when it pops in. With max-* only, the
+  element is 0×0 until the bytes arrive and everything below it jumps at exactly that
+  moment. Reserving the box costs nothing and removes the shift. (audit item B12,
+  2026-08-16 — the whole of the earlier "<img> tags missing dimensions" gap turned out to
+  be this one rule; the other 13 live sites already reserve space via CSS.)
+*/
 .visual img {
-  max-width: 96px;
-  max-height: 96px;
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
 }
 
 /* ลาย 魂 (สูญ) — คัดลอกมาจาก TitlePage.module.css's .seal/.sealOrbit/.sealCore

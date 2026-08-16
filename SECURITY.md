@@ -150,10 +150,16 @@ authenticated` with no re-grant, and the removal of the three progression parame
   the same request debits twice, or if a direct table write succeeds.
 - **"I can locally hide/show a World Chat author by editing my block list."** `/block` is a
   client-local viewing preference by design. Chat rows themselves remain server-authoritative.
-- **"I changed my local PvP position/HP or predicted a different result."** PvP prediction is
-  presentation-only. The JWT-protected `pvp-authority` Edge Function injects the authenticated
-  player identity, advances fixed-tick combat, and is the only caller allowed to commit state or
-  results. Postgres broadcasts those committed snapshots to a participant-only private Realtime
+- **"I changed my local PvP position/HP or predicted a different result."** **PvP is not
+  deployed — ranked rooms are gated off in the shipped client** (`PVP_BACKEND_DEPLOYED = false`
+  in `src/game/featureFlags.ts`, and the `pvp-authority` Edge Function has never been deployed;
+  `list_edge_functions` returned empty on 2026-08-13). There is no live PvP surface to attack
+  today, and a report scoped against one is scoped against something that does not exist.
+  _Corrected 2026-08-16 — this paragraph described the design below in the present tense, which
+  read as a live server authority._
+  The design, for when it does ship: PvP prediction is presentation-only; the JWT-protected
+  `pvp-authority` Edge Function injects the authenticated player identity, advances fixed-tick
+  combat, and is the only caller allowed to commit state or results. Postgres broadcasts those committed snapshots to a participant-only private Realtime
   topic; authenticated clients have receive permission but no Broadcast INSERT policy. It reads
   hosted Supabase keys from the platform's plural JSON key sets (`SUPABASE_PUBLISHABLE_KEYS` and
   `SUPABASE_SECRET_KEYS`) with legacy project-secret fallbacks; no secret enters the browser bundle.
