@@ -1,4 +1,5 @@
 <!-- coalmine: verified 2026-08-06 · exemplar package.json (this repo, ground truth) · revalidate 30d -->
+
 # Project overrides — where imported ECC rules don't match this repo
 
 The `common/`, `typescript/`, `react/`, `web/` files under `.agents/rules/ecc/` were copied verbatim from [affaan-m/ECC](https://github.com/affaan-m/ECC) (see [README.md](README.md), [LICENSE](LICENSE)). Several of their examples assume a toolchain this repo doesn't have. This file is the single source of truth when they conflict — per [README.md](README.md) precedence rule 3.
@@ -9,16 +10,22 @@ Found by CoalMine gold-standard AUDIT, 2026-08-05.
 
 Every `pnpm ...` command in `web/hooks.md`, `common/hooks.md` (if present), etc. should read `npm exec ...` / `npm run ...` for this repo. Evidence: `package-lock.json` present, no `pnpm-lock.yaml`, `ci.yml`/`deploy.yml` both use `npm ci`.
 
-## Linter: oxlint only — no ESLint, Prettier, or Stylelint installed
+## Linter: oxlint — no ESLint or Stylelint. Prettier IS installed (corrected 2026-08-16)
 
-`web/hooks.md`'s lint/format/CSS-lint hook examples (`pnpm eslint`, `pnpm prettier`, `pnpm stylelint`) reference packages **not in `package.json`**. This repo's actual lint entrypoint is:
+`web/hooks.md`'s lint/format/CSS-lint hook examples (`pnpm eslint`, `pnpm prettier`, `pnpm stylelint`) reference packages **not in `package.json`** — except Prettier, which is. This repo's actual entrypoints:
 
 ```bash
-npm run lint       # oxlint, config: .oxlintrc.json
-npm run typecheck  # tsc -b
+npm run lint          # oxlint --deny-warnings, config: .oxlintrc.json
+npm run typecheck     # tsc -b && deno check (edge functions)
+npm run format        # prettier --write .
+npm run format:check  # prettier --check .   (NOT in `npm run ci`)
 ```
 
-Do not wire a PostToolUse hook to `eslint`/`prettier`/`stylelint` here — they'd fail (package not found). If format-on-save is wanted, evaluate `oxc`'s own formatter or add Prettier as a real dependency first; don't assume it exists because an example does.
+Do not wire a hook to `eslint`/`stylelint` — they are genuinely absent. **Prettier is a real devDependency (`prettier ^3.9.6`) and already runs on every commit** via `husky` + `lint-staged`, which formats `*.{ts,tsx,json,css,md}` before the commit lands.
+
+> **⚠️ Corrected 2026-08-16.** This section previously read "no ESLint, Prettier, or Stylelint installed" and told agents to add Prettier as a real dependency before assuming it existed. It has been a real dependency and an active pre-commit step the whole time. This file wins precedence on toolchain conflicts, so the false claim was being obeyed — an agent following it would decline to run a formatter that runs anyway. Found by the 2026-08-16 gold-standard audit; four of five scouts caught this file independently.
+>
+> **`format:check` is deliberately not in `npm run ci`** — the tree is not prettier-clean and, without a `.gitattributes`, the check reports hundreds of CRLF-only false failures on Windows. Landing `.gitattributes` first is audit item B3.
 
 ## Env vars: `import.meta.env`, not `process.env`
 
@@ -26,11 +33,11 @@ This is a Vite SPA, not Next.js/Node. `typescript/security.md`'s secret-manageme
 
 ```typescript
 // Vite: only VITE_*-prefixed vars reach the client bundle, and only via import.meta.env
-const apiKey = import.meta.env.VITE_API_KEY;
-if (!apiKey) throw new Error('VITE_API_KEY not configured');
+const apiKey = import.meta.env.VITE_API_KEY
+if (!apiKey) throw new Error('VITE_API_KEY not configured')
 ```
 
-Anything without the `VITE_` prefix in `.env` stays server/build-time only and is `undefined` at runtime — there is no server for this static-Pages deploy, so treat any *client-needed* secret as inherently public. Prefer not shipping secrets to this app at all.
+Anything without the `VITE_` prefix in `.env` stays server/build-time only and is `undefined` at runtime — there is no server for this static-Pages deploy, so treat any _client-needed_ secret as inherently public. Prefer not shipping secrets to this app at all.
 
 ## Subagents referenced in `common/agents.md` mostly don't exist here
 

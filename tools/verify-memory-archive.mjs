@@ -7,6 +7,23 @@
  *
  *   node tools/verify-memory-archive.mjs [--base <git-ref>]
  *
+ * NOT WIRED INTO `npm run ci`, and why (2026-08-16). Two parser defects were fixed this
+ * date — see `extractItems` — which removed every phantom "body lives in (nowhere)". What
+ * remains is 19 real failures in three groups, and only one group is repo drift:
+ *
+ *   11x "body differs"  — deliberate later edits (belt→review, caretaker→system owner, the
+ *                         Ring-0 sweep) measured against a FROZEN pre-split base. Any
+ *                         intentional rewording is a permanent failure by construction.
+ *                         This is a tool-design flaw: the base needs re-anchoring, or the
+ *                         comparison needs to be structural rather than byte-exact.
+ *    7x "no index line" — items 216–222 are archived with no line in MEMORY.md. Real drift,
+ *                         and the owner's to reconcile — writing index lines means
+ *                         summarising seven items, which `agent-memory-law.md` governs.
+ *    1x count mismatch  — a consequence of the seven.
+ *
+ * Wiring it into CI today would make CI red on state this tool cannot itself resolve. The
+ * gate goes in once the base problem is fixed and the seven are indexed (audit item B5).
+ *
  * Root `MEMORY.md` is an index (one line per item); the item BODIES live in
  * `MEMORY/archive/NNN-MMM.md`. This asserts the move was lossless:
  *
@@ -83,7 +100,11 @@ function blobCrlfCount(ref, path) {
     return (buf.toString('latin1').match(/\r\n/g) ?? []).length
   } catch (err) {
     const stderr = String(err?.stderr ?? '')
-    if (/exists on disk, but not in|does not exist|unknown revision|Not a valid object name/i.test(stderr)) {
+    if (
+      /exists on disk, but not in|does not exist|unknown revision|Not a valid object name/i.test(
+        stderr,
+      )
+    ) {
       return null // not committed yet — nothing to assert
     }
     failures.push(`could not read blob ${ref}:${path} — ${stderr.trim() || err?.message || err}`)
@@ -91,13 +112,39 @@ function blobCrlfCount(ref, path) {
   }
 }
 
-/** Split a markdown blob into item bodies keyed by number. Items are `NNN. ` at column 0. */
+/**
+ * Split a markdown blob into item bodies keyed by number.
+ *
+ * An item start is `NNN. ` or `## NNN. ` at column 0 — and, in an archive file, the number
+ * must fall inside the range its own filename declares.
+ */
 function extractItems(text, source) {
   const lines = normalise(text).split('\n')
+  /*
+    Two separate defects, both measured 2026-08-16, both making this gate report losses that
+    were not real while being unable to see one that was.
+
+    1. TWO ITEM-START FORMS, ONE MATCHED. Items 1–200 were written as a plain `NNN. ` list
+       line; 176 onward switched to a markdown heading, `## NNN. `. 193 plain against 31
+       heading-form — and every heading-form item read as "body lives in (nowhere)", the
+       whole of 201-225.md plus 9 of 176-200.md.
+
+    2. NUMBERED SUB-LISTS INSIDE A BODY READ AS ITEM STARTS. `176-200.md:47` opens a
+       sub-list with `1. **Correct code with nothing pinning it.**`, which matched as
+       "item 1" and stole that item's identity from `001-025.md`. The filename declares the
+       range the file is allowed to contain, so a number outside it is a body line, never a
+       start. The index (`MEMORY.md`) carries no range and accepts every number.
+  */
+  const range = /(\d{3})-(\d{3})\.md$/.exec(source)
+  const lo = range ? Number(range[1]) : -Infinity
+  const hi = range ? Number(range[2]) : Infinity
   const starts = []
   for (let i = 0; i < lines.length; i++) {
-    const m = /^(\d+)\. /.exec(lines[i])
-    if (m) starts.push({ index: i, number: Number(m[1]) })
+    const m = /^(?:#{1,6}\s+)?(\d+)\. /.exec(lines[i])
+    if (!m) continue
+    const number = Number(m[1])
+    if (number < lo || number > hi) continue
+    starts.push({ index: i, number })
   }
   const items = new Map()
   for (let s = 0; s < starts.length; s++) {
@@ -147,7 +194,9 @@ console.log(`items in archive    : ${archiveItems.size}`)
  * historical half was skipped — never report a pass as if the full check ran.
  */
 const HISTORICAL = originalItems.size > 0
-console.log(`mode                : ${HISTORICAL ? 'HISTORICAL (base has bodies)' : 'ONGOING (base is already an index — pre-split comparison skipped)'}`)
+console.log(
+  `mode                : ${HISTORICAL ? 'HISTORICAL (base has bodies)' : 'ONGOING (base is already an index — pre-split comparison skipped)'}`,
+)
 
 if (HISTORICAL) {
   // The archive is allowed to have GROWN — items 189, 190, ... are appended after the split
@@ -159,7 +208,8 @@ if (HISTORICAL) {
     `items LOST: base ${BASE} holds ${originalItems.size}, archive holds only ${archiveItems.size}`,
   )
   const added = archiveItems.size - originalItems.size
-  if (added > 0) console.log(`items added since   : ${added} (${originalItems.size + 1}..${archiveItems.size})`)
+  if (added > 0)
+    console.log(`items added since   : ${added} (${originalItems.size + 1}..${archiveItems.size})`)
 }
 
 // --- 3. body comparison (eol-normalised on both sides) — HISTORICAL mode only ---
@@ -222,7 +272,11 @@ for (const number of numbers) {
 }
 
 // --- 6. eol convention, asserted on the COMMITTED blobs only ---
-const owned = ['MEMORY.md', ...archiveFiles.map((f) => `MEMORY/archive/${f}`), 'MEMORY/archive/README.md']
+const owned = [
+  'MEMORY.md',
+  ...archiveFiles.map((f) => `MEMORY/archive/${f}`),
+  'MEMORY/archive/README.md',
+]
 let checkedBlobs = 0
 for (const path of owned) {
   const crlf = blobCrlfCount('HEAD', path)
@@ -241,7 +295,10 @@ check(
 const indexLineCount = indexLines.length - (indexText.endsWith('\n') ? 1 : 0)
 console.log(`MEMORY.md lines     : ${indexLineCount} (ceiling ${LINE_CEILING})`)
 console.log(`MEMORY.md bytes     : ${Buffer.byteLength(indexText)}`)
-check(indexLineCount <= LINE_CEILING, `MEMORY.md is ${indexLineCount} lines, over the ${LINE_CEILING} ceiling`)
+check(
+  indexLineCount <= LINE_CEILING,
+  `MEMORY.md is ${indexLineCount} lines, over the ${LINE_CEILING} ceiling`,
+)
 
 if (failures.length > 0) {
   console.error(`\nFAIL — ${failures.length} problem(s):`)
