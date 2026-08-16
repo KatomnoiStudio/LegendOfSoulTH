@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { WebGLRenderer, type PerspectiveCamera } from 'three'
+import { type PerspectiveCamera } from 'three'
 import WebGL from 'three/addons/capabilities/WebGL.js'
 import { getCharacter } from '../../game/characters'
 import { useDeviceRefreshRate } from '../../hooks/useDeviceRefreshRate'
@@ -13,6 +13,7 @@ import { reportError } from '../../lib/errors/reportError'
 import type { ErrorCode } from '../../lib/errors/codes'
 import { TEMPLE_LOBBY_BG } from '../../game/backgroundAssets'
 import { SLOT_INDEXES, SLOT_TRANSFORM, normalizeTeam, type TeamSlots } from '../../game/team'
+import { createLobbyRenderer } from './createLobbyRenderer'
 import { ArenaSlotRing } from './ArenaSlotRing'
 import { CharacterModel } from './CharacterModel'
 import { ErrorCodeTag } from '../ErrorCodeTag/ErrorCodeTag'
@@ -164,61 +165,13 @@ export function LobbyScene({ teamSlots, selectedId, onSelect, qualityOverride }:
           init() ล้มเหลว (เช่น driver ไม่รองรับจริงแม้ browser ประกาศรองรับ) — ดูสถานะรองรับ
           ตามเบราว์เซอร์ล่าสุดที่ .agents/rules/ecc/web/compatibility.md หรือ caniuse ก่อนไว้ใจ
         */
-        gl={async (defaultProps) => {
-          // canvas ในเกมนี้เป็น HTMLCanvasElement จริงเสมอ (ไม่มี worker-based OffscreenCanvas
-          // rendering) — cast ตรงนี้จุดเดียวเพื่อเลี่ยง type ของ R3F เอง (OffscreenCanvas แบบย่อ)
-          // ชนกับ type ของ three/webgpu (OffscreenCanvas เต็มจาก DOM lib) ซึ่งเข้มกว่า
-          const canvas = defaultProps.canvas as HTMLCanvasElement
-          const rendererProps = {
-            ...defaultProps,
-            canvas,
-            antialias: true,
-            powerPreference: 'high-performance' as const,
-          }
-          if (typeof navigator !== 'undefined' && 'gpu' in navigator) {
-            let renderer:
-              InstanceType<Awaited<typeof import('three/webgpu')>['WebGPURenderer']> | undefined
-            try {
-              const { WebGPURenderer } = await import('three/webgpu')
-              renderer = new WebGPURenderer(rendererProps)
-              // renderer.init() เรียก navigator.gpu.requestAdapter() ใต้ฝาครอบ — เจอจริงว่า
-              // driver/GPU บางตัวประกาศรองรับ WebGPU (navigator.gpu มีอยู่) แต่การเจรจา
-              // adapter ค้างตลอดกาล ไม่ resolve ไม่ reject เลย (ผู้เล่นรายงานว่าเกม "ค้างยาว"
-              // หลังล็อกอิน — เกิดตรงนี้ ไม่ใช่ตอน login จริง) กันด้วย timeout แล้วตกไป WebGL2
-              // แทนที่จะรอเฉย ๆ ไม่มีกำหนด
-              const INIT_TIMEOUT_MS = 4000
-              let timeoutId: ReturnType<typeof setTimeout> | undefined
-              try {
-                await Promise.race([
-                  renderer.init(),
-                  new Promise((_resolve, reject) => {
-                    timeoutId = setTimeout(
-                      () => reject(new Error('WebGPU renderer.init() timed out')),
-                      INIT_TIMEOUT_MS,
-                    )
-                  }),
-                ])
-              } finally {
-                clearTimeout(timeoutId)
-              }
-              // WebGPU ไม่ยิง DOM event 'webglcontextlost' (นั่นเป็นกลไกเฉพาะ WebGL) —
-              // ต้องผูก onDeviceLost ของตัว renderer เองแทน ไม่งั้นการ์ดจอหลุดแล้วเงียบ
-              // ไม่มี fallback UI ให้เห็นเลย (ต่างจากฝั่ง WebGL2 ด้านล่างที่ยังใช้ DOM event เดิม)
-              renderer.onDeviceLost = (info) => {
-                reportError('LOBBY_SCENE_DEVICE_LOST', 'visible', info)
-                setContextLost(true)
-                setContextLostCode('LOBBY_SCENE_DEVICE_LOST')
-              }
-              return renderer
-            } catch (error) {
-              reportError('LOBBY_SCENE_WEBGPU_INIT_FAIL', 'silent', error)
-              // init() ล้มเหลวหลังจาก renderer จอง GPU adapter/device ไปแล้วบางส่วน —
-              // dispose ทิ้งก่อนตกไปสร้าง WebGLRenderer ตัวใหม่ กัน GPU resource ค้าง
-              renderer?.dispose()
-            }
-          }
-          return new WebGLRenderer(rendererProps)
-        }}
+        gl={(defaultProps) =>
+          createLobbyRenderer(defaultProps, (info) => {
+            reportError('LOBBY_SCENE_DEVICE_LOST', 'visible', info)
+            setContextLost(true)
+            setContextLostCode('LOBBY_SCENE_DEVICE_LOST')
+          })
+        }
         camera={{ position: CAM_BASE, fov: 32, near: 0.1, far: 60 }}
         // คลิกพื้นที่ว่าง = ยกเลิกการเลือก
         onPointerMissed={() => onSelect(null)}
