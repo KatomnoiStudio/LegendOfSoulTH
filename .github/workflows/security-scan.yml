@@ -23,7 +23,34 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
         with:
-          egress-policy: audit
+          # block, not audit — the first workflow in this repo to enforce it (2026-08-16,
+          # audit item B17). harden-runner is installed on all 12 jobs and, at audit, stopped
+          # nothing: a compromised transitive dependency executing during a step had its
+          # egress logged and permitted.
+          #
+          # This job is first because its egress is the narrowest in the repo and every
+          # endpoint below is derivable from the four steps it runs, not guessed:
+          #   github.com                  git clone (checkout) + the pinned gitleaks release
+          #   objects.githubusercontent.com  where a GitHub release asset actually redirects to
+          #   api.github.com              checkout's REST calls
+          #   *.actions.githubusercontent.com  runner/job internals
+          #   agent.api.stepsecurity.io   harden-runner's own agent, or it cannot report
+          #
+          # The allowlist is DERIVED, not read off StepSecurity's egress dashboard — that
+          # data was not reachable when this was written. If a run fails on a blocked
+          # endpoint, the harden-runner step names it exactly: add it here with a comment
+          # saying which step needs it, never widen to a bare domain to make red go away.
+          #
+          # The other 11 jobs stay on audit until this one has proven itself over real runs.
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            objects.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
+            pipelines.actions.githubusercontent.com:443
+            results-receiver.actions.githubusercontent.com:443
+            agent.api.stepsecurity.io:443
 
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
