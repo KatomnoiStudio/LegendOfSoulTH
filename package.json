@@ -21,6 +21,7 @@
     "preview": "vite preview",
     "prepare": "husky",
     "test:coverage": "vitest run --coverage",
+    "test:mutation": "npx -y -p @stryker-mutator/core@10.0.0 -p @stryker-mutator/vitest-runner@10.0.0 stryker run",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
