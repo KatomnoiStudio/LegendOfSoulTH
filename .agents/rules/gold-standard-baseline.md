@@ -76,6 +76,13 @@ transcript; this is the synthesis.
 
 ### Scorecard (11 dimensions, simple average — no dimension weighted above another)
 
+> **⚠️ SNAPSHOT of 2026-08-07.** The 2026-08-16 re-audit scored **66.6%** overall
+> (**71.1%** on the ten dimensions both passes cover, against **82.5%** here for the same
+> ten). Most of the drop is this pass having been wrong or never having measured — seven
+> items — not regression; two dimensions genuinely moved up. Maintainability in particular
+> was scored 88 here by calling the governance tooling "exemplary" **without ever running
+> it**; both tools exit 1 today and neither can fail a build.
+
 | Dimension                      | Score | Note                                                                                 |
 | ------------------------------ | ----- | ------------------------------------------------------------------------------------ |
 | Security                       | 91%   | 1 MUST gap (Code-Owner review not enforced), 2 EXCELLENCE gaps                       |
@@ -104,6 +111,14 @@ stop that). Correct classification: **N-A, justified**, not a gap. Recorded here
 doesn't quietly re-enter as a "gap" in a future pass that only reads this file.
 
 ### Consolidated gap register (top items, MUST-tier first; full per-scout lists in the transcript)
+
+> **⚠️ SNAPSHOT of 2026-08-07 — not current status.** Re-measured by the 2026-08-16 audit:
+> **#1 component tests is now 34/66, not 4/58** · **#3 the bundle budget DOES gate** —
+> `tools/check-bundle-size.mjs` sets `process.exitCode = 1` and runs inside `npm run ci`.
+> #2 (`<img>` dimensions) survives but narrows to **one file**,
+> `LoadingScreen.module.css:31-34`; 13 of 14 live JSX sites already reserve space via CSS.
+> Current status lives in the 2026-08-16 audit's gap register, not here.
+> Banner added per `rules-freshness-check.md`'s snapshot requirement.
 
 **MUST-tier:**
 

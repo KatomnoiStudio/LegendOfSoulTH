@@ -1,10 +1,16 @@
 ---
 paths:
-  - "**/*.tsx"
-  - "**/*.jsx"
-  - "index.html"
+  - '**/*.ts'
+  - '**/*.tsx'
+  - '**/*.jsx'
+  - '**/*.mjs'
+  - 'tools/**/*.mjs'
+  - 'index.html'
+  - 'vite.config.ts'
 ---
+
 <!-- coalmine: verified 2026-08-07 · exemplar caniuse.com WebGL2 + WebGPU support matrices + Three.js WebGL.isWebGL2Available() pattern + MDN "Detect WebGL" + Vite build.target docs · revalidate 90d -->
+
 # Browser / WebGL Compatibility
 
 > Project-authored — no `compatibility.md` exists in the upstream [affaan-m/ECC](https://github.com/affaan-m/ECC) import; `web/coding-style.md` and `web/design-quality.md` cover CSS/typography/motion only, nothing about WebGL/device support.
@@ -16,7 +22,7 @@ Mount the R3F `<Canvas>` only after confirming WebGL2 is available; show a fallb
 > Corrected 2026-08-07: this section previously called `LobbyScene` "the only component that mounts a `<Canvas>`", which stopped being true when the realtime battle room landed. The rule itself was right and both call sites already comply — only the count was wrong.
 
 ```ts
-import { WebGL } from 'three/examples/jsm/capabilities/WebGL.js';
+import { WebGL } from 'three/examples/jsm/capabilities/WebGL.js'
 
 if (!WebGL.isWebGL2Available()) {
   // render a fallback UI instead of <Canvas>
@@ -45,3 +51,39 @@ Binding consequences:
 ## GPU tiering (nice-to-have)
 
 `dpr` is no longer a flat cap — `LobbyScene` already scales its max dpr down (2 → 1.5) on ≥120Hz displays via `useDeviceRefreshRate()`, since render cost scales with dpr² × refresh rate. `@react-three/drei`'s `PerformanceMonitor` or `pmndrs/detect-gpu` remain the standard way to step quality down further on low-end hardware if reports of poor mobile performance come in — still not needed pre-emptively.
+
+<!-- coalmine: verified 2026-08-16 · exemplar caniuse.com "JavaScript built-in: Array: toSorted" (Firefox 115 / Chrome 110 / Safari 16.0 / Edge 110, fetched live 2026-08-16) + esbuild target semantics (lowers syntax, never polyfills a built-in) · revalidate 90d -->
+
+## The build floor covers syntax, not built-in methods (2026-08-16)
+
+**`vite.config.ts`'s `build.target` is the only enforceable browser floor in this project**
+(the `browserslist` field in `package.json` is read by nothing in this build — stated in
+`vite.config.ts` itself). What that floor does NOT do is protect against a **built-in
+method** that ships later than the floor: esbuild lowers _syntax_ and never polyfills a
+prototype method, so calling one below its support version is a `TypeError` at runtime,
+invisible to build, typecheck, lint and every CI workflow.
+
+**Before using an array/object/string built-in that is newer than the floor, check its
+support version and either raise the floor deliberately or use the older form.**
+
+**The live instance this is written from.** `build.target` declares `firefox114`.
+`Array.prototype.toSorted` and `toReversed` require **Firefox 115** (caniuse, verified
+live 2026-08-16). Eleven shipped call sites exist — six in `src/game/pvp/PvPAuthorityEngine.ts`,
+two in `stageConfig.ts`, one each in `WorldChat.tsx`, `chatStorage.ts` and
+`combatCameraFraming.ts` — so every Firefox 114 user, a version this project publicly
+declares supported, gets a TypeError rather than a degraded experience.
+
+**And the linter is pushing the codebase past its own floor.** `oxlint`'s
+`unicorn/no-array-sort` rule flags `.sort()` and recommends `.toSorted()`; it fired during
+the 2026-08-16 session and the suggested fix was taken. **The lint gate and the build floor
+disagree, and the lint gate wins because it is enforced while the floor is never checked
+against built-ins.**
+
+The resolution — raise the floor to `firefox115`, or stop using the newer built-ins — is a
+**supported-matrix decision for HetCreep**, not a mechanical fix, and is recorded as audit
+item B1 rather than applied here.
+
+**Enforcement**: ADVISORY. Deliberately not proposed as a rule with a check — "verify every
+new built-in against the floor" has no enforcer and would fail this estate's own entry gate.
+The durable form is a comment at `build.target` naming which built-in set the floor to
+clear, so the floor states its own reason.

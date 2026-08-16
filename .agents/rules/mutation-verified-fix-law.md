@@ -1,3 +1,5 @@
+<!-- coalmine: verified 2026-08-16 · exemplar HetCreep ruling 2026-08-13 during PR review of #128/#130, re-read against HEAD 2026-08-16 · revalidate 90d -->
+
 # Mutation-verified fix law
 
 **Scope**: Binding for every dev/agent on this repo, no exceptions. HetCreep ruling,
@@ -74,3 +76,56 @@ Before opening the PR, do the check yourself: temporarily revert your own fix, r
 test, confirm it fails, then reapply the fix and confirm it passes. State in the PR body that
 you did this ("verified the regression test fails against the pre-fix code") — the same way
 this project's PRs already state which targeted tests passed.
+
+<!-- coalmine: verified 2026-08-16 · exemplar StrykerJS thresholds.break (a mutation score is a gate, not a report) applied through this law's own old-source-red procedure · revalidate 90d -->
+
+## Money-path code gets the same check even when it is not a defect fix (2026-08-16)
+
+This law scopes itself to defect fixes, and that scope is what produced the finding below.
+`src/game/reward/rewardValidator.ts` and `src/game/reward/rewardProgress.ts` were never
+defect fixes, so nothing ever asked whether their tests had teeth. A 2026-08-16 audit ran
+the check by hand:
+
+> **Two mutants that disable real money-path guards — negative/NaN rejection in
+> `rewardValidator.ts`, the over-payment clamp in `rewardProgress.ts` — survived all 1185
+> tests.** Three neutral control mutants died, so the suite is not toothless; it has teeth
+> exactly where someone deliberately gave it teeth, and none where nobody looked.
+
+Two additions, both using the procedure this law already defines:
+
+1. **New code on a money path gets the old-source-red check.** Currency, gacha, item drops,
+   ledger, purchase. Break the guard, run the test, confirm red, restore — the same four
+   steps as "How to apply it as an author", triggered by the code's subject rather than by
+   whether a bug report preceded it.
+
+2. **A guard clause on a money path ships with a test that drives its REJECTING branch** —
+   the branch that returns the error, not the one that returns the value. This is the shape
+   of the finding, not a restatement of it: nothing that computes a value survived
+   mutation; everything that refuses a value did. A suite that drives happy paths and named
+   regressions thoroughly, and never drives a guard's refusal, lets guards decay into
+   decoration while staying green.
+
+**Enforcement**: ADVISORY, same as the rest of this law — a manual old-source-red step, not
+an automated mutation suite. The scoped-Stryker option (`src/game/reward`, `src/game/gacha`
+only) is recorded in the 2026-08-16 audit as a costed proposal, not a decision.
+
+<!-- coalmine: verified 2026-08-16 · exemplar Vitest coverage.thresholds (a declared floor that nothing checks is not a floor) · revalidate 90d -->
+
+## The coverage floor is a number in the config, not a sentence in a doc (2026-08-16)
+
+`.agents/rules/ecc/common/testing.md` declares an 80% coverage target and **nothing checks
+it**. Measured 2026-08-16: statements 71.55 · branches 60.13 · functions 72.83 · lines
+74.38 — every metric below the declared number, with no `thresholds` key in
+`vite.config.ts` anywhere.
+
+Worse, **both places recording why there is no threshold now state a false premise** —
+"zero component tests" — against 34 component tests and 1185 passing tests. The reason has
+outlived itself.
+
+**`vite.config.ts` sets `coverage.thresholds` at the last measured floor. A PR that lowers
+coverage either adds a test or lowers the number deliberately in the same commit.**
+`thresholds.autoUpdate` writes today's number back, so the floor never has to be guessed
+and never silently drifts upward into a wall.
+
+**Enforcement**: becomes a real gate the moment the key exists — `npm run ci` already runs
+the suite. Until then, ADVISORY, and the missing key is audit item A10.

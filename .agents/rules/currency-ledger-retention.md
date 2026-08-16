@@ -100,3 +100,32 @@ ts`'s `getTransactions` JSDoc แก้แล้วให้บอกตรง �
   — ตอนนั้นต้องคุยกันใหม่โดยมีคนที่รู้กฎหมายจริง ไม่ใช่เดาเอง
 - มีหน้าจอประวัติธุรกรรมที่ผู้เล่นใช้จริง (ตอนนี้ `getTransactions` ไม่มีผู้เรียกเลย)
   — นั่นเป็นเหตุผลเชิงผลิตภัณฑ์ให้ขยายหน้าต่างที่เก็บ ไม่ใช่เหตุผลให้เก็บทุกอย่างตลอดไป
+
+<!-- coalmine: verified 2026-08-16 · exemplar OWASP ASVS 5.0.0 business-logic / trust-boundary requirements (fetched live 2026-08-16) + this repo's own earn_gold RPC, which already refuses a client-asserted 'topup' source · revalidate 90d -->
+
+## The bar a payment-crediting RPC must meet, written before one exists (2026-08-16)
+
+Nothing is broken today. `20260810100000_security_earn_gold_topup_and_signup_ledger.sql`
+already rejects `p_source = 'topup'` from any client session, so a paid-top-up ledger row
+can only ever be written by a future gateway-verifying RPC. **What the estate does not have
+is any statement of what that RPC must do** — it treats payments only as an _exclusion_
+(out of PCI scope, out of break-glass).
+
+The day a gateway is wired is the day the highest-consequence code in this repo gets
+written, and if the bar is not already on paper it gets written by whoever happens to be
+holding it, under launch pressure. Writing it now costs a paragraph.
+
+**A payment-crediting RPC:**
+
+1. **Never accepts a client-supplied amount or price.** The client sends a **package id**
+   and nothing else. Amount, currency and price are looked up server-side from the package
+   table — the same shape as `earn_gold`'s existing refusal to let a client name its own
+   source.
+2. **Credits only after server-side verification** of the provider's signed receipt or
+   webhook signature. A client-relayed "the provider said OK" is not verification.
+3. **Is idempotent on the provider's own transaction id.** A retried webhook, a
+   double-tapped button and a network retry must all land the same single credit — the
+   ledger already never prunes `topup`, so a duplicate credit is permanent.
+
+**Enforcement**: ADVISORY today — there is no payment code to check. It becomes checkable
+the moment the RPC exists, and this rule retires into that RPC's own tests when they land.

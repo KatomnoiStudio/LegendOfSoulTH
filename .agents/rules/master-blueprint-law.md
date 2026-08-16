@@ -27,3 +27,66 @@ Agents must treat locked decisions in v3.0 as binding product direction.
 - Mass-deleting LEGACY in a docs PR.
 - Treating the practice fork as product baseline remote.
 - Reverting to v1/v2 assumptions (4 skills, separate dash, early loot RPG, Ramakien-only ceiling).
+
+<!-- coalmine: verified 2026-08-16 · exemplar this law's own §"What this means" rule 2 (CURRENT/LEGACY/SUPERSEDED/DEFERRED) extended to the design locks + MASTER_BLUEPRINT_v3.0.md §7.1's existing gacha deferral + the 2026-08-15 incident recorded below · revalidate 90d -->
+
+## The design locks are binding the same way this blueprint is (2026-08-16)
+
+**`docs/ECONOMY-DESIGN-LOCK.md` and `docs/GACHA-RATE-DESIGN-LOCK.md` are binding for every
+game-economy number** — gacha rates, pity thresholds, per-pull price, currency topology,
+exchange rates, reward formulas, drop tables. The blueprint sets product direction; the
+locks set the numbers underneath it. Both are read before economy or gacha work, in full.
+
+**Where code and a lock disagree, the lock wins and the difference is a migration item.**
+Never the reverse, and never a tie.
+
+### A value in code is not a decision
+
+**A constant sitting in the repository is not evidence that anyone chose it.** It has two
+possible meanings that look identical from the file — someone ratified it, or nobody has
+migrated it yet — and defaulting to the first is what makes a stale value
+self-perpetuating, because each reader ratifies the previous reader's assumption.
+
+Before citing any economy or gacha constant as a decision, **find the sentence that
+ratified it.** Grep the governing lock for the identifier and read the LAST place it
+appears, not the first. If the only evidence is that the value exists in code, say
+"currently shipped, provenance unknown" — never "decided".
+
+**A long design document is not a queue.** Its early "open questions" section is a
+snapshot from the day it was written; the answers accumulate later under different
+headings. Check whether the same file resolves an item before answering it.
+
+**The incident this is written from (2026-08-15).** An agent read `costSingle: 100` out of
+`src/game/gacha/gachaConfig.ts`, treated the shipped constant as ratified, cited
+`GACHA-RATE-DESIGN-LOCK.md` §8's open-questions list, and wrote `c = 100` into
+`ECONOMY-DESIGN-LOCK.md` as a new ruling — **6.25× the `c = 16` that §11.8 derived from a
+nine-game wage-burden comparison and the owner confirmed on 2026-08-12**, with §11.9
+listing it as closed. HetCreep caught it on the next turn. The correction and the
+anti-trap banner are commits `f20c3d3` and `5f5a932`.
+
+**Still true at the time of writing, and it is the same class:** `gachaConfig.ts` ships
+`costSingle: 100` / `costMulti: 900` against the locked `c = 16` / `cost_multi = 160`, and
+`src/data/accountRepository.shared.ts` hardcodes ฿30/฿150/฿450 with three gold packages
+implying exchange rates 10% apart — the third founding defect `ECONOMY-DESIGN-LOCK.md`
+opens by citing. Both are un-migrated past, not decisions.
+
+**Enforcement**: ADVISORY — no check exists. The closest mechanism,
+`tools/check-blueprint-citations.mjs`, is scoped to `docs/agent-blueprint` and would cover
+this if widened (audit item B4).
+
+### A lock states its own licensing before it is committed
+
+**A design lock carrying ratified numbers is licensed by an explicit `LICENSE` carve-out,
+or by an explicit in-file note that it is MIT on purpose — no lock ships with its licensing
+unstated.**
+
+`LICENSE` carries exactly two carve-outs today: the sprite datum and
+`GACHA-RATE-DESIGN-LOCK.md`. **`ECONOMY-DESIGN-LOCK.md` has neither a carve-out nor a
+stated MIT decision**, so 133 KB of ratified THB pricing, exchange-rate derivations and
+drop economics is freely sublicensable and commercially usable — the exact thing the two
+existing carve-outs were written to prevent for siblings of lesser value. No decision is
+recorded either way, which is the defect; the licence itself is **HetCreep's call and is
+not made here** (audit item A3).
+
+Note the direction of the cost: by `LICENSE`'s own scope-limit clause, every day this stays
+public widens the set of copies a later carve-out cannot reach.

@@ -33,6 +33,73 @@ A proposal missing any of the three does not get written. Prefer, in this order:
 
 This gate binds additions, not the rules already standing — those are reviewed by the normal `revalidate` stamps. It exists because the cheapest governance is the governance nobody has to read.
 
+<!-- coalmine: verified 2026-08-16 · exemplar OpenSSF Scorecard (a check scores on re-measurement, never on re-dating) + this law's own entry-gate criterion 2, applied to the rules already standing · revalidate 90d -->
+
+## Three integrity requirements the date-based check cannot see (2026-08-16)
+
+A 2026-08-16 gold-standard audit scored a new lane — rules-estate integrity — at **36.8%**,
+the lowest of eleven, and every failure in it was the same shape: **a document asserting
+something outside itself that nothing re-checks.** The counter above catches a rule that
+CHANGED. These three catch a rule that stayed still while the world moved.
+
+### 1. A status list inside a binding document carries a dated snapshot banner
+
+**A status list, gap register, or open-questions section inside a binding document carries
+a dated banner naming it a snapshot and pointing at where current status lives** — and the
+pointer names the section that answers it, never leaving the reader to discover it.
+
+This is not hypothetical and it is not cheap. `GACHA-RATE-DESIGN-LOCK.md` §8 listed twelve
+questions as open while §11 and §12 had answered all twelve; an agent read the list as
+current state and wrote a gacha price **6.25× the ratified one** into a sibling document
+(`master-blueprint-law.md`, "A value in code is not a decision"). Eleven more stale `OPEN`
+markers were found in the same file the next day. **The cure was already written in this
+repo** — the same file banners its own other section correctly.
+
+The estate has the identical defect: `gold-standard-baseline.md`'s gap register is undated,
+and **two of its four MUST rows are now false** (component tests read "4/58", measured 34/66;
+"no enforced bundle-size budget" against `tools/check-bundle-size.mjs` setting
+`process.exitCode = 1`), with `AGENTS.md` propagating the framing to the entry point every
+agent reads first.
+
+### 2. A stamp names the command that re-proves it
+
+**Every `coalmine:` stamp names the one command that re-proves its claim, and revalidation
+means running that command.** A stamp whose claim cannot be re-measured mechanically does
+not get a date — it gets rewritten until it can.
+
+**A false rule at high precedence is worse than a missing one, because it is obeyed.**
+`.agents/rules/ecc/PROJECT-OVERRIDES.md` wins precedence on toolchain conflicts, sits
+**twenty days inside the shortest revalidate window in the estate**, and is wrong on four
+measurable counts — it tells every agent Prettier is not installed (it runs on every
+commit) and that the repo has one test file and no coverage tool (135 files, 1185 tests,
+coverage in CI). Four of five audit scouts caught it independently. Both existing
+governance mechanisms measure **time**; neither can see in-window-and-wrong.
+
+**Any change to `package.json` dependencies or scripts re-checks `PROJECT-OVERRIDES.md` in
+the same commit** — the same event-binding `security-doc-sync-law.md` already uses for
+`SECURITY.md`, which is the template worth generalising.
+
+### 3. Every rule states its own enforcement
+
+**Every file under `.agents/rules/` states its enforcement in its own header — the check
+that fails, or the word ADVISORY.**
+
+The entry gate above (criterion 2) binds additions only, and says so. Rules written before
+it were never held to it: **7 of 15 project laws have nothing that can enforce them**,
+which this file's own words call a wish rather than a rule. The honest move is not to build
+seven mechanisms — it is to let a reader tell a checked rule from an uncheckable one at a
+glance, so nobody mistakes advisory prose for a gate.
+
+**And a law this project authored carries a well-formed stamp.** `agent-memory-law.md` (the
+most-cited law in the estate), `mutation-verified-fix-law.md` and `personal-scope-law.md`
+have none, so the freshness system cannot see its own newest and most load-bearing rules.
+`ecc/web/observability.md`'s `2026-08-07b` has no computable deadline. Vendored ECC files
+are exempt by provenance.
+
+**Enforcement**: ADVISORY. The mechanical half is a stamp-well-formedness pass, which
+`node scripts/consistency.mjs` already describes as its job in the CoalMine contract; the
+snapshot-banner and enforcement-header halves are read by a human or an agent.
+
 ## Why a plain counter, not a content hash
 
 A hash would catch every keystroke, including ones that don't change meaning (whitespace, comment fixes) — that's noise, not signal, and it invites agents to bump it reflexively without thinking about whether the change was substantive. A hand-incremented counter forces the editor to make the "does this actually change agent behavior?" judgment once, at edit time, instead of every reader re-deriving it.

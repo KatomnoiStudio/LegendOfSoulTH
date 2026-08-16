@@ -2,7 +2,7 @@
 
 > **Document type**: Product Specification + Master Blueprint + Agent Work Contract  
 > **Status**: ADOPTED as Product Baseline (documentation PR — no gameplay implementation in the same change)  
-> **Operator**: HetCreep (Ring 0 — live direction lock, 2026-08-07)  
+> **Operator**: HetCreep (live direction lock, 2026-08-07)  
 > **Agent author**: Cursor Agent (cloud)  
 > **Created**: 2026-08-07  
 > **Source**: HetCreep baseline refinement — supersedes v2.0 in-flight direction  
@@ -141,7 +141,7 @@ PC: keyboard/mouse/controller-ready; same action layer.
 - **RIGHT master sprite** → horizontal flip for LEFT when symmetric
 - Movement sprites: L/R/U/D; diagonal optional
 
-## 3.6 Combat Foundation Design Lock (LOCKED — HetCreep Ring 0, 2026-08-07)
+## 3.6 Combat Foundation Design Lock (LOCKED — HetCreep, 2026-08-07)
 
 > **Status:** Design contract for P4 (Enemy AI) and P6 (Boss).  
 > **Closes gap:** fork issue [#33](https://github.com/nustanakritwithai/GameTurnBase/issues/33) (boss telegraph/state-machine + soft-target).  
@@ -272,7 +272,7 @@ Do **not** add while implementing P4/P6 foundation:
 
 Combat remains a **2.5D positioning-based brawler:** player controls **movement + depth + facing + attack timing**.
 
-### 3.6.11 Basic Attack Combo System (LOCKED — HetCreep Ring 0, 2026-08-07)
+### 3.6.11 Basic Attack Combo System (LOCKED — HetCreep, 2026-08-07)
 
 | Rule                 | Decision                                                                                                                              |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |

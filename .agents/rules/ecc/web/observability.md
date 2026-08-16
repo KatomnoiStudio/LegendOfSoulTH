@@ -5,7 +5,7 @@ paths:
   - '**/*.ts'
 ---
 
-<!-- coalmine: verified 2026-08-07b · exemplar React Error Boundaries docs (react.dev) + React 19 release notes + Sentry React SDK + excalidraw TopErrorBoundary + MDN unhandledrejection / WEBGL_lose_context · revalidate 90d -->
+<!-- coalmine: verified 2026-08-07 · exemplar React Error Boundaries docs (react.dev) + React 19 release notes + Sentry React SDK + excalidraw TopErrorBoundary + MDN unhandledrejection / WEBGL_lose_context · revalidate 90d -->
 
 # Observability & Error Handling
 

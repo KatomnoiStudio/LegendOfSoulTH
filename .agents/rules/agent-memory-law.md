@@ -1,3 +1,5 @@
+<!-- coalmine: verified 2026-08-16 · exemplar this project's own MEMORY.md continuous-update practice, re-read against HEAD 2026-08-16 · revalidate 90d -->
+
 # Project Law: Mandatory Agent Memory & Identity Protocol
 
 > **Target Workspace**: `LegendOfSoulTH` (LegendofSoulTH)  

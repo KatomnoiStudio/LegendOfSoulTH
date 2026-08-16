@@ -1,3 +1,5 @@
+<!-- coalmine: verified 2026-08-16 · exemplar this project's own MEMORY.md scope boundary, re-read against HEAD 2026-08-16 · revalidate 90d -->
+
 # Project Law: Personal / Off-Project Content Stays Out of MEMORY.md
 
 > **Target Workspace**: `LegendOfSoulTH` (LegendofSoulTH)

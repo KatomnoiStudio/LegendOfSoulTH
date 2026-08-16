@@ -43,7 +43,7 @@
 > separate written licence. See `LICENSE` for the carve-out, and the comment above for what a lawyer
 > still has to settle.
 
-**Locked by HetCreep (Ring 0) on 2026-08-11. Binding on both sides of this project: the code that
+**Locked by HetCreep on 2026-08-11. Binding on both sides of this project: the code that
 renders sprites, and the people who draw them.**
 
 > **This document also exists outside this project.** It was rewritten as a standalone,

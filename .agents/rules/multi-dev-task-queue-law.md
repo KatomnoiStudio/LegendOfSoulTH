@@ -61,3 +61,23 @@ A claimed task (`%` frozen, no commits referencing it) for **7+ days** with no u
 - Doesn't replace `AGENT_BLUEPRINT.md`'s Lab-entry order (which system to pick up next) — `TASKS.md` is the claim/ownership ledger; the Lab-entry order is still the recommended pick sequence for an unclaimed task.
 - Doesn't relax `pre-push-sync-law.md` — the owner's own claim-lock pushes still fetch, verify before pushing, same as every other push. Contributors no longer push claim commits themselves (step 3 above), so this obligation shifted onto the owner along with write ownership of `TASKS.md`'s claim columns.
 - Doesn't create a second "done" definition — 100% in `TASKS.md` IS the Dogfood loop's graduation signal, not a new bar.
+
+<!-- coalmine: verified 2026-08-16 · exemplar agents.md open spec (a rule file is the body; the index is a pointer) + README.md:77's own statement that the rule files are the actual bodies · revalidate 90d -->
+
+## The 2026-08-09 agent-dispatch amendment (moved here 2026-08-16)
+
+Amended 2026-08-09, owner ruling. **The 1-topic rule extends verbatim to AGENTS:**
+
+- **An agent holds ONE topic per dispatch.** Same rule the human queue runs on, same reason.
+- **Every dispatched item returns a verdict** — `DONE` / `LIVE` / `DEAD` / `BLOCKED` /
+  `NOT-STARTED`.
+- **An item with no verdict is itself the finding.** Silence is not a pass; it is the
+  result, and it gets reported as one.
+
+**Why this text moved.** Until 2026-08-16 the amendment existed only in `AGENTS.md`'s rule
+16 line and a tombstone, never in this file's body — while `README.md` tells agents the
+rule files under `.agents/rules/` are the actual bodies and `AGENTS.md` is the index. An
+agent following that instruction and opening this law got the **pre-amendment** version.
+One law, one home; the `AGENTS.md` line stays as the pointer it is supposed to be.
+
+**Enforcement**: ADVISORY.

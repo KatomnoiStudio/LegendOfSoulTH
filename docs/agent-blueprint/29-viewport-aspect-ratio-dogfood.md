@@ -3,7 +3,7 @@
 > **Document Type**: Work Contract / Dogfood Testing Protocol  
 > **Target System**: Responsive Viewport, Safe-Area & Aspect Ratio Scaling System  
 > **Author**: Antigravity  
-> **Approved By**: HetCreep (Ring 0)  
+> **Approved By**: HetCreep  
 > **Core Principle**: **Pin (X + Y) + Base Dimension (W × H) + Outer Adaptive Scale Wrapper**
 
 ---

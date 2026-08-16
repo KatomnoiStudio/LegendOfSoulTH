@@ -75,4 +75,4 @@ src/game/heroes/
 
 ## Balance note
 
-All combat numbers remain under `nonProductionBalance: true` until Ring 0 playtest graduation.
+All combat numbers remain under `nonProductionBalance: true` until owner playtest graduation.

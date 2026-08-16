@@ -9,7 +9,23 @@
 ## The gate is real now
 
 `npm run lint` runs `oxlint --deny-warnings`. **Any** finding fails it, and it fails
-`ci.yml`, `deploy.yml`, and the pre-commit hook with it.
+`ci.yml` and `deploy.yml` with it.
+
+> **⚠️ Correction, 2026-08-16 — this line said "and the pre-commit hook" and that was
+> false.** Measured at `package.json` `lint-staged`: the pre-commit hook runs **bare
+> `oxlint`** with no `--deny-warnings`, and only over `*.{ts,tsx}` — `tools/*.mjs` is not
+> linted before a commit at all. **A warning therefore passes pre-commit and fails CI**,
+> which happened during this same session: `unicorn/no-array-sort` on a new test file was
+> clean locally and would have gone red in `ci.yml`.
+>
+> Blast radius is low — CI still catches it before master — but a binding rule naming an
+> enforcement point it was never wired into is the exact class this file's own opening
+> paragraph says costs a ruleset its authority. **The deny gate is CI-only until
+> `lint-staged`'s `oxlint` invocation is changed to match `npm run lint`** (`--deny-warnings`,
+> and cover `*.mjs`). Until then, run `npm run lint` yourself before pushing any code file.
+>
+> **Enforcement**: this correction is ADVISORY; the fix that makes it unnecessary is a
+> two-token change in `package.json` (audit item A12).
 
 Before 2026-08-07 it did not. Every category was `warn`, no script passed a deny flag,
 and `oxlint` exited `0` with 34 findings printed — including two
