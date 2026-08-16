@@ -144,7 +144,7 @@ describe('applyBattleExp', () => {
     expect(applyBattleExp(player, 0)).toBe(player)
   })
 
-  test('a boss out-pays the weakest mob — bosses live in their own registry and were missing it', () => {
+  test('a boss out-pays a mob — bosses live in their own registry and were missing the fallback', () => {
     // rewardForTemplate asked getEnemyTemplate only, so spirit-guardian-boss (BOSS_TEMPLATES,
     // maxHp 1400) matched neither TEMPLATE_REWARD nor the maxHp fallback and landed on DEFAULT
     // 20 gold / 35 exp — below shadow-soldier's hand-written 22/40 at maxHp 210. The invariant,
@@ -153,6 +153,10 @@ describe('applyBattleExp', () => {
     // p5-boss-arena is used because it carries the boss and is absent from
     // STAGE_REWARD_DEFINITIONS, so calculateBattleReward runs the per-enemy loop instead of
     // short-circuiting on the per-stage table the way every trial-NN stage does.
+    //
+    // The comparison stage fields demon-captain (TEMPLATE_REWARD 35/55), not shadow-soldier
+    // (22/40) — so this is "out-pays a mob", not "out-pays the cheapest enemy in the game".
+    // Say what is measured: p5-elite-arena is the only table-free stage with a single mob in it.
     const bossState = createRealtimeBattle('p5-boss-arena', stubPlayer())
     if (!bossState) throw new Error('expected boss battle state')
     bossState.defeatedEnemyIds = bossState.enemies.map((e) => e.id)
