@@ -423,6 +423,14 @@ adversarial lens "DISCLOSURE TRUTH" อ้างว่าเลข HSR ในข
 
 ## 8. สิ่งที่กฎนี้ไม่ตัดสิน — ต้องให้ owner ตัดสิน
 
+> **⚠️ อ่านหัวข้อนี้เป็น _คำถามที่เคยถาม_ ไม่ใช่ _สถานะวันนี้_ — คำตอบอยู่ที่ §11 และสถานะรวมอยู่ที่
+> §11.9** ข้อส่วนใหญ่ในลิสต์ข้างล่างปิดไปแล้วตั้งแต่ 2026-08-12/13 แต่ตัวลิสต์ไม่ได้ถูกแก้ตาม
+> เพราะ §11 เขียนต่อท้ายแทนที่จะเขียนทับ
+>
+> **ทำไมต้องมีป้ายนี้ (2026-08-15)**: main อ่านลิสต์นี้แล้วเชื่อว่า `d` กับระดับของ `c` ยังเปิดอยู่
+> แล้วไป ratify `c = 100` ลงเอกสารพี่น้อง — **ซึ่งแพงกว่า `c = 16` ที่ §11.8 ล็อกไว้ 6.25 เท่า**
+> HetCreep จับได้ในเทิร์นถัดมา ป้ายนี้คือสิ่งที่ควรมีอยู่ก่อนหน้านั้น
+
 แต่ละข้อคือ either/or ที่ตอบได้ในหนึ่งบรรทัด
 
 1. **ระดับของ `B[top]`** — เก็บ `0.05` ไว้ **หรือ** ลดลงมาในช่วง exemplar? ช่วง exemplar: 0.600% (Genshin/HSR 5★), 0.700–0.800% (weapon/LC), 1% (FGO), 2% (Arknights), 3% (Blue Archive, FEH focus), 6% (FEH 5★ รวม) `0.05` ของเราอยู่ **เหนือทุก exemplar** = legendary ทุก ~20 pull ไม่มีบันทึกการเซ็นอนุมัติอยู่ที่ไหนในทั้ง tree **หมายเหตุผูกพัน**: `B` ตัดสินเพดาน roster ผ่าน I12 — ที่ `0.05/0.25/0.70` คือ `N_epic < 5·N_leg` และ `N_rare < 2.8·N_epic`
@@ -436,7 +444,8 @@ adversarial lens "DISCLOSURE TRUTH" อ้างว่าเลข HSR ในข
 9. **`u`** — ตัดสินใจก่อนวันที่แบนด์มีสองคน ไม่ใช่วันนั้น ช่วง exemplar: 50% (Genshin/HSR character), 70% (Arknights anniversary), 75% (Genshin weapon / HSR LC), 80% (FGO single pickup), ~23% (Blue Archive 0.7 จาก band 3.0)
 10. **`gachaPool.ts` BATCH_01_GACHA_BANNER** — ทำให้เป็น banner row จริง (มี `B`, `c`, `P`, `w` ของตัวเอง) **หรือ** ลบ? วันนี้ไม่มีใครอ่านตัวเลข importer เดียวยืนยันแค่ pool membership `74 soft / 90 hard` เป็นค่าที่ Genshin พิมพ์เป๊ะ ๆ ซึ่งชี้ไปทาง copy มากกว่า choice
 11. **banner type ที่สอง** — เมื่อมีตัวละครพร้อมแค่แบนด์เดียว I3 ทำให้ gacha มืดสนิท (roster 1: publishable 0 จาก 3 mix; roster 2: 0 จาก 6; roster 3: 1 จาก 10) **ทางออกเดียวคือ authoring banner type ใหม่ที่ `B` ครอบเฉพาะแบนด์ที่พร้อม** — กฎ**อนุญาต** (มันห้ามแค่ asset progress ไปเปลี่ยน `B` ของ type ที่มีอยู่ ไม่ได้ห้ามสร้าง type) แต่การสร้าง type คือการตัดสินใจเชิงเศรษฐกิจที่ต้องมีลายเซ็น owner จะสร้าง type แบนด์เดียวเพื่อ ship เร็ว **หรือ** รอให้ครบสามแบนด์?
-12. **terminal state — ACCEPTED LIMIT ของกฎนี้** ผู้เล่นที่เก็บครบชนกำแพงที่ ~425 pull (42,500 gem) แล้ว banner คืนอะไรไม่ได้เลยตลอดกาล: shard เต็มเพดาน, `ascend_character_star` เป็น sink เดียวใน codebase, ไม่มี overflow conversion ไม่มี shop ไม่มี universal currency กฎนี้ **ไม่ model** เรื่องนั้น เพราะเป็นการตัดสินใจโดเมน reward ไม่ใช่ rate ทุก exemplar มี sink: HSR Companion Spirit, Genshin Masterless Starglitter/Stella Fortuna, FGO Servant Coins, Arknights Distinction Certificates, FEH merge/skill-inheritance/feathers เราไม่มีเลย ต้องเปิดเรื่องนี้แยกต่างหาก
+12. **terminal state — ACCEPTED LIMIT ของกฎนี้ · ปิดแล้วที่อื่น (2026-08-15)** ผู้เล่นที่เก็บครบชนกำแพงแล้ว banner คืนอะไรไม่ได้เลยตลอดกาล: shard เต็มเพดาน, `ascend_character_star` เป็น sink เดียวใน codebase, ไม่มี overflow conversion ไม่มี shop ไม่มี universal currency กฎนี้ **ไม่ model** เรื่องนั้น เพราะเป็นการตัดสินใจโดเมน reward ไม่ใช่ rate ทุก exemplar มี sink: HSR Companion Spirit, Genshin Masterless Starglitter/Stella Fortuna, FGO Servant Coins, Arknights Distinction Certificates, FEH merge/skill-inheritance/feathers เราไม่มีเลย ต้องเปิดเรื่องนี้แยกต่างหาก — **เปิดแล้วและปิดแล้วที่ `ECONOMY-DESIGN-LOCK.md` §P0.8**: shard ที่เกินเพดานดาวแปลงเป็นโทเคนกลาง โทเคนซื้อ shard ของตัวละคร*อื่น* ในร้าน (รูปครึ่งหลังของ Naruto Mobile) — ห่วงปิด ไม่มีสถานะตันอีก อัตรายังไม่ตั้ง
+    **⚠️ เลข `~425 pull (42,500 gem)` ที่เคยเขียนไว้ตรงนี้เป็นของเก่า ลบทิ้งแล้ว** — คำนวณตอน `c=100` และก่อนล็อก `dup=6` ค่าที่ถูกต้องอยู่ใน §11.11 ของไฟล์นี้เอง: **legendary 364 pull = ฿2,909** ที่ `c=16` (epic 203 = ฿1,624 · rare 50 = ฿403) **กำแพงจริงถูกกว่าที่เคยเขียนไว้ ~7 เท่า** — ประมาณ 4 วันค่าแรงเฉลี่ยไทย ไม่ใช่กำแพงที่มีแต่ผู้เล่นจ่ายหนักชน
 13. **ค่าคงที่ของ test power — ไม่ใช่ค่าเศรษฐกิจ และกฎนี้ไม่ผลิตมัน** `PULLS = 1000`, `TOLERANCE_SIGMA = 4.5`, `PITY_RUNS = 5`, ตัวคูณ `×5` ใน `PULLS_PER_RUN` ระบุไว้แทนที่จะซ่อน `TOLERANCE_SIGMA` เป็นค่าคงที่ที่มีเหตุผลรองรับดีที่สุดในโดเมนอยู่แล้ว (คอมเมนต์บันทึกประวัติ flake-rate และเป้า ~1e-5) อีกสามตัวเลือกด้วยมือโดยตั้งใจและควรอยู่แบบนั้น
 14. **การจัดวางทางกายภาพของ `B`, `u`, `w`, `featured`, `ord`** — รูปที่กฎต้องการ: ตารางลูก `gacha_banner_bands` เก็บ `B[r]` และ `u`, column `weight`/`featured` บน `gacha_banner_pool`, ตาราง `rarity_order` เก็บ `ord[r]`, column `rarity` เพิ่มเข้า primary key ของ `gacha_pity`, และ `drop_rate` **คงเป็น stored `numeric(8,7)` พร้อม CHECK เดิม** โดยมีผู้เขียนคนเดียวคือฟังก์ชัน derive นี่เป็น schema change บนตารางที่ live จึงเป็นการตัดสินใจของ owner ไม่ใช่ของ subagent
 
@@ -644,7 +653,7 @@ common         64.0100 %        1.12        71.691
 กับ rarity ที่ประกาศ ก่อน banner นี้ publishable จริง (`baseBudget[archetype]` ยังไม่มี — เป็นงาน
 แยกจากข้อนี้)
 
-### 11.5 `P[legendary]` = 80 — ล็อกแล้ว, แทนที่ `P=30` เดิม
+### 11.5 `P[legendary]` = 100 — ล็อกแล้ว, แทนที่ `P=30` เดิม (หัวข้อนี้เคยเขียน 80 — แก้ 2026-08-15)
 
 **ที่มา**: ไม่มี P ที่ประกาศทางการซ้ำกันสักคู่ใน 6 เกม (30 นี้เอง / 50 BA-beginner / 80 Genshin /
 90 HSR / 99 Arknights-nominal / 200 BA-regular / 330 FGO) — ไม่มีเสียงข้างมากให้ลอกที่ตัวเลขดิบ
@@ -731,7 +740,7 @@ progress = false` ยังคงเป็น base ที่ล็อกไว�
 ไว้ในช่วง — กันทั้งสองด้าน (`P` ต่ำเกินจนแทบทุก pull เป็น pity อย่าง `P=1`, และ `P` สูงเกินจน pity
 ตายเหมือนกรณี `B=0.30` ที่วัดไว้ใน §Break)
 
-### 11.6 `d` (ส่วนลด multi-pull) — ล็อกแล้ว, `cost_multi` 900 → 1000
+### 11.6 `d` (ส่วนลด multi-pull) — ล็อกแล้ว, `d = 0` · `cost_multi = 10 × c` ตกจากสูตรเสมอ (หัวข้อนี้เคยเขียน `900 → 1000` ซึ่งเป็นค่าก่อน §11.8 ล็อก `c=16` — แก้ 2026-08-15)
 
 **คำตอบ**: `d` เป็น **base ต่อ banner** (ตามที่ §3 นิยามไว้แล้ว — "หนึ่ง scalar ต่อ banner,
 default 0") ไม่ใช่ค่าคงที่ทั้งระบบ ลูกผสมที่ owner เลือก ("ตั้งได้ + ไม่ตั้งก็ได้") **คือรูปที่กฎ
