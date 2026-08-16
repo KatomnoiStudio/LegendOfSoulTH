@@ -23,7 +23,18 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-const REPORT_DIR = join(process.cwd(), 'reports', 'lighthouse')
+/*
+  `.lighthouseci` มาก่อน — treosh/lighthouse-ci-action จัดการ output เอง และ **ไม่สน**
+  `upload.outputDir` ใน lighthouserc.json (มันตั้ง upload ของมันเป็น artifact) ผลลัพธ์ดิบจึงลง
+  ที่ .lighthouseci/ เสมอ: "Dumping 3 reports to disk at .../.lighthouseci"
+
+  reports/lighthouse ยังอยู่ในรายการเพราะคนที่รัน `lhci autorun` เองบนเครื่องจะได้ตาม config
+  ในไฟล์นั้นจริง — สองที่นี้คือสองวิธีรัน ไม่ใช่การเดาเผื่อ
+*/
+const REPORT_DIRS = [
+  join(process.cwd(), '.lighthouseci'),
+  join(process.cwd(), 'reports', 'lighthouse'),
+]
 
 /** ข้อความใน .catch ของ src/main.tsx — เจอใน LCP element เมื่อไหร่แปลว่าแอปไม่ได้บูต */
 const BOOTSTRAP_FAIL_MARKERS = ['โหลดเกมไม่สำเร็จ', 'กรุณาลองรีเฟรชหน้านี้อีกครั้ง']
@@ -34,18 +45,28 @@ function lcpText(report) {
   return `${node?.nodeLabel ?? ''} ${node?.snippet ?? ''}`.trim()
 }
 
-let reports
-try {
-  reports = readdirSync(REPORT_DIR).filter((f) => f.startsWith('lhr-') && f.endsWith('.json'))
-} catch {
-  console.error(`ไม่พบโฟลเดอร์ ${REPORT_DIR} — Lighthouse ไม่ได้เขียนผลลัพธ์ออกมาเลย`)
+function findReports() {
+  for (const dir of REPORT_DIRS) {
+    let names
+    try {
+      names = readdirSync(dir).filter((f) => f.startsWith('lhr-') && f.endsWith('.json'))
+    } catch {
+      continue
+    }
+    if (names.length > 0) return { dir, names }
+  }
+  return null
+}
+
+const found = findReports()
+if (!found) {
+  console.error('ไม่พบ lhr-*.json ในที่ใดเลย — Lighthouse ไม่ได้เขียนผลลัพธ์ออกมา')
+  for (const dir of REPORT_DIRS) console.error(`  หาแล้วที่: ${dir}`)
   process.exit(1)
 }
 
-if (reports.length === 0) {
-  console.error(`ไม่มีไฟล์ lhr-*.json ใน ${REPORT_DIR} — Lighthouse ไม่ได้เขียนผลลัพธ์ออกมาเลย`)
-  process.exit(1)
-}
+const { dir: REPORT_DIR, names: reports } = found
+console.log(`อ่านผลจาก ${REPORT_DIR} (${reports.length} รอบ)\n`)
 
 let failed = 0
 for (const file of reports) {

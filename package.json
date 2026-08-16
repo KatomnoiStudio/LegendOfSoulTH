@@ -17,7 +17,7 @@
     "lint": "oxlint --deny-warnings",
     "test": "vitest run",
     "audit": "npm audit --audit-level=high",
-    "ci": "npm run typecheck && npm run lint && npm run format:check && npm run test:coverage && npm run test:edge && npm run build && node tools/check-bundle-size.mjs",
+    "ci": "npm run typecheck && npm run lint && npm run format:check && node tools/check-lcp-preload.mjs && npm run test:coverage && npm run test:edge && npm run build && node tools/check-bundle-size.mjs",
     "preview": "vite preview",
     "prepare": "husky",
     "test:coverage": "vitest run --coverage",

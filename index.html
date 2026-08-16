@@ -55,6 +55,19 @@
       content="Legend of Soul-TH เกม RPG ต่อสู้เรียลไทม์ ที่ปลุกเหล่านักรบในตำนานให้กลับมามีชีวิตอีกครั้ง"
     />
     <title>Legend of Soul-TH</title>
+
+    <!--
+      preload รูป LCP ของ TitlePage — preload scanner หามันเองไม่เจอ เพราะเป็น CSS background
+      ที่ URL มาทาง inline style ของ React (โผล่หลังบูตเท่านั้น) ได้ ~20 ms เท่านั้น ไม่ใช่ทางแก้
+      LCP หลัก — เหตุผล ตัวเลขที่วัดมา และตัวถ่วงตัวจริง อยู่ใน tools/check-lcp-preload.mjs
+      ซึ่งกันบรรทัดนี้ไม่ให้ชี้ผิดไฟล์เงียบ ๆ ด้วย (รันใน `npm run ci`)
+    -->
+    <link
+      rel="preload"
+      as="image"
+      href="/backgrounds/wukong-vs-bull-demon-v2-game-art.webp"
+      type="image/webp"
+    />
   </head>
   <body>
     <div id="root"></div>
