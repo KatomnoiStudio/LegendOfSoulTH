@@ -254,6 +254,30 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # เหมือน job ci ด้านบน — fork PR ไม่ได้รับ org secrets จึงใส่ placeholder ที่ไม่ใช่ JWT
+      #
+      # ไม่ใช่แค่ก๊อปตามพี่น้อง: รอบแรกของ job นี้ (25d5c93) build โดยไม่มี env เลย ผลคือ
+      # initAuthCache() ใน src/main.tsx โยน error, .catch เขียนหน้า "โหลดเกมไม่สำเร็จ" ทับ
+      # #root แล้ว Lighthouse ก็ให้ performance 100 / a11y 100 / LCP 526ms กับหน้า error
+      # นั้น — LCP element คือ <p> "กรุณาลองรีเฟรชหน้านี้อีกครั้ง" โหลดจริงแค่ 198 KB
+      # 13 requests ไม่มีรูปสักไฟล์ เขียวสนิทโดยไม่ได้วัดเกมเลยสักนิด
+      - name: Prepare Supabase env for the Lighthouse build
+        shell: bash
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$VITE_SUPABASE_URL" ]; then
+            echo "VITE_SUPABASE_URL=https://ci-placeholder.supabase.co" >> "$GITHUB_ENV"
+          else
+            echo "VITE_SUPABASE_URL=$VITE_SUPABASE_URL" >> "$GITHUB_ENV"
+          fi
+          if [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
+            echo "VITE_SUPABASE_ANON_KEY=ci-build-placeholder-anon-key" >> "$GITHUB_ENV"
+          else
+            echo "VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY" >> "$GITHUB_ENV"
+          fi
+
       - name: Build with a root base so the static server can resolve every asset
         run: npx vite build --base=/ --outDir dist-lhci --emptyOutDir
 
@@ -264,3 +288,9 @@ jobs:
           configPath: ./lighthouserc.json
           uploadArtifacts: true
           temporaryPublicStorage: false
+
+      # เกตกันคะแนนหลอก — ต้องรันหลัง Lighthouse เพราะหน้า error เกิดตอน runtime เท่านั้น
+      # เช็คแบบ static ก่อน build จับไม่ได้ ข้อนี้ไม่ใช่ continue-on-error: คะแนนที่วัดผิดเป้า
+      # แย่กว่าไม่มีคะแนน — มันเขียว 100 แล้วไม่มีอะไรบอกว่าผิด
+      - name: Fail if Lighthouse measured the bootstrap error screen
+        run: node tools/check-lighthouse-target.mjs
