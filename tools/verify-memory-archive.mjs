@@ -7,9 +7,11 @@
  *
  *   node tools/verify-memory-archive.mjs [--base <git-ref>]
  *
- * NOT WIRED INTO `npm run ci`, and why. Two parser defects were fixed on 2026-08-16 — see
- * `extractItems` — which removed every phantom "body lives in (nowhere)". That left 19 real
- * failures in three groups; 11 of them were the tool's own design, and are now handled:
+ * WIRED INTO `npm run ci` since 2026-08-18, which is the whole point of it and took three
+ * separate fixes to earn. The history is kept because each step explains a design choice
+ * still in the file. Two parser defects were fixed on 2026-08-16 — see `extractItems` —
+ * removing every phantom "body lives in (nowhere)". That left 19 real failures in three
+ * groups, and all three are now closed:
  *
  *   11x "body differs"  — CLOSED 2026-08-18. Deliberate later edits (the item-211 vocabulary
  *                         sweep, the item-215 queue-leak sweep, the caretaker→system-owner
@@ -25,14 +27,19 @@
  *                         naming an item the base never held fails as unreachable, which is
  *                         the only one a mistyped number does not already expose from the
  *                         other side.
- *    7x "no index line" — items 216–222 are archived with no line in MEMORY.md. Real drift,
- *                         and the owner's to reconcile — writing index lines means
- *                         summarising seven items, which `agent-memory-law.md` governs.
- *    1x count mismatch  — a consequence of the seven.
+ *    7x "no index line" — CLOSED 2026-08-18, on HetCreep's instruction. Items 216–222 were
+ *                         archived with no line in MEMORY.md — real drift, and left alone
+ *                         until asked for, because writing index lines means summarising
+ *                         seven items of the owner's own record, which `agent-memory-law.md`
+ *                         governs (§19 shape, §40 purpose test).
+ *    1x count mismatch  — a consequence of the seven; gone with them.
  *
- * 8 failures remain, all of them the seven items and their count. Wiring this into CI today
- * would make CI red on state this tool cannot itself resolve, and no agent should resolve it
- * — the gate goes in once those seven are indexed (audit item B5).
+ * The run is now clean, so the gate went in (audit item B5). One more fix was needed first:
+ * an unreachable base used to kill the script with a raw stack dump, and `actions/checkout`
+ * clones shallow by default, so on CI the pinned pre-split commit is not in the object store
+ * at all. It now degrades — see the try/catch at "the pre-split original" — running every
+ * live-drift check and skipping only the one-time migration proof. Verified both ways before
+ * wiring: full clone PASSes with the body comparison, unreachable base PASSes without it.
  *
  * Root `MEMORY.md` is an index (one line per item); the item BODIES live in
  * `MEMORY/archive/NNN-MMM.md`. This asserts the move was lossless:
@@ -168,8 +175,36 @@ function extractItems(text, source) {
   return items
 }
 
-// --- 1. the pre-split original, straight from git ---
-const originalItems = extractItems(git(['show', `${BASE}:MEMORY.md`]), `${BASE}:MEMORY.md`)
+/*
+  --- 1. the pre-split original, straight from git ---
+
+  Unreachable base = skip the migration proof, run everything else. `actions/checkout` clones
+  with `fetch-depth: 1` by default, so on CI the pinned pre-split commit is simply not in the
+  object store and `git show` dies with "invalid object name". Before this was handled the
+  script exited on an unhandled exception with a raw stack dump — a gate that cannot survive a
+  normal shallow checkout is a gate nobody can wire in.
+
+  What is lost without the base is only the one-time proof that the split was lossless. The
+  checks that catch LIVE drift — every archived item has an index line, every index line has a
+  body, numbering contiguous, committed blobs LF, root stays an index — need no history at all
+  and still run. Any git failure that is NOT a missing object still throws: a broken git
+  invocation must not masquerade as "skipped", same rule as blobCrlfCount above.
+*/
+let originalItems = new Map()
+try {
+  originalItems = extractItems(git(['show', `${BASE}:MEMORY.md`]), `${BASE}:MEMORY.md`)
+} catch (err) {
+  const stderr = String(err?.stderr ?? '')
+  if (
+    !/invalid object name|bad object|unknown revision|does not exist|not a valid object/i.test(
+      stderr,
+    )
+  ) {
+    throw err
+  }
+  console.log(`base ${BASE} is not in this clone — skipping the pre-split body comparison.`)
+  console.log('  (expected on a shallow checkout; the index/archive consistency checks still run)')
+}
 
 // --- 2. the archive ---
 const archiveFiles = readdirSync(ARCHIVE_DIR)
