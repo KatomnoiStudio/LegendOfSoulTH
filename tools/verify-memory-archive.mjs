@@ -18,9 +18,13 @@
  *                         item in POST_SPLIT_EDITS with the ruling that made each edit, and
  *                         reported as "reworded on record" instead of as drift. Re-anchoring
  *                         the base would have ended them by destroying the migration proof;
- *                         going structural would have ended them by not checking. Anything
- *                         not on the list still fails, and a list entry that stops differing
- *                         fails too — both directions verified by mutation.
+ *                         going structural would have ended them by not checking. The list
+ *                         cannot rot in any of its three directions, each verified by
+ *                         mutation: an item that differs without being listed still fails; a
+ *                         listed item that stops differing fails as stale; and an entry
+ *                         naming an item the base never held fails as unreachable, which is
+ *                         the only one a mistyped number does not already expose from the
+ *                         other side.
  *    7x "no index line" — items 216–222 are archived with no line in MEMORY.md. Real drift,
  *                         and the owner's to reconcile — writing index lines means
  *                         summarising seven items, which `agent-memory-law.md` governs.
@@ -247,6 +251,29 @@ const POST_SPLIT_EDITS = new Map([
   [187, 'workflow-vocabulary sweep (item 211) — "belt round-trip" → "review round-trip"'],
   [188, 'role rename (item 211 sweep) — "claude -p caretaker" → "claude -p system owner"'],
 ])
+
+/*
+  Every listed number must exist in the base, checked before the comparison loop rather than
+  inside it.
+
+  The stale check further down only fires for items the loop actually visits, so an entry
+  naming an item the base never held — a typo'd 1830, a number from the archive's post-split
+  range — would sit there doing nothing, forever, with no output mentioning it. That is the
+  same "recorded and therefore assumed live" failure the list exists to prevent, one level up.
+
+  A mistyped number is already caught from the other side: the real item drops off the list
+  and fails loudly as "body differs". This closes the case that mistyping does NOT catch —
+  a spurious entry sitting alongside a complete, correct list.
+*/
+if (HISTORICAL) {
+  for (const [number, reason] of POST_SPLIT_EDITS) {
+    check(
+      originalItems.has(number),
+      `POST_SPLIT_EDITS lists item ${number}, which does not exist in base ${BASE} — ` +
+        `an entry that can never be reached (reason on record: ${reason})`,
+    )
+  }
+}
 
 // --- 3. body comparison (eol-normalised on both sides) — HISTORICAL mode only ---
 let identical = 0
