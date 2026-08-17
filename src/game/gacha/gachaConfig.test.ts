@@ -138,7 +138,9 @@ describe('validateBannerConfig', () => {
     1±0.0001 แล้วไม่เจอสักตัว; (1+0.0001)-1 ได้ 9.9999999999988987e-5 ไม่ใช่ 1e-4)
     Stryker จะรายงานว่ามันรอดตลอดไป นั่นคือข้อจำกัดของเลขทศนิยม ไม่ใช่ช่องว่างของเทสต์
   */
-  it('ยอมรับความคลาดเคลื่อน floating point ที่ขอบ tolerance พอดี', () => {
+  it('ยอมรับความคลาดเคลื่อน floating point ที่อยู่ในขอบ tolerance', () => {
+    // 1.0001 ให้ Math.abs(total - 1.0) = 9.9999999999988987e-5 — อยู่ "ข้างใน" 0.0001
+    // ไม่ใช่บนเส้นพอดี (บนเส้นพอดีแตะไม่ได้ ดูหมายเหตุ equivalent mutant ด้านบน)
     expect(validateBannerConfig(banner({ rates: [{ rarity: 'rare', rate: 1.0001 }] }))).toEqual({
       valid: true,
     })

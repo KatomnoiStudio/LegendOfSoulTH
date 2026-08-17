@@ -6,12 +6,17 @@ import baseConfig from './vite.config'
   ชุดเทสต์สำหรับ mutation testing เท่านั้น (audit item B22, 2026-08-16)
 
   Stryker กลายพันธุ์เฉพาะ src/game/reward กับ src/game/gacha แล้วรันเทสต์ "ทั้งชุด" ซ้ำ
-  หนึ่งรอบต่อ 1 mutant — 1128 mutants × ชุดเต็ม 1198 เทสต์ คือรันไม่จบ (dry run รอบแรก
-  ก็ชน timeout 5 นาทีของ Stryker ไปแล้ว) ไฟล์นี้จึงตัดให้เหลือเฉพาะเทสต์ที่แตะโค้ดสองโฟลเดอร์
-  นั้นจริง: 11 ไฟล์ 106 เทสต์ 9.5 วินาที
+  หนึ่งรอบต่อ 1 mutant — 1128 mutants × ชุดเต็ม (ตอนนั้น 1198 เทสต์) คือรันไม่จบ (dry run
+  รอบแรกก็ชน timeout 5 นาทีของ Stryker ไปแล้ว) ไฟล์นี้จึงตัดให้เหลือเฉพาะเทสต์ที่แตะโค้ด
+  สองโฟลเดอร์นั้นจริง
+
+  วัดล่าสุด 2026-08-17: **14 ไฟล์ 153 เทสต์ 10.5 วินาที** (ตอนตั้งครั้งแรกคือ 11 ไฟล์
+  106 เทสต์ 9.5 วินาที — โตขึ้นเพราะเพิ่ม glob ของ gacha กับเทสต์สามไฟล์ที่ปิดช่องโหว่
+  จาก mutation run แรก) ตัวเลขนี้ไม่มีเกตไหนบังคับให้ตรง แก้ include เมื่อไหร่ให้รัน
+  `npx vitest run --config vitest.mutation.config.ts` แล้วอัปเดตบรรทัดนี้ด้วย
 
   รายการ include ด้านล่าง **ไม่ได้เดา** — มาจาก grep หา import ของ game/reward กับ
-  game/gacha ในไฟล์ .test.ts/.tsx ทุกไฟล์ใน src/ บวก glob ของ src/game/reward ทั้งโฟลเดอร์
+  game/gacha ในไฟล์ .test.ts/.tsx ทุกไฟล์ใน src/ บวก glob ของทั้งสองโฟลเดอร์เอง
   (dropIdentity.test.ts กับ stageRewardConfig.test.ts import แบบ relative จึงไม่ติด grep)
 
   ⚠️ ถ้าเพิ่มเทสต์ที่แตะ reward/gacha ในที่ใหม่ ต้องเติมที่นี่เอง — ไม่มีเกตไหนจับให้
