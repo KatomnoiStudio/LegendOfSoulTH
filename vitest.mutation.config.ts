@@ -27,6 +27,7 @@ export default defineConfig(async (env) =>
       test: {
         include: [
           'src/game/reward/**/*.test.ts',
+          'src/game/gacha/**/*.test.ts',
           'src/game/featureFlags.test.ts',
           'src/game/progression/progressionService.test.ts',
           'src/game/realtimeBattle/BattleResultAdapter.test.ts',
