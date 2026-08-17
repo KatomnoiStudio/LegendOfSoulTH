@@ -5,7 +5,7 @@
  *
  * ทำไมต้องมี (audit item B20, 2026-08-16)
  *
- * รอบแรกของ job `lighthouse` (commit 25d5c93) ได้ performance 100 · accessibility 100 ·
+ * รอบแรกของ job `lighthouse` (commit ccc1133) ได้ performance 100 · accessibility 100 ·
  * SEO 100 · LCP 526ms — เขียวสวยทุกช่อง แล้วมันวัดหน้า error
  *
  * build ตอนนั้นไม่มี VITE_SUPABASE_* เลย initAuthCache() ใน src/main.tsx จึงโยน error

@@ -12,7 +12,7 @@
  * preload scanner ของเบราว์เซอร์จึงมองไม่เห็นรูปนี้: มันโผล่หลัง React เรนเดอร์เท่านั้น
  *
  * **ได้เท่าไหร่: ~20 ms** — วัดจริง ไม่ใช่ประมาณ (Lighthouse audit `prioritize-lcp-image`
- * คะแนน 0.5 "Est savings of 20 ms" จาก run ของ commit 40d7508) การแยกเฟสของ LCP 720 ms
+ * คะแนน 0.5 "Est savings of 20 ms" จาก run ของ commit a8f1c95) การแยกเฟสของ LCP 720 ms
  * รอบเดียวกันบอกว่าทำไมถึงได้แค่นั้น:
  *
  *     TTFB 128 ms · Load Delay 30 ms · Load Time 4 ms · Render Delay 557 ms

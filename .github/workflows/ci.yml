@@ -256,7 +256,7 @@ jobs:
 
       # เหมือน job ci ด้านบน — fork PR ไม่ได้รับ org secrets จึงใส่ placeholder ที่ไม่ใช่ JWT
       #
-      # ไม่ใช่แค่ก๊อปตามพี่น้อง: รอบแรกของ job นี้ (25d5c93) build โดยไม่มี env เลย ผลคือ
+      # ไม่ใช่แค่ก๊อปตามพี่น้อง: รอบแรกของ job นี้ (ccc1133) build โดยไม่มี env เลย ผลคือ
       # initAuthCache() ใน src/main.tsx โยน error, .catch เขียนหน้า "โหลดเกมไม่สำเร็จ" ทับ
       # #root แล้ว Lighthouse ก็ให้ performance 100 / a11y 100 / LCP 526ms กับหน้า error
       # นั้น — LCP element คือ <p> "กรุณาลองรีเฟรชหน้านี้อีกครั้ง" โหลดจริงแค่ 198 KB
@@ -281,7 +281,7 @@ jobs:
       - name: Build with a root base so the static server can resolve every asset
         run: npx vite build --base=/ --outDir dist-lhci --emptyOutDir
 
-      # continue-on-error ถูกถอดออกแล้ว (94dc1ff วัดครบสองรอบ) — lighthouserc.json มีเพดานที่
+      # continue-on-error ถูกถอดออกแล้ว (6e14f24 วัดครบสองรอบ) — lighthouserc.json มีเพดานที่
       # derive จากผลจริงแล้ว เพดานที่แดงไม่ได้ก็เป็นแค่คอมเมนต์ ตัวเลขตั้งหลวมโดยตั้งใจ:
       # มันจับ regression ก้อนใหญ่ ไม่ได้จับ drift — เหตุผลเต็มอยู่ใน _how_these_numbers_were_picked
       - name: Run Lighthouse
