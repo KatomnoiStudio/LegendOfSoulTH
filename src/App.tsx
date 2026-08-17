@@ -1,12 +1,27 @@
-import { useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { AuthModal } from './components/AuthModal/AuthModal'
 import { GameViewport } from './components/GameViewport/GameViewport'
+import { LoadingScreen } from './components/LoadingScreen/LoadingScreen'
 import { NameModal } from './components/NameModal/NameModal'
 import { ToastProvider } from './components/Toast/ToastProvider'
 import { UpdateBanner } from './components/UpdateBanner/UpdateBanner'
 import { useAuth } from './hooks/useAuth'
-import { LobbyPage } from './pages/LobbyPage'
 import { TitlePage } from './pages/TitlePage'
+
+/**
+ * ลอบบี้แยก chunk — รูปแบบเดียวกับที่ LobbyPage ทำกับ LobbyScene อยู่แล้ว
+ *
+ * LobbyPage ลากทั้ง TopBar, modal ทุกตัว (settings/profile/roster/items/gacha/PvP/friend),
+ * WorldChat และฉากผจญภัยเข้ามาแบบ static ทั้งหมดนั้นจึงเคยรวมอยู่ใน CSS ก้อนเดียวกับ
+ * TitlePage ที่ 146.3 KB และถูกโหลดตั้งแต่หน้าแรกที่ยังไม่ล็อกอิน ทั้งที่หน้านั้นใช้แค่
+ * TitlePage + AuthModal
+ *
+ * ⚠️ **นี่คือการแลก ไม่ใช่กำไรเปล่า ๆ**: ผู้เล่นที่ล็อกอินค้างไว้จะเข้าลอบบี้ทันที แปลว่า
+ * ต้องรอ chunk นี้เพิ่มอีกหนึ่งรอบเน็ตก่อนเห็นลอบบี้ ส่วนที่ได้คือหน้าแรกของคนที่ยังไม่ล็อกอิน
+ * เบาลง — วัดได้ใน Lighthouse CI เพราะ CI เสิร์ฟหน้านั้น ส่วนฝั่งที่เสียวัดใน CI ไม่ได้
+ * (ต้องมี session จริง) ตัวเลขที่ commit นี้อ้างจึงเป็นครึ่งเดียวของภาพ พูดไว้ตรงนี้ให้ครบ
+ */
+const LobbyPage = lazy(() => import('./pages/LobbyPage').then((m) => ({ default: m.LobbyPage })))
 
 /**
  * เส้นทางเข้าเกม
@@ -162,30 +177,32 @@ export default function App() {
       <GameViewport>
         <UpdateBanner />
         <ToastProvider>
-          <LobbyPage
-            player={activePlayer!}
-            onPlayerChange={handlePlayerChange}
-            onUpgrade={spendProgressionUpgrade}
-            onEarnGold={earnGold}
-            onGrantItem={grantItem}
-            onCommitProgression={commitLobbyBattleProgression}
-            onRecordPending={upsertPendingLobbyReward}
-            onClearPending={clearPendingLobbyReward}
-            onGetPendingRewards={getPendingLobbyRewards}
-            onPullGacha={pullGacha}
-            onLogout={logout}
-            onTopUpGold={topUpGold}
-            onTopUpGems={topUpGems}
-            onRedeemCoupon={redeemCoupon}
-            onFindFriend={findFriendByUid}
-            isAdmin={isAdmin}
-            onGiveCharacter={grantCharacter}
-            onGiveGoldAdmin={grantGoldAdmin}
-            onGiveItemAdmin={grantItemAdmin}
-            hasGoogleLinked={hasGoogleLinked}
-            onLinkGoogleAccount={linkGoogleAccount}
-            isGuest={isGuest}
-          />
+          <Suspense fallback={<LoadingScreen label="กำลังเข้าสู่ลอบบี้" />}>
+            <LobbyPage
+              player={activePlayer!}
+              onPlayerChange={handlePlayerChange}
+              onUpgrade={spendProgressionUpgrade}
+              onEarnGold={earnGold}
+              onGrantItem={grantItem}
+              onCommitProgression={commitLobbyBattleProgression}
+              onRecordPending={upsertPendingLobbyReward}
+              onClearPending={clearPendingLobbyReward}
+              onGetPendingRewards={getPendingLobbyRewards}
+              onPullGacha={pullGacha}
+              onLogout={logout}
+              onTopUpGold={topUpGold}
+              onTopUpGems={topUpGems}
+              onRedeemCoupon={redeemCoupon}
+              onFindFriend={findFriendByUid}
+              isAdmin={isAdmin}
+              onGiveCharacter={grantCharacter}
+              onGiveGoldAdmin={grantGoldAdmin}
+              onGiveItemAdmin={grantItemAdmin}
+              hasGoogleLinked={hasGoogleLinked}
+              onLinkGoogleAccount={linkGoogleAccount}
+              isGuest={isGuest}
+            />
+          </Suspense>
         </ToastProvider>
       </GameViewport>
     )
