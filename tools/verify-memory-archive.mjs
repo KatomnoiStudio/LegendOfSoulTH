@@ -7,22 +7,28 @@
  *
  *   node tools/verify-memory-archive.mjs [--base <git-ref>]
  *
- * NOT WIRED INTO `npm run ci`, and why (2026-08-16). Two parser defects were fixed this
- * date — see `extractItems` — which removed every phantom "body lives in (nowhere)". What
- * remains is 19 real failures in three groups, and only one group is repo drift:
+ * NOT WIRED INTO `npm run ci`, and why. Two parser defects were fixed on 2026-08-16 — see
+ * `extractItems` — which removed every phantom "body lives in (nowhere)". That left 19 real
+ * failures in three groups; 11 of them were the tool's own design, and are now handled:
  *
- *   11x "body differs"  — deliberate later edits (belt→review, caretaker→system owner, the
- *                         Ring-0 sweep) measured against a FROZEN pre-split base. Any
- *                         intentional rewording is a permanent failure by construction.
- *                         This is a tool-design flaw: the base needs re-anchoring, or the
- *                         comparison needs to be structural rather than byte-exact.
+ *   11x "body differs"  — CLOSED 2026-08-18. Deliberate later edits (the item-211 vocabulary
+ *                         sweep, the item-215 queue-leak sweep, the caretaker→system-owner
+ *                         rename) measured against a FROZEN pre-split base, so every one was
+ *                         a permanent failure by construction. They are now recorded item by
+ *                         item in POST_SPLIT_EDITS with the ruling that made each edit, and
+ *                         reported as "reworded on record" instead of as drift. Re-anchoring
+ *                         the base would have ended them by destroying the migration proof;
+ *                         going structural would have ended them by not checking. Anything
+ *                         not on the list still fails, and a list entry that stops differing
+ *                         fails too — both directions verified by mutation.
  *    7x "no index line" — items 216–222 are archived with no line in MEMORY.md. Real drift,
  *                         and the owner's to reconcile — writing index lines means
  *                         summarising seven items, which `agent-memory-law.md` governs.
  *    1x count mismatch  — a consequence of the seven.
  *
- * Wiring it into CI today would make CI red on state this tool cannot itself resolve. The
- * gate goes in once the base problem is fixed and the seven are indexed (audit item B5).
+ * 8 failures remain, all of them the seven items and their count. Wiring this into CI today
+ * would make CI red on state this tool cannot itself resolve, and no agent should resolve it
+ * — the gate goes in once those seven are indexed (audit item B5).
  *
  * Root `MEMORY.md` is an index (one line per item); the item BODIES live in
  * `MEMORY/archive/NNN-MMM.md`. This asserts the move was lossless:
@@ -212,8 +218,39 @@ if (HISTORICAL) {
     console.log(`items added since   : ${added} (${originalItems.size + 1}..${archiveItems.size})`)
 }
 
+/**
+ * Items whose bodies were DELIBERATELY reworded after the split, with the ruling that did it.
+ *
+ * The base is pinned (see PRE_SPLIT_BASE) because this tool's job is a migration proof: the
+ * archive must hold what the pre-split `MEMORY.md` held. That framing has one consequence
+ * nobody chose — **any intentional later edit becomes a permanent failure**, and eleven of
+ * them had accumulated, drowning the one group that is real drift.
+ *
+ * Re-anchoring the base would end the failures by destroying the proof, and loosening the
+ * comparison to "structural" would end them by no longer checking the thing. This list is the
+ * third option: the divergence stays visible and stays explained, and anything NOT on the list
+ * still fails exactly as before. A stale entry is reported too — an item listed here that no
+ * longer differs means the list has outlived its reason.
+ *
+ * Every entry traces to a sweep recorded in the archive itself, not to someone's taste.
+ */
+const POST_SPLIT_EDITS = new Map([
+  [102, 'queue-leak sweep (item 215) — `task #12` removed'],
+  [103, 'queue-leak sweep (item 215) — `task #13` removed'],
+  [180, 'workflow-vocabulary sweep (item 211) — "belt system" → "local workflow system"'],
+  [181, 'workflow-vocabulary sweep (item 211) — "belt-end main" → "main"'],
+  [182, 'workflow-vocabulary sweep (item 211) — "belt-end main" → "main"'],
+  [183, 'workflow-vocabulary sweep (item 211) — "Belt run 1" → "Run 1"'],
+  [184, 'workflow-vocabulary sweep (item 211) — "Belt run 2" → "Run 2"'],
+  [185, 'workflow-vocabulary sweep (item 211) — "the belt\'s first" → "the first"'],
+  [186, 'workflow-vocabulary sweep (item 211) — "belt inward-reimplement" → "inward reimplement"'],
+  [187, 'workflow-vocabulary sweep (item 211) — "belt round-trip" → "review round-trip"'],
+  [188, 'role rename (item 211 sweep) — "claude -p caretaker" → "claude -p system owner"'],
+])
+
 // --- 3. body comparison (eol-normalised on both sides) — HISTORICAL mode only ---
 let identical = 0
+const acceptedEdits = []
 for (const [number, body] of HISTORICAL ? originalItems : []) {
   const archived = archiveItems.get(number)
   if (archived === undefined) {
@@ -222,6 +259,14 @@ for (const [number, body] of HISTORICAL ? originalItems : []) {
   }
   if (archived === body) {
     identical++
+    if (POST_SPLIT_EDITS.has(number)) {
+      failures.push(
+        `item ${number} is listed in POST_SPLIT_EDITS but its body no longer differs — ` +
+          `remove the entry (reason on record: ${POST_SPLIT_EDITS.get(number)})`,
+      )
+    }
+  } else if (POST_SPLIT_EDITS.has(number)) {
+    acceptedEdits.push(`item ${number} — ${POST_SPLIT_EDITS.get(number)}`)
   } else {
     const a = Buffer.from(body, 'utf8')
     const b = Buffer.from(archived, 'utf8')
@@ -241,6 +286,10 @@ for (const [number, body] of HISTORICAL ? originalItems : []) {
 }
 if (HISTORICAL) {
   console.log(`bodies identical    : ${identical}/${originalItems.size} (vs ${BASE})`)
+  if (acceptedEdits.length > 0) {
+    console.log(`reworded on record  : ${acceptedEdits.length} (deliberate, see POST_SPLIT_EDITS)`)
+    for (const line of acceptedEdits) console.log(`  · ${line}`)
+  }
 }
 
 // --- 4. no gaps in the numbering (the archive is the authority once the split has landed) ---
