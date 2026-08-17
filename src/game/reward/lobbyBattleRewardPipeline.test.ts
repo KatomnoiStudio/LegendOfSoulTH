@@ -400,8 +400,8 @@ describe('F7: transaction id carried through the reload-resume path', () => {
   })
 })
 
-describe('finalizeLobbyBattleRewards — single write path for progress.flags (task #73)', () => {
-  // task #73 named THREE sites where a flag key was written twice: once into the local
+describe('finalizeLobbyBattleRewards — single write path for progress.flags', () => {
+  // A 2026-08-13 review found THREE sites where a flag key was written twice: once into the local
   // `flags` guard variable via an inline spread, and independently into `next` via
   // `withFlags`. Both computations use the same merge shape and run synchronously with no
   // state change between them, so the two never actually disagree in a running process
@@ -416,7 +416,7 @@ describe('finalizeLobbyBattleRewards — single write path for progress.flags (t
     const path = join(process.cwd(), 'src/game/reward/lobbyBattleRewardPipeline.ts')
     const source = readFileSync(path, 'utf8')
 
-    // Matches the two shapes task #73 found duplicated across its three sites:
+    // Matches the two shapes that were duplicated across those three sites:
     //   flags = { ...next.progress.flags, [someKey]: true }   (gold, item sites)
     //   flags = { ...flags, [someKey]: true }                 (transaction site)
     // A bare read-back (`flags = { ...next.progress.flags }`, no bracketed key) is fine —

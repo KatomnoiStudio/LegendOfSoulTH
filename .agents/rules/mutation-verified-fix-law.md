@@ -27,8 +27,9 @@ by reading the diff, and the check still failed, because there was no test to ru
 
 ## Why now
 
-Reviewing PR #128 and #130 (both fixing task #73's two findings) the session ran this check
-for the first time as a deliberate step, not an audit afterthought:
+Reviewing PR #128 and #130 — both fixing the same review's two findings, a recovery-effect
+replay on rerender and a duplicated `progress.flags` write — the session ran this check for
+the first time as a deliberate step, not an audit afterthought:
 
 - **#128** (recovery-effect replay on rerender): checked out the new regression test against
   master's pre-fix `LobbyBattleSession.tsx`. It failed — `onGetPendingRewards` called 3 times
