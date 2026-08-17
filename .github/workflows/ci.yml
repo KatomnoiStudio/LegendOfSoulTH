@@ -87,6 +87,25 @@ jobs:
       - name: Lint Code
         run: npm run lint
 
+      # ทั้งสามด่านนี้อยู่ใน `npm run ci` มาก่อนแล้ว แต่ **ไม่เคยรันบน push ปกติเลย** — job นี้
+      # ไล่ขั้นตอนเองทีละอันแทนที่จะเรียก `npm run ci` ส่วน deploy.yml ที่เรียกตรง ๆ ก็รันเฉพาะ
+      # ตอน version bump (job `build` ถูก skip ทุก push ที่ไม่ bump) ด่านที่ไม่เคยรันไม่ได้กันอะไร
+      #
+      # deploy.yml บรรทัด 172-175 เตือน drift แบบนี้ไว้เองตอนเลิกก๊อปขั้นตอนมาเรียง — ที่นี่คือ
+      # drift ตัวนั้น ยังไม่ได้แก้ที่ราก (ให้ job นี้เรียก `npm run ci` ตรง ๆ) เพราะขั้นตอน
+      # coverage summary กับ bundle-size ที่นี่เขียนผลลง GITHUB_STEP_SUMMARY ผ่าน tee ซึ่ง
+      # `npm run ci` ก้อนเดียวทำแทนไม่ได้ — เติมสามด่านที่ขาดก่อน แล้วค่อยตัดสินเรื่องโครงสร้าง
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Check the LCP preload still points at a file the code uses
+        run: node tools/check-lcp-preload.mjs
+
+      # อ่านประวัติไม่ได้บน shallow checkout ของ actions/checkout (fetch-depth 1) — สคริปต์
+      # degrade เอง ข้ามการพิสูจน์ migration แล้วรันด่าน drift ที่เหลือครบ
+      - name: Verify the MEMORY index matches its archive
+        run: node tools/verify-memory-archive.mjs
+
       - name: Run Tests with Coverage
         # --coverage เปลี่ยนแค่การ instrument/report ไม่เปลี่ยน pass/fail semantics ของ vitest —
         # ใช้ตัวนี้แทน `npm run test` เฉย ๆ ไปเลย ไม่ต้องรัน test 2 รอบ (ซ้ำซ้อน เปลืองเวลา CI)
