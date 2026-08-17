@@ -127,8 +127,29 @@ jobs:
           git add .github/upstream-watch/state.json
           git commit -m "chore: update upstream-skill-watch state [skip ci]"
           git push origin "$BRANCH"
-          gh pr create \
+
+          # ตั้งแต่ 2026-08-08 ขั้นนี้ล้มทุกครั้งด้วย "GitHub Actions is not permitted to create
+          # or approve pull requests" เพราะ repo/org ปิดสวิตช์นั้นไว้ — branch ถูก push สำเร็จ
+          # ไปแล้วก่อนหน้า ทำให้ทุกรอบที่ล้มทิ้งกิ่งร้างไว้หนึ่งกิ่ง (สะสมไปแล้ว 2 กิ่งก่อนแก้นี้)
+          #
+          # เก็บกิ่งทิ้งเมื่อเปิด PR ไม่ได้ แต่ **ยังปล่อยให้ step นี้แดงเหมือนเดิม** — state.json
+          # ไม่ได้ถูกบันทึกจริง ๆ ตัวเฝ้าจึงเดินหน้าไม่ได้ นั่นคือสถานะที่พังจริง การทำให้เขียว
+          # คือการปิดปากสัญญาณที่ถูกต้อง ไม่ใช่การแก้ปัญหา
+          #
+          # เปิดใช้งานเต็มรูปแบบได้ด้วยสวิตช์เดียว: Settings → Actions → General →
+          # Workflow permissions → "Allow GitHub Actions to create and approve pull requests"
+          # (ระดับ org ก็ปิดทับได้ ถ้าเปิดที่ repo แล้วยังล้ม ให้ดูที่ org ด้วย)
+          if gh pr create \
             --title "chore: update upstream-skill-watch state" \
             --body "Auto-generated after detecting new upstream commits (see the linked issue). Safe to merge — only updates the last-seen SHA in \`.github/upstream-watch/state.json\`, no source/rule content changed here." \
             --base master \
             --head "$BRANCH"
+          then
+            exit 0
+          fi
+
+          echo "::error::เปิด PR ไม่สำเร็จ — ลบกิ่ง $BRANCH ทิ้งแล้วเพื่อไม่ให้ค้างเป็นกิ่งร้าง"
+          echo "::error::ถ้าเป็น 'GitHub Actions is not permitted to create or approve pull requests' ให้เปิดที่ Settings → Actions → General → Workflow permissions"
+          echo "::error::issue แจ้งของใหม่ถูกเปิด/คอมเมนต์ไปแล้วในขั้นก่อนหน้า — ที่หายไปคือการบันทึก SHA ล่าสุด ตัวเฝ้าจึงจะแจ้งซ้ำในรอบถัดไป"
+          git push origin --delete "$BRANCH" || echo "::warning::ลบกิ่ง $BRANCH ไม่สำเร็จ ต้องลบเอง"
+          exit 1
