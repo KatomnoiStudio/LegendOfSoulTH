@@ -1,6 +1,6 @@
 {
   "_comment": "Lighthouse CI (audit item B20, 2026-08-16). Thresholds below are DERIVED from measured runs, not chosen — see _baseline. Every value is an `error`, and the job no longer carries continue-on-error: a threshold that cannot fail is a comment.",
-  "_baseline": "Two rounds of 3 runs on ubuntu-latest, desktop preset. Before the LCP preload (a8f1c95): perf 97-99 · a11y 95 · best-practices 100 · SEO 100 · LCP 719-731ms · TBT 83-142ms · CLS 0 · SI 660-791ms. After it (6e14f24): perf 96-98 · a11y 95 · LCP 581-613ms · TBT 109-163ms · SI 729-773ms. The prioritize-lcp-image audit went 0.5 to 1, which the preload definitely caused; LCP also measured ~130ms lower with non-overlapping ranges, more than the 20ms Lighthouse itself estimated — 3 runs a side on shared CI runners makes that suggestive, not proven.",
+  "_baseline": "Two rounds of 3 runs on ubuntu-latest, desktop preset. Before the LCP preload (a8f1c95): perf 97-99 · a11y 95 · best-practices 100 · SEO 100 · LCP 719-731ms · TBT 83-142ms · CLS 0 · SI 660-791ms. After it (6e14f24): perf 96-98 · a11y 95 · LCP 581-613ms · TBT 109-163ms · SI 729-773ms. The prioritize-lcp-image audit went 0.5 to 1, which the preload definitely caused; LCP also measured ~130ms lower with non-overlapping ranges, more than the 20ms Lighthouse itself estimated — 3 runs a side on shared CI runners makes that suggestive, not proven. Round 3, after the LobbyPage lazy split (e93a125): perf 100 · LCP 515ms · 2 stylesheets totalling 10.9 KB on the title route, and unused-css-rules went from score 0 with 28 KiB of savings to score 1 with none — the 92%-unused CSS finding closed itself when 118 KB moved into a chunk that route never loads. Thresholds left as they are: three rounds is still three rounds, and loosening or tightening on one good result is the anchoring mistake this file was written to avoid.",
   "_how_these_numbers_were_picked": "Each threshold sits well BELOW the measured worst, deliberately, the same way the coverage floor in vite.config.ts does. Be honest about what that buys: these catch a REGRESSION (perf falling a third, LCP more than doubling, a render-blocking script appearing), not drift. perf 0.85 against a measured floor of 0.96 is 11 points of slack because performance is the noisiest score on a shared runner — the same commit scored 99 and 96 in consecutive runs. Tightening these needs more samples across more runners, not a decision to be stricter today. Note also that `lighthouse` is not a required check (branch protection names only 'Continuous Integration'), so a red here is a visible signal, not a merge block.",
   "ci": {
     "collect": {
@@ -13,16 +13,59 @@
     },
     "assert": {
       "assertions": {
-        "categories:performance": ["error", { "minScore": 0.85 }],
-        "categories:accessibility": ["error", { "minScore": 0.9 }],
-        "categories:best-practices": ["error", { "minScore": 0.95 }],
-        "categories:seo": ["error", { "minScore": 0.95 }],
-        "largest-contentful-paint": ["error", { "maxNumericValue": 1500 }],
-        "total-blocking-time": ["error", { "maxNumericValue": 500 }],
-        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.05 }],
-        "prioritize-lcp-image": ["error", { "minScore": 1 }]
+        "categories:performance": [
+          "error",
+          {
+            "minScore": 0.85
+          }
+        ],
+        "categories:accessibility": [
+          "error",
+          {
+            "minScore": 0.9
+          }
+        ],
+        "categories:best-practices": [
+          "error",
+          {
+            "minScore": 0.95
+          }
+        ],
+        "categories:seo": [
+          "error",
+          {
+            "minScore": 0.95
+          }
+        ],
+        "largest-contentful-paint": [
+          "error",
+          {
+            "maxNumericValue": 1500
+          }
+        ],
+        "total-blocking-time": [
+          "error",
+          {
+            "maxNumericValue": 500
+          }
+        ],
+        "cumulative-layout-shift": [
+          "error",
+          {
+            "maxNumericValue": 0.05
+          }
+        ],
+        "prioritize-lcp-image": [
+          "error",
+          {
+            "minScore": 1
+          }
+        ]
       }
     },
-    "upload": { "target": "filesystem", "outputDir": "./reports/lighthouse" }
+    "upload": {
+      "target": "filesystem",
+      "outputDir": "./reports/lighthouse"
+    }
   }
 }
