@@ -81,79 +81,48 @@ jobs:
       - name: Build 3D Models
         run: npm run build:models
 
-      - name: Type Check
-        run: npm run typecheck
-
-      - name: Lint Code
-        run: npm run lint
-
-      # ทั้งสามด่านนี้อยู่ใน `npm run ci` มาก่อนแล้ว แต่ **ไม่เคยรันบน push ปกติเลย** — job นี้
-      # ไล่ขั้นตอนเองทีละอันแทนที่จะเรียก `npm run ci` ส่วน deploy.yml ที่เรียกตรง ๆ ก็รันเฉพาะ
-      # ตอน version bump (job `build` ถูก skip ทุก push ที่ไม่ bump) ด่านที่ไม่เคยรันไม่ได้กันอะไร
+      # เรียก `npm run ci` ตรง ๆ ไม่ไล่ขั้นตอนเอง — package.json เป็นแหล่งความจริงเดียวของ
+      # "ด่านทั้งหมดมีอะไรบ้าง" เติมด่านที่นั่นที่เดียวแล้ว job นี้กับ deploy.yml ได้ตามทันที
       #
-      # deploy.yml บรรทัด 172-175 เตือน drift แบบนี้ไว้เองตอนเลิกก๊อปขั้นตอนมาเรียง — ที่นี่คือ
-      # drift ตัวนั้น ยังไม่ได้แก้ที่ราก (ให้ job นี้เรียก `npm run ci` ตรง ๆ) เพราะขั้นตอน
-      # coverage summary กับ bundle-size ที่นี่เขียนผลลง GITHUB_STEP_SUMMARY ผ่าน tee ซึ่ง
-      # `npm run ci` ก้อนเดียวทำแทนไม่ได้ — เติมสามด่านที่ขาดก่อน แล้วค่อยตัดสินเรื่องโครงสร้าง
-      - name: Check formatting
-        run: npm run format:check
-
-      - name: Check the LCP preload still points at a file the code uses
-        run: node tools/check-lcp-preload.mjs
-
-      # อ่านประวัติไม่ได้บน shallow checkout ของ actions/checkout (fetch-depth 1) — สคริปต์
-      # degrade เอง ข้ามการพิสูจน์ migration แล้วรันด่าน drift ที่เหลือครบ
-      - name: Verify the MEMORY index matches its archive
-        run: node tools/verify-memory-archive.mjs
-
-      - name: Run Tests with Coverage
-        # --coverage เปลี่ยนแค่การ instrument/report ไม่เปลี่ยน pass/fail semantics ของ vitest —
-        # ใช้ตัวนี้แทน `npm run test` เฉย ๆ ไปเลย ไม่ต้องรัน test 2 รอบ (ซ้ำซ้อน เปลืองเวลา CI)
-        # shell: bash บังคับ — `set -o pipefail`/`tee` เป็น bash syntax, pwsh (default shell
-        # ของ windows-latest) parse ไม่ผ่าน; Git Bash มากับ windows runner อยู่แล้ว
+      # ก่อนหน้านี้ job นี้ก๊อปขั้นตอนมาเรียงเอง แล้ว drift จริง: format:check,
+      # check-lcp-preload และ verify-memory-archive อยู่ใน `npm run ci` แต่ไม่เคยรันบน push
+      # เลยสักครั้ง (deploy.yml ที่เรียกตรง ๆ ถูก skip ทุก push ที่ไม่ bump เวอร์ชัน)
+      # deploy.yml บรรทัด 172-175 เตือน drift รูปแบบนี้ไว้เอง — ที่นี่เคยเป็นตัวอย่างของมัน
+      #
+      # tee เก็บ log ไว้ให้ขั้นตอนสรุปด้านล่างดึงทั้ง coverage และ bundle size ออกมาจากไฟล์
+      # เดียว — สองอย่างนี้คือเหตุผลเดิมที่ job นี้ไม่ยอมเรียก `npm run ci`
+      #
+      # shell: bash บังคับ — set -o pipefail/tee เป็น bash syntax, pwsh (default ของ
+      # windows-latest) parse ไม่ผ่าน; Git Bash มากับ windows runner อยู่แล้ว
+      - name: Run the full CI pipeline
         shell: bash
-        run: |
-          set -o pipefail
-          npm run test:coverage 2>&1 | tee test-output.log
-
-      - name: Add coverage summary to job summary
-        if: always()
-        # ดึงเฉพาะบล็อก "Coverage summary" (reporter: text-summary จาก vite.config.ts) มาแปะใน
-        # job summary — report-only ตาม vite.config.ts comment (ยังไม่ตั้ง threshold บังคับ)
-        # shell: bash บังคับ — awk/head เป็น bash/POSIX tool ไม่ใช่ pwsh cmdlet
-        shell: bash
-        run: |
-          echo "### Test Coverage (Node ${{ matrix.node-version }})" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          awk '/Coverage summary/,0' test-output.log | head -n 6 >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-
-      # Edge Function (supabase/functions/pvp-authority) คือ trust boundary ฝั่งเซิร์ฟเวอร์ของ PvP
-      # `npm run typecheck` ด้านบนลาก typecheck:edge มาให้แล้ว (ดู package.json) แต่ `test:edge`
-      # ไม่เคยมี workflow ไหนรัน — เดิมกั้นด้วยการที่ dev พิมพ์ `npm run ci` เองที่เครื่องเท่านั้น
-      # deno มาจาก devDependency ที่ pin ไว้ (deno 2.9.5) จึงไม่ต้องติดตั้ง action เพิ่ม
-      - name: Run Edge Function tests
-        run: npm run test:edge
-
-      - name: Build Application
         env:
           # public site key (ไม่ใช่ secret จริง — ออกแบบมาให้ฝังใน client bundle ได้)
           VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
-        run: npm run build
-
-      - name: Check bundle size against the budget
-        # เดิม step นี้เป็น `du -h | sort -rh` เฉย ๆ — ไม่มีเพดาน ไม่มี exit code จึงเขียวเสมอ
-        # ต่อให้ chunk โตขึ้นเท่าไหร่ ส่วน tools/check-bundle-size.mjs (เพดานจริง 2 ระดับ) อยู่ใน
-        # สคริปต์ `npm run ci` แต่ไม่เคยมี workflow ไหนเรียก — เพดานจึงบังคับแค่ตอน dev พิมพ์เอง
-        # shell: bash บังคับ — tee/pipefail เป็น bash syntax, pwsh (default ของ windows-latest)
-        # parse ไม่ผ่าน; Git Bash มากับ windows runner อยู่แล้ว
-        shell: bash
         run: |
           set -o pipefail
-          echo "### Bundle size (dist/assets)" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          node tools/check-bundle-size.mjs 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          npm run ci 2>&1 | tee ci-output.log
+
+      # if: always() เพื่อให้ยังเห็นตัวเลขตอนด่านหลังพัง — แต่ถ้า `npm run ci` ตายก่อนถึงด่าน
+      # นั้น บล็อกที่ดึงจะว่าง จึงเขียนบรรทัดบอกแทนการแปะกล่องเปล่าให้คนอ่านเดาเอง
+      - name: Add coverage + bundle size to the job summary
+        if: always()
+        shell: bash
+        run: |
+          summarise() {
+            echo "### $1 (Node ${{ matrix.node-version }})" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            if [ -s "$2" ]; then
+              cat "$2" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "(ไม่มีผล — pipeline หยุดก่อนถึงด่านนี้)" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          }
+          awk '/Coverage summary/,0' ci-output.log 2>/dev/null | head -n 6 > coverage-block.txt || true
+          grep -E 'เพดาน|ผ่านทั้งหมด|เกินเพดาน' ci-output.log > bundle-block.txt 2>/dev/null || true
+          summarise "Test Coverage" coverage-block.txt
+          summarise "Bundle size (dist/assets)" bundle-block.txt
 
   # branch protection ตั้ง required status check ไว้ที่ชื่อ "Continuous Integration" เดี่ยว ๆ
   # (ตั้งไว้ก่อนมี matrix) — matrix ด้านบนทำให้ context จริงกลายเป็น "Continuous Integration
