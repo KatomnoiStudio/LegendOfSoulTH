@@ -388,4 +388,30 @@ export async function handlePvPAuthorityRequest(request: Request): Promise<Respo
   return json({ error: 'PVP_STATE_BUSY' }, 409)
 }
 
-if (import.meta.main) Deno.serve(handlePvPAuthorityRequest)
+/*
+  ตาข่ายชั้นสุดท้ายรอบ handler — เจอจาก gold-standard audit 2026-08-19 (rank 8)
+
+  เดิม `Deno.serve(handlePvPAuthorityRequest)` mount ตัว handler เปล่า ๆ ทุกกิ่งที่คาดไว้แล้ว
+  ผ่าน json() ซึ่งแนบ corsHeaders ให้เสมอ — แต่กิ่งที่ **ไม่ได้คาด** ไม่ผ่าน json() เลย Deno
+  ตอบ 500 ของตัวเองที่ไม่มี CORS header ติดไปด้วย
+
+  ผลที่ฝั่งเบราว์เซอร์ไม่ใช่ 500: เป็น network error ทึบ ๆ เพราะ preflight/response ไม่ผ่าน CORS
+  โค้ดฝั่ง client จึงแยกไม่ออกระหว่าง "เซิร์ฟเวอร์พัง" กับ "เน็ตหลุด" และไม่มีบรรทัด log สักบรรทัด
+  ทั้งที่ทุกกิ่งที่ล้มแบบคาดไว้ logFailure ครบ
+
+  ห่อไว้จึงได้สองอย่างพร้อมกัน: บรรทัด log ที่รูปเดียวกับกิ่งอื่น และ response ที่มี CORS header
+  ทำให้ client เห็นรหัสแทนความเงียบ ไม่กลืน error — describeError เก็บมันไว้ใน log
+*/
+export async function serveWithFailsafe(request: Request): Promise<Response> {
+  try {
+    return await handlePvPAuthorityRequest(request)
+  } catch (cause) {
+    logFailure('serveWithFailsafe', {
+      error: 'PVP_UNHANDLED',
+      err: describeError(cause),
+    })
+    return json({ error: 'PVP_UNHANDLED' }, 500)
+  }
+}
+
+if (import.meta.main) Deno.serve(serveWithFailsafe)

@@ -56,11 +56,21 @@ import('./App.tsx')
   })
   .catch((err: unknown) => {
     reportError('APP_BOOTSTRAP_FAIL', 'visible', err)
+    /*
+      tier 'visible' บนเส้นทางนี้ไม่มีผู้รับ — GlobalErrorBanner ไม่เคยถูก mount (React บูตไม่ผ่าน
+      ถึงได้มาอยู่ตรงนี้) และบรรทัดถัดไปเขียนทับ #root ทั้งก้อนอยู่แล้ว จอนี้จึงเป็นสิ่งเดียวที่
+      ผู้เล่นได้เห็นจริง ๆ
+
+      มันบอกให้ "แจ้งผู้ดูแลระบบ" โดยไม่ให้อะไรไปแจ้งเลยสักอย่าง — ใส่รหัสลงไปในตัวอักษรที่ก๊อป
+      ได้ ตัว error ดิบไม่ใส่ (อยู่ใน console ผ่าน reportError แล้ว และ DOM ของหน้าที่พังไม่ใช่
+      ที่สำหรับข้อความภายใน)
+    */
     rootElement.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;font-family:sans-serif;text-align:center;color:#eee;background:#1a1a2e;">
         <div>
           <h1 style="font-size:1.25rem;margin-bottom:8px;">โหลดเกมไม่สำเร็จ</h1>
           <p style="opacity:0.8;">กรุณาลองรีเฟรชหน้านี้อีกครั้ง หากยังไม่หายให้แจ้งผู้ดูแลระบบ</p>
+          <p style="opacity:0.55;margin-top:12px;font-size:0.8rem;user-select:all;">APP_BOOTSTRAP_FAIL</p>
         </div>
       </div>
     `

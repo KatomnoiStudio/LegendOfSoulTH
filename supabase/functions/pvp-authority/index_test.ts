@@ -3,6 +3,7 @@ import {
   handlePvPAuthorityRequest,
   isRequestBody,
   minimalPlayer,
+  serveWithFailsafe,
 } from './index.ts'
 
 /**
@@ -192,4 +193,53 @@ Deno.test('minimalPlayer grants no currency — a ranked player brings nothing t
     throw new Error('a ranked minimal player must start with zero currency')
   }
   if (player.inventory.length !== 0) throw new Error('a ranked minimal player carries no items')
+})
+
+/*
+  ── 2026-08-19 gold-standard audit, rank 8 — the failure mode with no CORS and no log ──
+
+  `Deno.serve(handlePvPAuthorityRequest)` mounted the handler bare. Every ANTICIPATED failure
+  returns through `json()`, which attaches corsHeaders, and logs through `logFailure`. An
+  UNANTICIPATED throw did neither: Deno's own 500 carries no CORS headers, so the browser sees
+  an opaque network error rather than a status — indistinguishable from the connection
+  dropping — and not one line reached the log.
+
+  Passing a non-Request makes the handler throw on its first property access, which is the
+  cheapest deterministic way to reach the branch. Pre-fix this test cannot even resolve its
+  import: `serveWithFailsafe` did not exist, because nothing stood between Deno and the
+  handler.
+*/
+Deno.test('an unhandled throw answers with a code instead of an opaque network error', async () => {
+  const response = await serveWithFailsafe(null as unknown as Request)
+
+  if (response.status !== 500) throw new Error(`expected 500, received ${response.status}`)
+
+  const body = (await response.json()) as { error?: string }
+  if (body.error !== 'PVP_UNHANDLED') {
+    throw new Error(`expected PVP_UNHANDLED, received ${JSON.stringify(body)}`)
+  }
+})
+
+Deno.test(
+  'an unhandled throw keeps the CORS headers the browser needs to read the status',
+  async () => {
+    const response = await serveWithFailsafe(null as unknown as Request)
+
+    // This is the whole point of the wrapper. Without it the browser cannot read the 500 at all.
+    if (!response.headers.get('Access-Control-Allow-Origin')) {
+      throw new Error('unhandled-throw response carries no CORS headers — the browser sees nothing')
+    }
+    if (response.headers.get('Content-Type') !== 'application/json') {
+      throw new Error('unhandled-throw response is not JSON like every other failure branch')
+    }
+  },
+)
+
+Deno.test('the failsafe wrapper does not alter a well-formed request', async () => {
+  const direct = await handlePvPAuthorityRequest(new Request(URL, { method: 'OPTIONS' }))
+  const wrapped = await serveWithFailsafe(new Request(URL, { method: 'OPTIONS' }))
+
+  if (direct.status !== wrapped.status) {
+    throw new Error(`wrapper changed the status: ${direct.status} vs ${wrapped.status}`)
+  }
 })

@@ -251,9 +251,17 @@ export function useAuth(): AuthState {
       // อัปเดตหน้าจอทันที แล้วค่อยเขียนลงฐานข้อมูล
       setPlayer(next)
 
-      if (await accounts.savePlayer(next)) return true
+      /*
+        savePlayer เป็นคนรายงาน PLAYER_SAVE_FAIL เอง ตั้งแต่ 2026-08-19
 
-      reportError('PLAYER_SAVE_FAIL', 'visible')
+        เดิมบรรทัดนี้เรียก reportError('PLAYER_SAVE_FAIL', 'visible') แบบไม่มีอาร์กิวเมนต์ที่สาม
+        เพราะมันไม่มีอะไรจะส่ง — ตัว error อยู่ในฐานข้อมูลฝั่ง savePlayer และตายไปกับ `return
+        false` ย้ายการรายงานไปไว้ที่จุดที่ error ยังมีชีวิตอยู่ ตรงนี้จึงเหลือแค่การกู้สถานะ
+
+        ทุกกิ่งที่คืน false ใน savePlayer รายงานครบแล้ว มีเทสต์เชิงโครงสร้างค้ำไว้
+        (accountRepository.supabase.persistence.test.ts) ที่ล้มถ้ามีใครเพิ่มกิ่งเปล่ากลับเข้าไป
+      */
+      if (await accounts.savePlayer(next)) return true
 
       let authoritative: Player | null = null
       try {

@@ -583,7 +583,22 @@ export async function savePlayer(player: Player): Promise<boolean> {
     })
     .eq('id', player.id)
 
-  if (error) return false
+  /*
+    รายงานพร้อมตัว error ตรงนี้ ไม่ใช่ปล่อยให้ผู้เรียกรายงานเปล่า ๆ
+
+    savePlayer คืน boolean ตัว PostgrestError จึงมีชีวิตอยู่แค่ในฟังก์ชันนี้ — พอ `return false`
+    เปล่า ๆ มันก็ตายไปพร้อมกัน useAuth.updatePlayer ที่รับ false ต่อไม่มีอะไรจะรายงานนอกจากรหัส
+    ผลคือผู้เล่นเห็น "บันทึกความคืบหน้าไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม" ซึ่งเป็นการเดา ขณะที่
+    normalizeError.ts:146-152 มีโค้ดอ่าน code/details/hint ของ PostgrestError รออยู่ และไม่เคย
+    ได้รับอะไรเลยบนเส้นทางที่ล้มบ่อยที่สุดของเกม
+
+    ไฟล์นี้ทำถูกอยู่แล้วสองที่ — `PLAYER_LOAD_FAIL` ที่บรรทัด 97 ส่ง failed.error และกิ่งทีมว่าง
+    ข้างล่างส่ง Error ของมันเอง กิ่งที่ล้มจากฐานข้อมูลจริงคือกิ่งที่ไม่ส่ง
+  */
+  if (error) {
+    reportError('PLAYER_SAVE_FAIL', 'visible', error, { stage: 'profiles' })
+    return false
+  }
 
   /*
     owned_characters ไม่ถูกเขียนจากที่นี่อีกต่อไปแล้ว — ทั้งตารางไม่มีคอลัมน์ที่ client เขียนได้
@@ -632,7 +647,10 @@ export async function savePlayer(player: Player): Promise<boolean> {
 
   if (friendRows.length > 0) {
     const { error: friendError } = await supabase.from('friends').upsert(friendRows)
-    if (friendError) return false
+    if (friendError) {
+      reportError('PLAYER_SAVE_FAIL', 'visible', friendError, { stage: 'friends-upsert' })
+      return false
+    }
   }
 
   const removeStaleFriends = supabase.from('friends').delete().eq('profile_id', player.id)
@@ -643,7 +661,10 @@ export async function savePlayer(player: Player): Promise<boolean> {
         `("${friendRows.map((r) => r.friend_uid).join('","')}")`,
       )
     : removeStaleFriends)
-  if (friendPruneError) return false
+  if (friendPruneError) {
+    reportError('PLAYER_SAVE_FAIL', 'visible', friendPruneError, { stage: 'friends-prune' })
+    return false
+  }
 
   /*
     ทีมว่างทั้ง 4 ช่องทั้งที่มีตัวละครในบัญชี = สถานะที่ UI สร้างไม่ได้เลย (CharacterRosterModal

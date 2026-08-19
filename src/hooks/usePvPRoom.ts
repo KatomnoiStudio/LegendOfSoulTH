@@ -89,12 +89,12 @@ export function usePvPRoom(player: Player): PvPRoomController {
       .then((response) =>
         acceptAuthority(response.stateVersion, response.authoritativeState, response.result),
       )
-      .catch((cause: unknown) => reportError('PVP_RECONNECT_FAIL', 'silent', cause))
+      .catch((cause: unknown) => reportError('PVP_RECONNECT_FAIL', 'silent', cause, { roomId }))
 
     return () => {
       unsubscribe()
       void invokePvPAuthority(roomId, { action: 'disconnect' }).catch((cause: unknown) =>
-        reportError('PVP_DISCONNECT_FAIL', 'silent', cause),
+        reportError('PVP_DISCONNECT_FAIL', 'silent', cause, { roomId }),
       )
     }
   }, [acceptAuthority, roomId])
@@ -136,7 +136,7 @@ export function usePvPRoom(player: Player): PvPRoomController {
           return undefined
         })
         .catch((cause: unknown) => {
-          reportError('PVP_INPUT_FAIL', 'silent', cause)
+          reportError('PVP_INPUT_FAIL', 'silent', cause, { roomId })
           setError('การเชื่อมต่อห้อง PvP สะดุด กำลังรอเชื่อมใหม่')
         })
         .finally(() => {
@@ -154,7 +154,7 @@ export function usePvPRoom(player: Player): PvPRoomController {
         .then((response) =>
           acceptAuthority(response.stateVersion, response.authoritativeState, response.result),
         )
-        .catch((cause: unknown) => reportError('PVP_RECONNECT_FAIL', 'silent', cause))
+        .catch((cause: unknown) => reportError('PVP_RECONNECT_FAIL', 'silent', cause, { roomId }))
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)

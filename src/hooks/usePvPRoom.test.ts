@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { createPvPAuthorityState } from '../game/pvp/PvPAuthorityEngine'
@@ -124,5 +126,49 @@ describe('usePvPRoom reliable authority input', () => {
       input: { basicAttackPressed: true },
     })
     unmount()
+  })
+})
+
+/*
+  ── 2026-08-19 gold-standard audit, rank 12 — reports the server log cannot be joined to ──
+
+  `pvp-authority` logs `roomId` and `playerId` on every failure branch it owns. The client
+  reported the same failures with the cause and nothing else, so a client-side PVP_INPUT_FAIL
+  and the server line that explains it had no field in common — the two halves of one incident
+  sat in two places with no way to match them.
+
+  Structural rather than behavioural: the defect is a missing argument at a call site, not a
+  wrong value flowing through one. Driving each branch would need four separate rejection
+  scenarios to assert something a regex reads directly, and would still not fail when a FIFTH
+  call site is added without context, which is the way this recurs.
+*/
+describe('PvP failure reports carry the id the server logs', () => {
+  const source = readFileSync(join(process.cwd(), 'src/hooks/usePvPRoom.ts'), 'utf8')
+
+  /*
+    PVP_ROOM_ACTION_FAIL is the create/join path: it runs BEFORE a room exists, so there is no
+    roomId to pass and inventing one would be noise wearing the shape of evidence. Named here
+    so the exemption is a decision on the record rather than an oversight the regex missed.
+  */
+  const NO_ROOM_YET = ['PVP_ROOM_ACTION_FAIL']
+
+  test('every PvP report that can name its room does', () => {
+    const calls = [...source.matchAll(/reportError\(\s*'(PVP_[A-Z_]+)'[^)]*\)/g)]
+
+    expect(calls.length).toBeGreaterThan(0)
+
+    const contextless = calls
+      .filter(([, code]) => !NO_ROOM_YET.includes(code))
+      // Pre-fix: all four of these ended at `cause)` with no fourth argument.
+      .filter(([call]) => !call.includes('roomId'))
+      .map(([, code]) => code)
+
+    expect(contextless).toEqual([])
+  })
+
+  test('the exempt codes still exist in the file, so the exemption cannot outlive them', () => {
+    for (const code of NO_ROOM_YET) {
+      expect(source).toContain(code)
+    }
   })
 })

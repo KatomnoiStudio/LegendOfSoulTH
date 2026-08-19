@@ -143,7 +143,19 @@ describe('F6: a failed save shows what the server actually holds', () => {
     })
 
     expect(saved).toBe(false)
-    expect(reportErrorMock).toHaveBeenCalledWith('PLAYER_SAVE_FAIL', 'visible')
+    /*
+      Until 2026-08-19 this asserted reportError('PLAYER_SAVE_FAIL', 'visible') fired HERE, with
+      no third argument — because the hook had nothing to pass. The PostgrestError explaining
+      the failure lives inside savePlayer and died with its bare `return false`, so the player
+      was shown "พื้นที่เก็บข้อมูลอาจเต็ม", a guess, on the game's most common failure path.
+
+      Reporting moved to where the error is still alive. This test mocks savePlayer, so no
+      report reaches the hook at all now, and asserting one would be asserting a duplicate.
+      The guarantee that every savePlayer failure reports is held in
+      accountRepository.supabase.persistence.test.ts — behaviourally for the two branches a
+      test can drive, and structurally for any branch added later.
+    */
+    expect(reportErrorMock).not.toHaveBeenCalledWith('PLAYER_SAVE_FAIL', 'visible')
     // Old code reverted to `restored` — showing the committed name as if it never saved, and
     // teeing up the next save to write that stale name back over the newer row.
     expect(result.current.player).toEqual(authoritative)

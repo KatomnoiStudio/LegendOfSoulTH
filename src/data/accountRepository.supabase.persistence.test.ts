@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { createDefaultSkillLevels } from '../game/realtimeBattle/SkillProgressionSystem'
 import type { OwnedCharacter, Player, PlayerProgress } from '../types/player'
@@ -510,5 +512,91 @@ describe('F2: every Player field has exactly one declared owner', () => {
       'profiles',
       'team_slots',
     ])
+  })
+})
+
+/*
+  ── 2026-08-19 gold-standard audit, rank 1 (CRITICAL) — the error that never left the room ──
+
+  `savePlayer` returns a boolean, so the PostgrestError it receives lives only inside the
+  function. Three branches did `return false` bare, and `useAuth.updatePlayer` — holding
+  nothing but that false — called `reportError('PLAYER_SAVE_FAIL', 'visible')` with no third
+  argument. The player got "บันทึกความคืบหน้าไม่สำเร็จ พื้นที่เก็บข้อมูลอาจเต็ม", which is a
+  guess, on the failure path this game hits most, while `normalizeError.ts:146-152` sat there
+  with code/details/hint extraction and was handed nothing.
+
+  Reporting moved to where the error is still alive. These tests are the teeth: each fails
+  against the pre-fix source, where reportError was simply never called on these branches
+  (`AGENTS.md` rule 23 — verified by reverting the guard and re-running, not assumed).
+*/
+describe('the thrown error travels with every save report', () => {
+  test('a profiles write failure reports the PostgrestError itself, not just the code', async () => {
+    const dbError = {
+      message: 'permission denied for table profiles',
+      code: '42501',
+      details: 'RLS policy rejected the update',
+      hint: 'check the policy on public.profiles',
+    }
+    mockTables({ profiles: dbError })
+    const { savePlayer } = await import('./accountRepository.supabase')
+
+    expect(await savePlayer(makePlayer())).toBe(false)
+
+    // Pre-fix: reportErrorMock was never called at all on this branch.
+    expect(reportErrorMock).toHaveBeenCalledWith('PLAYER_SAVE_FAIL', 'visible', dbError, {
+      stage: 'profiles',
+    })
+  })
+
+  test('a friends write failure reports its own error, distinguishable from the profiles one', async () => {
+    const dbError = { message: 'permission denied for table friends', code: '42501' }
+    mockTables({ friends: dbError })
+    const { savePlayer } = await import('./accountRepository.supabase')
+
+    expect(await savePlayer(makePlayer())).toBe(false)
+
+    expect(reportErrorMock).toHaveBeenCalledWith('PLAYER_SAVE_FAIL', 'visible', dbError, {
+      stage: 'friends-upsert',
+    })
+  })
+
+  /*
+    Structural, and deliberately so. The recording builder returns one result per TABLE, so a
+    test cannot make the friends upsert succeed and the prune that follows it fail — the
+    `friends-prune` branch is unreachable from the behavioural direction without rebuilding
+    shared test infrastructure for one branch.
+
+    It is also the check that survives the next edit. A behavioural test pins the three
+    branches that exist today; this one fails the moment a fourth bare `return false` is
+    added, which is exactly how the first three got there.
+  */
+  test('no branch of savePlayer returns false without reporting first', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/data/accountRepository.supabase.ts'),
+      'utf8',
+    )
+    const body = source.slice(
+      source.indexOf('export async function savePlayer'),
+      source.indexOf(
+        'export async function',
+        source.indexOf('export async function savePlayer') + 1,
+      ),
+    )
+    expect(body).not.toBe('')
+
+    const unreported = body
+      .split('\n')
+      .map((line, index) => ({ line: line.trim(), index }))
+      .filter(({ line }) => /^(if \(.*\) )?return false$/.test(line))
+      .filter(({ index }) => {
+        const preceding = body
+          .split('\n')
+          .slice(Math.max(0, index - 3), index)
+          .join('\n')
+        return !preceding.includes('reportError(')
+      })
+      .map(({ line, index }) => `line ${index + 1} of savePlayer: ${line}`)
+
+    expect(unreported).toEqual([])
   })
 })
