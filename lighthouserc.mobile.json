@@ -1,0 +1,19 @@
+{
+  "_comment": "Lighthouse CI, MOBILE profile (gold-standard audit 2026-08-19, rank 2). Sibling of lighthouserc.json, which is desktop-only. REPORT-ONLY and deliberately carrying no assertions yet — same opening position the desktop config held until it had three measured rounds.",
+  "_why_this_exists": "Every performance number this project quotes — perf 100, LCP 515ms, the 20ms the preload bought — was measured on the desktop preset. The game ships a touch D-pad and its own compatibility rules name mobile browsers, so the profile nobody was measuring is closer to how it is actually played than the one being reported. A desktop-only figure is not wrong; quoting it without the word 'desktop' is.",
+  "_no_thresholds_on_purpose": "The desktop config's own doctrine: 'a threshold written before measuring is a number that describes what the code already does, not a ceiling' — and its _how_these_numbers_were_picked warns against setting limits off one good result. Mobile has zero measured rounds here. Numbers go in after three rounds, derived from the measured worst with slack, exactly the way vite.config.ts's coverage floor and the desktop thresholds were set; then continue-on-error comes off this step. Copying the desktop thresholds across would be worse than having none: 4x CPU throttling and a slow-4G link make them a different quantity wearing the same names.",
+  "ci": {
+    "collect": {
+      "staticDistDir": "./dist-lhci",
+      "numberOfRuns": 3,
+      "settings": {
+        "_preset_note": "No preset key: mobile emulation with 4x CPU slowdown and slow-4G throttling is Lighthouse's DEFAULT. Naming a preset here would be naming the desktop one — 'mobile' is not a valid preset value, it is the absence of one.",
+        "skipAudits": ["uses-http2", "canonical", "is-crawlable", "robots-txt"]
+      }
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": "./reports/lighthouse-mobile"
+    }
+  }
+}

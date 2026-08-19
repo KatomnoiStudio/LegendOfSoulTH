@@ -284,3 +284,23 @@ jobs:
       # แย่กว่าไม่มีคะแนน — มันเขียว 100 แล้วไม่มีอะไรบอกว่าผิด
       - name: Fail if Lighthouse measured the bootstrap error screen
         run: node tools/check-lighthouse-target.mjs
+
+      # เกมนี้มี touch D-pad และกฎ compatibility ของมันเองพูดถึงเบราว์เซอร์มือถือ แต่ทุกตัวเลข
+      # perf ที่โปรเจกต์นี้อ้าง (perf 100, LCP 515ms, 20ms ที่ preload ซื้อมา) วัดบน desktop
+      # preset ทั้งหมด — โปรไฟล์ที่ไม่มีใครวัดคือโปรไฟล์ที่ใกล้กับการเล่นจริงมากกว่า
+      # (gold-standard audit 2026-08-19, rank 2)
+      #
+      # continue-on-error ยังอยู่ และ lighthouserc.mobile.json ยังไม่มี assertion สักข้อ — ท่า
+      # เดียวกับที่ desktop เริ่ม (ccc1133) รอบนี้คือการวัด ครบสามรอบแล้วค่อยใส่เลขที่ derive
+      # จากผลจริง แล้วจึงถอด continue-on-error ก๊อปเพดานของ desktop ข้ามมาแย่กว่าไม่มี:
+      # CPU throttle 4x + slow-4G ทำให้มันเป็นคนละปริมาณที่ใช้ชื่อเดียวกัน
+      #
+      # รันหลัง target guard เพราะขั้นนี้เขียนทับ .lighthouseci ที่ guard อ่าน — guard ของ mobile
+      # จะมาพร้อมเพดานของมัน ไม่ใช่ก่อน
+      - name: Run Lighthouse (mobile profile — measuring, not gating)
+        continue-on-error: true
+        uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12.6.2
+        with:
+          configPath: ./lighthouserc.mobile.json
+          uploadArtifacts: true
+          temporaryPublicStorage: false
