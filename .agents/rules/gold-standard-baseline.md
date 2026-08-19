@@ -62,6 +62,19 @@ stay closed, not as an open checklist). 6 remains the one open gap.
    Remains **OPEN as a sweep**: covering the remaining components on spec is still a weighed
    decision, not a proven-good default — state cost/benefit and recommend, per the rule.
 
+   > **Re-measured 2026-08-19.** The paragraph above is the 2026-08-09 state and is kept as
+   > written; these are the numbers now. **141 test files** under `src/` (was 106), **36
+   > `*.test.tsx`** (was 23) across 35 top-level components, **7** fuzz files (unchanged).
+   >
+   > **"No threshold enforced yet" is no longer true** — `vite.config.ts:138-143` sets
+   > statements 70 · branches 58 · functions 71 · lines 73, and `npm run ci` runs
+   > `test:coverage`, so a PR that drops below the floor fails. The reasoning recorded above
+   > for having no threshold ("a threshold that passes today would still guard almost
+   > nothing") was answered by the floor being set at the last measured value rather than at
+   > an aspirational one: it cannot pass vacuously, because it is where the suite already is.
+   >
+   > The sweep itself is still open, and `AGENTS.md` rule 10 still points here for it.
+
 ---
 
 <!-- coalmine: verified 2026-08-07 · exemplar OpenSSF Scorecard (18 checks) / Excalidraw / vitejs/vite / pmndrs/react-three-fiber / Keep a Changelog 2.0.0 / OWASP Password Storage Cheat Sheet / Signal Desktop (privacy-first error surfacing) · revalidate 90d -->
@@ -112,13 +125,15 @@ doesn't quietly re-enter as a "gap" in a future pass that only reads this file.
 
 ### Consolidated gap register (top items, MUST-tier first; full per-scout lists in the transcript)
 
-> **⚠️ SNAPSHOT of 2026-08-07 — not current status.** Re-measured by the 2026-08-16 audit:
-> **#1 component tests is now 34/66, not 4/58** · **#3 the bundle budget DOES gate** —
-> `tools/check-bundle-size.mjs` sets `process.exitCode = 1` and runs inside `npm run ci`.
-> #2 (`<img>` dimensions) survives but narrows to **one file**,
-> `LoadingScreen.module.css:31-34`; 13 of 14 live JSX sites already reserve space via CSS.
-> Current status lives in the 2026-08-16 audit's gap register, not here.
-> Banner added per `rules-freshness-check.md`'s snapshot requirement.
+> **⚠️ SNAPSHOT of 2026-08-07 — not current status.** The thirteen rows below are kept
+> verbatim as what was true that day. **Current status is the table immediately after them**,
+> re-measured 2026-08-19; nothing outside this file has to be found to read it.
+>
+> The banner this replaces was added 2026-08-16 and said "current status lives in the
+> 2026-08-16 audit's gap register, not here." **That audit was never committed as a
+> document.** The pointer satisfied `rules-freshness-check.md` §1 word for word and resolved
+> to nothing, which is why §1 now says the pointer must name the section that answers it —
+> and why this one points at a table eight lines down instead of at another file.
 
 **MUST-tier:**
 
@@ -129,11 +144,44 @@ doesn't quietly re-enter as a "gap" in a future pass that only reads this file.
    call, not an agent's** (see MEMORY.md's Branch protection entry — this is a known,
    accepted trade-off for a repo where the owner is the primary author, not an oversight).
 
-**EXCELLENCE-tier (lower priority, listed not auto-actioned):** 5. `format:check` not wired into `npm run ci` — deliberate (existing tree isn't
-prettier-clean yet), needs a one-time repo-wide reformat pass before it can gate. 6. No pre-push git hook automating `pre-push-sync-law.md`'s fetch/merge/verify sequence. 7. `noUncheckedIndexedAccess`/`exactOptionalPropertyTypes` TS flags not set. 8. No commitlint — commit-message discipline is real but currently manual/agent-enforced. 9. No E2E/visual-regression tooling (Playwright etc.) — WebGL2/WebGPU fallback logic is
-compat-critical and currently only unit-tested, not exercised end-to-end. 10. No mutation testing (Stryker) — test _presence_ is measured, test _quality_ isn't. 11. `harden-runner` runs `egress-policy: audit` everywhere, not `block`+allowlist. 12. Docs are Thai-majority with no English onboarding path (SECURITY.md/CoC/LICENSE are
-English-only, creating an inconsistent split for non-Thai contributors/researchers). 13. `CHANGELOG.md`'s `[0.2.0]` entry is dated with no `v0.2.0` tag pushed yet — resolves
-itself once a version is actually bumped and the deploy pipeline cuts that release.
+**EXCELLENCE-tier (lower priority, listed not auto-actioned):**
+
+5. `format:check` not wired into `npm run ci` — deliberate (existing tree isn't
+   prettier-clean yet), needs a one-time repo-wide reformat pass before it can gate.
+6. No pre-push git hook automating `pre-push-sync-law.md`'s fetch/merge/verify sequence.
+7. `noUncheckedIndexedAccess`/`exactOptionalPropertyTypes` TS flags not set.
+8. No commitlint — commit-message discipline is real but currently manual/agent-enforced.
+9. No E2E/visual-regression tooling (Playwright etc.) — WebGL2/WebGPU fallback logic is
+   compat-critical and currently only unit-tested, not exercised end-to-end.
+10. No mutation testing (Stryker) — test _presence_ is measured, test _quality_ isn't.
+11. `harden-runner` runs `egress-policy: audit` everywhere, not `block`+allowlist.
+12. Docs are Thai-majority with no English onboarding path (SECURITY.md/CoC/LICENSE are
+    English-only, creating an inconsistent split for non-Thai contributors/researchers).
+13. `CHANGELOG.md`'s `[0.2.0]` entry is dated with no `v0.2.0` tag pushed yet — resolves
+    itself once a version is actually bumped and the deploy pipeline cuts that release.
+
+### Where those thirteen stand — measured 2026-08-19
+
+Eight of the thirteen had moved without the list following. Two more had moved before
+2026-08-16 and the banner caught only those two, which is how a register drifts in both
+directions at once: it reads as open work that is finished, and as finished work that was
+never started.
+
+| #   | 2026-08-19                                                                                                                                                                                                                                                                  |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **OPEN, moving** — 36 test files against 70 `.tsx` (4/58 at snapshot, 34/66 on 2026-08-16).                                                                                                                                                                                 |
+| 2   | **OPEN, narrow** — one file, `LoadingScreen.module.css:31-34`; 13 of 14 live JSX sites already reserve space via CSS (2026-08-16 measurement, not re-taken).                                                                                                                |
+| 3   | **CLOSED** — `tools/check-bundle-size.mjs` sets `process.exitCode = 1` and runs in `npm run ci`.                                                                                                                                                                            |
+| 4   | **UNCHANGED AND DELIBERATE** — 9 required checks and a required review; `enforce_admins: false`, `allow_force_pushes: true`. HetCreep's call, `docs/BRANCH-PROTECTION-DECISION.md`.                                                                                         |
+| 5   | **CLOSED** — in `npm run ci`. The repo-wide reformat this row was waiting on happened.                                                                                                                                                                                      |
+| 6   | **OPEN** — `.husky/` holds `pre-commit` only.                                                                                                                                                                                                                               |
+| 7   | **HALF DECIDED** — `noUncheckedIndexedAccess` measured 2026-08-16 and deliberately left off (491 errors, 384 of them in tests); the reasoning is in `tsconfig.app.json`. `exactOptionalPropertyTypes` has still never been measured.                                        |
+| 8   | **OPEN** — no config, no dependency.                                                                                                                                                                                                                                        |
+| 9   | **OPEN** — but the WebGPU fallback this row names is now covered by `src/components/LobbyScene/createLobbyRenderer.test.ts`, which reached it by extracting the closure rather than by driving a browser.                                                                   |
+| 10  | **CLOSED** — Stryker 10 via `npm run test:mutation`, `stryker.config.json`, scoped to the money paths.                                                                                                                                                                      |
+| 11  | **PARTIAL** — 2 jobs on `block`, 11 still on `audit`.                                                                                                                                                                                                                       |
+| 12  | **SUPERSEDED** — `AGENTS.md` rule 28 rules the split audience-keyed and deliberate, and warns that an English rewrite of a Thai design lock would be an expensive mistake. This row now contradicts a binding rule; it is kept only because the snapshot above is verbatim. |
+| 13  | **OPEN, now tracked mechanically** — `tools/check-rules-integrity.mjs` holds it in `KNOWN_UNTAGGED` together with six more untagged versions this row never knew about, and fails if the list goes stale in any direction.                                                  |
 
 ### What this section is NOT
 

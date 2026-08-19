@@ -342,6 +342,20 @@ function collectTargets() {
   pushDir('docs', (f) => f.endsWith('-DESIGN-LOCK.md'))
   pushFile('AGENTS.md')
   pushFile('MEMORY.md')
+  // Widened 2026-08-19 (gold-standard audit). These three are contributor-facing rather than
+  // agent-binding, so they sat outside every scope this checker ever had — and a 2026-08-19
+  // re-audit found both of the first two citing things that no longer exist: CONTRIBUTING.md
+  // bound outside agents to a "ring-authority policy" whose file was deleted 2026-08-12, and
+  // README.md promised a module-load throw that supabaseClient.ts documents as removed.
+  //
+  // Neither of those two was a backtick `path:line` citation, so this widening would not have
+  // caught either one; prose that names a concept is invisible here by design. What it does
+  // buy is the citations these files DO carry in the checkable shape, on the same terms as
+  // the binding documents — a contributor reading a dead path is misled exactly as far as an
+  // agent is.
+  pushFile('README.md')
+  pushFile('CONTRIBUTING.md')
+  pushFile('.github/PULL_REQUEST_TEMPLATE.md')
   return targets
 }
 

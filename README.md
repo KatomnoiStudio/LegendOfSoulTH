@@ -27,7 +27,7 @@ npm run dev                        # http://localhost:5173
 
 The anon key is not a secret in the traditional sense (it's designed to ship inside the client bundle — real security is the RLS policies in `supabase/migrations/`), but it still needs to come from the dashboard so HetCreep controls who has access.
 
-Missing env vars throw immediately at module load (`src/lib/supabaseClient.ts`) — `npm run dev` will fail loudly, not silently misbehave.
+Missing env vars throw on the first call that actually needs Supabase, not at module load (`src/lib/supabaseClient.ts`). The module-load throw described here until 2026-08-19 was removed deliberately: it propagated through every importer, forcing `main.tsx` into a dynamic import, `chatStorage` into a lazy `await import`, and a whole file to be split off purely to avoid importing this one — which is why `useAuth.ts` ended up with no tests while its four sibling hooks had them. `npm run dev` still fails loudly rather than misbehaving silently; it just fails at first use.
 
 `.env.local.example` also documents the exact Google OAuth Redirect URLs that must be whitelisted in the Supabase dashboard for login to work at all — a mismatch there causes a real, previously-shipped bug (session token stranded in the URL; see `MEMORY.md` item 172).
 
@@ -42,7 +42,7 @@ npm run test         # Vitest
 npm run test:edge   # Deno test on the pvp-authority Edge Function
 npm run build       # typecheck + production build -> dist/
 npm run preview     # serve the production build locally
-npm run ci          # typecheck + lint + test + test:edge + build + bundle-size gate — must be green before any commit
+npm run ci          # every gate, in order — `package.json` is the list; must be green before any commit
 npm run audit       # npm audit --audit-level=high (same check security-scan.yml runs daily)
 
 npm run build:models   # generate character GLB files into public/models/

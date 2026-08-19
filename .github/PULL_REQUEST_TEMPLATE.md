@@ -13,7 +13,13 @@ Provide a brief summary of the changes made in this Pull Request.
 ## Checklist
 
 - [ ] Code follows project conventions
-- [ ] `npm run typecheck` passes cleanly locally
-- [ ] `npm run lint` passes cleanly locally
-- [ ] `npm run test` passes cleanly locally
-- [ ] `npm run build` succeeds locally
+- [ ] `npm run ci` passes cleanly locally — the whole gate set, not a subset
+
+<!--
+  This used to list typecheck / lint / test / build as four separate boxes. All four could be
+  ticked while four other gates in `npm run ci` had never run, so the checklist certified less
+  than it appeared to. `package.json` is the only list of what the gate set contains; naming
+  the gates here again is how the two drifted apart in the first place.
+-->
+
+- [ ] A defect fix ships a test proven red against the pre-fix source (`AGENTS.md` rule 23)

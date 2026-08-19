@@ -7,7 +7,7 @@
 ```bash
 npm install
 npm run dev       # http://localhost:5173
-npm run ci        # typecheck + lint + test + build — รันให้ผ่านก่อนส่ง PR เสมอ
+npm run ci        # ทุก gate ตามลำดับ (รายการจริงอยู่ใน package.json) — รันให้ผ่านก่อนส่ง PR เสมอ
 ```
 
 รายละเอียดคำสั่ง/โครงสร้างโปรเจกต์ทั้งหมด → [`README.md`](README.md)
@@ -51,7 +51,7 @@ npm run ci        # typecheck + lint + test + build — รันให้ผ่
 ## ถ้าใช้ AI agent ช่วยเขียนโค้ด
 
 โปรเจกต์นี้มีกฎบังคับสำหรับ AI agent ที่ทำงานในนี้ (memory protocol, coding standard,
-ring-authority policy) — อ่าน [`AGENTS.md`](AGENTS.md) และ [`MEMORY.md`](MEMORY.md) ก่อนเริ่ม
+merge control) — อ่าน [`AGENTS.md`](AGENTS.md) และ [`MEMORY.md`](MEMORY.md) ก่อนเริ่ม
 ถ้า agent ของคุณไม่รองรับการอ่านไฟล์เหล่านี้อัตโนมัติ ให้สั่งตรง ๆ ให้อ่านก่อนแก้โค้ดใด ๆ
 
 ## Code of Conduct
