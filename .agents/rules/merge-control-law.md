@@ -69,3 +69,9 @@ Every merge under this law re-verifies against the CURRENT `master` tip (procedu
 - **Who reviews the owner's own merges**: this law adds no check above the owner's own merge judgment. GitHub-native review-authorization (Bors' `r+`, GitHub's required-reviewers) doesn't close it either — HetCreep is both the sole `admin:true` human and the author of self-merged commits, so adopting that mechanism wouldn't produce independent review without a second admin.
 - **No technical backstop today**: `enforce_admins` on this repo's branch protection is currently `false`, so an admin account can bypass this entire procedure by pushing straight to `master`. This law binds by convention only. Flagged here rather than implied to be enforced; whether to flip `enforce_admins` is a real access decision for HetCreep, not something a rules file can decide for itself.
 - **CI doesn't cover the exact asset class PR #19 regressed** (harden-runner / SHA-pinned actions / SBOM presence in `.github/workflows/*.yml`): `npm run ci` doesn't parse workflow YAML, so the fresh-tip re-check (step 2) is currently 100% human judgment for this specific class — the same failure mode the re-check exists to close for everything else. A lightweight CI assertion (grep for pinned SHAs / harden-runner presence) would be proportionate, but building it is out of scope for this rules file; named here as a follow-up, not implemented.
+
+**Enforcement**: PARTIAL — GitHub branch protection on `master` carries 9 required status
+checks and requires a pull-request review, which binds every contributor without admin.
+It does **not** bind the owner: `enforce_admins` is `false` and `allow_force_pushes` is
+`true`, deliberately (`docs/BRANCH-PROTECTION-DECISION.md`). The fresh-tip re-check — this
+law's load-bearing step — is **ADVISORY**; nothing re-runs it.

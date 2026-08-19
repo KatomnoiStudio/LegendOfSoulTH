@@ -47,3 +47,7 @@ actually done.
   _keeping the row honest once work lands_, not about who's allowed to start it.
 - Doesn't mean re-deriving `%` bands from scratch each time — same bands as the law file
   (`multi-dev-task-queue-law.md`), same discipline: objective, not vibes.
+
+**Enforcement**: ADVISORY. Same reason as `agent-memory-law.md`'s cadence clause: the defect
+is a `TASKS.md` row that was never touched, and an absence leaves nothing in the diff to
+match against the code that should have moved it.

@@ -26,3 +26,7 @@ This project has multiple people (and their agents) pushing to `master` concurre
 ## What "no conflicting code" means here
 
 Not "never have a git conflict" — conflicts are normal with concurrent contributors. It means: **no unresolved or carelessly-resolved conflict ever reaches `origin/master`.** A conflict marker (`<<<<<<<`) in a pushed file, or a resolution that silently reverts someone else's committed work, is the failure this law exists to prevent.
+
+**Enforcement**: ADVISORY. There is no `pre-push` hook — `.husky/` holds `pre-commit` only.
+CI re-runs the full verify after the push, which catches a broken merge but only once it is
+already on `master`, which is the outcome this law exists to prevent.

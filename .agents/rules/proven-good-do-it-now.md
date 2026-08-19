@@ -65,3 +65,6 @@ On a project where the same operator answers every question, that turned into a 
 on every useful change, and the questions that mattered got buried among the ones that did
 not. The point of asking is to surface a genuine fork. If there is no fork, there is
 nothing to surface.
+
+**Enforcement**: ADVISORY. This law governs when to ask rather than what to produce, so its
+subject is a decision that leaves no artifact to check.

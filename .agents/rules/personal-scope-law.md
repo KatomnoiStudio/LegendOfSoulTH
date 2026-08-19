@@ -45,3 +45,8 @@ When genuinely unsure which bucket something belongs in, ask rather than guess â
 wrongly-omitted project fact is easy to re-add next session, but a personal note
 leaked into the shared file stays there burning tokens until someone notices and
 manually cleans it out.
+
+**Enforcement**: PARTIAL â€” `MEMORY.local.md` is gitignored (`.gitignore:63`), so personal
+content written to the correct file cannot reach the repo at all. Nothing stops personal
+content being written into `MEMORY.md` instead, which is the direction this law actually
+guards: that half is **ADVISORY**.

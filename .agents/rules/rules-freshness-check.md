@@ -33,7 +33,7 @@ A proposal missing any of the three does not get written. Prefer, in this order:
 
 This gate binds additions, not the rules already standing — those are reviewed by the normal `revalidate` stamps. It exists because the cheapest governance is the governance nobody has to read.
 
-<!-- coalmine: verified 2026-08-16 · exemplar OpenSSF Scorecard (a check scores on re-measurement, never on re-dating) + this law's own entry-gate criterion 2, applied to the rules already standing · revalidate 90d -->
+<!-- coalmine: verified 2026-08-19 · exemplar OpenSSF Scorecard (a check scores on re-measurement, never on re-dating) + this law's own entry-gate criterion 2, applied to the rules already standing · re-proved by: node tools/check-rules-integrity.mjs · revalidate 90d -->
 
 ## Three integrity requirements the date-based check cannot see (2026-08-16)
 
@@ -96,9 +96,43 @@ have none, so the freshness system cannot see its own newest and most load-beari
 `ecc/web/observability.md`'s `2026-08-07b` has no computable deadline. Vendored ECC files
 are exempt by provenance.
 
-**Enforcement**: ADVISORY. The mechanical half is a stamp-well-formedness pass, which
-`node scripts/consistency.mjs` already describes as its job in the CoalMine contract; the
-snapshot-banner and enforcement-header halves are read by a human or an agent.
+**Enforcement**: `node tools/check-rules-integrity.mjs`, in `npm run ci` since 2026-08-19.
+
+The line above used to read "ADVISORY. The mechanical half is a stamp-well-formedness pass,
+which `node scripts/consistency.mjs` already describes as its job in the CoalMine contract."
+**That script belongs to CoalMine, not to this repo, and `scripts/` here is an empty
+directory** — the mechanical half named in the sentence had never existed. Three days and
+thirty-nine commits later a re-audit found every defect this section names still sitting
+exactly where it named them, which is what an enforcement clause pointing at nothing
+produces. It is recorded rather than quietly replaced because the failure shape is the one
+this file's own entry gate warns about: a rule can satisfy criterion 2 in prose by citing a
+mechanism, and the citation is not the mechanism.
+
+What the checker holds, and what it does not:
+
+| requirement                                                                            | held by                                |
+| -------------------------------------------------------------------------------------- | -------------------------------------- |
+| the `RULES_VERSION` pair agrees across `AGENTS.md` and `MEMORY.md`                     | the check                              |
+| §3 — every project law declares its enforcement                                        | the check                              |
+| §2 — every project law carries a stamp whose date parses                               | the check                              |
+| a rule number cited beside a law's filename is the number `AGENTS.md` gives it         | the check                              |
+| `CHANGELOG.md` version headings resolve, and `[Unreleased]` tracks the shipped version | the check                              |
+| §1 — a status register carries a dated snapshot banner                                 | **ADVISORY** — read, never re-measured |
+| §2 — a stamp's claim is still TRUE, not merely well-formed                             | **ADVISORY** — see below               |
+
+The two advisory rows are not oversights, and neither should be closed by widening the
+checker until someone can say what it would measure. A banner's _presence_ is greppable and
+its _currency_ is not: `gold-standard-baseline.md` carried a correctly-formed banner on
+2026-08-16 that pointed at an audit document which was never committed. A greppable-banner
+check would have scored that file green. **Enforcement that can be satisfied by the shape of
+a sentence is the defect this section was written about**, so the honest state of those two
+rows is ADVISORY, said out loud, rather than a check that raises the score without raising
+the floor.
+
+The checker verifies itself: `node tools/check-rules-integrity.mjs --selftest` feeds each
+check an input it must reject and fails if any check stays silent. A gate that passes
+vacuously scores the same as one that works, and nothing else in `npm run ci` was asking
+its own gates that question.
 
 ## Why a plain counter, not a content hash
 

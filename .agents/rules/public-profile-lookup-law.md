@@ -27,3 +27,8 @@
 
 - Doesn't mandate one specific implementation for `findPlayerByUid` today — it constrains the SHAPE any fix must take (rules 1-4 above), leaving the exact schema to whoever implements it.
 - Doesn't cover moderation/reporting itself (rule 6 flags the gap; building it is separate scoped work, gated by the usual TASKS.md claim protocol).
+
+**Enforcement**: ADVISORY. The database half is adjacent to `AGENTS.md` rule 26 (every new
+table in a PostgREST-exposed schema ships RLS plus a policy), but nothing checks the shape
+this law is actually about — an RPC's return type, its `EXECUTE` grants, and whether a
+lookup reads a synced snapshot instead of the private table.

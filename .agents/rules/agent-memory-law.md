@@ -83,3 +83,8 @@ What that means in practice:
 2. **During Task Execution**: Keep track of architecture changes, configs, and setup steps.
 3. **On Task Completion**: Synthesize learnings and update `MEMORY.md` with timestamp and identity stamps before declaring completion — the new item's body into the newest `MEMORY/archive/` block, its index line into `MEMORY.md`.
 4. **On Submit (commit / push / PR)**: Confirm `MEMORY.md` **and the `MEMORY/archive/` file you appended to** are included in the same delivery — not left unstaged, uncommitted, or only on a local/fork branch that never reaches the target remote.
+
+**Enforcement**: `node tools/verify-memory-archive.mjs` in `npm run ci` — it checks that
+`MEMORY.md`'s index lines and the bodies under `MEMORY/archive/**` still say the same thing.
+That is one clause of this law. §2's continuous-update cadence and §3's identity stamping are
+**ADVISORY**: no check can see a session that simply did not write.

@@ -30,3 +30,8 @@ A reviewer (human or future agent) reading `git log` should be able to tell what
 ## When a task turns out bigger than expected mid-flight
 
 If what looked like one task splits into genuinely separate sub-tasks partway through (discovered scope, like the `publicUrl` bug found in more files after the main fix), each sub-task still gets its own single commit once _it's_ done — don't retroactively force everything into the original commit via `--amend` (amending already-pushed commits violates other constraints too). Multiple single-task commits in a row is correct; multiple partial commits for the _same_ task is what this rule forbids.
+
+**Enforcement**: ADVISORY. "One completed task" is a judgment about what the unit of work
+was, and a diff does not carry it — two unrelated fixes and one two-part fix produce the same
+shape. Nothing here is mechanically checkable without inventing a task ledger the commit
+never referenced.

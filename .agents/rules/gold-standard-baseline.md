@@ -239,3 +239,7 @@ transcript if needed again:
   facts — this project has now independently rejected adding one twice for the same modal
   a11y territory (see item 45/28 in `MEMORY.md` for the first ruling, this audit's blind-review
   pass for the second, both landing the same way for the same reason).
+
+**Enforcement**: ADVISORY. The individual items closed here are held by their own gates
+(`node tools/check-bundle-size.mjs`, `npm run format:check`, `npm run lint`, the CSP in
+`index.html`); this file's own registers are prose and are read, never re-measured.
