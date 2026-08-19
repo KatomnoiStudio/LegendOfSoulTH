@@ -584,18 +584,23 @@ describe('the thrown error travels with every save report', () => {
     )
     expect(body).not.toBe('')
 
-    const unreported = body
-      .split('\n')
-      .map((line, index) => ({ line: line.trim(), index }))
-      .filter(({ line }) => /^(if \(.*\) )?return false$/.test(line))
-      .filter(({ index }) => {
-        const preceding = body
-          .split('\n')
-          .slice(Math.max(0, index - 3), index)
-          .join('\n')
-        return !preceding.includes('reportError(')
-      })
-      .map(({ line, index }) => `line ${index + 1} of savePlayer: ${line}`)
+    /*
+      Segment between one `return false` and the previous one, rather than a fixed lookback of
+      N lines. The first version looked back 3 lines and was reproduced false-positiving: give
+      any context object a second key, Prettier wraps the call across four lines, and the
+      window spans only the object's tail — never reaching `reportError(`. The test would have
+      failed CI against correct code, and the next author would have had to work out why.
+
+      Segmenting is formatting-independent by construction. It can only ever under-report (a
+      report belonging to an earlier branch covering a later bare return), never over-report,
+      which is the right direction for a guard that gates a build.
+    */
+    const segments = body.split(/^\s*return false$/m)
+    const unreported = segments
+      .slice(0, -1)
+      .map((segment, index) => ({ segment, branch: index + 1 }))
+      .filter(({ segment }) => !segment.includes('reportError('))
+      .map(({ branch }) => `branch ${branch} of savePlayer returns false with no report`)
 
     expect(unreported).toEqual([])
   })

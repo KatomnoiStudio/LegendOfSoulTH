@@ -160,11 +160,11 @@ const selftest = () => {
 if (process.argv.includes('--selftest')) {
   selftest()
 } else {
-  const problems = checkCsp(readFileSync(join(process.cwd(), 'index.html'), 'utf8'))
+  const html = readFileSync(join(process.cwd(), 'index.html'), 'utf8')
+  const problems = checkCsp(html)
 
   if (problems.length === 0) {
-    const directives = parseCsp(readFileSync(join(process.cwd(), 'index.html'), 'utf8'))
-    console.log(`✓ CSP ครบตามที่ประกาศไว้ — ${directives.size} directive`)
+    console.log(`✓ CSP ครบตามที่ประกาศไว้ — ${parseCsp(html).size} directive`)
   } else {
     console.error('✗ CSP ใน index.html ผ่อนลงจากที่ตั้งใจไว้')
     for (const line of problems) console.error(`  ${line}`)

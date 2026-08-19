@@ -155,7 +155,14 @@ describe('F6: a failed save shows what the server actually holds', () => {
       accountRepository.supabase.persistence.test.ts — behaviourally for the two branches a
       test can drive, and structurally for any branch added later.
     */
-    expect(reportErrorMock).not.toHaveBeenCalledWith('PLAYER_SAVE_FAIL', 'visible')
+    /*
+      Matched on the CODE alone, not on the exact argument list. `.not.toHaveBeenCalledWith(
+      'PLAYER_SAVE_FAIL', 'visible')` only excluded a call with exactly those two arguments —
+      reinstating the report as `reportError('PLAYER_SAVE_FAIL', 'visible', cause)` would not
+      have matched the matcher, so the duplicate this assertion exists to prevent would have
+      shipped green beside savePlayer's own.
+    */
+    expect(reportErrorMock.mock.calls.filter((call) => call[0] === 'PLAYER_SAVE_FAIL')).toEqual([])
     // Old code reverted to `restored` — showing the committed name as if it never saved, and
     // teeing up the next save to write that stale name back over the newer row.
     expect(result.current.player).toEqual(authoritative)
