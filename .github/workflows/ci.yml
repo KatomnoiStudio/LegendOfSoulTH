@@ -7,7 +7,6 @@ on:
       - '**/*.md'
       - '.agents/**'
       - '.coalmine.json'
-      - '.github/upstream-watch/**'
   # ไม่มี paths-ignore ฝั่ง pull_request โดยตั้งใจ — branch protection บังคับ check ชื่อ
   # "Continuous Integration" ไว้ ถ้า workflow นี้ไม่ทริกเกอร์ check นั้นจะไม่มีใครรายงานเลย
   # และ PR ค้างตลอดกาล เดิมแก้ด้วย ci-docs-gate.yml ที่ประกาศ job ชื่อซ้ำกันเป๊ะ ผลคือ PR ที่

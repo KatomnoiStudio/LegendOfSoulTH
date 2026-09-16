@@ -25,7 +25,6 @@ on:
       - '**/*.md'
       - '.agents/**'
       - '.coalmine.json'
-      - '.github/upstream-watch/**'
   workflow_dispatch:
     inputs:
       force:
@@ -65,8 +64,8 @@ jobs:
         id: check
         # ค่าจาก event context เข้ามาทาง env: ไม่ใช่แทรกกลางสคริปต์ — การแทรกจะถูกแทนที่เป็น
         # ข้อความดิบก่อน shell เห็น ซึ่งเป็นช่อง script injection blast radius ต่ำที่นี่
-        # (precondition คือ commit บน master ที่ผ่าน PR แล้ว) แต่ repo นี้ใช้รูปที่ปลอดภัย
-        # อยู่แล้วห่างไปสอง job — upstream-skill-watch.yml:92 (audit item B19, 2026-08-16)
+        # (precondition คือ commit บน master ที่ผ่าน PR แล้ว) แต่ยังใช้รูปที่ปลอดภัยเสมอ
+        # (audit item B19, 2026-08-16)
         env:
           EVENT_NAME: ${{ github.event_name }}
           EVENT_BEFORE: ${{ github.event.before }}
